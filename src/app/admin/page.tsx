@@ -21,9 +21,11 @@ import {
   Search,
   Filter,
   ArrowLeft,
-  ClipboardCheck
+  ClipboardCheck,
+  Activity
 } from "lucide-react";
-import { MOCK_DASHBOARD_STATS, MOCK_KPI_DATA, MOCK_STAFF_ATTENDANCE, MOCK_MAILS, MailData } from "@/data/mockData";
+import { MOCK_DASHBOARD_STATS, MOCK_KPI_DATA, MOCK_STAFF_ATTENDANCE, MOCK_MAILS, MOCK_STAFF, MailData } from "@/data/mockData";
+import { StaffData } from "@/types/admin";
 import { useRouter } from "next/navigation";
 
 export default function AdminDashboard() {
@@ -38,7 +40,16 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [staffList, setStaffList] = useState<StaffData[]>([]);
   const itemsPerPage = 10;
+
+  const getRoleLabel = (role?: string) => {
+    if (role === "01") return "ADMIN";
+    if (role === "02") return "QL CÔNG VIỆC";
+    if (role === "03") return "QL NHÂN SỰ";
+    if (role === "04") return "NHÂN VIÊN";
+    return "GUEST";
+  };
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -61,7 +72,15 @@ export default function AdminDashboard() {
       }));
     };
 
+    const loadStaff = () => {
+      const stored = localStorage.getItem("global_users");
+      if (stored) setStaffList(JSON.parse(stored));
+      else setStaffList(MOCK_STAFF);
+    };
+
     refreshStats();
+    loadStaff();
+    const staffInterval = setInterval(loadStaff, 5000);
 
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "global_kpi_data" && e.newValue) {
@@ -73,9 +92,15 @@ export default function AdminDashboard() {
       if (e.key === "dashboard_stats" && e.newValue) {
         setStats(JSON.parse(e.newValue));
       }
+      if (e.key === "global_users") {
+        loadStaff();
+      }
     };
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      clearInterval(staffInterval);
+    };
   }, []);
 
   // Reset trang khi đổi loại view
@@ -174,14 +199,17 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-gray-300">
-                  {MOCK_STAFF_ATTENDANCE.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).map((staff, index) => (
+                  {staffList
+                    .filter(s => s.status === "ACTIVE")
+                    .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map((staff, index) => (
                     <tr key={staff.id} className="hover:bg-white/[0.02] transition-colors group">
                       <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
                       <td className="py-4 px-6 text-sm font-bold text-white">{staff.name}</td>
-                      <td className="py-4 px-6 text-xs text-gray-400 uppercase font-black">{staff.role}</td>
+                      <td className="py-4 px-6 text-xs text-gray-400 uppercase font-black">{getRoleLabel(staff.role)}</td>
                       <td className="py-4 px-6">
-                        <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${staff.status === 'ONLINE' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
-                          {staff.status}
+                        <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${staff.isOnline ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
+                          {staff.isOnline ? "ONLINE" : "OFFLINE"}
                         </span>
                       </td>
                     </tr>

@@ -6,7 +6,7 @@ import Header from "@/components/admin/Header";
 import ProfileModal from "@/components/admin/ProfileModal";
 import AccessLock from "@/components/admin/modals/AccessLock";
 import { useRouter } from "next/navigation";
-import { MOCK_ACCESS_REQUESTS } from "@/data/mockData";
+import { MOCK_ACCESS_REQUESTS, initMockDB } from "@/data/mockData";
 import { Bell, Check, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -15,6 +15,9 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    initMockDB();
+  }, []);
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);

@@ -1,146 +1,260 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Lock, User, Mail, Loader2, ArrowLeft, Phone } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Lock, User, Mail, Loader2, ArrowLeft, Phone, Calendar, MapPin, UserCheck, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+import { initMockDB } from "@/data/mockData";
 
 export default function RegisterPage() {
+  React.useEffect(() => {
+    initMockDB();
+  }, []);
   const router = useRouter();
   const [formData, setFormData] = useState({
-    username: "",
-    password: "",
     name: "",
-    email: "",
-    role: "NHÂN VIÊN"
+    birthYear: "",
+    username: "",
+    phone: "",
+    address: "",
+    password: "",
+    confirmPassword: ""
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  const years = Array.from({ length: 2010 - 1970 + 1 }, (_, i) => (2010 - i).toString());
+
+  const passwordStrength = useMemo(() => {
+    const pass = formData.password;
+    if (!pass) return { score: 0, label: "", color: "" };
+    let score = 0;
+    if (pass.length >= 6) score += 1;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(pass)) score += 1;
+    if (/[A-Z]/.test(pass) && /[0-9]/.test(pass)) score += 1;
+    if (score === 1) return { score: 1, label: "Yếu", color: "bg-red-500" };
+    if (score === 2) return { score: 2, label: "Trung bình", color: "bg-yellow-500" };
+    if (score >= 3) return { score: 3, label: "Mạnh", color: "bg-green-500" };
+    return { score: 0, label: "Quá yếu", color: "bg-red-500/50" };
+  }, [formData.password]);
+
+  const validateField = (name: string, value: string) => {
+    let error = "";
+    if (name === "phone") {
+      const phoneRegex = /^(0|84)(3|5|7|8|9)([0-9]{8})$/;
+      if (!phoneRegex.test(value)) error = "Số điện thoại không hợp lệ";
+    }
+    if (name === "password") {
+      if (value.length < 6) error = "Tối thiểu 6 ký tự";
+      else if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) error = "Cần 1 ký tự đặc biệt";
+    }
+    if (name === "confirmPassword") {
+      if (value !== formData.password) error = "Mật khẩu không khớp";
+    }
+    if (name === "username" && value.length < 3) error = "Tối thiểu 3 ký tự";
+    if (!value) error = "Không được để trống";
+    setErrors(prev => ({ ...prev, [name]: error }));
+    return !error;
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    if (name === "phone") {
+      const numericValue = value.replace(/[^0-9]/g, "");
+      setFormData(prev => ({ ...prev, [name]: numericValue }));
+      validateField(name, numericValue);
+      return;
+    }
+    setFormData(prev => ({ ...prev, [name]: value }));
+    validateField(name, value);
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    // Giả lập lưu dữ liệu vào localStorage (Thêm vào danh sách users)
-    await new Promise((resolve) => setTimeout(resolve, 1500));
     
-    const existingUsers = JSON.parse(localStorage.getItem("all_users") || "[]");
-    existingUsers.push(formData);
-    localStorage.setItem("all_users", JSON.stringify(existingUsers));
+    const newErrors: Record<string, string> = {};
+    Object.keys(formData).forEach(key => {
+      const val = (formData as any)[key];
+      if (key === "phone") {
+        if (!/^(0|84)(3|5|7|8|9)([0-9]{8})$/.test(val)) newErrors[key] = "SĐT không hợp lệ";
+      } else if (key === "password") {
+        if (val.length < 6 || !/[!@#$%^&*(),.?":{}|<>]/.test(val)) newErrors[key] = "Mật khẩu không đủ mạnh";
+      } else if (key === "confirmPassword") {
+        if (val !== formData.password) newErrors[key] = "Mật khẩu không khớp";
+      } else if (!val) {
+        newErrors[key] = "Thông tin bắt buộc";
+      }
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setIsLoading(true);
+    // Giả lập gửi thông báo tới Admin
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    
+    const existingUsers = JSON.parse(localStorage.getItem("global_users") || "[]");
+    if (existingUsers.some((u: any) => u.username === formData.username)) {
+      setErrors({ username: "Username đã tồn tại" });
+      setIsLoading(false);
+      return;
+    }
+
+    const newUser = {
+      id: Date.now().toString(),
+      ...formData,
+      status: "PENDING",
+      role: undefined,
+      isOnline: false,
+      taskCount: 0,
+      kpiProgress: 0,
+      lastActive: "Mới đăng ký"
+    };
+
+    existingUsers.push(newUser);
+    localStorage.setItem("global_users", JSON.stringify(existingUsers));
+
+    // Tạo thông báo cho Admin
+    const notifications = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
+    notifications.unshift({
+      id: Date.now(),
+      title: "Yêu cầu phê duyệt mới",
+      message: `Tài khoản ${formData.name} (@${formData.username}) vừa đăng ký và đang chờ duyệt.`,
+      time: "Vừa xong",
+      type: "REGISTRATION",
+      userId: newUser.id,
+      read: false
+    });
+    localStorage.setItem("admin_notifications", JSON.stringify(notifications));
 
     setSuccess(true);
     setTimeout(() => {
-      router.push("/login");
-    }, 2000);
+      router.push("/login?message=pending");
+    }, 3000);
   };
 
-  return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0a0a0a] font-sans p-4">
-      {/* Background Orbs */}
-      <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-gold/10 blur-[120px]" />
-      <div className="absolute -bottom-20 -right-20 h-96 w-96 rounded-full bg-gold/5 blur-[120px]" />
+  const inputClass = (name: string) => `h-14 w-full rounded-2xl border ${errors[name] ? "border-red-500 bg-red-50/50" : "border-gray-200 bg-white"} pl-14 pr-6 text-sm text-gray-900 focus:border-gold focus:outline-none focus:ring-4 focus:ring-gold/10 transition-all shadow-sm placeholder:text-gray-400 font-bold`;
+  const labelClass = "text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1 mb-1 block";
 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="z-10 w-full max-w-2xl"
-      >
-        <div className="rounded-[50px] border border-white/10 bg-white/5 p-10 md:p-16 backdrop-blur-3xl shadow-2xl">
-          {/* Logo Section */}
-          <div className="mb-10 text-center">
-            <div className="mx-auto mb-6 flex h-32 w-32 items-center justify-center rounded-[40px] bg-gold/5 border border-gold/10 overflow-hidden shadow-2xl">
-              <img src="/logo.png" alt="AQ MEDIA" className="h-full w-full object-contain p-2" onError={(e) => e.currentTarget.src = "https://via.placeholder.com/150/d4af37/000000?text=AQ"} />
+  return (
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0f0f0f] font-sans p-4 py-20 text-white">
+      <div className="absolute -left-20 -top-20 h-[500px] w-[500px] rounded-full bg-gold/5 blur-[120px]" />
+      <div className="absolute -bottom-20 -right-20 h-[500px] w-[500px] rounded-full bg-gold/5 blur-[120px]" />
+
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="z-10 w-full max-w-2xl">
+        <div className="rounded-[48px] border border-white/5 bg-[#161616] p-10 md:p-16 shadow-2xl">
+          <div className="mb-12 text-center">
+            <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[32px] bg-gold/5 border border-gold/10 p-2 shadow-2xl">
+              <img src="/logo.png" alt="AQ MEDIA" className="h-full w-full object-contain" onError={(e) => e.currentTarget.src = "https://via.placeholder.com/150/d4af37/000000?text=AQ"} />
             </div>
-            <h1 className="text-3xl font-black tracking-tighter text-white uppercase">
-              Đăng ký tài khoản
-            </h1>
-            <p className="mt-3 text-sm font-medium text-gray-500 uppercase tracking-[0.3em]">
-              Gia nhập đội ngũ AQ MEDIA
-            </p>
+            <h1 className="text-4xl font-black tracking-tighter uppercase">Đăng ký tài khoản</h1>
+            <p className="mt-3 text-xs font-bold text-gray-500 uppercase tracking-[0.4em]">Hệ thống AQ MEDIA</p>
           </div>
 
           {success ? (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center py-10 space-y-4"
-            >
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-500/20 text-green-500">
-                <User size={40} />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-10 space-y-6">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[32px] bg-gold/20 text-gold mb-6 border border-gold/30 animate-pulse">
+                <Clock size={40} />
               </div>
-              <h2 className="text-xl font-bold text-white">Đăng ký thành công!</h2>
-              <p className="text-gray-400">Đang chuyển hướng về trang đăng nhập...</p>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-black uppercase tracking-tighter text-white">Đăng ký thành công!</h2>
+                <p className="text-gold font-bold text-lg">Vui lòng đợi hệ thống xác nhận tài khoản.</p>
+                <p className="text-gray-500 text-sm italic font-medium">Thông báo đã được gửi tới Admin để phê duyệt.</p>
+              </div>
+              <p className="text-gray-400 text-[10px] uppercase tracking-widest font-black pt-4">Đang chuyển hướng về trang đăng nhập...</p>
             </motion.div>
           ) : (
-            <form onSubmit={handleRegister} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4 md:col-span-2">
-                <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-1">Họ và tên</label>
-                <div className="group relative">
-                  <User className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={24} />
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    placeholder="Nguyễn Văn A"
-                    className="h-16 w-full rounded-2xl border border-white/5 bg-white/5 pl-14 pr-6 text-lg text-white focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 transition-all"
-                  />
+            <form onSubmit={handleRegister} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+              <div className="space-y-1">
+                <label className={labelClass}>Họ và tên</label>
+                <div className="relative group">
+                  <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.name ? "text-red-500" : "text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+                  <input type="text" name="name" required value={formData.name} onChange={handleInputChange} placeholder="Nguyễn Văn A" className={inputClass("name")} />
+                </div>
+                {errors.name && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.name}</p>}
+              </div>
+
+              <div className="space-y-1">
+                <label className={labelClass}>Năm sinh</label>
+                <div className="relative group">
+                  <Calendar className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.birthYear ? "text-red-500" : "text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+                  <select name="birthYear" required value={formData.birthYear} onChange={handleInputChange} className={`${inputClass("birthYear")} appearance-none cursor-pointer`}>
+                    <option value="" disabled>Chọn năm</option>
+                    {years.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-1">Số điện thoại</label>
-                <div className="group relative">
-                  <Phone className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={24} />
-                  <input
-                    type="tel"
-                    required
-                    value={formData.username}
-                    onChange={(e) => setFormData({...formData, username: e.target.value})}
-                    placeholder="09xx xxx xxx"
-                    className="h-16 w-full rounded-2xl border border-white/5 bg-white/5 pl-14 pr-6 text-lg text-white focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 transition-all"
-                  />
+              <div className="space-y-1">
+                <label className={labelClass}>Username</label>
+                <div className="relative group">
+                  <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.username ? "text-red-500" : "text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+                  <input type="text" name="username" required value={formData.username} onChange={handleInputChange} placeholder="username_01" className={inputClass("username")} />
+                </div>
+                {errors.username && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.username}</p>}
+              </div>
+
+              <div className="space-y-1">
+                <label className={labelClass}>Số điện thoại</label>
+                <div className="relative group">
+                  <Phone className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.phone ? "text-red-500" : "text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+                  <input type="tel" name="phone" required value={formData.phone} onChange={handleInputChange} placeholder="09xxxxxxxx" className={inputClass("phone")} />
+                </div>
+                {errors.phone && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.phone}</p>}
+              </div>
+
+              <div className="md:col-span-2 space-y-1">
+                <label className={labelClass}>Địa chỉ liên hệ</label>
+                <div className="relative group">
+                  <MapPin className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.address ? "text-red-500" : "text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+                  <input type="text" name="address" required value={formData.address} onChange={handleInputChange} placeholder="Hà Nội, Việt Nam" className={inputClass("address")} />
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-1">Mật khẩu</label>
-                <input
-                  type="password"
-                  required
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  className="h-16 w-full rounded-2xl border border-white/5 bg-white/5 px-6 text-lg text-white focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 transition-all"
-                />
-              </div>
-
-              <div className="space-y-4 md:col-span-2">
-                <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-1">Email công ty</label>
-                <div className="group relative">
-                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={24} />
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    placeholder="example@aqmedia.vn"
-                    className="h-16 w-full rounded-2xl border border-white/5 bg-white/5 pl-14 pr-6 text-lg text-white focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 transition-all"
-                  />
+              <div className="space-y-1">
+                <label className={labelClass}>Mật khẩu</label>
+                <div className="relative group">
+                  <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.password ? "text-red-500" : "text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+                  <input type="password" name="password" required value={formData.password} onChange={handleInputChange} className={inputClass("password")} />
                 </div>
+                {formData.password && (
+                  <div className="px-1 pt-2 space-y-1.5">
+                    <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
+                      <span className="text-gray-500">Độ mạnh:</span>
+                      <span className={passwordStrength.label === "Mạnh" ? "text-green-500" : passwordStrength.label === "Trung bình" ? "text-yellow-500" : "text-red-500"}>{passwordStrength.label}</span>
+                    </div>
+                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                      <motion.div initial={{ width: 0 }} animate={{ width: `${(passwordStrength.score / 3) * 100}%` }} className={`h-full ${passwordStrength.color}`} />
+                    </div>
+                  </div>
+                )}
+                {errors.password && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.password}</p>}
               </div>
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="md:col-span-2 mt-4 relative h-18 w-full overflow-hidden rounded-2xl bg-gold font-black uppercase tracking-[0.2em] text-[#0a0a0a] text-lg transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-70 shadow-2xl shadow-gold/20"
-              >
-                {isLoading ? <Loader2 className="animate-spin mx-auto" size={24} /> : "Tạo tài khoản ngay"}
+              <div className="space-y-1">
+                <label className={labelClass}>Xác nhận mật khẩu</label>
+                <div className="relative group">
+                  <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.confirmPassword ? "text-red-500" : "text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+                  <input type="password" name="confirmPassword" required value={formData.confirmPassword} onChange={handleInputChange} className={inputClass("confirmPassword")} />
+                </div>
+                {errors.confirmPassword && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.confirmPassword}</p>}
+              </div>
+
+              <button type="submit" disabled={isLoading} className="md:col-span-2 mt-8 h-16 w-full rounded-2xl bg-gold font-black uppercase tracking-[0.2em] text-[#0a0a0a] text-sm transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-70 shadow-2xl shadow-gold/20 flex items-center justify-center gap-3">
+                {isLoading ? (
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="animate-spin" size={24} />
+                    <span>Đang gửi yêu cầu...</span>
+                  </div>
+                ) : "Tạo tài khoản ngay"}
               </button>
 
-              <div className="md:col-span-2 text-center pt-4">
-                <Link href="/login" className="text-sm font-bold text-gray-500 hover:text-gold transition-colors flex items-center justify-center gap-2 uppercase tracking-widest">
+              <div className="md:col-span-2 text-center mt-6">
+                <Link href="/login" className="text-[10px] font-black text-gray-500 hover:text-gold transition-colors flex items-center justify-center gap-2 uppercase tracking-widest">
                   <ArrowLeft size={16} /> Quay lại đăng nhập
                 </Link>
               </div>

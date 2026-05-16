@@ -137,13 +137,43 @@ export const MOCK_STAFF_ATTENDANCE = [
 export const MOCK_ACCESS_REQUESTS = [];
 
 export const MOCK_STAFF: StaffData[] = [
-  { id: "1", name: "Nguyễn Văn A", username: "admin01", email: "a.nguyen@aqmedia.vn", role: "01", status: "ACTIVE", isOnline: true, taskCount: 5, kpiProgress: 85, lastActive: "Vừa xong" },
-  { id: "2", name: "Trần Thị B", username: "leader02", email: "b.tran@aqmedia.vn", role: "02", status: "ACTIVE", isOnline: true, taskCount: 12, kpiProgress: 92, lastActive: "Vừa xong" },
-  { id: "3", name: "Lê Văn C", username: "staff03", email: "c.le@aqmedia.vn", role: "03", status: "ACTIVE", isOnline: false, taskCount: 8, kpiProgress: 45, lastActive: "10 phút trước" },
-  { id: "4", name: "Phạm Minh D", username: "staff04", email: "d.pham@aqmedia.vn", role: "03", status: "LOCKED", isOnline: false, taskCount: 0, kpiProgress: 0, lastActive: "2 ngày trước" },
-  { id: "5", name: "Hoàng An", username: "leader05", email: "an.hoang@aqmedia.vn", role: "02", status: "ACTIVE", isOnline: true, taskCount: 15, kpiProgress: 78, lastActive: "Vừa xong" },
-  { id: "6", name: "Đặng Thu", username: "staff06", email: "thu.dang@aqmedia.vn", role: "04", status: "ACTIVE", isOnline: true, taskCount: 4, kpiProgress: 60, lastActive: "Vừa xong" },
+  { id: "1", name: "Nguyễn Admin", username: "01", email: "admin@aqmedia.vn", role: "01", status: "ACTIVE", isOnline: true, taskCount: 5, kpiProgress: 85, lastActive: "Vừa xong", birthYear: "1990", phone: "0988111111", address: "Hà Nội", password: "123" },
+  { id: "2", name: "Trần Quản Lý CV", username: "02", email: "manager_task@aqmedia.vn", role: "02", status: "ACTIVE", isOnline: true, taskCount: 12, kpiProgress: 92, lastActive: "Vừa xong", birthYear: "1992", phone: "0988222222", address: "Hải Phòng", password: "123" },
+  { id: "3", name: "Lê Quản Lý NS", username: "03", email: "manager_hr@aqmedia.vn", role: "03", status: "ACTIVE", isOnline: false, taskCount: 8, kpiProgress: 45, lastActive: "10 phút trước", birthYear: "1993", phone: "0988333333", address: "Đà Nẵng", password: "123" },
+  { id: "4", name: "Phạm Nhân Viên", username: "04", email: "staff@aqmedia.vn", role: "04", status: "ACTIVE", isOnline: true, taskCount: 4, kpiProgress: 60, lastActive: "Vừa xong", birthYear: "1995", phone: "0988444444", address: "HCM", password: "123" },
 ];
+
+// Utility to initialize Mock DB
+export const initMockDB = () => {
+  if (typeof window !== "undefined") {
+    const stored = localStorage.getItem("global_users");
+    if (!stored) {
+      localStorage.setItem("global_users", JSON.stringify(MOCK_STAFF));
+    } else {
+      // Sync the 4 fixed accounts to ensure they always exist for testing
+      const currentUsers = JSON.parse(stored);
+      let updated = false;
+      
+      MOCK_STAFF.forEach(mockUser => {
+        const index = currentUsers.findIndex((u: any) => u.username === mockUser.username);
+        if (index === -1) {
+          currentUsers.push(mockUser);
+          updated = true;
+        } else {
+          // Update password and role for these 4 specific accounts to match request
+          if (["01", "02", "03", "04"].includes(mockUser.username)) {
+            currentUsers[index] = { ...currentUsers[index], ...mockUser };
+            updated = true;
+          }
+        }
+      });
+
+      if (updated) {
+        localStorage.setItem("global_users", JSON.stringify(currentUsers));
+      }
+    }
+  }
+};
 
 export const MOCK_TASK_ASSIGNMENTS: TaskAssignment[] = [
   { id: "T1", title: "Nuôi mail vệ tinh đợt 1", type: "MAIL_VE_TINH", deadline: "2024-05-20", progress: 65, status: "IN_PROGRESS", assigneeId: "3", mailCount: 50 },

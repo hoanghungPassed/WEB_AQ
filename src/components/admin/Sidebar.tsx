@@ -12,7 +12,8 @@ import {
   ChevronDown, 
   ChevronRight,
   UserCircle,
-  ShieldAlert
+  ShieldAlert,
+  LogOut
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
@@ -24,7 +25,7 @@ function cn(...inputs: ClassValue[]) {
 
 interface SidebarProps {
   isCollapsed: boolean;
-  user: { name: string; role: string } | null;
+  user: any;
 }
 
 const menuItems = [
@@ -83,11 +84,24 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
     );
   };
 
+  const getRoleLabel = (role?: string) => {
+    if (role === "01") return "ADMIN";
+    if (role === "02") return "QL CÔNG VIỆC";
+    if (role === "03") return "QL NHÂN SỰ";
+    if (role === "04") return "NHÂN VIÊN";
+    return "GUEST";
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    window.location.href = "/login";
+  };
+
   return (
     <motion.aside 
       initial={false}
       animate={{ width: isCollapsed ? 100 : 320 }}
-      className="fixed left-0 top-0 z-40 h-screen border-r border-border-custom bg-sidebar text-white flex flex-col shadow-2xl"
+      className="fixed left-0 top-0 z-40 h-screen border-r border-white/5 bg-sidebar text-white flex flex-col shadow-2xl"
     >
       {/* Logo */}
       <div className={cn(
@@ -102,13 +116,13 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
         </div>
         {!isCollapsed && (
           <span className="ml-4 text-2xl font-black tracking-tighter text-white whitespace-nowrap">
-            AQ <span className="text-gold uppercase">MEDIA</span>
+            AQ <span className="text-gold uppercase tracking-widest text-xl ml-1">MEDIA</span>
           </span>
         )}
       </div>
 
       {/* Menu */}
-      <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-3">
+      <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-3 custom-scrollbar">
         {menuItems.map((item) => {
           const hasSubItems = item.subItems && item.subItems.length > 0;
           const isOpen = openMenus.includes(item.title);
@@ -120,8 +134,8 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
                 <button
                   onClick={() => toggleMenu(item.title)}
                   className={cn(
-                    "group flex w-full items-center justify-between rounded-xl px-4 py-3 text-base font-semibold transition-all hover:bg-white/5",
-                    (isOpen || isActive) && !isCollapsed ? "text-gold bg-white/5" : "text-gray-400"
+                    "group flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-sm font-black uppercase tracking-widest transition-all hover:bg-white/[0.03]",
+                    (isOpen || isActive) && !isCollapsed ? "text-gold bg-white/[0.03]" : "text-gray-500"
                   )}
                 >
                   <div className="flex items-center gap-4 overflow-hidden">
@@ -131,11 +145,8 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
                     {!isCollapsed && <span className="whitespace-nowrap">{item.title}</span>}
                   </div>
                   {!isCollapsed && (
-                    <motion.div
-                      animate={{ rotate: isOpen ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ChevronDown size={20} />
+                    <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                      <ChevronDown size={18} />
                     </motion.div>
                   )}
                 </button>
@@ -143,8 +154,8 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
                 <Link
                   href={item.href || "#"}
                   className={cn(
-                    "group flex items-center gap-4 rounded-xl px-4 py-3 text-base font-semibold transition-all hover:bg-white/5",
-                    pathname === item.href ? "bg-white/10 text-gold shadow-lg shadow-gold/10" : "text-gray-400"
+                    "group flex items-center gap-4 rounded-2xl px-4 py-3.5 text-sm font-black uppercase tracking-widest transition-all hover:bg-white/[0.03]",
+                    pathname === item.href ? "bg-gold/5 text-gold shadow-lg shadow-gold/5" : "text-gray-500"
                   )}
                 >
                   <span className={cn("flex-shrink-0 transition-colors", pathname === item.href ? "text-gold" : "group-hover:text-gold")}>
@@ -154,35 +165,23 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
                 </Link>
               )}
 
-              {/* Sub-menu */}
               <AnimatePresence>
                 {hasSubItems && isOpen && !isCollapsed && (
                   <motion.div 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
+                    initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
                     className="ml-12 space-y-2 overflow-hidden"
                   >
-                    {item.subItems?.map((sub) => {
-                      // Kiểm tra quyền hạn cho mục "Mail bật kiếm tiền"
-                      const isMonetizedMail = sub.title === "Mail bật kiếm tiền";
-                      const canSeeMonetized = user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC";
-                      
-                      if (isMonetizedMail && !canSeeMonetized) return null;
-
-                      return (
-                        <Link
-                          key={sub.title}
-                          href={sub.href}
-                          className={cn(
-                            "block rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:text-gold",
-                            pathname === sub.href ? "text-gold font-bold" : "text-gray-500"
-                          )}
-                        >
-                          {sub.title}
-                        </Link>
-                      );
-                    })}
+                    {item.subItems?.map((sub) => (
+                      <Link
+                        key={sub.title} href={sub.href}
+                        className={cn(
+                          "block rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-widest transition-colors hover:text-gold",
+                          pathname === sub.href ? "text-gold bg-gold/5" : "text-gray-600"
+                        )}
+                      >
+                        {sub.title}
+                      </Link>
+                    ))}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -192,19 +191,35 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
       </nav>
 
       {/* User Profile at bottom */}
-      <div className="border-t border-border-custom p-6">
+      <div className="border-t border-white/5 p-6 bg-white/[0.01]">
         <div className={cn(
-          "flex items-center gap-4 rounded-2xl p-3 transition-colors hover:bg-white/5 cursor-pointer group",
-          isCollapsed && "justify-center"
+          "flex items-center justify-between rounded-3xl p-3 transition-colors hover:bg-white/5 group",
+          isCollapsed && "flex-col gap-4"
         )}>
-          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gold/10 text-gold border border-gold/20 group-hover:border-gold transition-all">
-            <UserCircle size={30} />
+          <div className="flex items-center gap-4 overflow-hidden">
+            <div className="h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gold/10 text-gold border border-gold/20 group-hover:border-gold transition-all overflow-hidden shadow-lg">
+              {user?.avatar ? (
+                <img src={user.avatar} className="h-full w-full object-cover" />
+              ) : (
+                <UserCircle size={28} />
+              )}
+            </div>
+            {!isCollapsed && (
+              <div className="flex flex-col overflow-hidden">
+                <span className="text-[10px] font-black text-gold uppercase tracking-[0.2em]">{getRoleLabel(user?.role)}</span>
+                <span className="text-sm font-black text-white truncate">{user?.name || "GUEST"}</span>
+                <span className="text-[9px] text-gray-600 font-bold uppercase tracking-tighter truncate">@{user?.username || "unknown"}</span>
+              </div>
+            )}
           </div>
           {!isCollapsed && (
-            <div className="flex flex-col">
-              <span className="text-base font-bold text-white group-hover:text-gold transition-colors">{user?.role || "GUEST"}</span>
-              <span className="text-xs text-gray-400 uppercase tracking-widest font-medium">{user?.name || "Người dùng"}</span>
-            </div>
+            <button 
+              onClick={handleLogout}
+              className="h-10 w-10 flex items-center justify-center rounded-xl text-gray-600 hover:text-red-500 hover:bg-red-500/10 transition-all"
+              title="Đăng xuất"
+            >
+              <LogOut size={20} />
+            </button>
           )}
         </div>
       </div>

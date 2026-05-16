@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ClipboardList, 
@@ -24,8 +24,27 @@ import { MOCK_STAFF, MOCK_TASK_ASSIGNMENTS, MOCK_MAILS } from "@/data/mockData";
 import { StaffData, TaskAssignment } from "@/types/admin";
 
 export default function TaskManagementPage() {
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(MOCK_TASK_ASSIGNMENTS[0].id);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskFilter, setTaskFilter] = useState("ALL");
+  const [staffList, setStaffList] = useState<StaffData[]>([]);
+
+  // Load staff from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("global_users");
+    if (stored) {
+      const allUsers = JSON.parse(stored);
+      // Chỉ lấy nhân viên đã ACTIVE
+      setStaffList(allUsers.filter((u: StaffData) => u.status === "ACTIVE"));
+    } else {
+      setStaffList(MOCK_STAFF.filter(s => s.status === "ACTIVE"));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!selectedTaskId && MOCK_TASK_ASSIGNMENTS.length > 0) {
+      setSelectedTaskId(MOCK_TASK_ASSIGNMENTS[0].id);
+    }
+  }, []);
 
   const selectedTask = useMemo(() => 
     MOCK_TASK_ASSIGNMENTS.find(t => t.id === selectedTaskId), 
@@ -42,7 +61,7 @@ export default function TaskManagementPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Chia việc hệ thống</h1>
-          <p className="text-gray-500 font-medium mt-1">Phân bổ nguồn lực, tối ưu hóa quy trình nuôi mail.</p>
+          <p className="text-gray-500 font-medium mt-1">Phân bổ nguồn lực cho đội ngũ nhân sự đã kích hoạt.</p>
         </div>
         <div className="flex items-center gap-3">
           <button className="h-12 px-6 bg-gold hover:bg-gold/80 text-sidebar rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-gold/20">
@@ -90,13 +109,18 @@ export default function TaskManagementPage() {
         <div className="w-72 flex flex-col gap-4">
           <div className="flex items-center justify-between px-2">
             <h2 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
-              <Users size={16} className="text-gold" /> Nhân viên
+              <Users size={16} className="text-gold" /> Nhân sự khả dụng
             </h2>
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
-            {MOCK_STAFF.map((staff) => (
+            {staffList.length > 0 ? staffList.map((staff) => (
               <StaffSmallCard key={staff.id} staff={staff} />
-            ))}
+            )) : (
+              <div className="text-center py-10 opacity-20">
+                <Users size={40} className="mx-auto mb-2" />
+                <p className="text-[10px] font-black uppercase tracking-widest">Không có nhân sự</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -147,10 +171,12 @@ export default function TaskManagementPage() {
                   <div className="bg-black/20 p-4 rounded-3xl border border-white/5">
                     <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Người phụ trách</p>
                     <div className="flex items-center gap-3">
-                      <div className="h-6 w-6 rounded-full bg-gold/20 flex items-center justify-center text-[10px] font-black text-gold">
-                        {MOCK_STAFF.find(s => s.id === selectedTask.assigneeId)?.name.charAt(0) || "?"}
+                      <div className="h-6 w-6 rounded-full bg-gold/20 flex items-center justify-center text-[10px] font-black text-gold uppercase">
+                        {staffList.find(s => s.id === selectedTask.assigneeId)?.name.charAt(0) || "?"}
                       </div>
-                      <span className="text-sm font-black text-white">{MOCK_STAFF.find(s => s.id === selectedTask.assigneeId)?.name || "Chưa giao"}</span>
+                      <span className="text-sm font-black text-white truncate max-w-[120px]">
+                        {staffList.find(s => s.id === selectedTask.assigneeId)?.name || "Chưa giao"}
+                      </span>
                     </div>
                   </div>
                   <div className="bg-black/20 p-4 rounded-3xl border border-white/5">
@@ -251,19 +277,19 @@ function TaskCard({ task, isActive, onClick }: any) {
 function StaffSmallCard({ staff }: any) {
   return (
     <div className="p-4 rounded-3xl bg-sidebar border border-white/5 group hover:border-gold/30 transition-all flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className="relative">
+      <div className="flex items-center gap-3 overflow-hidden">
+        <div className="relative shrink-0">
           <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-xs font-black text-gray-400 group-hover:bg-gold/10 group-hover:text-gold transition-all">
-            {staff.name.charAt(0)}
+            {staff.avatar ? <img src={staff.avatar} className="w-full h-full object-cover rounded-xl" /> : staff.name.charAt(0)}
           </div>
-          <div className={`absolute -right-1 -bottom-1 h-3 w-3 rounded-full border-2 border-sidebar ${staff.isOnline ? "bg-green-500" : "bg-gray-700"}`} />
+          <div className={`absolute -right-1 -bottom-1 h-3 w-3 rounded-full border-2 border-sidebar ${staff.isOnline ? "bg-green-500" : "bg-red-500"}`} />
         </div>
-        <div>
-          <p className="text-xs font-black text-white group-hover:text-gold transition-colors">{staff.name}</p>
-          <p className="text-[10px] text-gray-500 font-bold uppercase mt-0.5">{staff.taskCount} Task đang làm</p>
+        <div className="overflow-hidden">
+          <p className="text-xs font-black text-white group-hover:text-gold transition-colors truncate">{staff.name}</p>
+          <p className="text-[10px] text-gray-500 font-bold uppercase mt-0.5 truncate">{staff.role === "01" ? "Admin" : staff.role === "02" ? "QL Công việc" : "Nhân viên"}</p>
         </div>
       </div>
-      <div className="text-right">
+      <div className="text-right shrink-0 ml-2">
         <p className="text-[10px] font-black text-gray-500 uppercase mb-1">Tải việc</p>
         <p className={`text-xs font-black ${staff.taskCount > 10 ? "text-red-500" : staff.taskCount > 5 ? "text-gold" : "text-green-500"}`}>{Math.round(staff.taskCount * 8.5)}%</p>
       </div>

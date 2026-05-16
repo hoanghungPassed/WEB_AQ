@@ -3,13 +3,17 @@ export interface StaffData {
   name: string;
   username: string;
   email: string;
-  role: "01" | "02" | "03" | "04";
-  status: "ACTIVE" | "LOCKED";
+  role?: "01" | "02" | "03" | "04";
+  status: "ACTIVE" | "LOCKED" | "PENDING";
   isOnline: boolean;
   taskCount: number;
-  kpiProgress: number; // 0-100
+  kpiProgress: number; 
   avatar?: string;
   lastActive?: string;
+  birthYear?: string;
+  phone?: string;
+  address?: string;
+  password?: string;
 }
 
 export interface TaskAssignment {
