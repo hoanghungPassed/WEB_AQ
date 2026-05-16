@@ -1,3 +1,5 @@
+import { StaffData, TaskAssignment } from "@/types/admin";
+
 // Dữ liệu người dùng hệ thống
 export const MOCK_USERS = [
   { 
@@ -133,3 +135,19 @@ export const MOCK_STAFF_ATTENDANCE = [
 ];
 
 export const MOCK_ACCESS_REQUESTS = [];
+
+export const MOCK_STAFF: StaffData[] = [
+  { id: "1", name: "Nguyễn Văn A", username: "admin01", email: "a.nguyen@aqmedia.vn", role: "01", status: "ACTIVE", isOnline: true, taskCount: 5, kpiProgress: 85, lastActive: "Vừa xong" },
+  { id: "2", name: "Trần Thị B", username: "leader02", email: "b.tran@aqmedia.vn", role: "02", status: "ACTIVE", isOnline: true, taskCount: 12, kpiProgress: 92, lastActive: "Vừa xong" },
+  { id: "3", name: "Lê Văn C", username: "staff03", email: "c.le@aqmedia.vn", role: "03", status: "ACTIVE", isOnline: false, taskCount: 8, kpiProgress: 45, lastActive: "10 phút trước" },
+  { id: "4", name: "Phạm Minh D", username: "staff04", email: "d.pham@aqmedia.vn", role: "03", status: "LOCKED", isOnline: false, taskCount: 0, kpiProgress: 0, lastActive: "2 ngày trước" },
+  { id: "5", name: "Hoàng An", username: "leader05", email: "an.hoang@aqmedia.vn", role: "02", status: "ACTIVE", isOnline: true, taskCount: 15, kpiProgress: 78, lastActive: "Vừa xong" },
+  { id: "6", name: "Đặng Thu", username: "staff06", email: "thu.dang@aqmedia.vn", role: "04", status: "ACTIVE", isOnline: true, taskCount: 4, kpiProgress: 60, lastActive: "Vừa xong" },
+];
+
+export const MOCK_TASK_ASSIGNMENTS: TaskAssignment[] = [
+  { id: "T1", title: "Nuôi mail vệ tinh đợt 1", type: "MAIL_VE_TINH", deadline: "2024-05-20", progress: 65, status: "IN_PROGRESS", assigneeId: "3", mailCount: 50 },
+  { id: "T2", title: "Kháng mail bật kiếm tiền", type: "MAIL_MONETIZED", deadline: "2024-05-18", progress: 100, status: "COMPLETED", assigneeId: "2", mailCount: 10 },
+  { id: "T3", title: "Cấu hình mail gốc hệ thống", type: "MAIL_GOC", deadline: "2024-05-25", progress: 20, status: "PENDING", mailCount: 100 },
+  { id: "T4", title: "Check spam danh sách 05", type: "MAIL_VE_TINH", deadline: "2024-05-15", progress: 45, status: "OVERDUE", assigneeId: "6", mailCount: 30 },
+];

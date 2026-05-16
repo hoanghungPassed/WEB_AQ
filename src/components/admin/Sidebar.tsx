@@ -46,8 +46,8 @@ const menuItems = [
     title: "Nhân sự & Phân việc",
     icon: <Users size={24} />,
     subItems: [
-      { title: "Nhân viên", href: "/admin/hr/employees" },
-      { title: "Chia việc", href: "/admin/hr/tasks" },
+      { title: "Nhân viên", href: "/admin/staff" },
+      { title: "Chia việc", href: "/admin/tasks" },
     ],
   },
   {
