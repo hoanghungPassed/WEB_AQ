@@ -60,11 +60,6 @@ const menuItems = [
     ],
   },
   {
-    title: "Phân quyền hệ thống",
-    icon: <ShieldAlert size={24} />,
-    href: "/admin/permissions",
-  },
-  {
     title: "Hệ thống",
     icon: <Settings size={24} />,
     href: "/admin/settings",

@@ -74,8 +74,13 @@ export default function AdminDashboard() {
 
     const loadStaff = () => {
       const stored = localStorage.getItem("global_users");
-      if (stored) setStaffList(JSON.parse(stored));
-      else setStaffList(MOCK_STAFF);
+      const allUsers = stored ? JSON.parse(stored) : MOCK_STAFF;
+      
+      // Deduplicate by ID
+      const unique = allUsers.filter((item: any, index: number, self: any[]) =>
+        index === self.findIndex((t) => String(t.id) === String(item.id))
+      );
+      setStaffList(unique);
     };
 
     refreshStats();
@@ -116,7 +121,9 @@ export default function AdminDashboard() {
     setTimeout(() => setShowSuccess(false), 3000);
   };
 
-  const isHRManager = user?.role === "QUẢN LÝ NHÂN SỰ" || user?.role === "03";
+  const roleLabel = getRoleLabel(user?.role);
+  const isAdminOrManager = user?.role === "01" || user?.role === "02";
+  const isHRManager = user?.role === "03" || user?.role === "QUẢN LÝ NHÂN SỰ";
 
   // Lọc dữ liệu mail tổng hợp cho các view xem nhanh (Live/Die)
   const filteredMails = useMemo(() => {
@@ -203,7 +210,7 @@ export default function AdminDashboard() {
                     .filter(s => s.status === "ACTIVE")
                     .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
                     .map((staff, index) => (
-                    <tr key={staff.id} className="hover:bg-white/[0.02] transition-colors group">
+                    <tr key={`staff-${staff.id}`} className="hover:bg-white/[0.02] transition-colors group">
                       <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
                       <td className="py-4 px-6 text-sm font-bold text-white">{staff.name}</td>
                       <td className="py-4 px-6 text-xs text-gray-400 uppercase font-black">{getRoleLabel(staff.role)}</td>
@@ -228,7 +235,7 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody className="divide-y divide-white/5 text-gray-300">
                   {filteredMails.slice(0, 10).map((mail, index) => (
-                    <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
+                    <tr key={`mail-${mail.id}`} className="hover:bg-white/[0.02] transition-colors group">
                       <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
                       <td className="py-4 px-6 text-sm font-bold text-white">{mail.email}</td>
                       <td className="py-4 px-6 text-xs text-gray-400">{mail.recovery}</td>
@@ -313,7 +320,7 @@ export default function AdminDashboard() {
                     { day: "Thứ Ba", name: "Trần Thị B", area: "Khu vực Pantry", status: "Chờ thực hiện" },
                     { day: "Thứ Tư", name: "Lê Văn C", area: "Phòng họp lớn", status: "Chờ thực hiện" },
                   ].map((row, i) => (
-                    <tr key={i} className="group hover:bg-white/[0.02]">
+                    <tr key={`schedule-${i}`} className="group hover:bg-white/[0.02]">
                       <td className="py-4 px-2 text-sm font-bold text-white">{row.day}</td>
                       <td className="py-4 px-2 text-sm font-medium text-gray-400">{row.name}</td>
                       <td className="py-4 px-2 text-sm text-gray-500">{row.area}</td>
@@ -335,13 +342,13 @@ export default function AdminDashboard() {
             <StatCard title="Tổng mail" value={stats.totalMail} icon={<Mail size={32} />} color="blue" subtitle="Toàn hệ thống" onClick={() => router.push("/admin/mail/all")} />
             <StatCard title="Mail Live" value={stats.mailLive} icon={<CheckCircle size={32} />} color="green" subtitle="Đang hoạt động" onClick={() => setSelectedViewType("LIVE")} />
             <StatCard title="Mail Die" value={stats.mailDie} icon={<XCircle size={32} />} color="red" subtitle="Cần kiểm tra lại" onClick={() => setSelectedViewType("DIE")} />
-            {(user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC") ? (
+            {(user?.role === "01" || user?.role === "02") ? (
               <StatCard title="Bật kiếm tiền" value={stats.mailMonetized} icon={<DollarSign size={32} />} color="gold" subtitle="Đã bật quảng cáo" onClick={() => router.push("/admin/mail/monetized")} />
             ) : (
               <StatCard title="Kênh đủ giờ" value={stats.mailWatchHours} icon={<Clock size={32} />} color="gold" subtitle="Chờ bật kiếm tiền" />
             )}
             <StatCard title="Task hôm nay" value={stats.tasksToday} icon={<ClipboardList size={32} />} color="indigo" subtitle="Công việc cần làm" onClick={() => setSelectedViewType("TASKS")} />
-            {user?.role !== "NHÂN VIÊN" && (
+            {user?.role !== "04" && (
               <StatCard title="Nhân viên Online" value={stats.staffOnline} icon={<Users size={32} />} color="purple" subtitle="Đang làm việc" onClick={() => setSelectedViewType("STAFF")} />
             )}
           </div>
@@ -351,23 +358,46 @@ export default function AdminDashboard() {
               <div className="absolute top-0 right-0 h-48 w-48 bg-gold/5 blur-[80px] -mr-24 -mt-24 transition-all group-hover:bg-gold/10" />
               <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
                 <div><h2 className="text-3xl font-black text-white flex items-center gap-3 tracking-tighter uppercase"><TrendingUp size={32} className="text-gold" /> KPI Hệ Thống</h2><p className="text-gray-500 mt-1 font-medium text-sm">Thiết lập mục tiêu và theo dõi tiến độ công việc</p></div>
-                <div className={`flex items-center gap-4`}>
-                  <div className={`flex items-center gap-3 bg-white/5 p-1.5 rounded-xl border border-white/5 ${(user?.role !== "ADMIN" && user?.role !== "QUẢN LÝ CÔNG VIỆC") ? "opacity-75" : ""}`}>
-                    <input type="date" value={kpi.startDate} disabled={user?.role !== "ADMIN" && user?.role !== "QUẢN LÝ CÔNG VIỆC"} onChange={(e) => setKpi({ ...kpi, startDate: e.target.value })} className="bg-transparent text-white text-xs font-bold p-1 outline-none" />
+                <div className={`flex flex-wrap items-center gap-4`}>
+                  <div className={`flex items-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/10 ${!isAdminOrManager ? "opacity-75" : ""}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Từ</span>
+                      <input 
+                        type="date" 
+                        value={kpi.startDate} 
+                        disabled={!isAdminOrManager} 
+                        onChange={(e) => setKpi({ ...kpi, startDate: e.target.value })} 
+                        className="bg-black/40 text-white text-xs font-black p-2 rounded-xl outline-none border border-white/5 focus:border-gold/50 transition-all cursor-pointer" 
+                      />
+                    </div>
                     <ChevronRight size={14} className="text-gray-500" />
-                    <input type="date" value={kpi.endDate} disabled={user?.role !== "ADMIN" && user?.role !== "QUẢN LÝ CÔNG VIỆC"} onChange={(e) => setKpi({ ...kpi, endDate: e.target.value })} className="bg-transparent text-white text-xs font-bold p-1 outline-none" />
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Đến</span>
+                      <input 
+                        type="date" 
+                        value={kpi.endDate} 
+                        disabled={!isAdminOrManager} 
+                        onChange={(e) => setKpi({ ...kpi, endDate: e.target.value })} 
+                        className="bg-black/40 text-white text-xs font-black p-2 rounded-xl outline-none border border-white/5 focus:border-gold/50 transition-all cursor-pointer" 
+                      />
+                    </div>
                   </div>
-                  {(user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC") && (
-                    <button onClick={handleSaveKPI} className="h-10 px-4 bg-gold hover:bg-gold/80 text-sidebar rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-lg shadow-gold/20 flex items-center gap-2"><CheckCircle size={16} /> Xác nhận</button>
+                  {isAdminOrManager && (
+                    <button 
+                      onClick={handleSaveKPI} 
+                      className="h-12 px-6 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-gold/20 flex items-center gap-2"
+                    >
+                      <CheckCircle size={18} /> Xác nhận
+                    </button>
                   )}
                 </div>
               </div>
-              <div className={`grid gap-8 ${(user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC") ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1"}`}>
-                {(user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC") && (
+              <div className={`grid gap-8 ${isAdminOrManager ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1"}`}>
+                {isAdminOrManager && (
                   <KPIInputCard label="Kênh bật kiếm tiền" target={kpi.targetMonetized} current={kpi.currentMonetized} onChange={(val: any) => setKpi({ ...kpi, targetMonetized: val })} unit="kênh" readonly={false} />
                 )}
-                <div className={(user?.role !== "ADMIN" && user?.role !== "QUẢN LÝ CÔNG VIỆC") ? "max-w-md mx-auto w-full" : ""}>
-                  <KPIInputCard label="Kênh đủ giờ" target={kpi.targetWatchHours} current={kpi.currentWatchHours} onChange={(val: any) => setKpi({ ...kpi, targetWatchHours: val })} unit="kênh" readonly={user?.role !== "ADMIN" && user?.role !== "QUẢN LÝ CÔNG VIỆC"} />
+                <div className={!isAdminOrManager ? "max-w-md mx-auto w-full" : ""}>
+                  <KPIInputCard label="Kênh đủ giờ" target={kpi.targetWatchHours} current={kpi.currentWatchHours} onChange={(val: any) => setKpi({ ...kpi, targetWatchHours: val })} unit="kênh" readonly={!isAdminOrManager} />
                 </div>
               </div>
             </motion.div>
