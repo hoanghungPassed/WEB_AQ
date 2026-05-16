@@ -105,10 +105,10 @@ export const MOCK_MAILS: MailData[] = [
 ];
 
 export const MOCK_DASHBOARD_STATS = {
-  totalMail: 2450,
-  mailLive: 2100,
-  mailDie: 350,
-  mailMonetized: 85,
+  totalMail: 200,
+  mailLive: 150,
+  mailDie: 50,
+  mailMonetized: 20,
   mailWatchHours: 120,
   staffOnline: 12,
   tasksToday: 25
