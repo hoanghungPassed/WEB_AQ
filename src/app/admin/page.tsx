@@ -20,9 +20,10 @@ import {
   ExternalLink,
   Search,
   Filter,
-  ArrowLeft
+  ArrowLeft,
+  ClipboardCheck
 } from "lucide-react";
-import { MOCK_DASHBOARD_STATS, MOCK_KPI_DATA, MOCK_STAFF_ATTENDANCE, MOCK_MAILS } from "@/data/mockData";
+import { MOCK_DASHBOARD_STATS, MOCK_KPI_DATA, MOCK_STAFF_ATTENDANCE, MOCK_MAILS, MailData } from "@/data/mockData";
 import { useRouter } from "next/navigation";
 
 export default function AdminDashboard() {
@@ -32,48 +33,45 @@ export default function AdminDashboard() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [stats, setStats] = useState(MOCK_DASHBOARD_STATS);
   
-  // States quản lý bảng tập trung
-  const [selectedViewType, setSelectedViewType] = useState<"ALL" | "LIVE" | "DIE" | "MONETIZED" | "STAFF" | "TASKS" | null>(null);
+  // States quản lý bảng tập trung (Dành cho các view xem nhanh tại Dashboard)
+  const [selectedViewType, setSelectedViewType] = useState<"LIVE" | "DIE" | "STAFF" | "TASKS" | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) setUser(JSON.parse(storedUser));
 
-    const savedStats = localStorage.getItem("dashboard_stats");
-    if (savedStats) setStats(JSON.parse(savedStats));
-    
     const savedKPI = localStorage.getItem("global_kpi_data");
     if (savedKPI) setKpi(JSON.parse(savedKPI));
 
-    // Tính toán stats từ danh sách mail thực tế (Ưu tiên số liệu thật)
-    const savedMails = localStorage.getItem("global_mails_data");
-    const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
-    
-    setStats(prev => ({
-      ...prev,
-      totalMail: currentMails.length,
-      mailLive: currentMails.filter((m: any) => m.status === "LIVE").length,
-      mailDie: currentMails.filter((m: any) => m.status === "DIE").length,
-      mailMonetized: currentMails.filter((m: any) => m.type === "MONETIZED").length,
-    }));
+    // Tính toán stats từ danh sách mail thực tế (Đảm bảo con số luôn chính xác)
+    const refreshStats = () => {
+      const savedMails = localStorage.getItem("global_mails_data");
+      const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
+      
+      setStats(prev => ({
+        ...prev,
+        totalMail: currentMails.length,
+        mailLive: currentMails.filter((m: any) => m.status === "LIVE").length,
+        mailDie: currentMails.filter((m: any) => m.status === "DIE").length,
+        mailMonetized: currentMails.filter((m: any) => m.type === "MONETIZED").length,
+      }));
+    };
+
+    refreshStats();
 
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "global_kpi_data" && e.newValue) {
         setKpi(JSON.parse(e.newValue));
       }
       if (e.key === "global_mails_data" && e.newValue) {
-        const updatedMails = JSON.parse(e.newValue);
-        setStats(prev => ({
-          ...prev,
-          totalMail: updatedMails.length,
-          mailLive: updatedMails.filter((m: any) => m.status === "LIVE").length,
-          mailDie: updatedMails.filter((m: any) => m.status === "DIE").length,
-          mailMonetized: updatedMails.filter((m: any) => m.type === "MONETIZED").length,
-        }));
+        refreshStats();
+      }
+      if (e.key === "dashboard_stats" && e.newValue) {
+        setStats(JSON.parse(e.newValue));
       }
     };
     window.addEventListener("storage", handleStorage);
@@ -93,14 +91,9 @@ export default function AdminDashboard() {
     setTimeout(() => setShowSuccess(false), 3000);
   };
 
-  // Logic Tổng mail = Live + Die + Monetized
-  const totalCalculatedMail = useMemo(() => {
-    return (stats.mailLive || 0) + (stats.mailDie || 0) + (MOCK_DASHBOARD_STATS.mailMonetized || 0);
-  }, [stats]);
-
   const isHRManager = user?.role === "QUẢN LÝ NHÂN SỰ" || user?.role === "03";
 
-  // Lọc dữ liệu mail tổng hợp
+  // Lọc dữ liệu mail tổng hợp cho các view xem nhanh (Live/Die)
   const filteredMails = useMemo(() => {
     if (!selectedViewType || selectedViewType === "STAFF") return [];
     
@@ -108,7 +101,6 @@ export default function AdminDashboard() {
       let matchesType = true;
       if (selectedViewType === "LIVE") matchesType = m.status === "LIVE";
       else if (selectedViewType === "DIE") matchesType = m.status === "DIE";
-      else if (selectedViewType === "MONETIZED") matchesType = m.type === "MONETIZED";
       else if (selectedViewType === "TASKS") matchesType = m.workStatus === "ĐANG LÀM" || m.workStatus === "CHƯA LÀM";
 
       const matchesSearch = m.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -120,10 +112,6 @@ export default function AdminDashboard() {
     });
   }, [selectedViewType, searchQuery, filterStatus]);
 
-  // Logic phân trang
-  const totalPages = Math.ceil(filteredMails.length / itemsPerPage);
-  const currentMails = filteredMails.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
   const getChannelStatusColor = (status: string) => {
     if (!status) return "bg-gray-500/10 text-gray-400 border-gray-500/20";
     const lower = status.toLowerCase();
@@ -133,7 +121,7 @@ export default function AdminDashboard() {
     return "bg-gray-500/10 text-gray-400 border-gray-500/20";
   };
 
-  // MÀN HÌNH CHI TIẾT TẬP TRUNG (FULL SCREEN VIEW)
+  // MÀN HÌNH CHI TIẾT TẬP TRUNG (Dành cho các view xem nhanh tại Dashboard)
   if (selectedViewType) {
     return (
       <div className="h-full flex flex-col space-y-6">
@@ -170,37 +158,18 @@ export default function AdminDashboard() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              {selectedViewType !== "STAFF" && (
-                <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-3 h-10 focus-within:border-gold/50 transition-all">
-                  <Filter size={16} className="text-gray-500" />
-                  <select 
-                    className="bg-transparent border-none outline-none text-xs text-white cursor-pointer"
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                  >
-                    <option value="all" className="bg-sidebar">Tất cả trạng thái</option>
-                    <option value="Chờ B2" className="bg-sidebar">Chờ B2</option>
-                    <option value="Lỗi B2" className="bg-sidebar">Lỗi B2</option>
-                    <option value="Đã bật" className="bg-sidebar">Đã bật</option>
-                  </select>
-                </div>
-              )}
             </div>
             <button onClick={() => setSelectedViewType(null)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:bg-red-500/20 hover:text-red-500 transition-all shadow-inner"><X size={20} /></button>
           </div>
 
           <div className="overflow-x-auto custom-scrollbar">
             {selectedViewType === "STAFF" ? (
-              /* BẢNG NHÂN VIÊN */
               <table className="w-full text-left text-sm whitespace-nowrap">
                 <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
                   <tr>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Tên nhân viên</th>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Vai trò</th>
-                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Ca Sáng</th>
-                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Ca Chiều</th>
-                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Tổng giờ</th>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Trạng thái</th>
                   </tr>
                 </thead>
@@ -210,15 +179,6 @@ export default function AdminDashboard() {
                       <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
                       <td className="py-4 px-6 text-sm font-bold text-white">{staff.name}</td>
                       <td className="py-4 px-6 text-xs text-gray-400 uppercase font-black">{staff.role}</td>
-                      <td className="py-4 px-6 text-xs text-gray-500">
-                        {staff.status === 'ONLINE' ? staff.morning : "---"}
-                      </td>
-                      <td className="py-4 px-6 text-xs font-bold text-gray-500">
-                        {staff.status === 'ONLINE' ? staff.afternoon : "---"}
-                      </td>
-                      <td className={`py-4 px-6 text-xs font-black ${staff.status === 'ONLINE' ? (staff.totalHours >= 8 ? 'text-green-500' : 'text-yellow-500') : 'text-gray-600'}`}>
-                        {staff.status === 'ONLINE' ? `${staff.totalHours}h` : "---"}
-                      </td>
                       <td className="py-4 px-6">
                         <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${staff.status === 'ONLINE' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                           {staff.status}
@@ -229,55 +189,32 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             ) : (
-              /* BẢNG MAIL */
               <table className="w-full text-left text-sm whitespace-nowrap">
                 <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
                   <tr>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Email</th>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Mail KP</th>
-                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Pass</th>
-                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">2FA</th>
-                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">SĐT</th>
-                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Link SĐT</th>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-gray-300">
-                  {currentMails.length > 0 ? currentMails.map((mail, index) => (
+                  {filteredMails.slice(0, 10).map((mail, index) => (
                     <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
-                      <td className="py-4 px-6 text-[10px] font-black text-gray-500">{((currentPage - 1) * itemsPerPage) + index + 1}</td>
+                      <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
                       <td className="py-4 px-6 text-sm font-bold text-white">{mail.email}</td>
                       <td className="py-4 px-6 text-xs text-gray-400">{mail.recovery}</td>
-                      <td className="py-4 px-6 text-xs text-gray-500">{mail.pass}</td>
-                      <td className="py-4 px-6 text-xs text-gray-500">{mail.twoFA || "---"}</td>
-                      <td className="py-4 px-6 text-xs text-gray-500">{mail.phone || "---"}</td>
-                      <td className="py-4 px-6">
-                        {mail.otpLink ? <a href={mail.otpLink} target="_blank" className="text-blue-400 hover:text-white transition-all flex items-center gap-1 font-bold text-xs">Link OTP <ExternalLink size={12} /></a> : <span className="text-gray-600">---</span>}
-                      </td>
                       <td className="py-4 px-6">
                         <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${mail.channelStatus ? getChannelStatusColor(mail.channelStatus) : (mail.status === 'LIVE' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20')}`}>
                           {mail.channelStatus || mail.status}
                         </span>
                       </td>
                     </tr>
-                  )) : (
-                    <tr><td colSpan={8} className="py-20 text-center text-gray-500 font-bold uppercase tracking-widest">Không tìm thấy dữ liệu phù hợp</td></tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             )}
           </div>
-
-          {selectedViewType !== "STAFF" && (
-            <div className="p-6 border-t border-white/5 bg-black/20 flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-white font-black">{currentPage}</span> / {totalPages || 1}</span>
-              <div className="flex gap-2">
-                <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
-                <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     );
@@ -285,7 +222,7 @@ export default function AdminDashboard() {
 
   // MÀN HÌNH CHÍNH (DASHBOARD)
   return (
-    <div className="space-y-6 pb-4 relative">
+    <div className="space-y-6 pb-10 relative">
       <AnimatePresence>
         {showSuccess && (
           <motion.div
@@ -293,7 +230,10 @@ export default function AdminDashboard() {
             className="fixed top-0 left-1/2 z-[100] bg-sidebar border border-green-500/50 p-5 rounded-[24px] shadow-2xl flex items-center gap-4 min-w-[400px]"
           >
             <div className="h-12 w-12 rounded-xl bg-green-500 flex items-center justify-center text-sidebar"><CheckCircle size={28} /></div>
-            <div><p className="text-xs font-bold text-green-500 uppercase tracking-widest">Thành công</p><p className="text-base font-black text-white">Đã xác nhận và cập nhật KPI cho toàn hệ thống!</p></div>
+            <div>
+              <p className="text-xs font-bold text-green-500 uppercase tracking-widest">Thành công</p>
+              <p className="text-base font-black text-white">Đã xác nhận và cập nhật KPI cho toàn hệ thống!</p>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -301,11 +241,11 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-between">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
           <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Bảng điều khiển</h1>
-          <p className="text-lg text-gray-500 mt-1 font-medium">Chào mừng trở lại! Đây là tình hình AQ MEDIA hôm nay.</p>
+          <p className="text-lg text-gray-500 mt-1 font-medium italic">Chào mừng trở lại! Đây là tình hình AQ MEDIA hôm nay.</p>
         </motion.div>
         <div className="hidden lg:flex items-center gap-3 bg-sidebar p-1.5 rounded-2xl border border-border-custom shadow-xl">
           <div className="bg-gold/10 p-2.5 rounded-xl text-gold"><Calendar size={20} /></div>
-          <div className="pr-3 text-right">
+          <div className="pr-3">
             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ngày hiện tại</p>
             <p className="text-xs font-black text-white">{new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
@@ -313,16 +253,50 @@ export default function AdminDashboard() {
       </div>
 
       {isHRManager ? (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <StatCard title="Nhân viên Online" value={stats.staffOnline} icon={<Users size={32} />} color="purple" subtitle="Đang làm việc" onClick={() => setSelectedViewType("STAFF")} />
-          <div className="rounded-[32px] border border-border-custom bg-sidebar p-6 shadow-xl min-h-[300px]">
-            <h3 className="text-xl font-black text-white flex items-center gap-3 mb-6 tracking-tighter uppercase"><Calendar size={24} className="text-gold" /> Lịch trực nhật</h3>
-            <div className="flex-1 overflow-auto rounded-xl border border-white/5 bg-black/20 p-4">
-              <table className="w-full text-left text-sm text-gray-300">
-                <thead><tr className="border-b border-white/10 text-gray-400 text-xs uppercase tracking-widest"><th className="pb-3 pr-4 font-bold">Nhân viên</th><th className="pb-3 pr-4 font-bold">Ca trực</th><th className="pb-3 font-bold">Trạng thái</th></tr></thead>
-                <tbody>{MOCK_STAFF_ATTENDANCE.slice(0, 4).map((staff, idx) => (
-                    <tr key={idx} className="border-b border-white/5 last:border-0"><td className="py-4 pr-4 font-medium">{staff.name}</td><td className="py-4 pr-4 text-gray-400">Sáng (08:00 - 12:00)</td><td className="py-4"><span className={`px-2 py-1 rounded text-[10px] font-bold ${staff.status === 'ONLINE' ? 'bg-green-500/10 text-green-500' : 'bg-gray-500/10 text-gray-500'}`}>{staff.status}</span></td></tr>
-                ))}</tbody>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <StatCard title="Nhân viên Online" value={stats.staffOnline} icon={<Users size={32} />} color="purple" subtitle="Đang làm việc" onClick={() => setSelectedViewType("STAFF")} />
+          </div>
+          <div className="lg:col-span-2 rounded-[32px] border border-border-custom bg-sidebar p-8 shadow-2xl overflow-hidden relative group min-h-[350px]">
+            <div className="absolute top-0 right-0 h-48 w-48 bg-purple-500/5 blur-[80px] -mr-24 -mt-24 transition-all group-hover:bg-purple-500/10" />
+            <div className="relative z-10 flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-black text-white flex items-center gap-3 tracking-tighter uppercase">
+                  <ClipboardCheck size={28} className="text-purple-400" />
+                  Lịch trực nhật & Ca trực
+                </h2>
+                <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">Phân công vệ sinh & trực văn phòng</p>
+              </div>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-gray-500 border-b border-white/5 uppercase text-[10px] font-black tracking-widest">
+                    <th className="pb-4 px-2">Thứ</th>
+                    <th className="pb-4 px-2">Nhân viên</th>
+                    <th className="pb-4 px-2">Khu vực</th>
+                    <th className="pb-4 px-2">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {[
+                    { day: "Thứ Hai", name: "Nguyễn Văn A", area: "Khu vực làm việc 1", status: "Hoàn thành" },
+                    { day: "Thứ Ba", name: "Trần Thị B", area: "Khu vực Pantry", status: "Chờ thực hiện" },
+                    { day: "Thứ Tư", name: "Lê Văn C", area: "Phòng họp lớn", status: "Chờ thực hiện" },
+                  ].map((row, i) => (
+                    <tr key={i} className="group hover:bg-white/[0.02]">
+                      <td className="py-4 px-2 text-sm font-bold text-white">{row.day}</td>
+                      <td className="py-4 px-2 text-sm font-medium text-gray-400">{row.name}</td>
+                      <td className="py-4 px-2 text-sm text-gray-500">{row.area}</td>
+                      <td className="py-4 px-2">
+                        <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase ${row.status === "Hoàn thành" ? "bg-green-500/10 text-green-500" : "bg-yellow-500/10 text-yellow-500"}`}>
+                          {row.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div>
           </div>
@@ -330,7 +304,7 @@ export default function AdminDashboard() {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <StatCard title="Tổng mail" value={totalCalculatedMail} icon={<Mail size={32} />} color="blue" subtitle="Toàn hệ thống" onClick={() => router.push("/admin/mail/all")} />
+            <StatCard title="Tổng mail" value={stats.totalMail} icon={<Mail size={32} />} color="blue" subtitle="Toàn hệ thống" onClick={() => router.push("/admin/mail/all")} />
             <StatCard title="Mail Live" value={stats.mailLive} icon={<CheckCircle size={32} />} color="green" subtitle="Đang hoạt động" onClick={() => setSelectedViewType("LIVE")} />
             <StatCard title="Mail Die" value={stats.mailDie} icon={<XCircle size={32} />} color="red" subtitle="Cần kiểm tra lại" onClick={() => setSelectedViewType("DIE")} />
             {(user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC") ? (
@@ -349,19 +323,30 @@ export default function AdminDashboard() {
               <div className="absolute top-0 right-0 h-48 w-48 bg-gold/5 blur-[80px] -mr-24 -mt-24 transition-all group-hover:bg-gold/10" />
               <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
                 <div><h2 className="text-3xl font-black text-white flex items-center gap-3 tracking-tighter uppercase"><TrendingUp size={32} className="text-gold" /> KPI Hệ Thống</h2><p className="text-gray-500 mt-1 font-medium text-sm">Thiết lập mục tiêu và theo dõi tiến độ công việc</p></div>
-                <div className={`flex items-center gap-3 bg-white/5 p-1.5 rounded-xl border border-white/5 ${(user?.role !== "ADMIN" && user?.role !== "QUẢN LÝ CÔNG VIỆC") ? "opacity-75" : ""}`}>
-                  <input type="date" value={kpi.startDate} disabled={user?.role !== "ADMIN" && user?.role !== "QUẢN LÝ CÔNG VIỆC"} onChange={(e) => setKpi({ ...kpi, startDate: e.target.value })} className="bg-transparent text-white text-xs font-bold p-1 outline-none" /><ChevronRight size={14} className="text-gray-500" /><input type="date" value={kpi.endDate} disabled={user?.role !== "ADMIN" && user?.role !== "QUẢN LÝ CÔNG VIỆC"} onChange={(e) => setKpi({ ...kpi, endDate: e.target.value })} className="bg-transparent text-white text-xs font-bold p-1 outline-none" />
+                <div className={`flex items-center gap-4`}>
+                  <div className={`flex items-center gap-3 bg-white/5 p-1.5 rounded-xl border border-white/5 ${(user?.role !== "ADMIN" && user?.role !== "QUẢN LÝ CÔNG VIỆC") ? "opacity-75" : ""}`}>
+                    <input type="date" value={kpi.startDate} disabled={user?.role !== "ADMIN" && user?.role !== "QUẢN LÝ CÔNG VIỆC"} onChange={(e) => setKpi({ ...kpi, startDate: e.target.value })} className="bg-transparent text-white text-xs font-bold p-1 outline-none" />
+                    <ChevronRight size={14} className="text-gray-500" />
+                    <input type="date" value={kpi.endDate} disabled={user?.role !== "ADMIN" && user?.role !== "QUẢN LÝ CÔNG VIỆC"} onChange={(e) => setKpi({ ...kpi, endDate: e.target.value })} className="bg-transparent text-white text-xs font-bold p-1 outline-none" />
+                  </div>
+                  {(user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC") && (
+                    <button onClick={handleSaveKPI} className="h-10 px-4 bg-gold hover:bg-gold/80 text-sidebar rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-lg shadow-gold/20 flex items-center gap-2"><CheckCircle size={16} /> Xác nhận</button>
+                  )}
                 </div>
-                {(user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC") && (<button onClick={handleSaveKPI} className="h-10 px-4 bg-gold hover:bg-gold/80 text-sidebar rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-lg shadow-gold/20 flex items-center gap-2"><CheckCircle size={16} /> Xác nhận</button>)}
               </div>
               <div className={`grid gap-8 ${(user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC") ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1"}`}>
-                {(user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC") && (<KPIInputCard label="Kênh bật kiếm tiền" target={kpi.targetMonetized} current={kpi.currentMonetized} onChange={(val: any) => setKpi({ ...kpi, targetMonetized: val })} unit="kênh" readonly={user?.role !== "ADMIN" && user?.role !== "QUẢN LÝ CÔNG VIỆC"} />)}
-                <div className={(user?.role !== "ADMIN" && user?.role !== "QUẢN LÝ CÔNG VIỆC") ? "max-w-md mx-auto w-full" : ""}><KPIInputCard label="Kênh đủ giờ" target={kpi.targetWatchHours} current={kpi.currentWatchHours} onChange={(val: any) => setKpi({ ...kpi, targetWatchHours: val })} unit="kênh" readonly={user?.role !== "ADMIN" && user?.role !== "QUẢN LÝ CÔNG VIỆC"} /></div>
+                {(user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC") && (
+                  <KPIInputCard label="Kênh bật kiếm tiền" target={kpi.targetMonetized} current={kpi.currentMonetized} onChange={(val: any) => setKpi({ ...kpi, targetMonetized: val })} unit="kênh" readonly={false} />
+                )}
+                <div className={(user?.role !== "ADMIN" && user?.role !== "QUẢN LÝ CÔNG VIỆC") ? "max-w-md mx-auto w-full" : ""}>
+                  <KPIInputCard label="Kênh đủ giờ" target={kpi.targetWatchHours} current={kpi.currentWatchHours} onChange={(val: any) => setKpi({ ...kpi, targetWatchHours: val })} unit="kênh" readonly={user?.role !== "ADMIN" && user?.role !== "QUẢN LÝ CÔNG VIỆC"} />
+                </div>
               </div>
             </motion.div>
             <div className="rounded-[32px] border border-gold/20 bg-gold/5 p-8 flex flex-col justify-center text-center space-y-4">
               <div className="mx-auto h-20 w-20 bg-gold rounded-full flex items-center justify-center shadow-2xl shadow-gold/20 text-sidebar"><Target size={36} /></div>
-              <h3 className="text-xl font-black text-white uppercase tracking-tighter">Mục tiêu quý II</h3><p className="text-gray-400 mt-2 text-sm leading-relaxed">Tập trung tối ưu hóa tỉ lệ <b>Mail Live</b> và đẩy mạnh các kênh đạt đủ 4000 giờ xem.</p>
+              <h3 className="text-xl font-black text-white uppercase tracking-tighter">Mục tiêu quý II</h3>
+              <p className="text-gray-400 mt-2 text-sm leading-relaxed">Tập trung tối ưu hóa tỉ lệ <b>Mail Live</b> và đẩy mạnh các kênh đạt đủ 4000 giờ xem.</p>
               <button className="h-12 w-full bg-white/10 hover:bg-white/20 transition-all rounded-xl font-bold text-white uppercase tracking-widest text-xs">Xem báo cáo chi tiết</button>
             </div>
           </div>
@@ -381,7 +366,11 @@ function StatCard({ title, value, icon, color, subtitle, onClick }: any) {
     indigo: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20 group-hover:border-indigo-500",
   };
   return (
-    <motion.div whileHover={{ y: -5 }} onClick={onClick} className={`group rounded-[32px] border border-border-custom bg-sidebar p-6 transition-all hover:shadow-2xl ${onClick ? 'cursor-pointer hover:bg-white/5' : ''}`}>
+    <motion.div 
+      whileHover={{ y: -5 }} 
+      onClick={onClick} 
+      className={`group rounded-[32px] border border-border-custom bg-sidebar p-6 transition-all hover:shadow-2xl ${onClick ? 'cursor-pointer hover:bg-white/5' : ''}`}
+    >
       <div className="flex items-center justify-between mb-4">
         <div className={`p-4 rounded-2xl transition-all ${colors[color]}`}>{icon}</div>
         <div className="text-right">
@@ -398,7 +387,7 @@ function StatCard({ title, value, icon, color, subtitle, onClick }: any) {
 }
 
 function KPIInputCard({ label, target, current, onChange, unit, readonly }: any) {
-  const percent = Math.min(Math.round((current / target) * 100) || 0, 100);
+  const percent = Math.min(Math.round((current / (target || 1)) * 100) || 0, 100);
   return (
     <div className="flex flex-col space-y-5 h-full">
       <div className="min-h-[40px] lg:min-h-[32px] flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
@@ -415,7 +404,9 @@ function KPIInputCard({ label, target, current, onChange, unit, readonly }: any)
         </div>
         <div className="flex-1 space-y-2">
           <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">Mục tiêu (Admin)</label>
-          {readonly ? (<div className="h-14 w-full rounded-2xl bg-gold/5 border border-gold/10 px-4 flex items-center text-gold/50 font-black text-base">{target}</div>) : (
+          {readonly ? (
+            <div className="h-14 w-full rounded-2xl bg-gold/5 border border-gold/10 px-4 flex items-center text-gold/50 font-black text-base">{target}</div>
+          ) : (
             <input type="number" value={target || ""} onChange={(e) => { const val = e.target.value === "" ? 0 : parseInt(e.target.value); onChange(val); }} className="h-14 w-full rounded-2xl bg-gold/10 border border-gold/30 px-4 text-gold font-black focus:outline-none focus:border-gold text-base transition-all shadow-lg shadow-gold/5" />
           )}
         </div>
