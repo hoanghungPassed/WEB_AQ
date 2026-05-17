@@ -25,6 +25,9 @@ export interface TaskAssignment {
   status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "OVERDUE";
   assigneeId?: string;
   mailCount: number;
+  note?: string;
+  mailRange?: string;
+  mailType?: "ROOT" | "SATELLITE" | "MONETIZED";
 }
 
 export interface TaskMail {

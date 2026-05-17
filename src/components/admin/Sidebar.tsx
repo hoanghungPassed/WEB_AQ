@@ -15,7 +15,8 @@ import {
   ShieldAlert,
   LogOut,
   ClipboardList,
-  LayoutGrid
+  LayoutGrid,
+  RotateCcw
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
@@ -95,6 +96,58 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
     sessionStorage.removeItem("user");
     localStorage.removeItem("user");
     window.location.href = "/login";
+  };
+
+  const handleResetDatabase = async () => {
+    const confirmReset = window.confirm(
+      "Bạn có chắc chắn muốn khôi phục toàn bộ cơ sở dữ liệu về trạng thái mặc định ban đầu không? Mọi thay đổi về phân công, trạng thái mail, tài khoản... sẽ bị reset."
+    );
+    if (!confirmReset) return;
+
+    try {
+      const keys = [
+        "global_users",
+        "global_mails_data",
+        "global_tasks_data",
+        "global_kpi_data",
+        "admin_notifications",
+        "realtime_toast",
+        "pending_access_requests"
+      ];
+      
+      keys.forEach(key => localStorage.removeItem(key));
+
+      const { MOCK_STAFF, MOCK_MAILS, MOCK_TASK_ASSIGNMENTS, MOCK_KPI_DATA } = await import("@/data/mockData");
+      
+      localStorage.setItem("global_users", JSON.stringify(MOCK_STAFF));
+      localStorage.setItem("global_mails_data", JSON.stringify(MOCK_MAILS));
+      localStorage.setItem("global_tasks_data", JSON.stringify(MOCK_TASK_ASSIGNMENTS));
+      localStorage.setItem("global_kpi_data", JSON.stringify(MOCK_KPI_DATA));
+      localStorage.setItem("admin_notifications", JSON.stringify([]));
+      localStorage.setItem("pending_access_requests", JSON.stringify([]));
+
+      const resetPayload = {
+        global_users: JSON.stringify(MOCK_STAFF),
+        global_mails_data: JSON.stringify(MOCK_MAILS),
+        global_tasks_data: JSON.stringify(MOCK_TASK_ASSIGNMENTS),
+        global_kpi_data: JSON.stringify(MOCK_KPI_DATA),
+        admin_notifications: JSON.stringify([]),
+        realtime_toast: JSON.stringify({ userId: "all", message: "Hệ thống đã được khôi phục dữ liệu gốc!" }),
+        pending_access_requests: JSON.stringify([])
+      };
+
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(resetPayload)
+      });
+
+      window.dispatchEvent(new Event("storage"));
+      alert("Khôi phục dữ liệu gốc thành công! Toàn bộ hệ thống đã được đồng bộ lại.");
+    } catch (err) {
+      console.error("Reset error:", err);
+      alert("Đã xảy ra lỗi khi khôi phục dữ liệu.");
+    }
   };
 
   return (
@@ -201,8 +254,21 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
         })}
       </nav>
 
-      {/* User Profile at bottom */}
-      <div className="border-t border-white/5 p-6 bg-white/[0.01]">
+      {/* Reset Mock Data & User Profile at bottom */}
+      <div className="border-t border-white/5 p-6 bg-white/[0.01] space-y-4">
+        {/* Reset Database Button */}
+        <button
+          onClick={handleResetDatabase}
+          className={cn(
+            "flex items-center gap-3 w-full rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-widest text-gold hover:text-white bg-gold/5 hover:bg-gold/80 border border-gold/20 hover:border-gold transition-all duration-300 shadow-lg shadow-gold/5",
+            isCollapsed ? "justify-center px-0 h-12 w-12" : "h-12"
+          )}
+          title="Khôi phục dữ liệu gốc"
+        >
+          <RotateCcw size={16} className="flex-shrink-0 animate-pulse" />
+          {!isCollapsed && <span className="whitespace-nowrap">Khôi phục dữ liệu gốc</span>}
+        </button>
+
         <div className={cn(
           "flex items-center justify-between rounded-3xl p-3 transition-colors hover:bg-white/5 group",
           isCollapsed && "flex-col gap-4"

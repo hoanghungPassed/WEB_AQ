@@ -114,7 +114,7 @@ export default function AdminDashboard() {
 
       if (isMinimalRole && currentUserObj) {
         const myMails = currentMails.filter((m: any) => String(m.assigneeId) === String(currentUserObj?.id));
-        const myTasks = processedTasks.filter((t: any) => String(t.assigneeId) === String(currentUserObj?.id) && t.status === "IN_PROGRESS");
+        const myTasks = processedTasks.filter((t: any) => String(t.assigneeId) === String(currentUserObj?.id) && (t.status === "IN_PROGRESS" || t.status === "PENDING"));
         setStats({
           totalMail: myMails.length,
           mailLive: myMails.filter((m: any) => m.status === "LIVE").length,
@@ -163,7 +163,7 @@ export default function AdminDashboard() {
       if (e.key === "global_kpi_data" && e.newValue) {
         setKpi(JSON.parse(e.newValue));
       }
-      if (e.key === "global_mails_data" && e.newValue) {
+      if ((e.key === "global_mails_data" || e.key === "global_tasks_data") && e.newValue) {
         refreshStats();
       }
       if (e.key === "dashboard_stats" && e.newValue) {
@@ -172,8 +172,12 @@ export default function AdminDashboard() {
       if (e.key === "global_users") {
         loadStaff();
       }
-      if (e.key === "user") {
-        setUser(JSON.parse(e.newValue || "{}"));
+      if (e.key === "user" && e.newValue) {
+        const newUserObj = JSON.parse(e.newValue);
+        const currentSessionUser = JSON.parse(sessionStorage.getItem("user") || "{}");
+        if (newUserObj.username === currentSessionUser.username) {
+          setUser(newUserObj);
+        }
       }
     };
     window.addEventListener("storage", handleStorage);
@@ -224,6 +228,52 @@ export default function AdminDashboard() {
       mailLive: myMails.filter((m: any) => m.status === "LIVE").length,
       mailDie: myMails.filter((m: any) => m.status === "DIE").length,
     }));
+
+    window.dispatchEvent(new Event("storage"));
+  };
+
+  const handleTaskStatusChange = (taskId: string, newStatus: "IN_PROGRESS" | "COMPLETED") => {
+    const savedTasks = localStorage.getItem("global_tasks_data");
+    const currentTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
+
+    const updatedTasks = currentTasks.map((t: any) => {
+      if (t.id === taskId) {
+        return { ...t, status: newStatus };
+      }
+      return t;
+    });
+
+    localStorage.setItem("global_tasks_data", JSON.stringify(updatedTasks));
+    setTasksList(updatedTasks);
+    
+    // Update the selected task state
+    setSelectedStaffTask((prev: any) => {
+      if (prev && prev.id === taskId) {
+        return { ...prev, status: newStatus };
+      }
+      return prev;
+    });
+
+    // Update KPI watch hours target if completed
+    if (newStatus === "COMPLETED") {
+      const currentTaskObj = currentTasks.find((t: any) => t.id === taskId);
+      if (currentTaskObj && currentTaskObj.mailType === "MONETIZED") {
+        setKpi(prev => {
+          const updatedKpi = { ...prev, currentMonetized: Math.min(prev.targetMonetized, prev.currentMonetized + 1) };
+          localStorage.setItem("global_kpi_data", JSON.stringify(updatedKpi));
+          return updatedKpi;
+        });
+      } else {
+        setKpi(prev => {
+          const updatedKpi = { ...prev, currentWatchHours: Math.min(prev.targetWatchHours, prev.currentWatchHours + 1) };
+          localStorage.setItem("global_kpi_data", JSON.stringify(updatedKpi));
+          return updatedKpi;
+        });
+      }
+    }
+
+    setCopyToast(`Đã chuyển trạng thái Task sang ${newStatus === "COMPLETED" ? "HOÀN THÀNH" : "ĐANG XỬ LÝ"}`);
+    setTimeout(() => setCopyToast(null), 3000);
 
     window.dispatchEvent(new Event("storage"));
   };
@@ -449,14 +499,27 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {tasksList.filter(t => String(t.assigneeId) === String(user?.id) && t.status === "IN_PROGRESS").length > 0 ? (
-                      tasksList.filter(t => String(t.assigneeId) === String(user?.id) && t.status === "IN_PROGRESS").map((task: any) => (
+                    {tasksList.filter(t => String(t.assigneeId) === String(user?.id)).length > 0 ? (
+                      tasksList.filter(t => String(t.assigneeId) === String(user?.id)).map((task: any) => (
                         <div 
                           key={task.id} 
                           onClick={() => setSelectedStaffTask(selectedStaffTask?.id === task.id ? null : task)}
-                          className={`p-6 rounded-2xl border transition-all cursor-pointer ${selectedStaffTask?.id === task.id ? 'bg-gold/10 border-gold shadow-lg shadow-gold/5' : 'bg-white/[0.02] border-white/5 hover:border-gold/30'}`}
+                          className={`p-6 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
+                            selectedStaffTask?.id === task.id ? 'bg-gold/10 border-gold shadow-lg shadow-gold/5' : 'bg-white/[0.02] border-white/5 hover:border-gold/30'
+                          }`}
                         >
-                          <h3 className="text-lg font-black text-white uppercase tracking-tighter mb-2">{task.title}</h3>
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-lg font-black text-white uppercase tracking-tighter">{task.title}</h3>
+                            <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border tracking-widest ${
+                              task.status === "COMPLETED" 
+                                ? "bg-green-500/10 text-green-500 border-green-500/20" 
+                                : task.status === "IN_PROGRESS"
+                                ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                                : "bg-gray-500/10 text-gray-400 border-gray-500/20"
+                            }`}>
+                              {task.status === "COMPLETED" ? "Hoàn thành" : task.status === "IN_PROGRESS" ? "Đang xử lý" : "Chưa bắt đầu"}
+                            </span>
+                          </div>
                           <div className="text-xs text-gray-400 mb-4 font-medium leading-relaxed">
                             <b>Ghi chú ca trực:</b> {task.note || "Tiến hành check tạo xóa và xử lý các mail vệ tinh/gốc được giao. Đảm bảo đúng tiến độ và báo cáo lỗi nếu có."}
                           </div>
@@ -474,12 +537,46 @@ export default function AdminDashboard() {
 
                 {selectedStaffTask && (
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl">
-                    <div className="p-6 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                    <div className="p-6 border-b border-white/5 bg-white/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
-                        <h3 className="text-xl font-black text-white uppercase tracking-tighter">Danh sách Mail - {selectedStaffTask.title}</h3>
+                        <h3 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
+                          <span>Danh sách Mail - {selectedStaffTask.title}</span>
+                           <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase border tracking-widest ${
+                            selectedStaffTask.status === "COMPLETED" 
+                              ? "bg-green-500/10 text-green-500 border-green-500/20" 
+                              : selectedStaffTask.status === "IN_PROGRESS"
+                              ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                              : "bg-gray-500/10 text-gray-400 border-gray-500/20"
+                          }`}>
+                            {selectedStaffTask.status === "COMPLETED" ? "Hoàn thành" : selectedStaffTask.status === "IN_PROGRESS" ? "Đang xử lý" : "Chưa bắt đầu"}
+                          </span>
+                        </h3>
                         <p className="text-xs text-gray-500 font-medium mt-1">Danh sách mail bạn cần xử lý cho nhiệm vụ này</p>
                       </div>
-                      <button onClick={() => setSelectedStaffTask(null)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
+                      <div className="flex items-center gap-3">
+                        <button 
+                          onClick={() => handleTaskStatusChange(selectedStaffTask.id, "IN_PROGRESS")}
+                          className={`h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                            selectedStaffTask.status === "IN_PROGRESS"
+                              ? "bg-yellow-500 text-sidebar border-yellow-500 font-bold"
+                              : "bg-white/5 text-gray-400 border-white/10 hover:border-yellow-500/30 hover:text-yellow-500"
+                          }`}
+                        >
+                          Đang xử lý
+                        </button>
+                        <button 
+                          onClick={() => handleTaskStatusChange(selectedStaffTask.id, "COMPLETED")}
+                          className={`h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                            selectedStaffTask.status === "COMPLETED"
+                              ? "bg-green-500 text-sidebar border-green-500 font-bold"
+                              : "bg-white/5 text-gray-400 border-white/10 hover:border-green-500/30 hover:text-green-500"
+                          }`}
+                        >
+                          Hoàn thành
+                        </button>
+                        <div className="h-6 w-px bg-white/10" />
+                        <button onClick={() => setSelectedStaffTask(null)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
+                      </div>
                     </div>
 
                     <div className="overflow-x-auto custom-scrollbar">

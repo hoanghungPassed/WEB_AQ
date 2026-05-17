@@ -57,9 +57,19 @@ function LoginForm() {
         return;
       }
 
-      // Lưu session giả lập
-      sessionStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("user", JSON.stringify(user));
+      // Cập nhật trạng thái isOnline trong global_users
+      const updatedUsers = allUsers.map((u) => {
+        if (u.id === user.id) {
+          return { ...u, isOnline: true, lastActive: "Vừa xong" };
+        }
+        return u;
+      });
+      localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+
+      // Lưu session giả lập với isOnline = true
+      const onlineUser = { ...user, isOnline: true, lastActive: "Vừa xong" };
+      sessionStorage.setItem("user", JSON.stringify(onlineUser));
+      localStorage.setItem("user", JSON.stringify(onlineUser));
       router.push("/admin");
     } else {
       setError("Tên đăng nhập hoặc mật khẩu không đúng!");

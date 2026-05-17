@@ -371,6 +371,14 @@ export default function TaskManagementPage() {
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [selectedMailForConfig, setSelectedMailForConfig] = useState<any>(null);
 
+  // New states for template allocation flow
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("Check, xóa, tạo");
+  const [targetStaffId, setTargetStaffId] = useState<string>("");
+  const [mailTypeSelection, setMailTypeSelection] = useState<"ROOT" | "SATELLITE" | "MONETIZED">("ROOT");
+  const [mailRangeStart, setMailRangeStart] = useState<number>(1);
+  const [mailRangeEnd, setMailRangeEnd] = useState<number>(50);
+  const [assignmentNote, setAssignmentNote] = useState<string>("Hãy kiểm tra tính hợp lệ của pass, 2FA, sđt và check xóa tạo mới.");
+
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
@@ -389,18 +397,72 @@ export default function TaskManagementPage() {
 
       const stored = localStorage.getItem("global_users");
       const allUsers = stored ? JSON.parse(stored) : MOCK_STAFF;
-      // Exclude ADMIN (01) from assignment list
-      setStaffList(allUsers.filter((u: StaffData) => u.status === "ACTIVE" && u.isOnline && u.role !== "01"));
+      setStaffList(allUsers.filter((u: StaffData) => u.status === "ACTIVE" && u.role !== "01"));
 
       const savedMails = localStorage.getItem("global_mails_data");
       setMails(savedMails ? JSON.parse(savedMails) : MOCK_MAILS);
     };
     loadData();
     const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
+    
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "global_tasks_data" || e.key === "global_mails_data" || e.key === "global_users") {
+        loadData();
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", handleStorage);
+    };
   }, []);
 
   const isAdminOrManager = user?.role === "01" || user?.role === "02";
+
+  const inventory = useMemo(() => {
+    return {
+      root: mails.filter((m: any) => m.type === "ROOT" && !m.assigneeId).length,
+      satellite: mails.filter((m: any) => m.type === "SATELLITE" && !m.assigneeId).length,
+      monetized: mails.filter((m: any) => m.type === "MONETIZED" && !m.assigneeId).length,
+    };
+  }, [mails]);
+
+  const typeMaxTotal = useMemo(() => {
+    return mails.filter((m: any) => m.type === mailTypeSelection).length;
+  }, [mails, mailTypeSelection]);
+
+  const typeAvailableCount = useMemo(() => {
+    return mails.filter((m: any) => m.type === mailTypeSelection && !m.assigneeId).length;
+  }, [mails, mailTypeSelection]);
+
+  const totalSelected = useMemo(() => {
+    if (mailRangeStart > 0 && mailRangeEnd >= mailRangeStart && mailRangeEnd <= typeMaxTotal) {
+      const typeMails = mails.filter((m: any) => m.type === mailTypeSelection);
+      const withSTT = typeMails.map((m: any, idx: number) => ({ ...m, currentSTT: idx + 1 }));
+      const unassignedInRange = withSTT.filter((m: any) => m.currentSTT >= mailRangeStart && m.currentSTT <= mailRangeEnd && !m.assigneeId);
+      return unassignedInRange.length;
+    }
+    return 0;
+  }, [mails, mailTypeSelection, mailRangeStart, mailRangeEnd, typeMaxTotal]);
+
+
+  const selectTemplateAndPreset = (title: string) => {
+    setSelectedTemplate(title);
+    if (title === "Check, xóa, tạo") {
+      setMailTypeSelection("ROOT");
+      setAssignmentNote("Hãy kiểm tra tính hợp lệ của pass, 2FA, sđt và check xóa tạo mới.");
+    } else if (title === "Nuôi kênh") {
+      setMailTypeSelection("SATELLITE");
+      setAssignmentNote("Hãy đăng nhập, đổi mật khẩu và nuôi kênh YouTube vệ tinh.");
+    } else if (title === "Làm kênh") {
+      setMailTypeSelection("SATELLITE");
+      setAssignmentNote("Hãy liên kết kênh YouTube vệ tinh và cập nhật link/tên kênh.");
+    } else if (title === "Kênh bật kiếm tiền") {
+      setMailTypeSelection("MONETIZED");
+      setAssignmentNote("Kiểm tra và cấu hình liên kết tài khoản mail bật kiếm tiền.");
+    }
+  };
 
   const filteredStaff = useMemo(() => {
     return staffList.filter(staff => {
@@ -535,7 +597,20 @@ export default function TaskManagementPage() {
     setIsAssignModalOpen(true);
   }, []);
 
-  const submitAssignment = useCallback((type: string, start: number, end: number, note: string) => {
+  const submitAssignment = useCallback((
+    taskTitle: string,
+    taskType: "MAIL_GOC" | "MAIL_VE_TINH" | "MAIL_MONETIZED",
+    staffId: string,
+    type: string,
+    start: number,
+    end: number,
+    note: string
+  ) => {
+    const selectedStaff = staffList.find(s => String(s.id) === String(staffId));
+    if (!selectedStaff) {
+      alert("Vui lòng chọn nhân viên.");
+      return;
+    }
 
     // 1. Cập nhật dữ liệu mail trong localStorage
     const savedMails = localStorage.getItem("global_mails_data");
@@ -564,8 +639,8 @@ export default function TaskManagementPage() {
       if (assignedIds.includes(m.id)) {
         return {
           ...m,
-          assigneeId: selectedStaffToAssign?.id,
-          assigneeName: selectedStaffToAssign?.name,
+          assigneeId: selectedStaff.id,
+          assigneeName: selectedStaff.name,
           assignedAt: new Date().toISOString(),
           assignmentNote: note,
           workStatus: "CHƯA LÀM"
@@ -576,17 +651,54 @@ export default function TaskManagementPage() {
 
     localStorage.setItem("global_mails_data", JSON.stringify(allMails));
 
-    // 2. Tạo một task mới trong danh sách task nếu cần, hoặc cập nhật task tổng
-    // Ở đây ta có thể giả định task-1 là task tổng để điều phối
+    // 2. Tạo một task mới trong danh sách task trong localStorage
+    const savedTasks = localStorage.getItem("global_tasks_data");
+    let allTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
+    
+    const newTask: TaskAssignment = {
+      id: `task-${Date.now()}`,
+      title: taskTitle,
+      type: taskType,
+      assigneeId: selectedStaff.id,
+      progress: 0,
+      status: "PENDING",
+      deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      mailCount: total,
+      note: note,
+      mailRange: `${start} - ${end}`,
+      mailType: type as any
+    };
 
-    setNotification(`Đã giao ${total} mail cho ${selectedStaffToAssign?.name}. Kho mail đã được cập nhật.`);
+    allTasks.push(newTask);
+    localStorage.setItem("global_tasks_data", JSON.stringify(allTasks));
+    setTasks(allTasks);
+
+    // 3. Trigger Real-time Toast and push formal system notification to that staff via localStorage
+    localStorage.setItem("realtime_toast", JSON.stringify({
+      userId: selectedStaff.id,
+      message: "Bạn nhận được công việc mới"
+    }));
+
+    const existingNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
+    const newNotif = {
+      id: Date.now(),
+      title: "Nhiệm vụ mới",
+      message: `Bạn đã được giao ${total} mail loại ${type === "ROOT" ? "Mail Gốc" : type === "SATELLITE" ? "Vệ Tinh" : "Kiếm Tiền"}.`,
+      time: "Vừa xong",
+      type: "TASK_ASSIGNED",
+      targetUsername: selectedStaff.username,
+      read: false
+    };
+    localStorage.setItem("admin_notifications", JSON.stringify([newNotif, ...existingNotifs]));
+
+    setNotification(`Đã giao ${total} mail cho ${selectedStaff.name}.`);
     setTimeout(() => setNotification(null), 5000);
     setIsAssignModalOpen(false);
     setSelectedStaffToAssign(null);
 
     // Kích hoạt sự kiện storage để các tab khác (Dashboard) cập nhật
     window.dispatchEvent(new Event('storage'));
-  }, [selectedStaffToAssign]);
+  }, [staffList, tasks]);
 
   return (
     <div className="h-[calc(100vh-100px)] flex flex-col gap-4 select-none relative overflow-hidden">
@@ -604,7 +716,11 @@ export default function TaskManagementPage() {
             staff={selectedStaffToAssign}
             assigner={user}
             onClose={() => setIsAssignModalOpen(false)}
-            onSubmit={submitAssignment}
+            onSubmit={(mailType, startIdx, endIdx, note) => {
+              const taskTitle = mailType === "ROOT" ? "Check, xóa, tạo" : mailType === "SATELLITE" ? "Làm kênh" : "Kênh bật kiếm tiền";
+              const taskType = mailType === "ROOT" ? "MAIL_GOC" : mailType === "SATELLITE" ? "MAIL_VE_TINH" : "MAIL_MONETIZED";
+              submitAssignment(taskTitle, taskType, selectedStaffToAssign.id, mailType, startIdx, endIdx, note);
+            }}
           />
         )}
       </AnimatePresence>
@@ -630,16 +746,16 @@ export default function TaskManagementPage() {
           <div>
             <h1 className="text-4xl font-black text-white tracking-tighter uppercase flex items-center gap-4">
               <ClipboardList className="text-gold" size={36} />
-              {selectedTaskId === "task-1" ? "Giao việc Check/Xóa/Tạo" : selectedTaskId ? "Chi tiết thực hiện" : "Danh sách việc làm"}
+              {isAdminOrManager && !selectedTaskId ? "Bảng chia việc AQ MEDIA" : selectedTaskId ? "Chi tiết thực hiện" : "Nhiệm vụ của tôi"}
             </h1>
             <p className="text-gray-500 font-medium mt-1 flex items-center gap-2">
               <ShieldCheck size={16} className="text-gold" />
-              {selectedTaskId === "task-1" ? "Chọn nhân sự online để điều phối lô mail mới." : selectedTaskId ? `Nhiệm vụ: ${selectedTask?.title}` : "Hệ thống quản lý và điều phối luồng công việc tự động."}
+              {isAdminOrManager && !selectedTaskId ? "Hệ thống điều phối công việc và chia lô mail tự động cho nhân sự." : selectedTaskId ? `Nhiệm vụ: ${selectedTask?.title}` : "Danh sách nhiệm vụ được giao."}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          {!selectedTaskId && (
+          {!selectedTaskId && !isAdminOrManager && (
             <div className="flex items-center gap-1 bg-white/5 p-1 rounded-2xl border border-white/5">
               <Filter size={16} className="text-gray-500 ml-4" />
               <select className="bg-transparent border-none outline-none text-[10px] font-black text-gray-400 uppercase tracking-widest px-4 h-12 min-w-[180px] cursor-pointer" value={taskFilter} onChange={(e) => setTaskFilter(e.target.value)}>
@@ -650,7 +766,6 @@ export default function TaskManagementPage() {
               </select>
             </div>
           )}
-          {!selectedTaskId && <button onClick={() => { setNotification("Đang chạy thuật toán tự động chia việc..."); setTimeout(() => setNotification(null), 3000); }} className="h-14 px-6 bg-white/5 border border-white/10 rounded-2xl text-white font-black uppercase text-xs flex items-center gap-2 hover:bg-white/10 transition-all"><Zap size={18} /> Auto Assign</button>}
         </div>
       </div>
 
@@ -658,190 +773,289 @@ export default function TaskManagementPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <AnimatePresence mode="wait">
           {!selectedTaskId ? (
-            <motion.div key="grid" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1 overflow-y-auto custom-scrollbar pr-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pb-10">
-                {filteredTasks.map(task => <TaskCard key={task.id} task={task} onClick={() => setSelectedTaskId(task.id)} />)}
-              </div>
-            </motion.div>
-          ) : selectedTaskId === "task-1" ? (
-            <motion.div key="staff-grid" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="flex-1 flex flex-col gap-4 overflow-hidden">
-               {/* Header Section - Redesigned for horizontal layout */}
-               <div className="bg-white/[0.02] border border-white/10 p-5 md:p-6 rounded-[32px] flex flex-col gap-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
-                    <div className="flex items-center gap-4">
-                      <div className="h-8 w-1.5 bg-gold rounded-full shadow-[0_0_15px_rgba(212,175,55,0.5)]" />
-                      <div>
-                        <h2 className="text-xl font-black text-white uppercase tracking-tighter leading-none">Nhân sự đang Online</h2>
-                        <p className="text-[9px] font-bold text-gray-500 mt-1.5 uppercase tracking-[0.2em]">Chọn một nhân viên để bắt đầu giao lô mail mới.</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 bg-green-500/10 px-4 py-2 rounded-full border border-green-500/20 self-start sm:self-center">
-                      <span className="h-2 w-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-                      <span className="text-[9px] font-black text-green-500 uppercase tracking-widest">{filteredStaff.length} Nhân viên sẵn sàng</span>
-                    </div>
+            isAdminOrManager ? (
+              // Admin/Manager view: Template cards + Assignment form
+              <motion.div key="admin-delegation" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 overflow-y-auto pr-2 pb-10">
+                {/* Left side: 4 Task Templates Cards */}
+                <div className="lg:col-span-5 space-y-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="h-2 w-2 rounded-full bg-gold animate-ping" />
+                    <h2 className="text-base font-black text-white uppercase tracking-widest">Chọn mẫu công việc</h2>
                   </div>
                   
-                  <div className="flex flex-col md:flex-row items-center gap-4">
-                    {/* Search Bar */}
-                    <div className="relative flex-1 w-full group">
-                      <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
-                      <input 
-                        type="text" 
-                        placeholder="Tìm tên, SĐT, User..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-14 pr-6 text-sm text-white focus:border-gold/50 outline-none transition-all shadow-inner"
-                      />
-                    </div>
-
-                    {/* Role Filter */}
-                    <div className="flex items-center gap-1 bg-white/5 p-1 rounded-2xl border border-white/5 w-full md:w-auto">
-                      <ShieldCheck size={16} className="text-gray-500 ml-4" />
-                      <select 
-                        className="bg-transparent border-none outline-none text-[10px] font-black text-gray-400 uppercase tracking-widest px-4 h-12 min-w-[150px] cursor-pointer flex-1 md:flex-none"
-                        value={roleFilter}
-                        onChange={(e) => setRoleFilter(e.target.value)}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[
+                      { title: "Check, xóa, tạo", desc: "Phù hợp Mail Gốc. Kiểm tra pass, 2FA, sđt và check xóa tạo mới.", type: "ROOT", icon: <ShieldCheck size={28} /> },
+                      { title: "Nuôi kênh", desc: "Phù hợp Mail Vệ Tinh. Nuôi tài khoản, giữ cookie ổn định.", type: "SATELLITE", icon: <Zap size={28} /> },
+                      { title: "Làm kênh", desc: "Phù hợp Mail Vệ Tinh. Liên kết kênh vệ tinh, scan thông tin.", type: "SATELLITE", icon: <ExternalLink size={28} /> },
+                      { title: "Kênh bật kiếm tiền", desc: "Phù hợp Mail Monetized. Kiểm tra và cấu hình đối tác.", type: "MONETIZED", icon: <Mail size={28} /> },
+                    ].map(tmpl => (
+                      <div 
+                        key={tmpl.title}
+                        onClick={() => selectTemplateAndPreset(tmpl.title)}
+                        className={`p-6 rounded-[32px] border-2 cursor-pointer transition-all flex flex-col h-full justify-between relative overflow-hidden group ${selectedTemplate === tmpl.title ? "bg-gold/10 border-gold shadow-[0_0_40px_rgba(212,175,55,0.15)]" : "bg-white/5 border-white/5 hover:border-white/10"}`}
                       >
-                        <option value="ALL">Tất cả chức vụ</option>
-                        <option value="02">QL CÔNG VIỆC</option>
-                        <option value="03">QL NHÂN SỰ</option>
-                        <option value="04">NHÂN VIÊN</option>
-                      </select>
-                    </div>
-                  </div>
-               </div>
-
-               <div className="flex-1 overflow-hidden flex flex-col gap-6 pb-6">
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 flex-1">
-                    {paginatedStaff.map(staff => (
-                      <div key={staff.id} onClick={() => handleAssignWork(staff)} className="bg-white/[0.02] border border-white/5 rounded-[24px] p-4 cursor-pointer hover:bg-gold/5 hover:border-gold/40 hover:shadow-xl hover:shadow-gold/5 transition-all group flex flex-col items-center text-center h-full justify-between">
-                        <div className="h-16 w-16 rounded-[20px] bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-gold mb-3 group-hover:scale-110 transition-transform">{staff.name.charAt(0)}</div>
-                        <div className="flex-1 flex flex-col items-center">
-                          <h3 className="text-sm font-black text-white mb-0.5 group-hover:text-gold transition-colors line-clamp-1">{staff.name}</h3>
-                          <p className="text-[8px] text-gray-600 font-bold uppercase tracking-widest mb-3">
-                            {staff.role === "02" ? "QL CÔNG VIỆC" : staff.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN"}
-                          </p>
+                        <div className="absolute top-0 right-0 h-24 w-24 bg-gold/5 blur-[30px] -mr-12 -mt-12 group-hover:bg-gold/10 transition-all" />
+                        <div>
+                          <div className={`h-12 w-12 rounded-2xl flex items-center justify-center border mb-4 transition-all ${selectedTemplate === tmpl.title ? "bg-gold/20 text-gold border-gold/30" : "bg-white/5 text-gray-500 border-white/10"}`}>
+                            {tmpl.icon}
+                          </div>
+                          <h3 className="text-base font-black text-white uppercase tracking-tight mb-2">{tmpl.title}</h3>
+                          <p className="text-[10px] text-gray-500 leading-relaxed">{tmpl.desc}</p>
                         </div>
-                        <button className="w-full h-8 bg-white/5 rounded-lg text-[8px] font-black uppercase tracking-widest text-gray-500 group-hover:bg-gold group-hover:text-sidebar transition-all">Giao việc</button>
+                        <div className="mt-4 flex items-center justify-between pt-4 border-t border-white/5">
+                          <span className="text-[9px] font-black text-gold uppercase tracking-wider">{tmpl.type}</span>
+                          <span className="text-[8px] font-bold text-gray-600 uppercase">Dự kiến 3 ngày</span>
+                        </div>
                       </div>
                     ))}
-                    {paginatedStaff.length < 10 && Array.from({ length: 10 - paginatedStaff.length }).map((_, i) => (
-                      <div key={`empty-${i}`} className="bg-white/[0.01] border border-white/[0.02] rounded-[24px] border-dashed" />
-                    ))}
+                  </div>
+                </div>
+
+                {/* Right side: Interactive Assignment Form */}
+                <div className="lg:col-span-7 bg-[#0b0b0b] border border-white/10 rounded-[48px] p-8 md:p-10 relative overflow-hidden flex flex-col justify-between">
+                  <div className="absolute top-0 right-0 h-96 w-96 bg-gold/5 blur-[120px] -mr-48 -mt-48" />
+                  
+                  <div className="space-y-6 relative z-10">
+                    <div className="flex items-center gap-4 border-b border-white/5 pb-4">
+                      <div className="h-10 w-10 bg-gold/15 text-gold border border-gold/20 rounded-xl flex items-center justify-center">
+                        <Users size={20} />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black text-white uppercase tracking-tight leading-none">Cấu hình Giao việc</h3>
+                        <p className="text-[9px] font-bold text-gray-500 uppercase mt-1 tracking-widest">Giao mẫu: <span className="text-gold">{selectedTemplate}</span></p>
+                      </div>
+                    </div>
+
+                     {/* Kho Mail Khả Dụng Banner */}
+                    <div className="grid grid-cols-5 gap-1 p-4 bg-white/[0.02] border border-white/5 rounded-3xl items-center text-center">
+                      <div className="col-span-1">
+                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Mail Gốc</p>
+                        <p className="text-sm font-black text-gold">{inventory.root} <span className="text-[8px] text-gray-500 font-bold block">Khả dụng</span></p>
+                      </div>
+                      <div className="col-span-1 flex justify-center text-white/5 font-light">|</div>
+                      <div className="col-span-1">
+                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Vệ Tinh</p>
+                        <p className="text-sm font-black text-gold">{inventory.satellite} <span className="text-[8px] text-gray-500 font-bold block">Khả dụng</span></p>
+                      </div>
+                      <div className="col-span-1 flex justify-center text-white/5 font-light">|</div>
+                      <div className="col-span-1">
+                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Kiếm Tiền</p>
+                        <p className="text-sm font-black text-gold">{inventory.monetized} <span className="text-[8px] text-gray-500 font-bold block">Khả dụng</span></p>
+                      </div>
+                    </div>
+
+                    {/* Chọn nhân viên (Dropdown) */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chọn nhân viên thực hiện</label>
+                      <select 
+                        value={targetStaffId}
+                        onChange={(e) => setTargetStaffId(e.target.value)}
+                        className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 cursor-pointer transition-all"
+                      >
+                        <option value="" className="bg-sidebar text-white">-- Chọn nhân sự thực hiện --</option>
+                        {staffList.map((staff: any) => (
+                          <option key={staff.id} value={staff.id} className="bg-sidebar text-white">
+                            {staff.isOnline ? "🟢" : "⚫"} {staff.name} ({staff.role === "02" ? "Quản lý công việc" : "Nhân viên"})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Chọn thể loại mail */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Thể loại Mail giao</label>
+                      <select 
+                        value={mailTypeSelection}
+                        onChange={(e) => {
+                          const val = e.target.value as any;
+                          setMailTypeSelection(val);
+                          const maxCount = val === "ROOT" ? inventory.root : val === "SATELLITE" ? inventory.satellite : inventory.monetized;
+                          setMailRangeEnd(Math.min(50, maxCount));
+                        }}
+                        className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 cursor-pointer transition-all"
+                      >
+                        <option value="ROOT" className="bg-sidebar text-white">Mail Gốc (ROOT) - Còn {inventory.root} khả dụng</option>
+                        <option value="SATELLITE" className="bg-sidebar text-white">Mail Vệ Tinh (SATELLITE) - Còn {inventory.satellite} khả dụng</option>
+                        <option value="MONETIZED" className="bg-sidebar text-white">Mail Bật Kiếm Tiền (MONETIZED) - Còn {inventory.monetized} khả dụng</option>
+                      </select>
+                    </div>
+
+                    {/* Dải mail thực hiện */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Bắt đầu từ STT</label>
+                        <input 
+                          type="number"
+                          value={mailRangeStart}
+                          onChange={(e) => setMailRangeStart(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Đến STT (Tổng {typeMaxTotal})</label>
+                        <input 
+                          type="number"
+                          value={mailRangeEnd}
+                          onChange={(e) => setMailRangeEnd(Math.max(1, parseInt(e.target.value) || 1))}
+                          className={`w-full h-14 bg-white/5 border rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all ${mailRangeEnd > typeMaxTotal ? "border-red-500" : "border-white/10"}`}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Dynamic Range Preview Banner */}
+                    <div className={`p-4 rounded-2xl border border-dashed transition-all flex items-center justify-between ${totalSelected > 0 ? "border-gold/30 bg-gold/5" : "border-red-500/20 bg-red-500/5"}`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`h-10 w-10 rounded-xl flex items-center justify-center shadow-lg ${totalSelected > 0 ? "bg-gold text-sidebar" : "bg-red-500/20 text-red-500"}`}>
+                          <Mail size={20} />
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1">Số lượng phân bổ thực tế</p>
+                          <p className={`text-xl font-black leading-none ${totalSelected > 0 ? "text-white" : "text-red-500"}`}>{totalSelected} <span className="text-[9px] uppercase font-bold opacity-40">Mail khả dụng</span></p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1 text-right">Phạm vi STT chọn</p>
+                        <p className={`text-xs font-black tracking-tighter ${totalSelected > 0 ? "text-gold" : "text-red-500/60"}`}>
+                          {totalSelected > 0 ? `${mailRangeStart} ➜ ${mailRangeEnd}` : "Không có mail khả dụng"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Ghi chú */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Ghi chú & Yêu cầu công việc</label>
+                      <textarea
+                        value={assignmentNote}
+                        onChange={(e) => setAssignmentNote(e.target.value)}
+                        placeholder="Nhập ghi chú hoặc yêu cầu chi tiết cho nhân viên..."
+                        className="w-full h-24 bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-sm outline-none focus:border-gold/50 transition-all resize-none"
+                      />
+                    </div>
                   </div>
 
-                  {/* Pagination Controls */}
-                  <div className="flex items-center justify-between bg-white/[0.02] border border-white/10 p-3 rounded-[20px] mb-1">
-                    <div className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-4">
-                      Trang <span className="text-white">{currentPage}</span> / {totalPages || 1}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button 
-                        disabled={currentPage === 1}
-                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                        className="h-9 w-9 rounded-lg bg-white/5 flex items-center justify-center text-gray-500 hover:text-white disabled:opacity-30 transition-all"
-                      >
-                        <ChevronLeft size={18} />
-                      </button>
-                      {Array.from({ length: totalPages }).map((_, i) => (
-                        <button
-                          key={i + 1}
-                          onClick={() => setCurrentPage(i + 1)}
-                          className={`h-9 w-9 rounded-lg text-[9px] font-black transition-all ${currentPage === i + 1 ? "bg-gold text-sidebar" : "bg-white/5 text-gray-500 hover:bg-white/10"}`}
-                        >
-                          {i + 1}
-                        </button>
-                      ))}
-                      <button 
-                        disabled={currentPage === totalPages || totalPages === 0}
-                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                        className="h-9 w-9 rounded-lg bg-white/5 flex items-center justify-center text-gray-500 hover:text-white disabled:opacity-30 transition-all"
-                      >
-                        <ArrowRight size={18} />
-                      </button>
-                    </div>
+                  <div className="mt-8 relative z-10 pt-4 border-t border-white/5">
+                    <button 
+                      onClick={() => {
+                        if (!targetStaffId) {
+                          alert("Vui lòng chọn nhân viên nhận việc.");
+                          return;
+                        }
+                        const taskTypeMapping: Record<string, "MAIL_GOC" | "MAIL_VE_TINH" | "MAIL_MONETIZED"> = {
+                          "Check, xóa, tạo": "MAIL_GOC",
+                          "Nuôi kênh": "MAIL_VE_TINH",
+                          "Làm kênh": "MAIL_VE_TINH",
+                          "Kênh bật kiếm tiền": "MAIL_MONETIZED"
+                        };
+                        submitAssignment(
+                          selectedTemplate,
+                          taskTypeMapping[selectedTemplate] || "MAIL_GOC",
+                          targetStaffId,
+                          mailTypeSelection,
+                          mailRangeStart,
+                          mailRangeEnd,
+                          assignmentNote
+                        );
+                      }}
+                      className="w-full h-14 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
+                    >
+                      <Zap size={16} /> Giao công việc & Kích hoạt real-time
+                    </button>
                   </div>
-               </div>
-            </motion.div>
-        ) : (
-        <motion.div key="detail" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="flex-1 flex flex-col gap-6 overflow-hidden">
-          <div className="bg-white/[0.02] border border-white/10 rounded-[40px] p-8 flex items-center justify-between shadow-2xl">
-            <div className="flex items-center gap-10">
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">Loại nhiệm vụ</span>
-                <span className="text-base font-black text-gold uppercase">{selectedTask?.title}</span>
+                </div>
+              </motion.div>
+            ) : (
+              // Staff task listing
+              <motion.div key="staff-grid" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pb-10">
+                  {filteredTasks.length > 0 ? (
+                    filteredTasks.map(task => <TaskCard key={task.id} task={task} onClick={() => setSelectedTaskId(task.id)} />)
+                  ) : (
+                    <div className="col-span-full py-20 text-center text-gray-500 font-bold uppercase tracking-widest">Không có nhiệm vụ được giao</div>
+                  )}
+                </div>
+              </motion.div>
+            )
+          ) : (
+            // Task Mail Row Details
+            <motion.div key="detail" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="flex-1 flex flex-col gap-6 overflow-hidden">
+              <div className="bg-white/[0.02] border border-white/10 rounded-[40px] p-8 flex items-center justify-between shadow-2xl">
+                <div className="flex items-center gap-10">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">Loại nhiệm vụ</span>
+                    <span className="text-base font-black text-gold uppercase">{selectedTask?.title}</span>
+                  </div>
+                  <div className="h-10 w-px bg-white/10" />
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">Tiến độ tổng</span>
+                    <span className="text-base font-black text-white">{selectedTask?.progress}%</span>
+                  </div>
+                </div>
+                <button className="h-14 px-8 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-white gap-3 font-black text-[10px] uppercase tracking-widest hover:bg-gold/10 hover:text-gold transition-all"><RefreshCcw size={18} /> Làm mới bảng</button>
               </div>
-              <div className="h-10 w-px bg-white/10" />
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">Tiến độ tổng</span>
-                <span className="text-base font-black text-white">{selectedTask?.progress}%</span>
-              </div>
-            </div>
-            <button className="h-14 px-8 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-white gap-3 font-black text-[10px] uppercase tracking-widest hover:bg-gold/10 hover:text-gold transition-all"><RefreshCcw size={18} /> Làm mới bảng</button>
-          </div>
-          <div className="flex-1 bg-white/[0.01] border border-white/10 rounded-[48px] flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-auto custom-scrollbar bg-black/10">
-              <table className="w-full text-left">
-                <thead className="sticky top-0 bg-[#0d0d0d] z-30 shadow-xl">
-                  <tr className="border-b border-white/5 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
-                    <th className="px-10 py-6">STT</th>
-                    <th className="px-6 py-6">Email / Thông tin</th>
-                    <th className="px-6 py-6 text-center">Người thực hiện</th>
-                    <th className="px-6 py-6">Trạng thái</th>
-                    <th className="px-10 py-6 text-right">Chi tiết</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {taskMails.length > 0 ? (
-                    taskMails.map((mail, i) => {
-                      const currentStatus = WORK_STATUSES.find(ws => ws.id === mail.workStatus) || WORK_STATUSES[0];
-                      return (
-                        <tr key={`mail-${mail.id}`} className="group hover:bg-white/[0.02] transition-all">
-                          <td className="px-10 py-5 text-[10px] font-black text-gray-700">{i + 1}</td>
-                          <td className="px-6 py-5">
-                            <p className="text-sm font-bold text-white group-hover:text-gold transition-colors">{mail.email}</p>
-                            <p className="text-[10px] text-gray-600 font-bold uppercase">{mail.recovery}</p>
-                          </td>
-                          <td className="px-6 py-5 text-center">
-                            <span className="text-[10px] font-black text-white uppercase">{mail.assigneeName || "Không rõ"}</span>
-                          </td>
-                          <td className="px-6 py-5">
-                            <select 
-                              value={mail.workStatus || WORK_STATUSES[0].id}
-                              onChange={(e) => handleStatusChange(mail.id, e.target.value)}
-                              className={`text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-2xl outline-none border transition-all cursor-pointer ${currentStatus.color}`}
-                            >
-                              {WORK_STATUSES.map(ws => (
-                                <option key={ws.id} value={ws.id} className="bg-sidebar text-white">
-                                  {ws.label}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="px-10 py-5 text-right">
-                            <button onClick={() => { setSelectedMailForConfig(mail); setIsConfigModalOpen(true); }} className="h-10 px-4 bg-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-gold transition-all flex items-center gap-2 float-right"><Play size={14} /> Cấu hình</button>
+              <div className="flex-1 bg-white/[0.01] border border-white/10 rounded-[48px] flex flex-col overflow-hidden">
+                <div className="flex-1 overflow-auto custom-scrollbar bg-black/10">
+                  <table className="w-full text-left">
+                    <thead className="sticky top-0 bg-[#0d0d0d] z-30 shadow-xl">
+                      <tr className="border-b border-white/5 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
+                        <th className="px-10 py-6">STT</th>
+                        <th className="px-6 py-6">Email / Thông tin</th>
+                        <th className="px-6 py-6 text-center">Người thực hiện</th>
+                        <th className="px-6 py-6">Trạng thái</th>
+                        <th className="px-10 py-6 text-right">Chi tiết</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {taskMails.length > 0 ? (
+                        taskMails.map((mail, i) => {
+                          const currentStatus = WORK_STATUSES.find(ws => ws.id === mail.workStatus) || WORK_STATUSES[0];
+                          return (
+                            <tr key={`mail-${mail.id}`} className="group hover:bg-white/[0.02] transition-all">
+                              <td className="px-10 py-5 text-[10px] font-black text-gray-700">{i + 1}</td>
+                              <td className="px-6 py-5">
+                                <p className="text-sm font-bold text-white group-hover:text-gold transition-colors">{mail.email}</p>
+                                <p className="text-[10px] text-gray-600 font-bold uppercase">{mail.recovery}</p>
+                              </td>
+                              <td className="px-6 py-5 text-center">
+                                <span className="text-[10px] font-black text-white uppercase">{mail.assigneeName || "Không rõ"}</span>
+                              </td>
+                              <td className="px-6 py-5">
+                                <select 
+                                  value={mail.workStatus || WORK_STATUSES[0].id}
+                                  onChange={(e) => handleStatusChange(mail.id, e.target.value)}
+                                  className={`text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-2xl outline-none border transition-all cursor-pointer ${currentStatus.color}`}
+                                >
+                                  {WORK_STATUSES.map(ws => (
+                                    <option key={ws.id} value={ws.id} className="bg-sidebar text-white">
+                                      {ws.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="px-10 py-5 text-right">
+                                <button onClick={() => { setSelectedMailForConfig(mail); setIsConfigModalOpen(true); }} className="h-10 px-4 bg-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-gold transition-all flex items-center gap-2 float-right"><Play size={14} /> Cấu hình</button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="px-10 py-20 text-center">
+                            <div className="flex flex-col items-center gap-4 opacity-20">
+                              <Mail size={60} className="text-gold" />
+                              <p className="text-xl font-black uppercase tracking-[0.2em] text-white">Chưa có mail nào được giao</p>
+                            </div>
                           </td>
                         </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="px-10 py-20 text-center">
-                        <div className="flex flex-col items-center gap-4 opacity-20">
-                          <Mail size={60} className="text-gold" />
-                          <p className="text-xl font-black uppercase tracking-[0.2em] text-white">Chưa có mail nào được giao</p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </motion.div>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </motion.div>
           )}
-      </AnimatePresence>
+        </AnimatePresence>
+      </div>
     </div>
-    </div >
   );
 }

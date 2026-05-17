@@ -10,6 +10,8 @@ import { MOCK_ACCESS_REQUESTS, initMockDB } from "@/data/mockData";
 import { Bell, Check, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+const lastSyncedCache: Record<string, string | null> = {};
+
 export default function AdminLayout({
   children,
 }: {
@@ -22,6 +24,34 @@ export default function AdminLayout({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [realtimeToast, setRealtimeToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkRealtimeToast = () => {
+      const storedUserStr = sessionStorage.getItem("user") || localStorage.getItem("user");
+      if (!storedUserStr) return;
+      const currentUser = JSON.parse(storedUserStr);
+
+      const toastDataStr = localStorage.getItem("realtime_toast");
+      if (toastDataStr) {
+        const toastData = JSON.parse(toastDataStr);
+        if (String(toastData.userId) === String(currentUser.id)) {
+          setRealtimeToast(toastData.message || "Bạn nhận được công việc mới");
+          localStorage.removeItem("realtime_toast");
+          setTimeout(() => setRealtimeToast(null), 5000);
+        }
+      }
+    };
+
+    checkRealtimeToast();
+    window.addEventListener("storage", checkRealtimeToast);
+    const pollInterval = setInterval(checkRealtimeToast, 1000);
+
+    return () => {
+      window.removeEventListener("storage", checkRealtimeToast);
+      clearInterval(pollInterval);
+    };
+  }, []);
   const [isAccessGranted, setIsAccessGranted] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<any[]>(MOCK_ACCESS_REQUESTS);
   const [showManagerNotif, setShowManagerNotif] = useState(false);
@@ -46,6 +76,73 @@ export default function AdminLayout({
       router.push("/login");
       return;
     }
+
+    const syncDatabase = async () => {
+      try {
+        const keys = [
+          "global_users",
+          "global_mails_data",
+          "global_tasks_data",
+          "global_kpi_data",
+          "admin_notifications",
+          "realtime_toast",
+          "pending_access_requests"
+        ];
+
+        const res = await fetch("/api/sync");
+        if (!res.ok) return;
+        const serverStore = await res.json();
+
+        const localUpdates: Record<string, string> = {};
+        let hasLocalChanges = false;
+        let hasRemoteChanges = false;
+
+        keys.forEach(key => {
+          const localVal = localStorage.getItem(key);
+          const serverVal = serverStore[key];
+          const prevSyncedVal = lastSyncedCache[key];
+
+          if (localVal !== prevSyncedVal && localVal !== serverVal) {
+            // Local value has changed! Push to server
+            if (localVal !== null) {
+              localUpdates[key] = localVal;
+              lastSyncedCache[key] = localVal;
+              hasLocalChanges = true;
+            }
+          } else if (serverVal !== prevSyncedVal && serverVal !== localVal) {
+            // Server value has changed! Pull to local
+            if (serverVal !== undefined && serverVal !== null) {
+              localStorage.setItem(key, serverVal);
+              lastSyncedCache[key] = serverVal;
+              hasRemoteChanges = true;
+            }
+          } else {
+            // No changes, just sync our tracker cache
+            if (serverVal) {
+              lastSyncedCache[key] = serverVal;
+            } else if (localVal) {
+              lastSyncedCache[key] = localVal;
+              localUpdates[key] = localVal;
+              hasLocalChanges = true;
+            }
+          }
+        });
+
+        if (hasLocalChanges) {
+          await fetch("/api/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(localUpdates)
+          });
+        }
+
+        if (hasRemoteChanges) {
+          window.dispatchEvent(new Event("storage"));
+        }
+      } catch (err) {
+        console.error("Sync error:", err);
+      }
+    };
 
     const syncUserRole = () => {
       const activeUserStr = getActiveUserStr();
@@ -110,12 +207,14 @@ export default function AdminLayout({
       }
     };
 
+    syncDatabase();
     syncUserRole();
     checkNewNotifications();
     const interval = setInterval(() => {
+      syncDatabase();
       syncUserRole();
       checkNewNotifications();
-    }, 2000); 
+    }, 1500); 
 
     const handleStorageChange = (e: StorageEvent) => {
       if (!e.key || e.key === "global_users" || e.key === "admin_notifications" || e.key === "pending_access_requests" || e.key === "request_trigger") {
@@ -244,6 +343,20 @@ export default function AdminLayout({
         <main className="flex-1 mt-16 p-4 md:p-6 overflow-y-auto custom-scrollbar">
           <div className="min-h-full mx-auto max-w-[1600px] relative">
             {children}
+
+            {/* Real-time Task Notification Toast */}
+            <AnimatePresence>
+              {realtimeToast && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -100, x: "-50%" }} 
+                  animate={{ opacity: 1, y: 30, x: "-50%" }} 
+                  exit={{ opacity: 0, y: -100, x: "-50%" }}
+                  className="fixed top-0 left-1/2 z-[9999] bg-gold text-sidebar px-8 py-4 rounded-[24px] shadow-2xl flex items-center gap-4 font-black text-sm uppercase tracking-widest border border-white/20"
+                >
+                  <Bell size={24} className="animate-bounce" /> {realtimeToast}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Role Update Notification Toast */}
             <AnimatePresence>
