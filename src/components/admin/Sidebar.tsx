@@ -31,49 +31,69 @@ interface SidebarProps {
   user: any;
 }
 
-const menuItems = [
-  {
-    title: "Dashboard",
-    icon: <LayoutDashboard size={24} />,
-    href: "/admin",
-  },
-  {
-    title: "Quản lý mail",
-    icon: <Mail size={24} />,
-    subItems: [
-      { title: "Mail gốc", href: "/admin/mail/root" },
-      { title: "Mail vệ tinh", href: "/admin/mail/satellite" },
-      { title: "Mail bật kiếm tiền", href: "/admin/mail/monetized" },
-    ],
-  },
-  {
-    title: "Phân công",
-    icon: <ClipboardList size={24} />,
-    href: "/admin/tasks",
-  },
-  {
-    title: "Nhân sự",
-    icon: <Users size={24} />,
-    href: "/admin/staff",
-  },
-  {
-    title: "Theo dõi & Thống kê",
-    icon: <BarChart3 size={24} />,
-    subItems: [
-      { title: "Nhật ký hoạt động", href: "/admin/stats/logs" },
-      { title: "Thống kê", href: "/admin/stats/report" },
-    ],
-  },
-  {
-    title: "Hệ thống",
-    icon: <Settings size={24} />,
-    href: "/admin/settings",
-  },
-];
-
 const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
   const pathname = usePathname();
   const [openMenus, setOpenMenus] = useState<string[]>(["Quản lý mail"]);
+
+  const isAdminOrManager = user?.role === "01" || user?.role === "02" || user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC";
+  const isMinimalRole = user?.role === "03" || user?.role === "04" || user?.role === "QL NHÂN SỰ" || user?.role === "NHÂN VIÊN";
+
+  const dynamicMenuItems: any[] = [
+    { title: "Dashboard", icon: <LayoutDashboard size={24} />, href: "/admin" }
+  ];
+
+  if (isMinimalRole) {
+    dynamicMenuItems.push({
+      title: "Quản lý mail",
+      icon: <Mail size={24} />,
+      href: "/admin/mail/satellite",
+    });
+  } else {
+    dynamicMenuItems.push({
+      title: "Quản lý mail",
+      icon: <Mail size={24} />,
+      subItems: [
+        { title: "Mail gốc", href: "/admin/mail/root" },
+        { title: "Mail vệ tinh", href: "/admin/mail/satellite" },
+        { title: "Mail bật kiếm tiền", href: "/admin/mail/monetized" },
+      ],
+    });
+  }
+
+  if (isAdminOrManager) {
+    dynamicMenuItems.push({
+      title: "Quản lý lô mail vệ tinh",
+      icon: <LayoutGrid size={24} />,
+      href: "/admin/mail/batches",
+    });
+    dynamicMenuItems.push({
+      title: "Phân công",
+      icon: <ClipboardList size={24} />,
+      href: "/admin/tasks",
+    });
+  }
+
+  dynamicMenuItems.push({
+    title: "Nhân sự",
+    icon: <Users size={24} />,
+    href: "/admin/staff",
+  });
+
+  if (isAdminOrManager) {
+    dynamicMenuItems.push({
+      title: "Theo dõi & Thống kê",
+      icon: <BarChart3 size={24} />,
+      subItems: [
+        { title: "Nhật ký hoạt động", href: "/admin/stats/logs" },
+        { title: "Thống kê", href: "/admin/stats/report" },
+      ],
+    });
+    dynamicMenuItems.push({
+      title: "Hệ thống",
+      icon: <Settings size={24} />,
+      href: "/admin/settings",
+    });
+  }
 
   const toggleMenu = (title: string) => {
     if (isCollapsed) return;
@@ -144,6 +164,7 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
 
       window.dispatchEvent(new Event("storage"));
       alert("Khôi phục dữ liệu gốc thành công! Toàn bộ hệ thống đã được đồng bộ lại.");
+      window.location.reload();
     } catch (err) {
       console.error("Reset error:", err);
       alert("Đã xảy ra lỗi khi khôi phục dữ liệu.");
@@ -176,13 +197,10 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
 
       {/* Menu */}
       <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-3 custom-scrollbar">
-        {menuItems.map((item) => {
-          // RBAC logic for main menu items
-          if (item.title === "Phân công" && (user?.role === "03" || user?.role === "04")) return null;
-          
+        {dynamicMenuItems.map((item) => {
           const hasSubItems = item.subItems && item.subItems.length > 0;
           const isOpen = openMenus.includes(item.title);
-          const isActive = pathname === item.href || (hasSubItems && item.subItems?.some(sub => sub.href === pathname));
+          const isActive = pathname === item.href || (hasSubItems && item.subItems?.some((sub: any) => sub.href === pathname));
 
           return (
             <div key={item.title} className="space-y-2">
@@ -227,15 +245,7 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
                     initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
                     className="ml-12 space-y-2 overflow-hidden"
                   >
-                    {item.subItems?.filter(sub => {
-                      // RBAC for sub items
-                      if (user?.role === "04" || user?.role === "NHÂN VIÊN") {
-                        // Nhân viên chỉ được thấy Mail vệ tinh
-                        return sub.title === "Mail vệ tinh";
-                      }
-                      if (sub.title === "Mail bật kiếm tiền" && (user?.role === "03" || user?.role === "QUẢN LÝ NHÂN SỰ")) return false;
-                      return true;
-                    }).map((sub) => (
+                    {item.subItems?.map((sub: any) => (
                       <Link
                         key={sub.title} href={sub.href}
                         className={cn(

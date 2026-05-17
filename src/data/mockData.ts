@@ -58,6 +58,7 @@ export interface MailData {
   type: "ROOT" | "SATELLITE" | "MONETIZED";
   status: "LIVE" | "DIE";
   workStatus: string; // Dynamic status based on type
+  updatedBy?: string;
   channelStatus?: string;
   assignedTo?: string; 
   assigneeId?: string; // ID của nhân viên được giao

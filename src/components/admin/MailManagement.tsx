@@ -46,7 +46,7 @@ const UnifiedMailDetailModal = ({
   const [links, setLinks] = useState<string[]>(mail.links || ["", "", ""]);
   const [names, setNames] = useState<string[]>(mail.channelNames || ["", "", ""]);
   const [scanning, setScanning] = useState<boolean[]>([false, false, false]);
-  const [isEligible, setIsEligible] = useState<boolean>(!!mail.isEligible);
+  const [eligibleChannels, setEligibleChannels] = useState<boolean[]>(mail.eligibleChannels || [false, false, false]);
 
   // State for MONETIZED
   const [reClickDate, setReClickDate] = useState(mail.reClickDate || "");
@@ -98,7 +98,7 @@ const UnifiedMailDetailModal = ({
       onSave({ 
         links, 
         channelNames: names,
-        isEligible
+        eligibleChannels
       });
     } else if (type === "MONETIZED") {
       onSave({ 
@@ -170,35 +170,33 @@ const UnifiedMailDetailModal = ({
                       </span>
                     )}
                   </div>
-                  <div className="relative group">
+                  <div className="flex items-center gap-3">
                     <input 
                       value={links[idx] || ""} 
                       onChange={(e) => handleLinkChange(idx, e.target.value)} 
                       placeholder="Dán link channel YouTube..." 
-                      className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all" 
+                      className="flex-1 h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all" 
                     />
+                    {isAdminOrManager && (
+                      <button
+                        onClick={() => {
+                          const newEligible = [...eligibleChannels];
+                          newEligible[idx] = !newEligible[idx];
+                          setEligibleChannels(newEligible);
+                        }}
+                        className={`h-14 px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border flex items-center gap-2 flex-shrink-0 ${
+                          eligibleChannels[idx]
+                            ? "bg-gold text-sidebar border-gold shadow-lg shadow-gold/20" 
+                            : "bg-white/5 text-gray-400 border-white/10 hover:border-gold/30 hover:text-gold"
+                        }`}
+                      >
+                        <CheckCircle size={16} />
+                        {eligibleChannels[idx] ? "Đủ giờ" : "Đánh dấu"}
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
-
-              {isAdminOrManager && (
-                <div className="p-6 bg-gold/5 border border-dashed border-gold/30 rounded-3xl flex items-center justify-between mt-4">
-                  <div>
-                    <h4 className="text-xs font-black text-white uppercase tracking-tight">Kênh vệ tinh Đủ giờ</h4>
-                    <p className="text-[9px] text-gray-400 font-bold uppercase mt-1">Chọn trạng thái để tổng hợp vào ô Kênh đủ giờ</p>
-                  </div>
-                  <button
-                    onClick={() => setIsEligible(!isEligible)}
-                    className={`h-12 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border ${
-                      isEligible 
-                        ? "bg-gold text-sidebar border-gold shadow-lg shadow-gold/20" 
-                        : "bg-white/5 text-gray-400 border-white/10 hover:border-gold/30 hover:text-gold"
-                    }`}
-                  >
-                    {isEligible ? "✓ Đủ điều kiện" : "Kích hoạt Đủ điều kiện"}
-                  </button>
-                </div>
-              )}
             </>
           )}
 
@@ -272,6 +270,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [dateFilter, setDateFilter] = useState<"ALL" | "1_MONTH" | "2_MONTH">("ALL");
+  const [selectedBatch, setSelectedBatch] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
@@ -284,6 +283,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
   const [manualData, setManualData] = useState("");
   const itemsPerPage = 20;
+
+  const isStaff = user?.role === "04" || user?.role === "NHÂN VIÊN" || user?.role === "03" || user?.role === "QL NHÂN SỰ";
+  const isAdminOrManager = user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC" || user?.role === "01" || user?.role === "02";
 
   useEffect(() => {
     const loadData = () => {
@@ -323,12 +325,17 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     const updated = mails.map(m => {
       if (m.id === mailId) {
         let status = m.status;
-        if (newStatus === "Đã làm" || newStatus === "Đã bán") {
+        if (newStatus === "Đã làm" || newStatus === "Đã bán" || newStatus === "Chưa làm") {
           status = "LIVE";
         } else if (newStatus === "Lỗi") {
           status = "DIE";
         }
-        return { ...m, workStatus: newStatus as any, status };
+        return { 
+          ...m, 
+          workStatus: newStatus as any, 
+          status,
+          updatedBy: user?.name || user?.id || m.updatedBy
+        };
       }
       return m;
     });
@@ -341,7 +348,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       if (m.id === mailId) {
         return {
           ...m,
-          ...updatedFields
+          ...updatedFields,
+          updatedBy: user?.name || user?.id || m.updatedBy
         };
       }
       return m;
@@ -461,15 +469,14 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   };
 
   const filteredMails = useMemo(() => {
-    const isStaff = user?.role === "04" || user?.role === "NHÂN VIÊN";
-    const isAdminOrManager = user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC" || user?.role === "01" || user?.role === "02";
     const mailsOfType = mails.filter(m => type === "ALL" || m.type === type);
     
     return mailsOfType
       .map((m, idx) => ({ ...m, originalSTT: idx + 1 }))
       .filter(m => {
-        if (isStaff) {
+        if (isStaff && type === "SATELLITE") {
           if (String(m.assigneeId) !== String(user?.id)) return false;
+          if (selectedBatch && m.batchName !== selectedBatch) return false;
         }
 
         const matchesSearch = m.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -515,7 +522,24 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
   const totalPages = Math.ceil(filteredMails.length / itemsPerPage);
   const currentItems = filteredMails.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const isAdminOrManager = user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC" || user?.role === "01" || user?.role === "02";
+
+  const staffBatches = useMemo(() => {
+    if (!isStaff || type !== "SATELLITE") return [];
+    const mySats = mails.filter(m => String(m.assigneeId) === String(user?.id) && m.type === "SATELLITE");
+    const counts: Record<string, number> = {};
+    mySats.forEach(m => {
+      const b = m.batchName || "Lô chưa phân loại";
+      counts[b] = (counts[b] || 0) + 1;
+    });
+    ["Lô 1", "Lô 2", "Lô 3", "Lô 4", "Lô 5", "Lô 6"].forEach(b => {
+      if (counts[b] === undefined) counts[b] = 0;
+    });
+    return Object.entries(counts).sort((a, b) => {
+      const numA = parseInt(a[0].replace(/\D/g, "")) || 999;
+      const numB = parseInt(b[0].replace(/\D/g, "")) || 999;
+      return numA - numB;
+    });
+  }, [mails, user, isStaff, type]);
 
   return (
     <div className="h-full flex flex-col space-y-6 pb-6 relative">
@@ -585,12 +609,38 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         </div>
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => {
+            onClick={async () => {
               if (confirm("Xác nhận khôi phục toàn bộ dữ liệu về trạng thái ban đầu?")) {
-                localStorage.removeItem("global_mails_data");
-                localStorage.removeItem("global_tasks_data");
-                localStorage.removeItem("dashboard_stats");
-                window.location.reload();
+                try {
+                  const { MOCK_STAFF, MOCK_MAILS, MOCK_TASK_ASSIGNMENTS, MOCK_KPI_DATA } = await import("@/data/mockData");
+                  
+                  const resetPayload = {
+                    global_users: JSON.stringify(MOCK_STAFF),
+                    global_mails_data: JSON.stringify(MOCK_MAILS),
+                    global_tasks_data: JSON.stringify(MOCK_TASK_ASSIGNMENTS),
+                    global_kpi_data: JSON.stringify(MOCK_KPI_DATA),
+                    admin_notifications: JSON.stringify([]),
+                    realtime_toast: JSON.stringify({ userId: "all", message: "Hệ thống đã được khôi phục dữ liệu gốc!" }),
+                    pending_access_requests: JSON.stringify([])
+                  };
+
+                  Object.entries(resetPayload).forEach(([k, v]) => {
+                    localStorage.setItem(k, v);
+                  });
+
+                  await fetch("/api/sync", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(resetPayload)
+                  });
+
+                  window.dispatchEvent(new Event("storage"));
+                  alert("Khôi phục dữ liệu gốc thành công! Toàn bộ hệ thống đã được đồng bộ lại.");
+                  window.location.reload();
+                } catch (err) {
+                  console.error("Reset error:", err);
+                  alert("Đã xảy ra lỗi khi khôi phục dữ liệu.");
+                }
               }
             }}
             className="h-10 px-4 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 rounded-xl text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"
@@ -607,7 +657,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         </div>
       </div>
 
-      {user?.role === "04" && (
+      {isStaff && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-sidebar border border-border-custom p-6 rounded-[24px] flex items-center justify-between shadow-xl">
             <div>
@@ -633,13 +683,43 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         </div>
       )}
 
-      <div className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex flex-col">
-        <div className="p-6 border-b border-white/5 bg-white/[0.02] flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <h3 className="text-xl font-black text-white uppercase tracking-tighter">Dữ liệu chi tiết</h3>
-            <div className="h-8 w-px bg-white/10 hidden md:block" />
-            <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-4 h-10 w-full md:w-80 focus-within:border-gold transition-all">
-              <Search size={16} className="text-gray-500" />
+      {isStaff && type === "SATELLITE" && !selectedBatch ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {staffBatches.map(([batchName, count]) => (
+            <button
+              key={batchName}
+              onClick={() => setSelectedBatch(batchName)}
+              className="bg-sidebar border border-white/10 hover:border-gold/50 p-6 rounded-[24px] text-left transition-all group shadow-xl hover:shadow-gold/10"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="h-12 w-12 rounded-xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 group-hover:scale-110 transition-transform">
+                  <Database size={24} />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 bg-black/40 px-3 py-1 rounded-full">
+                  {count} mail
+                </span>
+              </div>
+              <h3 className="text-xl font-black text-white uppercase tracking-tighter group-hover:text-gold transition-colors">{batchName}</h3>
+              <p className="text-xs text-gray-500 mt-2 font-medium">Bấm vào để xem và xử lý các mail trong lô này.</p>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex flex-col">
+          <div className="p-6 border-b border-white/5 bg-white/[0.02] flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              {isStaff && type === "SATELLITE" && selectedBatch && (
+                <button 
+                  onClick={() => setSelectedBatch(null)} 
+                  className="h-10 px-4 flex items-center gap-2 bg-white/5 hover:bg-white/10 rounded-xl text-white font-black text-xs uppercase tracking-widest transition-all"
+                >
+                  <ArrowLeft size={16} /> Quay lại
+                </button>
+              )}
+              <h3 className="text-xl font-black text-white uppercase tracking-tighter shrink-0">Dữ liệu chi tiết {selectedBatch ? `- ${selectedBatch}` : ""}</h3>
+              <div className="h-8 w-px bg-white/10 hidden md:block" />
+              <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-4 h-10 w-full md:w-64 lg:w-80 focus-within:border-gold transition-all">
+                <Search size={16} className="text-gray-500 shrink-0" />
               <input type="text" placeholder="Tìm kiếm Email hoặc Mail KP..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none text-xs text-white w-full" />
             </div>
             <select
@@ -761,7 +841,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
             <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
           </div>
         </div>
-      </div>
+        </div>
+      )}
 
       <AnimatePresence>
         {selectedMailForConfig && (

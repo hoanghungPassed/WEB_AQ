@@ -42,6 +42,7 @@ export default function AdminDashboard() {
   const [selectedViewType, setSelectedViewType] = useState<"LIVE" | "DIE" | "STAFF" | "TASKS" | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterMailType, setFilterMailType] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [staffList, setStaffList] = useState<StaffData[]>([]);
   const [mails, setMails] = useState<any[]>([]);
@@ -81,9 +82,12 @@ export default function AdminDashboard() {
     const isMinimalRole = currentUserObj?.role === "03" || currentUserObj?.role === "04" || currentUserObj?.role === "NHÂN VIÊN" || currentUserObj?.role === "QUẢN LÝ NHÂN SỰ";
 
     setTasksList(currentTasks);
-
-    const eligibleCount = currentMails.filter((m: any) => m.type === "SATELLITE" && m.isEligible === true).length;
-
+    const eligibleCount = currentMails.reduce((sum: number, m: any) => {
+      if (m.type === "SATELLITE" && Array.isArray(m.eligibleChannels)) {
+        return sum + m.eligibleChannels.filter(Boolean).length;
+      }
+      return sum;
+    }, 0);
     if (isMinimalRole && currentUserObj) {
       const myMails = currentMails.filter((m: any) => String(m.assigneeId) === String(currentUserObj?.id));
       const myTasks = currentTasks.filter((t: any) => String(t.assigneeId) === String(currentUserObj?.id) && (t.status === "IN_PROGRESS" || t.status === "PENDING" || t.status === "COMPLETED"));
@@ -194,6 +198,7 @@ export default function AdminDashboard() {
     setCurrentPage(1);
     setSearchQuery("");
     setFilterStatus("all");
+    setFilterMailType("ALL");
   }, [selectedViewType]);
 
   const handleSaveKPI = () => {
@@ -209,12 +214,17 @@ export default function AdminDashboard() {
     const updatedMails = currentMails.map((m: any) => {
       if (m.id === mailId) {
         let status = m.status;
-        if (newWorkStatus === "ĐÃ LÀM KÊNH" || newWorkStatus === "HOÀN THÀNH" || newWorkStatus === "ĐÃ LÀM") {
+        if (newWorkStatus === "ĐÃ LÀM KÊNH" || newWorkStatus === "HOÀN THÀNH" || newWorkStatus === "ĐÃ LÀM" || newWorkStatus === "CHƯA LÀM") {
           status = "LIVE";
         } else if (newWorkStatus === "LỖI") {
           status = "DIE";
         }
-        return { ...m, workStatus: newWorkStatus, status };
+        return { 
+          ...m, 
+          workStatus: newWorkStatus, 
+          status,
+          updatedBy: user?.name || user?.id || m.updatedBy
+        };
       }
       return m;
     });
@@ -277,13 +287,15 @@ export default function AdminDashboard() {
     window.dispatchEvent(new Event("storage"));
   };
 
-  const handleInviteStatusChange = (mailId: number, newInviteStatus: string) => {
+  const handleInviteStatusChange = (mailId: number, chIdx: number, newInviteStatus: string) => {
     const savedMails = localStorage.getItem("global_mails_data");
     const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
 
     const updatedMails = currentMails.map((m: any) => {
       if (m.id === mailId) {
-        return { ...m, inviteStatus: newInviteStatus };
+        const inviteStatuses = m.inviteStatuses || ["Chưa mời", "Chưa mời", "Chưa mời"];
+        inviteStatuses[chIdx] = newInviteStatus;
+        return { ...m, inviteStatuses };
       }
       return m;
     });
@@ -291,7 +303,12 @@ export default function AdminDashboard() {
     localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
     setMails(updatedMails);
 
-    const eligibleCount = updatedMails.filter((m: any) => m.type === "SATELLITE" && m.isEligible === true).length;
+    const eligibleCount = updatedMails.reduce((sum: number, m: any) => {
+      if (m.type === "SATELLITE" && Array.isArray(m.eligibleChannels)) {
+        return sum + m.eligibleChannels.filter(Boolean).length;
+      }
+      return sum;
+    }, 0);
     setStats(prev => ({ ...prev, mailWatchHours: eligibleCount }));
 
     setCopyToast("Đã cập nhật trạng thái mời!");
@@ -313,14 +330,22 @@ export default function AdminDashboard() {
       else if (selectedViewType === "DIE") matchesType = m.status === "DIE";
       else if (selectedViewType === "TASKS") matchesType = m.workStatus === "ĐANG LÀM" || m.workStatus === "CHƯA LÀM";
 
+      let matchesMailType = true;
+      if (filterMailType !== "ALL") {
+        matchesMailType = m.type === filterMailType;
+      }
+
       const matchesSearch = m.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            m.recovery.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesStatus = filterStatus === "all" || (m.channelStatus && m.channelStatus.includes(filterStatus));
 
-      return matchesType && matchesSearch && matchesStatus;
+      return matchesType && matchesMailType && matchesSearch && matchesStatus;
     });
-  }, [selectedViewType, searchQuery, filterStatus, mails]);
+  }, [selectedViewType, searchQuery, filterStatus, filterMailType, mails]);
+
+  const totalPages = Math.ceil(filteredMails.length / itemsPerPage);
+  const currentItems = filteredMails.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const getChannelStatusColor = (status: string) => {
     if (!status) return "bg-gray-500/10 text-gray-400 border-gray-500/20";
@@ -367,6 +392,21 @@ export default function AdminDashboard() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
+              {(selectedViewType === "LIVE" || selectedViewType === "DIE") && (
+                <select
+                  value={filterMailType}
+                  onChange={(e) => {
+                    setFilterMailType(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold transition-all cursor-pointer hidden md:block"
+                >
+                  <option value="ALL" className="bg-sidebar text-white">Tất cả loại</option>
+                  <option value="ROOT" className="bg-sidebar text-white">Gốc</option>
+                  <option value="SATELLITE" className="bg-sidebar text-white">Vệ tinh</option>
+                  <option value="MONETIZED" className="bg-sidebar text-white">BKT</option>
+                </select>
+              )}
             </div>
             <button onClick={() => setSelectedViewType(null)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:bg-red-500/20 hover:text-red-500 transition-all shadow-inner"><X size={20} /></button>
           </div>
@@ -406,27 +446,50 @@ export default function AdminDashboard() {
                   <tr>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Email</th>
-                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Mail KP</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Loại Mail</th>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Trạng thái</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Chi tiết</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Người cập nhật</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-gray-300">
-                  {filteredMails.slice(0, 10).map((mail: any, index: number) => (
-                    <tr key={`mail-${mail.id}`} className="hover:bg-white/[0.02] transition-colors group">
-                      <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
-                      <td className="py-4 px-6 text-sm font-bold text-white">{mail.email}</td>
-                      <td className="py-4 px-6 text-xs text-gray-400">{mail.recovery}</td>
-                      <td className="py-4 px-6">
-                        <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${mail.channelStatus ? getChannelStatusColor(mail.channelStatus) : (mail.status === 'LIVE' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20')}`}>
-                          {mail.channelStatus || mail.status || "LIVE"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {currentItems.map((mail: any, index: number) => {
+                    const assignee = staffList.find(s => String(s.id) === String(mail.assigneeId));
+                    return (
+                      <tr key={`mail-${mail.id}`} className="hover:bg-white/[0.02] transition-colors group">
+                        <td className="py-4 px-6 text-[10px] font-black text-gray-500">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                        <td className="py-4 px-6 text-sm font-bold text-white">{mail.email}</td>
+                        <td className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gold">
+                          {mail.type === "ROOT" ? "Gốc" : mail.type === "SATELLITE" ? "Vệ Tinh" : "BKT"}
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${mail.status === 'LIVE' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                            {mail.status || "LIVE"}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                          {mail.workStatus || (mail.status === 'DIE' ? "Lỗi" : "Chưa làm")}
+                        </td>
+                        <td className="py-4 px-6 text-xs text-gray-400 font-medium">
+                          {mail.updatedBy ? mail.updatedBy : (assignee ? assignee.name : "---")}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
           </div>
+          
+          {selectedViewType !== "STAFF" && (
+            <div className="p-6 border-t border-white/5 bg-black/20 flex items-center justify-between">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-white font-black">{currentPage}</span> / {totalPages || 1}</span>
+              <div className="flex gap-2">
+                <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
+                <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -557,7 +620,7 @@ export default function AdminDashboard() {
                 {selectedStaffTask && (
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl">
                     <div className="p-6 border-b border-white/5 bg-white/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div>
+                      <div className="flex-1">
                         <h3 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
                           <span>Danh sách Mail - {selectedStaffTask.title}</span>
                            <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase border tracking-widest ${
@@ -571,6 +634,15 @@ export default function AdminDashboard() {
                           </span>
                         </h3>
                         <p className="text-xs text-gray-500 font-medium mt-1">Danh sách mail bạn cần xử lý cho nhiệm vụ này</p>
+                        {selectedStaffTask.title === "Mời kênh" && (
+                          <div className="mt-4 p-4 bg-gold/10 border border-gold/30 rounded-2xl flex items-center justify-between shadow-inner w-full max-w-lg">
+                            <div>
+                              <p className="text-[10px] font-black text-gold uppercase tracking-widest">Chi tiết Ghép cặp</p>
+                              <p className="text-sm font-bold text-white mt-1">{selectedStaffTask.note}</p>
+                            </div>
+                            <div className="h-2 w-2 rounded-full bg-gold animate-ping" />
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-3">
                         <button 
@@ -854,13 +926,19 @@ export default function AdminDashboard() {
             )}
 
             <div className="rounded-[32px] border border-white/5 bg-white/[0.02] p-6 flex items-center justify-between shadow-inner col-span-1">
-               <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500 border border-green-500/20"><CheckCircle2 size={24} /></div>
+               <div 
+                 onClick={() => setSelectedViewType("LIVE")}
+                 className="flex items-center gap-4 cursor-pointer group hover:opacity-80 transition-all"
+               >
+                  <div className="h-12 w-12 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500 border border-green-500/20 group-hover:bg-green-500/20"><CheckCircle2 size={24} /></div>
                   <div><p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Hệ thống</p><h4 className="text-sm font-black text-white uppercase tracking-tighter">Live: {stats.mailLive}</h4></div>
                </div>
                <div className="h-10 w-px bg-white/5" />
-               <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 border border-red-500/20"><XCircle size={24} /></div>
+               <div 
+                 onClick={() => setSelectedViewType("DIE")}
+                 className="flex items-center gap-4 cursor-pointer group hover:opacity-80 transition-all"
+               >
+                  <div className="h-12 w-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 border border-red-500/20 group-hover:bg-red-500/20"><XCircle size={24} /></div>
                   <div><p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Lỗi</p><h4 className="text-sm font-black text-white uppercase tracking-tighter">Die: {stats.mailDie}</h4></div>
                </div>
             </div>
@@ -972,38 +1050,25 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody className="divide-y divide-white/5 text-gray-300">
                     {mails
-                      .filter((m: any) => m.type === "SATELLITE" && m.isEligible === true)
+                      .filter((m: any) => m.type === "SATELLITE" && Array.isArray(m.eligibleChannels) && m.eligibleChannels.some(Boolean))
                       .flatMap((m: any, mailIdx: number) => {
-                        // Extract all active links and names
-                        const activeChannels = (m.links || ["", "", ""])
-                          .map((link: string, chIdx: number) => ({
-                            link: link.trim(),
-                            name: (m.channelNames && m.channelNames[chIdx]) || `Kênh vệ tinh #${chIdx + 1}`,
-                            mailId: m.id
-                          }))
-                          .filter((ch: any) => ch.link !== "");
-
-                        if (activeChannels.length === 0) {
-                          // Fallback if no specific links are parsed but eligible
-                          return [{
-                            stt: mailIdx + 1,
-                            name: m.channelStatus || "Kênh Đủ Điều Kiện",
-                            link: m.links?.[0] || "#",
-                            mailId: m.id,
-                            inviteStatus: m.inviteStatus || "Chưa mời"
-                          }];
+                        const activeChannels = [];
+                        for (let i = 0; i < 3; i++) {
+                          if (m.eligibleChannels[i] && m.links && m.links[i]) {
+                            activeChannels.push({
+                              stt: `${mailIdx + 1}.${i + 1}`,
+                              name: m.channelNames && m.channelNames[i] ? m.channelNames[i] : `Kênh vệ tinh #${i + 1}`,
+                              link: m.links[i],
+                              mailId: m.id,
+                              chIdx: i,
+                              inviteStatus: (m.inviteStatuses && m.inviteStatuses[i]) ? m.inviteStatuses[i] : "Chưa mời"
+                            });
+                          }
                         }
-
-                        return activeChannels.map((ch: any, chSubIdx: number) => ({
-                          stt: `${mailIdx + 1}.${chSubIdx + 1}`,
-                          name: ch.name,
-                          link: ch.link,
-                          mailId: ch.mailId,
-                          inviteStatus: m.inviteStatus || "Chưa mời"
-                        }));
+                        return activeChannels;
                       })
                       .map((row: any, idx: number) => (
-                        <tr key={`${row.mailId}-${idx}`} className="hover:bg-white/[0.02] transition-colors group">
+                        <tr key={`${row.mailId}-${row.chIdx}-${idx}`} className="hover:bg-white/[0.02] transition-colors group">
                           <td className="py-4 px-6 text-[10px] font-black text-gray-500">{row.stt}</td>
                           <td className="py-4 px-6 font-bold text-gold uppercase tracking-tighter text-xs">
                             {row.name.replace("Tên kênh: ", "")}
@@ -1022,7 +1087,7 @@ export default function AdminDashboard() {
                           <td className="py-4 px-6 text-center">
                             <select 
                               value={row.inviteStatus}
-                              onChange={(e) => handleInviteStatusChange(row.mailId, e.target.value)}
+                              onChange={(e) => handleInviteStatusChange(row.mailId, row.chIdx, e.target.value)}
                               className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-2xl outline-none border transition-all cursor-pointer ${
                                 row.inviteStatus === "Đã mời" 
                                   ? "bg-green-500/10 text-green-500 border-green-500/20" 
@@ -1035,7 +1100,7 @@ export default function AdminDashboard() {
                           </td>
                         </tr>
                       ))}
-                    {mails.filter((m: any) => m.type === "SATELLITE" && m.isEligible === true).length === 0 && (
+                    {mails.filter((m: any) => m.type === "SATELLITE" && Array.isArray(m.eligibleChannels) && m.eligibleChannels.some(Boolean)).length === 0 && (
                       <tr>
                         <td colSpan={4} className="py-12 text-center text-gray-500 font-bold uppercase tracking-widest">
                           Không có kênh nào đủ điều kiện hiện tại

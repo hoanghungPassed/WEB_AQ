@@ -50,7 +50,7 @@ const UnifiedMailDetailModal = ({
   const [links, setLinks] = useState<string[]>(mail.links || ["", "", ""]);
   const [names, setNames] = useState<string[]>(mail.channelNames || ["", "", ""]);
   const [scanning, setScanning] = useState<boolean[]>([false, false, false]);
-  const [isEligible, setIsEligible] = useState<boolean>(!!mail.isEligible);
+  const [eligibleChannels, setEligibleChannels] = useState<boolean[]>(mail.eligibleChannels || [false, false, false]);
 
   // State for MONETIZED
   const [reClickDate, setReClickDate] = useState(mail.reClickDate || "");
@@ -102,7 +102,7 @@ const UnifiedMailDetailModal = ({
       onSave({ 
         links, 
         channelNames: names,
-        isEligible
+        eligibleChannels
       });
     } else if (type === "MONETIZED") {
       onSave({ 
@@ -174,35 +174,33 @@ const UnifiedMailDetailModal = ({
                       </span>
                     )}
                   </div>
-                  <div className="relative group">
+                  <div className="flex items-center gap-3">
                     <input 
                       value={links[idx] || ""} 
                       onChange={(e) => handleLinkChange(idx, e.target.value)} 
                       placeholder="Dán link channel YouTube..." 
-                      className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all" 
+                      className="flex-1 h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all" 
                     />
+                    {isAdminOrManager && (
+                      <button
+                        onClick={() => {
+                          const newEligible = [...eligibleChannels];
+                          newEligible[idx] = !newEligible[idx];
+                          setEligibleChannels(newEligible);
+                        }}
+                        className={`h-14 px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border flex items-center gap-2 flex-shrink-0 ${
+                          eligibleChannels[idx]
+                            ? "bg-gold text-sidebar border-gold shadow-lg shadow-gold/20" 
+                            : "bg-white/5 text-gray-400 border-white/10 hover:border-gold/30 hover:text-gold"
+                        }`}
+                      >
+                        <CheckCircle2 size={16} />
+                        {eligibleChannels[idx] ? "Đủ giờ" : "Đánh dấu"}
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
-
-              {isAdminOrManager && (
-                <div className="p-6 bg-gold/5 border border-dashed border-gold/30 rounded-3xl flex items-center justify-between mt-4">
-                  <div>
-                    <h4 className="text-xs font-black text-white uppercase tracking-tight">Kênh vệ tinh Đủ giờ</h4>
-                    <p className="text-[9px] text-gray-400 font-bold uppercase mt-1">Chọn trạng thái để tổng hợp vào ô Kênh đủ giờ</p>
-                  </div>
-                  <button
-                    onClick={() => setIsEligible(!isEligible)}
-                    className={`h-12 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border ${
-                      isEligible 
-                        ? "bg-gold text-sidebar border-gold shadow-lg shadow-gold/20" 
-                        : "bg-white/5 text-gray-400 border-white/10 hover:border-gold/30 hover:text-gold"
-                    }`}
-                  >
-                    {isEligible ? "✓ Đủ điều kiện" : "Kích hoạt Đủ điều kiện"}
-                  </button>
-                </div>
-              )}
             </>
           )}
 
@@ -438,6 +436,14 @@ export default function TaskManagementPage() {
       setAssignmentNote("Mời kênh: Ghép cặp mail gốc với Lô vệ tinh.");
     }
   };
+
+  const targetStaffBatches = useMemo(() => {
+    if (!targetStaffId) return [];
+    const theirSats = mails.filter((m: any) => m.type === "SATELLITE" && String(m.assigneeId) === String(targetStaffId));
+    const bSet = new Set<string>();
+    theirSats.forEach((m: any) => { if (m.batchName) bSet.add(m.batchName); });
+    return Array.from(bSet).sort();
+  }, [targetStaffId, mails]);
 
   const eligibleStaff = useMemo(() => {
     if (!user) return [];
@@ -1035,12 +1041,12 @@ export default function TaskManagementPage() {
                             onChange={(e) => setSelectedMoiKenhLo(e.target.value)}
                             className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 cursor-pointer transition-all"
                           >
-                            <option value="Lô 1" className="bg-sidebar text-white">Lô 1 (17 mail)</option>
-                            <option value="Lô 2" className="bg-sidebar text-white">Lô 2 (17 mail)</option>
-                            <option value="Lô 3" className="bg-sidebar text-white">Lô 3 (17 mail)</option>
-                            <option value="Lô 4" className="bg-sidebar text-white">Lô 4 (17 mail)</option>
-                            <option value="Lô 5" className="bg-sidebar text-white">Lô 5 (17 mail)</option>
-                            <option value="Lô 6" className="bg-sidebar text-white">Lô 6 (17 mail)</option>
+                            <option value="" className="bg-sidebar text-white">-- Chọn Lô Vệ Tinh --</option>
+                            {targetStaffBatches.length > 0 ? targetStaffBatches.map(b => (
+                              <option key={b} value={b} className="bg-sidebar text-white">{b}</option>
+                            )) : (
+                              <option disabled className="bg-sidebar text-white">Nhân viên này chưa có lô vệ tinh nào</option>
+                            )}
                           </select>
                         </div>
                       </div>
