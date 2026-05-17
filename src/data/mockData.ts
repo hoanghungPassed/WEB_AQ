@@ -57,7 +57,7 @@ export interface MailData {
   recovery: string;
   type: "ROOT" | "SATELLITE" | "MONETIZED";
   status: "LIVE" | "DIE";
-  workStatus: "CHƯA LÀM" | "ĐÃ LÀM" | "LỖI";
+  workStatus: string; // Dynamic status based on type
   channelStatus?: string;
   assignedTo?: string; 
   assigneeId?: string; // ID của nhân viên được giao
@@ -66,7 +66,49 @@ export interface MailData {
   otpLink?: string;
   createdAt?: string;
   links?: string[]; // Cột chứa tối đa 3 link channel YouTube
+  channelNames?: string[]; // Channel names scanned
+  batchName?: string; // Lô 1 -> Lô 6
+  cccdDate?: string;
+  verificationStatus?: string;
+  isEligible?: boolean;
+  inviteStatus?: "Đã mời" | "Chưa mời";
+  reClickDate?: string;
+  step2PendingDate?: string;
+  channelStatusDetail?: string;
 }
+
+// Generate satellite mails dynamically so each Role 03 and Role 04 gets exactly 102 satellite mails divided into 6 batches of 17 mails
+const generateSatelliteMails = () => {
+  const staffList = MOCK_STAFF.filter(s => s.role === "03" || s.role === "04");
+  const list: MailData[] = [];
+  let globalId = 101;
+
+  staffList.forEach((staff) => {
+    for (let loNum = 1; loNum <= 6; loNum++) {
+      for (let mIdx = 1; mIdx <= 17; mIdx++) {
+        list.push({
+          id: globalId++,
+          email: `sat.${staff.username}.lo${loNum}.${mIdx}@aqmedia.vn`,
+          pass: "pass123",
+          recovery: `rec.sat.${staff.username}@gmail.com`,
+          type: "SATELLITE" as const,
+          status: "LIVE" as const,
+          workStatus: "Chưa làm",
+          channelStatus: "",
+          twoFA: `2FA_SAT_${globalId}`,
+          phone: `0900222${String(globalId % 1000).padStart(3, '0')}`,
+          otpLink: `https://otp.aqmedia.vn/sat/${globalId}`,
+          links: [],
+          createdAt: "2024-05-11",
+          assigneeId: staff.id, // Fixed ownership
+          assignedTo: staff.name,
+          batchName: `Lô ${loNum}` // Fixed batch Lô 1 to Lô 6
+        });
+      }
+    }
+  });
+  return list;
+};
 
 export const MOCK_MAILS: MailData[] = [
   // 100 Mail Gốc
@@ -77,7 +119,7 @@ export const MOCK_MAILS: MailData[] = [
     recovery: `rec.root${i + 1}@gmail.com`,
     type: "ROOT" as const,
     status: "LIVE" as const,
-    workStatus: "CHƯA LÀM" as const,
+    workStatus: "Chưa làm",
     channelStatus: "",
     twoFA: `2FA_ROOT_${i + 1}`,
     phone: `0900111${String(i).padStart(3, '0')}`,
@@ -85,31 +127,17 @@ export const MOCK_MAILS: MailData[] = [
     links: [],
     createdAt: "2024-05-10"
   })),
-  // 100 Mail Vệ Tinh
-  ...Array.from({ length: 100 }, (_, i) => ({
-    id: i + 101,
-    email: `sat.user${i + 1}@aqmedia.vn`,
-    pass: "pass123",
-    recovery: `rec.sat${i + 1}@gmail.com`,
-    type: "SATELLITE" as const,
-    status: "LIVE" as const,
-    workStatus: "CHƯA LÀM" as const,
-    channelStatus: "",
-    twoFA: `2FA_SAT_${i + 1}`,
-    phone: `0900222${String(i).padStart(3, '0')}`,
-    otpLink: `https://otp.aqmedia.vn/sat/${i + 1}`,
-    links: [],
-    createdAt: "2024-05-11"
-  })),
+  // 102 Mail vệ tinh cho mỗi nhân sự 03, 04 (chia thành 6 lô, 17 mail mỗi lô)
+  ...generateSatelliteMails(),
   // 100 Mail Bật Kiếm Tiền
   ...Array.from({ length: 100 }, (_, i) => ({
-    id: i + 201,
+    id: i + 2000,
     email: `mon.user${i + 1}@aqmedia.vn`,
     pass: "pass123",
     recovery: `rec.mon${i + 1}@gmail.com`,
     type: "MONETIZED" as const,
     status: "LIVE" as const,
-    workStatus: "CHƯA LÀM" as const,
+    workStatus: "Chưa bán",
     channelStatus: "Đã bật quảng cáo",
     twoFA: `2FA_MON_${i + 1}`,
     phone: `0900333${String(i).padStart(3, '0')}`,
@@ -121,14 +149,14 @@ export const MOCK_MAILS: MailData[] = [
 
 // 5. THỐNG KÊ DASHBOARD
 export const MOCK_DASHBOARD_STATS = {
-  totalMail: 300,
-  mailLive: 300,
+  totalMail: 1118,
+  mailLive: 1118,
   mailDie: 0,
   mailRoot: 100,
-  mailSatellite: 100,
+  mailSatellite: 918,
   mailMonetized: 100,
   tasksToday: 4,
-  staffOnline: 10,
+  staffOnline: 11,
   mailWatchHours: 15
 };
 
@@ -152,7 +180,7 @@ export const initMockDB = () => {
       localStorage.setItem("global_users", JSON.stringify(MOCK_STAFF));
     }
 
-    if (!storedMails || currentMails.length !== 300) {
+    if (!storedMails || currentMails.length < 300) {
       localStorage.setItem("global_mails_data", JSON.stringify(MOCK_MAILS));
       localStorage.setItem("global_tasks_data", JSON.stringify(MOCK_TASK_ASSIGNMENTS));
       localStorage.setItem("global_kpi_data", JSON.stringify(MOCK_KPI_DATA));

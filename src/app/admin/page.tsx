@@ -24,9 +24,10 @@ import {
   Database,
   Zap,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Play
 } from "lucide-react";
-import { MOCK_DASHBOARD_STATS, MOCK_KPI_DATA, MOCK_MAILS, MOCK_STAFF, MOCK_TASK_ASSIGNMENTS, MailData } from "@/data/mockData";
+import { MOCK_DASHBOARD_STATS, MOCK_KPI_DATA, MOCK_MAILS, MOCK_STAFF, MOCK_TASK_ASSIGNMENTS } from "@/data/mockData";
 import { StaffData } from "@/types/admin";
 import { useRouter } from "next/navigation";
 
@@ -37,7 +38,7 @@ export default function AdminDashboard() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [stats, setStats] = useState(MOCK_DASHBOARD_STATS);
   
-  // States quản lý bảng tập trung (Dành cho các view xem nhanh tại Dashboard)
+  // States quản lý bảng tập trung
   const [selectedViewType, setSelectedViewType] = useState<"LIVE" | "DIE" | "STAFF" | "TASKS" | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -49,6 +50,7 @@ export default function AdminDashboard() {
   const [selectedStaffTask, setSelectedStaffTask] = useState<any>(null);
   const [tasksList, setTasksList] = useState<any[]>([]);
   const [copyToast, setCopyToast] = useState<string | null>(null);
+  const [isEligibleChannelsModalOpen, setIsEligibleChannelsModalOpen] = useState(false);
   const itemsPerPage = 10;
 
   const copyToClipboard = (text: string, label: string) => {
@@ -66,6 +68,65 @@ export default function AdminDashboard() {
     return "GUEST";
   };
 
+  const refreshStats = () => {
+    const savedMails = localStorage.getItem("global_mails_data");
+    const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
+    
+    const savedTasks = localStorage.getItem("global_tasks_data");
+    const currentTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
+
+    // Check current user role dynamically
+    const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
+    const currentUserObj = storedUser ? JSON.parse(storedUser) : null;
+    const isMinimalRole = currentUserObj?.role === "03" || currentUserObj?.role === "04" || currentUserObj?.role === "NHÂN VIÊN" || currentUserObj?.role === "QUẢN LÝ NHÂN SỰ";
+
+    setTasksList(currentTasks);
+
+    const eligibleCount = currentMails.filter((m: any) => m.type === "SATELLITE" && m.isEligible === true).length;
+
+    if (isMinimalRole && currentUserObj) {
+      const myMails = currentMails.filter((m: any) => String(m.assigneeId) === String(currentUserObj?.id));
+      const myTasks = currentTasks.filter((t: any) => String(t.assigneeId) === String(currentUserObj?.id) && (t.status === "IN_PROGRESS" || t.status === "PENDING" || t.status === "COMPLETED"));
+      setStats({
+        totalMail: myMails.length,
+        mailLive: myMails.filter((m: any) => m.status === "LIVE").length,
+        mailDie: myMails.filter((m: any) => m.status === "DIE").length,
+        mailRoot: 0,
+        mailSatellite: 0,
+        mailMonetized: 0,
+        tasksToday: myTasks.filter((t: any) => t.status === "IN_PROGRESS" || t.status === "PENDING").length,
+        staffOnline: 0,
+        mailWatchHours: eligibleCount
+      });
+    } else {
+      setStats(prev => ({
+        ...prev,
+        totalMail: currentMails.length,
+        mailLive: currentMails.filter((m: any) => m.status === "LIVE").length,
+        mailDie: currentMails.filter((m: any) => m.status === "DIE").length,
+        mailRoot: currentMails.filter((m: any) => m.type === "ROOT").length,
+        mailSatellite: currentMails.filter((m: any) => m.type === "SATELLITE").length,
+        mailMonetized: currentMails.filter((m: any) => m.type === "MONETIZED").length,
+        tasksToday: currentTasks.filter((t: any) => t.status === "IN_PROGRESS" || t.status === "PENDING").length,
+        mailWatchHours: eligibleCount
+      }));
+    }
+    setMails(currentMails);
+  };
+
+  const loadStaff = () => {
+    const stored = localStorage.getItem("global_users");
+    const allUsers = stored ? JSON.parse(stored) : MOCK_STAFF;
+    
+    const unique = allUsers.filter((item: any, index: number, self: any[]) =>
+      index === self.findIndex((t) => String(t.id) === String(item.id))
+    );
+    setStaffList(unique);
+    
+    const onlineCount = unique.filter((u: any) => u.isOnline && u.role !== "01").length;
+    setStats(prev => ({ ...prev, staffOnline: onlineCount }));
+  };
+
   useEffect(() => {
     const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
     if (storedUser) setUser(JSON.parse(storedUser));
@@ -73,91 +134,9 @@ export default function AdminDashboard() {
     const savedKPI = localStorage.getItem("global_kpi_data");
     if (savedKPI) setKpi(JSON.parse(savedKPI));
 
-    const refreshStats = () => {
-      const savedMails = localStorage.getItem("global_mails_data");
-      const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
-      
-      const savedTasks = localStorage.getItem("global_tasks_data");
-      const currentTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
-
-      // Check current user role dynamically
-      const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
-      const currentUserObj = storedUser ? JSON.parse(storedUser) : null;
-      const isMinimalRole = currentUserObj?.role === "03" || currentUserObj?.role === "04" || currentUserObj?.role === "NHÂN VIÊN" || currentUserObj?.role === "QUẢN LÝ NHÂN SỰ";
-
-      let processedTasks = [...currentTasks];
-      if (isMinimalRole && currentUserObj) {
-        const myMails = currentMails.filter((m: any) => String(m.assigneeId) === String(currentUserObj?.id));
-        const myMailsTypes = new Set(myMails.map((m: any) => m.type));
-        
-        processedTasks = processedTasks.map((t: any) => {
-          const isAssigned = String(t.assigneeId) === String(currentUserObj?.id);
-          if (isAssigned) return t;
-
-          const typeMatch = (t.type === "MAIL_VE_TINH" && myMailsTypes.has("SATELLITE")) ||
-                            (t.type === "MAIL_MONETIZED" && myMailsTypes.has("MONETIZED")) ||
-                            (t.type === "MAIL_GOC" && myMailsTypes.has("ROOT"));
-
-          if (typeMatch) {
-            return { 
-              ...t, 
-              assigneeId: currentUserObj?.id, 
-              assigneeName: currentUserObj?.name,
-              status: "IN_PROGRESS" 
-            };
-          }
-          return t;
-        });
-      }
-
-      setTasksList(processedTasks);
-
-      if (isMinimalRole && currentUserObj) {
-        const myMails = currentMails.filter((m: any) => String(m.assigneeId) === String(currentUserObj?.id));
-        const myTasks = processedTasks.filter((t: any) => String(t.assigneeId) === String(currentUserObj?.id) && (t.status === "IN_PROGRESS" || t.status === "PENDING"));
-        setStats({
-          totalMail: myMails.length,
-          mailLive: myMails.filter((m: any) => m.status === "LIVE").length,
-          mailDie: myMails.filter((m: any) => m.status === "DIE").length,
-          mailRoot: 0,
-          mailSatellite: 0,
-          mailMonetized: 0,
-          tasksToday: myTasks.length,
-          staffOnline: 0,
-          mailWatchHours: 0
-        });
-      } else {
-        setStats(prev => ({
-          ...prev,
-          totalMail: currentMails.length,
-          mailLive: currentMails.filter((m: any) => m.status === "LIVE").length,
-          mailDie: currentMails.filter((m: any) => m.status === "DIE").length,
-          mailRoot: currentMails.filter((m: any) => m.type === "ROOT" && !m.assigneeId).length,
-          mailSatellite: currentMails.filter((m: any) => m.type === "SATELLITE" && !m.assigneeId).length,
-          mailMonetized: currentMails.filter((m: any) => m.type === "MONETIZED").length,
-          tasksToday: currentTasks.filter((t: any) => t.status === "IN_PROGRESS").length,
-        }));
-      }
-      setMails(currentMails);
-    };
-
-    const loadStaff = () => {
-      const stored = localStorage.getItem("global_users");
-      const allUsers = stored ? JSON.parse(stored) : MOCK_STAFF;
-      
-      const unique = allUsers.filter((item: any, index: number, self: any[]) =>
-        index === self.findIndex((t) => String(t.id) === String(item.id))
-      );
-      setStaffList(unique);
-      
-      // Update online count in stats
-      const onlineCount = unique.filter((u: any) => u.isOnline && u.role !== "01").length;
-      setStats(prev => ({ ...prev, staffOnline: onlineCount }));
-    };
-
     refreshStats();
     loadStaff();
-    const staffInterval = setInterval(loadStaff, 5000);
+    const staffInterval = setInterval(loadStaff, 4000);
 
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "global_kpi_data" && e.newValue) {
@@ -181,8 +160,31 @@ export default function AdminDashboard() {
       }
     };
     window.addEventListener("storage", handleStorage);
+
+    // Toast listener to simulate real-time notification
+    const handleToastNotification = (e: StorageEvent) => {
+      if (e.key === "realtime_toast" && e.newValue) {
+        try {
+          const toastData = JSON.parse(e.newValue);
+          const currentUserStr = sessionStorage.getItem("user") || localStorage.getItem("user");
+          if (currentUserStr) {
+            const currentUser = JSON.parse(currentUserStr);
+            if (String(toastData.userId) === String(currentUser.id)) {
+              setCopyToast(toastData.message);
+              setTimeout(() => setCopyToast(null), 4000);
+              localStorage.removeItem("realtime_toast");
+            }
+          }
+        } catch (err) {
+          console.error("Toast notification error:", err);
+        }
+      }
+    };
+    window.addEventListener("storage", handleToastNotification);
+
     return () => {
       window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("storage", handleToastNotification);
       clearInterval(staffInterval);
     };
   }, []);
@@ -220,7 +222,6 @@ export default function AdminDashboard() {
     localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
     setMails(updatedMails);
 
-    // Sync stats
     const myMails = updatedMails.filter((m: any) => String(m.assigneeId) === String(user?.id));
     setStats(prev => ({
       ...prev,
@@ -246,7 +247,6 @@ export default function AdminDashboard() {
     localStorage.setItem("global_tasks_data", JSON.stringify(updatedTasks));
     setTasksList(updatedTasks);
     
-    // Update the selected task state
     setSelectedStaffTask((prev: any) => {
       if (prev && prev.id === taskId) {
         return { ...prev, status: newStatus };
@@ -254,7 +254,6 @@ export default function AdminDashboard() {
       return prev;
     });
 
-    // Update KPI watch hours target if completed
     if (newStatus === "COMPLETED") {
       const currentTaskObj = currentTasks.find((t: any) => t.id === taskId);
       if (currentTaskObj && currentTaskObj.mailType === "MONETIZED") {
@@ -278,11 +277,33 @@ export default function AdminDashboard() {
     window.dispatchEvent(new Event("storage"));
   };
 
+  const handleInviteStatusChange = (mailId: number, newInviteStatus: string) => {
+    const savedMails = localStorage.getItem("global_mails_data");
+    const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
+
+    const updatedMails = currentMails.map((m: any) => {
+      if (m.id === mailId) {
+        return { ...m, inviteStatus: newInviteStatus };
+      }
+      return m;
+    });
+
+    localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
+    setMails(updatedMails);
+
+    const eligibleCount = updatedMails.filter((m: any) => m.type === "SATELLITE" && m.isEligible === true).length;
+    setStats(prev => ({ ...prev, mailWatchHours: eligibleCount }));
+
+    setCopyToast("Đã cập nhật trạng thái mời!");
+    setTimeout(() => setCopyToast(null), 2000);
+
+    window.dispatchEvent(new Event("storage"));
+  };
+
   const roleLabel = getRoleLabel(user?.role);
   const isAdminOrManager = user?.role === "01" || user?.role === "02";
   const isHRManager = user?.role === "03" || user?.role === "QUẢN LÝ NHÂN SỰ";
 
-  // Lọc dữ liệu mail tổng hợp cho các view xem nhanh (Live/Die)
   const filteredMails = useMemo(() => {
     if (!selectedViewType || selectedViewType === "STAFF") return [];
     
@@ -299,7 +320,7 @@ export default function AdminDashboard() {
 
       return matchesType && matchesSearch && matchesStatus;
     });
-  }, [selectedViewType, searchQuery, filterStatus]);
+  }, [selectedViewType, searchQuery, filterStatus, mails]);
 
   const getChannelStatusColor = (status: string) => {
     if (!status) return "bg-gray-500/10 text-gray-400 border-gray-500/20";
@@ -310,7 +331,6 @@ export default function AdminDashboard() {
     return "bg-gray-500/10 text-gray-400 border-gray-500/20";
   };
 
-  // MÀN HÌNH CHI TIẾT TẬP TRUNG (Dành cho các view xem nhanh tại Dashboard)
   if (selectedViewType) {
     return (
       <div className="h-full flex flex-col space-y-6">
@@ -412,7 +432,6 @@ export default function AdminDashboard() {
     );
   }
 
-  // MÀN HÌNH CHÍNH (DASHBOARD)
   return (
     <div className="space-y-6 pb-24 relative">
       <AnimatePresence>
@@ -816,12 +835,25 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             <StatCard title="Task hôm nay" value={stats.tasksToday} icon={<ClipboardList size={32} />} color="green" subtitle="Công việc đang chạy" onClick={() => setSelectedViewType("TASKS")} />
+            
             {user?.role !== "04" && (
               <StatCard title="Nhân viên Online" value={stats.staffOnline} icon={<Users size={32} />} color="blue" subtitle="Đang làm việc" onClick={() => setSelectedViewType("STAFF")} />
             )}
-            <div className="rounded-[32px] border border-white/5 bg-white/[0.02] p-6 flex items-center justify-between shadow-inner">
+
+            {isAdminOrManager && (
+              <StatCard 
+                title="Kênh đủ giờ" 
+                value={stats.mailWatchHours || 0} 
+                icon={<Target size={32} />} 
+                color="gold" 
+                subtitle="Đạt điều kiện & thư mời" 
+                onClick={() => setIsEligibleChannelsModalOpen(true)} 
+              />
+            )}
+
+            <div className="rounded-[32px] border border-white/5 bg-white/[0.02] p-6 flex items-center justify-between shadow-inner col-span-1">
                <div className="flex items-center gap-4">
                   <div className="h-12 w-12 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500 border border-green-500/20"><CheckCircle2 size={24} /></div>
                   <div><p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Hệ thống</p><h4 className="text-sm font-black text-white uppercase tracking-tighter">Live: {stats.mailLive}</h4></div>
@@ -832,7 +864,7 @@ export default function AdminDashboard() {
                   <div><p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Lỗi</p><h4 className="text-sm font-black text-white uppercase tracking-tighter">Die: {stats.mailDie}</h4></div>
                </div>
             </div>
-            </div>
+          </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             <motion.div className="xl:col-span-2 rounded-[32px] border border-border-custom bg-sidebar p-8 shadow-2xl relative overflow-hidden group">
@@ -891,6 +923,141 @@ export default function AdminDashboard() {
           </div>
         </>
       )}
+
+      {/* Premium Kênh Đủ Giờ Details Modal Popup */}
+      <AnimatePresence>
+        {isEligibleChannelsModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 20 }} 
+              animate={{ scale: 1, y: 0 }} 
+              className="bg-sidebar border border-white/10 w-full max-w-4xl rounded-[40px] p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col max-h-[85vh]"
+            >
+              <div className="absolute top-0 right-0 h-96 w-96 bg-gold/5 blur-[120px] -mr-48 -mt-48" />
+
+              <div className="flex items-center justify-between mb-8 relative z-10">
+                <div className="flex items-center gap-4">
+                  <div className="h-14 w-14 rounded-2xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 shadow-lg">
+                    <Target size={28} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
+                      Danh sách Kênh Đủ Giờ
+                    </h2>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">Tổng hợp kênh vệ tinh đạt điều kiện và trạng thái gửi thư mời</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsEligibleChannelsModalOpen(false)} 
+                  className="h-10 w-10 bg-white/5 hover:bg-white/10 text-white rounded-full flex items-center justify-center border border-white/10 transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="overflow-auto flex-1 custom-scrollbar relative z-10 border border-white/5 rounded-3xl bg-black/10">
+                <table className="w-full text-left whitespace-nowrap">
+                  <thead className="sticky top-0 bg-[#0d0d0d] z-20 border-b border-white/5">
+                    <tr className="text-gray-500 text-[10px] font-black uppercase tracking-widest">
+                      <th className="py-5 px-6">STT</th>
+                      <th className="py-5 px-6">Tên kênh</th>
+                      <th className="py-5 px-6">Link kênh</th>
+                      <th className="py-5 px-6 text-center">Trạng thái mời</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 text-gray-300">
+                    {mails
+                      .filter((m: any) => m.type === "SATELLITE" && m.isEligible === true)
+                      .flatMap((m: any, mailIdx: number) => {
+                        // Extract all active links and names
+                        const activeChannels = (m.links || ["", "", ""])
+                          .map((link: string, chIdx: number) => ({
+                            link: link.trim(),
+                            name: (m.channelNames && m.channelNames[chIdx]) || `Kênh vệ tinh #${chIdx + 1}`,
+                            mailId: m.id
+                          }))
+                          .filter((ch: any) => ch.link !== "");
+
+                        if (activeChannels.length === 0) {
+                          // Fallback if no specific links are parsed but eligible
+                          return [{
+                            stt: mailIdx + 1,
+                            name: m.channelStatus || "Kênh Đủ Điều Kiện",
+                            link: m.links?.[0] || "#",
+                            mailId: m.id,
+                            inviteStatus: m.inviteStatus || "Chưa mời"
+                          }];
+                        }
+
+                        return activeChannels.map((ch: any, chSubIdx: number) => ({
+                          stt: `${mailIdx + 1}.${chSubIdx + 1}`,
+                          name: ch.name,
+                          link: ch.link,
+                          mailId: ch.mailId,
+                          inviteStatus: m.inviteStatus || "Chưa mời"
+                        }));
+                      })
+                      .map((row: any, idx: number) => (
+                        <tr key={`${row.mailId}-${idx}`} className="hover:bg-white/[0.02] transition-colors group">
+                          <td className="py-4 px-6 text-[10px] font-black text-gray-500">{row.stt}</td>
+                          <td className="py-4 px-6 font-bold text-gold uppercase tracking-tighter text-xs">
+                            {row.name.replace("Tên kênh: ", "")}
+                          </td>
+                          <td className="py-4 px-6 text-xs text-gray-400 font-mono">
+                            <a 
+                              href={row.link} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="inline-flex items-center gap-1.5 text-blue-400 hover:text-blue-300 underline font-bold"
+                            >
+                              <span>{row.link.length > 35 ? `${row.link.substring(0, 35)}...` : row.link}</span>
+                              <ExternalLink size={12} />
+                            </a>
+                          </td>
+                          <td className="py-4 px-6 text-center">
+                            <select 
+                              value={row.inviteStatus}
+                              onChange={(e) => handleInviteStatusChange(row.mailId, e.target.value)}
+                              className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-2xl outline-none border transition-all cursor-pointer ${
+                                row.inviteStatus === "Đã mời" 
+                                  ? "bg-green-500/10 text-green-500 border-green-500/20" 
+                                  : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                              }`}
+                            >
+                              <option value="Chưa mời" className="bg-sidebar text-white">Chưa mời</option>
+                              <option value="Đã mời" className="bg-sidebar text-white">Đã mời</option>
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    {mails.filter((m: any) => m.type === "SATELLITE" && m.isEligible === true).length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="py-12 text-center text-gray-500 font-bold uppercase tracking-widest">
+                          Không có kênh nào đủ điều kiện hiện tại
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-8 relative z-10 pt-4 border-t border-white/5 text-right">
+                <button 
+                  onClick={() => setIsEligibleChannelsModalOpen(false)} 
+                  className="h-14 px-8 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-xs tracking-widest transition-all"
+                >
+                  Đóng
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
