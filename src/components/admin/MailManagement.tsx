@@ -1,21 +1,22 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { 
-  Search, 
-  Download, 
-  Upload, 
-  ChevronLeft, 
-  ChevronRight, 
-  ExternalLink, 
-  CheckCircle, 
-  X, 
-  ArrowLeft, 
-  PlusCircle, 
+import {
+  Search,
+  Download,
+  Upload,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  CheckCircle,
+  X,
+  ArrowLeft,
+  PlusCircle,
   Trash2,
   AlertTriangle,
   Database,
-  Mail
+  Mail,
+  RefreshCcw
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
@@ -34,38 +35,46 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
-  
+
   // Modals States
   const [showManualImport, setShowManualImport] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [confirmConfig, setConfirmConfig] = useState({ title: "", msg: "", onConfirm: () => {} });
-  
+  const [confirmConfig, setConfirmConfig] = useState({ title: "", msg: "", onConfirm: () => { } });
+
   const [manualData, setManualData] = useState("");
   const itemsPerPage = 20;
 
   useEffect(() => {
-    const saved = localStorage.getItem("global_mails_data");
-    if (saved) {
-      setMails(JSON.parse(saved));
-    } else {
-      setMails(MOCK_MAILS);
-      localStorage.setItem("global_mails_data", JSON.stringify(MOCK_MAILS));
-    }
+    const loadData = () => {
+      const saved = localStorage.getItem("global_mails_data");
+      if (saved) {
+        setMails(JSON.parse(saved));
+      } else {
+        setMails(MOCK_MAILS);
+        localStorage.setItem("global_mails_data", JSON.stringify(MOCK_MAILS));
+      }
+    };
+
+    loadData();
+
+    // Lắng nghe sự kiện storage để đồng bộ khi tab khác hoặc modal khác cập nhật
+    window.addEventListener("storage", loadData);
+    return () => window.removeEventListener("storage", loadData);
   }, []);
 
   const saveMails = (newMails: MailData[]) => {
     setMails(newMails);
     localStorage.setItem("global_mails_data", JSON.stringify(newMails));
-    
-    // Sync dashboard stats
+
+    // Sync dashboard stats dynamically
     const stats = {
       totalMail: newMails.length,
       mailLive: newMails.filter(m => m.status === "LIVE").length,
       mailDie: newMails.filter(m => m.status === "DIE").length,
       mailMonetized: newMails.filter(m => m.type === "MONETIZED").length,
-      mailWatchHours: 120,
-      staffOnline: 12,
-      tasksToday: 25
+      staffOnline: 10,
+      tasksToday: 4,
+      mailWatchHours: 450
     };
     localStorage.setItem("dashboard_stats", JSON.stringify(stats));
   };
@@ -91,7 +100,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         setMails(prevMails => {
           const finalMails = prevMails.filter(m => m.id !== id);
           localStorage.setItem("global_mails_data", JSON.stringify(finalMails));
-          
+
           // Cập nhật thống kê đồng bộ cho Dashboard
           const stats = {
             totalMail: finalMails.length,
@@ -103,7 +112,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
             tasksToday: 25
           };
           localStorage.setItem("dashboard_stats", JSON.stringify(stats));
-          
+
           return finalMails;
         });
         setShowConfirm(false);
@@ -123,7 +132,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         const bstr = evt.target?.result;
         const wb = XLSX.read(bstr, { type: "binary" });
         const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-        
+
         const importedMails: MailData[] = data.map((item: any, i: number) => ({
           id: Date.now() + i,
           email: String(item.Email || item.email || "").trim(),
@@ -147,7 +156,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           const filteredExisting = prevMails.filter(m => !importedMails.some(i => i.email === m.email));
           const finalMails = [...importedMails, ...filteredExisting];
           localStorage.setItem("global_mails_data", JSON.stringify(finalMails));
-          
+
           // Sync dashboard
           const stats = {
             totalMail: finalMails.length,
@@ -159,7 +168,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
             tasksToday: 25
           };
           localStorage.setItem("dashboard_stats", JSON.stringify(stats));
-          
+
           return finalMails;
         });
 
@@ -202,7 +211,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       const filteredExisting = prevMails.filter(m => !newItems.some(ni => ni.email === m.email));
       const finalMails = [...newItems, ...filteredExisting];
       localStorage.setItem("global_mails_data", JSON.stringify(finalMails));
-      
+
       // Sync dashboard
       const stats = {
         totalMail: finalMails.length,
@@ -214,7 +223,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         tasksToday: 25
       };
       localStorage.setItem("dashboard_stats", JSON.stringify(stats));
-      
+
       return finalMails;
     });
 
@@ -235,10 +244,17 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   };
 
   const filteredMails = useMemo(() => {
-    return mails.filter(m => {
-      const matchesType = type === "ALL" || m.type === type;
-      return matchesType && (m.email.toLowerCase().includes(searchTerm.toLowerCase()) || m.recovery.toLowerCase().includes(searchTerm.toLowerCase()));
-    });
+    // Lấy toàn bộ mail của loại này để tính STT gốc
+    const mailsOfType = mails.filter(m => type === "ALL" || m.type === type);
+    
+    return mailsOfType
+      .map((m, idx) => ({ ...m, originalSTT: idx + 1 })) // Gắn STT gốc
+      .filter(m => {
+        const isUnassigned = !m.assigneeId;
+        const matchesSearch = m.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             m.recovery.toLowerCase().includes(searchTerm.toLowerCase());
+        return isUnassigned && matchesSearch;
+      });
   }, [mails, type, searchTerm]);
 
   const totalPages = Math.ceil(filteredMails.length / itemsPerPage);
@@ -289,7 +305,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               <p className="text-[10px] text-gray-500 mb-6 font-black uppercase tracking-widest leading-relaxed opacity-60">
                 Định dạng: Email [Tab/Cách] Pass [Tab/Cách] Mail KP [Tab/Cách] 2FA [Tab/Cách] SĐT [Tab/Cách] Link OTP
               </p>
-              <textarea 
+              <textarea
                 value={manualData} onChange={(e) => setManualData(e.target.value)}
                 className="w-full h-72 bg-black/30 border border-white/10 rounded-3xl p-6 text-sm text-white focus:border-gold outline-none transition-all resize-none font-mono scrollbar-hide"
                 placeholder="Dán dữ liệu của bạn vào đây..."
@@ -316,13 +332,28 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           </h2>
         </div>
         <div className="flex items-center gap-3">
-            {isAdminOrManager && (
-              <>
-                <button onClick={() => setShowManualImport(true)} className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><PlusCircle size={14} className="text-gold" /> Thêm thủ công</button>
-                <label className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all cursor-pointer"><Upload size={14} className="text-gold" /> Import Excel <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleImportExcel} /></label>
-                <button onClick={handleExport} className="h-10 px-4 bg-gold/10 border border-gold/30 hover:bg-gold/20 rounded-xl text-gold text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><Download size={14} /> Export</button>
-              </>
-            )}
+          {/* Nút reset để phục vụ testing - Luôn hiển thị */}
+          <button 
+            onClick={() => {
+              if (confirm("Xác nhận khôi phục toàn bộ dữ liệu về trạng thái ban đầu?")) {
+                localStorage.removeItem("global_mails_data");
+                localStorage.removeItem("global_tasks_data");
+                localStorage.removeItem("dashboard_stats");
+                window.location.reload();
+              }
+            }}
+            className="h-10 px-4 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 rounded-xl text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"
+          >
+            <RefreshCcw size={14} /> Khôi phục dữ liệu gốc
+          </button>
+
+          {isAdminOrManager && (
+            <>
+              <button onClick={() => setShowManualImport(true)} className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><PlusCircle size={14} className="text-gold" /> Thêm thủ công</button>
+              <label className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all cursor-pointer"><Upload size={14} className="text-gold" /> Import Excel <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleImportExcel} /></label>
+              <button onClick={handleExport} className="h-10 px-4 bg-gold/10 border border-gold/30 hover:bg-gold/20 rounded-xl text-gold text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><Download size={14} /> Export</button>
+            </>
+          )}
         </div>
       </div>
 
@@ -361,9 +392,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-gray-300">
-              {currentItems.length > 0 ? currentItems.map((mail, index) => (
+              {currentItems.length > 0 ? currentItems.map((mail: any, index) => (
                 <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
-                  <td className="py-5 px-6 text-[10px] font-black text-gray-500">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                  <td className="py-5 px-6 text-[10px] font-black text-gray-500">{mail.originalSTT}</td>
                   <td className="py-5 px-6 cursor-pointer hover:text-gold transition-colors font-bold" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
                   <td className="py-5 px-6 cursor-pointer text-xs text-gray-400 hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.recovery, "Mail KP")}>{mail.recovery}</td>
                   <td className="py-5 px-6 cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono" onClick={() => copyToClipboard(mail.pass, "Mật khẩu")}>{mail.pass}</td>

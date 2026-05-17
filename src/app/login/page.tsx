@@ -58,6 +58,7 @@ export default function LoginPage() {
       }
 
       // Lưu session giả lập
+      sessionStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("user", JSON.stringify(user));
       router.push("/admin");
     } else {

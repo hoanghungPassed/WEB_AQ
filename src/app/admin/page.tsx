@@ -4,8 +4,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Mail, 
-  CheckCircle, 
-  XCircle, 
   DollarSign, 
   Users, 
   ClipboardList, 
@@ -22,9 +20,13 @@ import {
   Filter,
   ArrowLeft,
   ClipboardCheck,
-  Activity
+  Activity,
+  Database,
+  Zap,
+  CheckCircle2,
+  XCircle
 } from "lucide-react";
-import { MOCK_DASHBOARD_STATS, MOCK_KPI_DATA, MOCK_STAFF_ATTENDANCE, MOCK_MAILS, MOCK_STAFF, MailData } from "@/data/mockData";
+import { MOCK_DASHBOARD_STATS, MOCK_KPI_DATA, MOCK_MAILS, MOCK_STAFF, MOCK_TASK_ASSIGNMENTS, MailData } from "@/data/mockData";
 import { StaffData } from "@/types/admin";
 import { useRouter } from "next/navigation";
 
@@ -41,6 +43,7 @@ export default function AdminDashboard() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [staffList, setStaffList] = useState<StaffData[]>([]);
+  const [mails, setMails] = useState<any[]>([]);
   const itemsPerPage = 10;
 
   const getRoleLabel = (role?: string) => {
@@ -52,7 +55,7 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
     if (storedUser) setUser(JSON.parse(storedUser));
 
     const savedKPI = localStorage.getItem("global_kpi_data");
@@ -63,24 +66,34 @@ export default function AdminDashboard() {
       const savedMails = localStorage.getItem("global_mails_data");
       const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
       
+      const savedTasks = localStorage.getItem("global_tasks_data");
+      const currentTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
+
       setStats(prev => ({
         ...prev,
         totalMail: currentMails.length,
         mailLive: currentMails.filter((m: any) => m.status === "LIVE").length,
         mailDie: currentMails.filter((m: any) => m.status === "DIE").length,
+        mailRoot: currentMails.filter((m: any) => m.type === "ROOT" && !m.assigneeId).length,
+        mailSatellite: currentMails.filter((m: any) => m.type === "SATELLITE" && !m.assigneeId).length,
         mailMonetized: currentMails.filter((m: any) => m.type === "MONETIZED").length,
+        tasksToday: currentTasks.filter((t: any) => t.status === "IN_PROGRESS").length,
       }));
+      setMails(currentMails);
     };
 
     const loadStaff = () => {
       const stored = localStorage.getItem("global_users");
       const allUsers = stored ? JSON.parse(stored) : MOCK_STAFF;
       
-      // Deduplicate by ID
       const unique = allUsers.filter((item: any, index: number, self: any[]) =>
         index === self.findIndex((t) => String(t.id) === String(item.id))
       );
       setStaffList(unique);
+      
+      // Update online count in stats
+      const onlineCount = unique.filter((u: any) => u.isOnline && u.role !== "01").length;
+      setStats(prev => ({ ...prev, staffOnline: onlineCount }));
     };
 
     refreshStats();
@@ -99,6 +112,9 @@ export default function AdminDashboard() {
       }
       if (e.key === "global_users") {
         loadStaff();
+      }
+      if (e.key === "user") {
+        setUser(JSON.parse(e.newValue || "{}"));
       }
     };
     window.addEventListener("storage", handleStorage);
@@ -129,7 +145,7 @@ export default function AdminDashboard() {
   const filteredMails = useMemo(() => {
     if (!selectedViewType || selectedViewType === "STAFF") return [];
     
-    return MOCK_MAILS.filter(m => {
+    return mails.filter(m => {
       let matchesType = true;
       if (selectedViewType === "LIVE") matchesType = m.status === "LIVE";
       else if (selectedViewType === "DIE") matchesType = m.status === "DIE";
@@ -207,7 +223,7 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody className="divide-y divide-white/5 text-gray-300">
                   {staffList
-                    .filter(s => s.status === "ACTIVE")
+                    .filter(s => s.status === "ACTIVE" && s.role !== "01")
                     .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
                     .map((staff, index) => (
                     <tr key={`staff-${staff.id}`} className="hover:bg-white/[0.02] transition-colors group">
@@ -234,14 +250,14 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-gray-300">
-                  {filteredMails.slice(0, 10).map((mail, index) => (
+                  {filteredMails.slice(0, 10).map((mail: any, index: number) => (
                     <tr key={`mail-${mail.id}`} className="hover:bg-white/[0.02] transition-colors group">
                       <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
                       <td className="py-4 px-6 text-sm font-bold text-white">{mail.email}</td>
                       <td className="py-4 px-6 text-xs text-gray-400">{mail.recovery}</td>
                       <td className="py-4 px-6">
                         <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${mail.channelStatus ? getChannelStatusColor(mail.channelStatus) : (mail.status === 'LIVE' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20')}`}>
-                          {mail.channelStatus || mail.status}
+                          {mail.channelStatus || mail.status || "LIVE"}
                         </span>
                       </td>
                     </tr>
@@ -257,14 +273,14 @@ export default function AdminDashboard() {
 
   // MÀN HÌNH CHÍNH (DASHBOARD)
   return (
-    <div className="space-y-6 pb-10 relative">
+    <div className="space-y-6 pb-24 relative">
       <AnimatePresence>
         {showSuccess && (
           <motion.div
             initial={{ opacity: 0, y: -100, x: "-50%" }} animate={{ opacity: 1, y: 20, x: "-50%" }} exit={{ opacity: 0, y: -100, x: "-50%" }}
             className="fixed top-0 left-1/2 z-[100] bg-sidebar border border-green-500/50 p-5 rounded-[24px] shadow-2xl flex items-center gap-4 min-w-[400px]"
           >
-            <div className="h-12 w-12 rounded-xl bg-green-500 flex items-center justify-center text-sidebar"><CheckCircle size={28} /></div>
+            <div className="h-12 w-12 rounded-xl bg-green-500 flex items-center justify-center text-sidebar"><CheckCircle2 size={28} /></div>
             <div>
               <p className="text-xs font-bold text-green-500 uppercase tracking-widest">Thành công</p>
               <p className="text-base font-black text-white">Đã xác nhận và cập nhật KPI cho toàn hệ thống!</p>
@@ -282,7 +298,10 @@ export default function AdminDashboard() {
           <div className="bg-gold/10 p-2.5 rounded-xl text-gold"><Calendar size={20} /></div>
           <div className="pr-3">
             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ngày hiện tại</p>
-            <p className="text-xs font-black text-white">{new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="text-xs font-black text-white uppercase flex items-center gap-2">
+              <Clock size={12} className="text-gold" />
+              16:20 (4:20 PM) - {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
           </div>
         </div>
       </div>
@@ -338,19 +357,31 @@ export default function AdminDashboard() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard title="Tổng mail" value={stats.totalMail} icon={<Mail size={32} />} color="blue" subtitle="Toàn hệ thống" onClick={() => router.push("/admin/mail/all")} />
-            <StatCard title="Mail Live" value={stats.mailLive} icon={<CheckCircle size={32} />} color="green" subtitle="Đang hoạt động" onClick={() => setSelectedViewType("LIVE")} />
-            <StatCard title="Mail Die" value={stats.mailDie} icon={<XCircle size={32} />} color="red" subtitle="Cần kiểm tra lại" onClick={() => setSelectedViewType("DIE")} />
-            {(user?.role === "01" || user?.role === "02") ? (
-              <StatCard title="Bật kiếm tiền" value={stats.mailMonetized} icon={<DollarSign size={32} />} color="gold" subtitle="Đã bật quảng cáo" onClick={() => router.push("/admin/mail/monetized")} />
-            ) : (
-              <StatCard title="Kênh đủ giờ" value={stats.mailWatchHours} icon={<Clock size={32} />} color="gold" subtitle="Chờ bật kiếm tiền" />
+            <StatCard title="Mail Gốc" value={stats.mailRoot} icon={<Database size={32} />} color="indigo" subtitle="Tồn kho mail gốc" onClick={() => router.push("/admin/mail/root")} />
+            <StatCard title="Mail Vệ Tinh" value={stats.mailSatellite} icon={<Zap size={32} />} color="purple" subtitle="Tồn kho mail vệ tinh" onClick={() => router.push("/admin/mail/satellite")} />
+            {!(user?.role === "03" || user?.role === "04") && (
+              <StatCard title="Bật kiếm tiền" value={stats.mailMonetized} icon={<DollarSign size={32} />} color="gold" subtitle="Kênh đã bật QC" onClick={() => router.push("/admin/mail/monetized")} />
             )}
-            <StatCard title="Task hôm nay" value={stats.tasksToday} icon={<ClipboardList size={32} />} color="indigo" subtitle="Công việc cần làm" onClick={() => setSelectedViewType("TASKS")} />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <StatCard title="Task hôm nay" value={stats.tasksToday} icon={<ClipboardList size={32} />} color="green" subtitle="Công việc đang chạy" onClick={() => setSelectedViewType("TASKS")} />
             {user?.role !== "04" && (
-              <StatCard title="Nhân viên Online" value={stats.staffOnline} icon={<Users size={32} />} color="purple" subtitle="Đang làm việc" onClick={() => setSelectedViewType("STAFF")} />
+              <StatCard title="Nhân viên Online" value={stats.staffOnline} icon={<Users size={32} />} color="blue" subtitle="Đang làm việc" onClick={() => setSelectedViewType("STAFF")} />
             )}
+            <div className="rounded-[32px] border border-white/5 bg-white/[0.02] p-6 flex items-center justify-between shadow-inner">
+               <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500 border border-green-500/20"><CheckCircle2 size={24} /></div>
+                  <div><p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Hệ thống</p><h4 className="text-sm font-black text-white uppercase tracking-tighter">Live: {stats.mailLive}</h4></div>
+               </div>
+               <div className="h-10 w-px bg-white/5" />
+               <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 border border-red-500/20"><XCircle size={24} /></div>
+                  <div><p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Lỗi</p><h4 className="text-sm font-black text-white uppercase tracking-tighter">Die: {stats.mailDie}</h4></div>
+               </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -387,13 +418,13 @@ export default function AdminDashboard() {
                       onClick={handleSaveKPI} 
                       className="h-12 px-6 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-gold/20 flex items-center gap-2"
                     >
-                      <CheckCircle size={18} /> Xác nhận
+                      <CheckCircle2 size={18} /> Xác nhận
                     </button>
                   )}
                 </div>
               </div>
               <div className={`grid gap-8 ${isAdminOrManager ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1"}`}>
-                {isAdminOrManager && (
+                {isAdminOrManager && !(user?.role === "03" || user?.role === "04") && (
                   <KPIInputCard label="Kênh bật kiếm tiền" target={kpi.targetMonetized} current={kpi.currentMonetized} onChange={(val: any) => setKpi({ ...kpi, targetMonetized: val })} unit="kênh" readonly={false} />
                 )}
                 <div className={!isAdminOrManager ? "max-w-md mx-auto w-full" : ""}>

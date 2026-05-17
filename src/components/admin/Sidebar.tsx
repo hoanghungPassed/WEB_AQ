@@ -13,7 +13,9 @@ import {
   ChevronRight,
   UserCircle,
   ShieldAlert,
-  LogOut
+  LogOut,
+  ClipboardList,
+  LayoutGrid
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
@@ -44,12 +46,14 @@ const menuItems = [
     ],
   },
   {
-    title: "Nhân sự & Phân việc",
+    title: "Phân công",
+    icon: <ClipboardList size={24} />,
+    href: "/admin/tasks",
+  },
+  {
+    title: "Nhân sự",
     icon: <Users size={24} />,
-    subItems: [
-      { title: "Nhân viên", href: "/admin/staff" },
-      { title: "Chia việc", href: "/admin/tasks" },
-    ],
+    href: "/admin/staff",
   },
   {
     title: "Theo dõi & Thống kê",
@@ -88,6 +92,7 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
   };
 
   const handleLogout = () => {
+    sessionStorage.removeItem("user");
     localStorage.removeItem("user");
     window.location.href = "/login";
   };
@@ -119,6 +124,9 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
       {/* Menu */}
       <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-3 custom-scrollbar">
         {menuItems.map((item) => {
+          // RBAC logic for main menu items
+          if (item.title === "Phân công" && (user?.role === "03" || user?.role === "04")) return null;
+          
           const hasSubItems = item.subItems && item.subItems.length > 0;
           const isOpen = openMenus.includes(item.title);
           const isActive = pathname === item.href || (hasSubItems && item.subItems?.some(sub => sub.href === pathname));
@@ -166,7 +174,11 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
                     initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
                     className="ml-12 space-y-2 overflow-hidden"
                   >
-                    {item.subItems?.map((sub) => (
+                    {item.subItems?.filter(sub => {
+                      // RBAC for sub items
+                      if (sub.title === "Mail bật kiếm tiền" && (user?.role === "03" || user?.role === "04")) return false;
+                      return true;
+                    }).map((sub) => (
                       <Link
                         key={sub.title} href={sub.href}
                         className={cn(

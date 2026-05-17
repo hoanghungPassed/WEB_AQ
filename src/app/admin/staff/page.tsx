@@ -6,7 +6,7 @@ import {
   Users, UserPlus, Search, Filter, MoreHorizontal, 
   CheckCircle2, XCircle, Shield, Activity, 
   Clock, Plus, Mail, Phone, Calendar, MapPin, 
-  ClipboardList, AlertCircle, Trash2, UserCheck, User
+  ClipboardList, AlertCircle, Trash2, UserCheck, User, Save
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { StaffData } from "@/types/admin";
@@ -22,22 +22,42 @@ export default function StaffManagementPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selectedStaff, setSelectedStaff] = useState<StaffData | null>(null);
   const [activeTab, setActiveTab] = useState<"ACTIVE" | "PENDING">("ACTIVE");
+  const [pendingSubTab, setPendingSubTab] = useState<"ACCOUNTS" | "ACCESS">("ACCOUNTS");
+  const [accessRequests, setAccessRequests] = useState<any[]>([]);
   const itemsPerPage = 10;
+
+  const [currentUser, setCurrentUser] = useState<StaffData | null>(null);
+  const [tempRole, setTempRole] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
 
   // Handle tab from URL
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab === "pending") {
+    const isRestricted = currentUser?.role === "03" || currentUser?.role === "04";
+    if (tab === "pending" && !isRestricted) {
       setActiveTab("PENDING");
     }
-  }, [searchParams]);
+  }, [searchParams, currentUser]);
 
-  const [currentUser, setCurrentUser] = useState<StaffData | null>(null);
+  // Force active tab to ACTIVE if restricted role tries to view PENDING
+  useEffect(() => {
+    if (currentUser) {
+      const isRestricted = currentUser.role === "03" || currentUser.role === "04";
+      if (isRestricted && activeTab === "PENDING") {
+        setActiveTab("ACTIVE");
+      }
+    }
+  }, [currentUser, activeTab]);
 
   // Initialize data from localStorage
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    if (userStr) setCurrentUser(JSON.parse(userStr));
+    const syncUser = () => {
+      const userStr = sessionStorage.getItem("user") || localStorage.getItem("user");
+      if (userStr) setCurrentUser(JSON.parse(userStr));
+    };
+
+    syncUser();
 
     const stored = localStorage.getItem("global_users");
     let initialList: StaffData[] = [];
@@ -53,6 +73,26 @@ export default function StaffManagementPage() {
       index === self.findIndex((t) => t.id === item.id)
     );
     setStaffList(uniqueList);
+
+    const loadAccessRequests = () => {
+      const saved = localStorage.getItem("pending_access_requests");
+      if (saved) setAccessRequests(JSON.parse(saved));
+    };
+
+    loadAccessRequests();
+
+    // Listen for user updates from layout
+    window.addEventListener("storage", (e) => {
+      syncUser();
+      if (!e.key || e.key === "pending_access_requests" || e.key === "request_trigger") {
+        loadAccessRequests();
+      }
+    });
+    const accessInterval = setInterval(loadAccessRequests, 3000);
+    return () => {
+      window.removeEventListener("storage", syncUser);
+      clearInterval(accessInterval);
+    };
   }, []);
 
   // Save to localStorage whenever staffList changes
@@ -128,42 +168,104 @@ export default function StaffManagementPage() {
       return;
     }
     
-    setStaffList(prev => prev.map(s => {
+    const updatedStaffList: StaffData[] = staffList.map(s => {
       if (s.id === id) {
         const newStatus = s.status === "ACTIVE" ? "LOCKED" : "ACTIVE";
-        const updated = { ...s, status: newStatus as any };
-        if (selectedStaff?.id === id) setSelectedStaff(updated);
-        return updated;
+        return { ...s, status: newStatus as any } as StaffData;
       }
       return s;
-    }));
+    });
+
+    localStorage.setItem("global_users", JSON.stringify(updatedStaffList));
+    setStaffList(updatedStaffList);
+
+    const updatedStaff = updatedStaffList.find(s => s.id === id);
+    if (updatedStaff && selectedStaff?.id === id) {
+      setSelectedStaff(updatedStaff);
+    }
+    window.dispatchEvent(new Event("storage"));
   };
 
-  const handleUpdateRole = (id: string, newRole: any) => {
-    setStaffList(prev => prev.map(s => {
+  const handleUpdateRole = (id: string, role: "01" | "02" | "03" | "04") => {
+    const staff = staffList.find(s => s.id === id);
+    if (!staff) return;
+
+    // TẠO THÔNG BÁO CHO NHÂN VIÊN
+    const newNotif = {
+      id: `notif_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      targetUsername: staff.username,
+      title: "Cập nhật chức vụ",
+      message: `Chức vụ của bạn đã được Admin thay đổi thành: ${
+        role === "01" ? "ADMIN" : 
+        role === "02" ? "QUẢN LÝ CÔNG VIỆC" : 
+        role === "03" ? "QUẢN LÝ NHÂN SỰ" : "NHÂN VIÊN"
+      }`,
+      time: new Date().toLocaleTimeString(),
+      read: false,
+      type: "ROLE_UPDATE"
+    };
+    const existingNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
+    localStorage.setItem("admin_notifications", JSON.stringify([newNotif, ...existingNotifs]));
+    
+    const updatedStaffList: StaffData[] = staffList.map(s => {
       if (s.id === id) {
-        const updated = { ...s, role: newRole };
-        if (selectedStaff?.id === id) setSelectedStaff(updated);
-        return updated;
+        return { ...s, role } as StaffData;
       }
       return s;
-    }));
+    });
+
+    localStorage.setItem("global_users", JSON.stringify(updatedStaffList));
+    setStaffList(updatedStaffList);
+
+    // Trigger storage event
+    window.dispatchEvent(new Event("storage"));
+
+    if (selectedStaff?.id === id) {
+      setSelectedStaff({ ...selectedStaff, role });
+    }
   };
 
   const handleApproveUser = (id: string, role: any) => {
-    setStaffList(prev => prev.map(s => {
+    const updatedStaffList: StaffData[] = staffList.map(s => {
       if (s.id === id) {
-        return { ...s, status: "ACTIVE", role: role, lastActive: "Vừa kích hoạt" };
+        return { ...s, status: "ACTIVE", role: role, lastActive: "Vừa kích hoạt" } as StaffData;
       }
       return s;
-    }));
+    });
+    localStorage.setItem("global_users", JSON.stringify(updatedStaffList));
+    setStaffList(updatedStaffList);
+    window.dispatchEvent(new Event("storage"));
   };
 
-  const handleDeleteUser = (id: string) => {
+  const handleDenyUser = (id: string) => {
     showConfirm("Xác nhận xóa", "Bạn có chắc chắn muốn xóa tài khoản này?", () => {
-      setStaffList(prev => prev.filter(s => s.id !== id));
+      const updatedStaffList = staffList.filter(s => s.id !== id);
+      localStorage.setItem("global_users", JSON.stringify(updatedStaffList));
+      setStaffList(updatedStaffList);
       setSelectedStaff(null);
+      window.dispatchEvent(new Event("storage"));
     });
+  };
+
+  const handleDenyAccess = (id: number, name: string) => {
+    const updated = accessRequests.filter(r => r.id !== id);
+    setAccessRequests(updated);
+    localStorage.setItem("pending_access_requests", JSON.stringify(updated));
+    localStorage.setItem(`access_response_${name}`, "DENIED");
+    setToastMsg(`Đã từ chối truy cập cho ${name}`);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const handleApproveAccess = (id: number, name: string) => {
+    const updated = accessRequests.filter(r => r.id !== id);
+    setAccessRequests(updated);
+    localStorage.setItem("pending_access_requests", JSON.stringify(updated));
+    localStorage.setItem(`access_response_${name}`, "APPROVED");
+    localStorage.setItem(`access_${new Date().toLocaleDateString()}_${name}`, "true");
+    setToastMsg(`Đã cấp quyền truy cập cho ${name}`);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
   };
 
   const handleResetDB = () => {
@@ -172,6 +274,13 @@ export default function StaffManagementPage() {
       window.location.reload();
     });
   };
+  useEffect(() => {
+    if (selectedStaff) {
+      setTempRole(selectedStaff.role || null);
+    } else {
+      setTempRole(null);
+    }
+  }, [selectedStaff]);
 
   return (
     <div className="space-y-8 pb-10 relative">
@@ -184,29 +293,27 @@ export default function StaffManagementPage() {
           </div>
           <div className="flex gap-4">
             <button 
-              onClick={handleResetDB}
-              className="h-12 w-12 rounded-2xl bg-white/5 text-gray-500 hover:text-red-500 hover:bg-red-500/10 flex items-center justify-center transition-all border border-white/5"
-              title="Reset Database"
-            >
-              <Trash2 size={18} />
-            </button>
-            <button 
               onClick={() => setActiveTab("ACTIVE")}
               className={`h-12 px-6 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2 transition-all ${activeTab === "ACTIVE" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-white/5 text-gray-500 hover:bg-white/10"}`}
             >
-              <Users size={18} /> Danh sách
+              <Users size={18} /> Nhân viên ({stats.total})
             </button>
-            <button 
-              onClick={() => setActiveTab("PENDING")}
-              className={`relative h-12 px-6 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2 transition-all ${activeTab === "PENDING" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-white/5 text-gray-500 hover:bg-white/10"}`}
-            >
-              <UserPlus size={18} /> Chờ duyệt
-              {stats.pending > 0 && (
-                <span className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] border-2 border-[#0a0a0a] shadow-xl">
-                  {stats.pending}
-                </span>
-              )}
-            </button>
+            {!(currentUser?.role === "03" || currentUser?.role === "04") && (
+              <div className="flex items-center gap-2 p-1 bg-white/5 rounded-[24px] border border-white/5 shadow-inner">
+                <button 
+                  onClick={() => { setActiveTab("PENDING"); setPendingSubTab("ACCOUNTS"); }}
+                  className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab === "PENDING" && pendingSubTab === "ACCOUNTS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-white"}`}
+                >
+                  Duyệt đăng ký ({stats.pending})
+                </button>
+                <button 
+                  onClick={() => { setActiveTab("PENDING"); setPendingSubTab("ACCESS"); }}
+                  className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-white"}`}
+                >
+                  Duyệt truy cập ({accessRequests.length})
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -214,7 +321,9 @@ export default function StaffManagementPage() {
           <StatCard title="Tổng nhân viên" value={stats.total} icon={<Users className="text-blue-400" />} color="blue" />
           <StatCard title="Đang Online" value={stats.online} icon={<Activity className="text-green-400" />} color="green" />
           <StatCard title="Offline" value={stats.offline} icon={<Clock className="text-gray-400" />} color="gray" />
-          <StatCard title="Chờ phê duyệt" value={stats.pending} icon={<AlertCircle className="text-gold" />} color="gold" />
+          {!(currentUser?.role === "03" || currentUser?.role === "04") && (
+            <StatCard title="Chờ phê duyệt" value={stats.pending} icon={<AlertCircle className="text-gold" />} color="gold" />
+          )}
         </div>
       </div>
 
@@ -272,15 +381,71 @@ export default function StaffManagementPage() {
             <thead>
               <tr className="bg-white/[0.02] border-b border-white/5 uppercase text-[11px] font-black tracking-widest text-gray-500">
                 <th className="px-10 py-8">Nhân viên</th>
-                <th className="px-8 py-8">Liên hệ</th>
-                <th className="px-8 py-8">Chi tiết</th>
-                <th className="px-8 py-8">{activeTab === "ACTIVE" ? "Role" : "Cấp quyền"}</th>
-                <th className="px-8 py-8">{activeTab === "ACTIVE" ? "Trạng thái" : "Hành động"}</th>
+                <th className="px-8 py-8">{activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "Thời gian" : "Liên hệ"}</th>
+                <th className="px-8 py-8">{activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "Lý do" : "Chi tiết"}</th>
+                <th className="px-8 py-8">{activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "Duyệt nhanh" : (activeTab === "ACTIVE" ? "Role" : "Cấp quyền")}</th>
+                {activeTab === "ACTIVE" && !(currentUser?.role === "03" || currentUser?.role === "04") && (
+                  <th className="px-8 py-8">Trạng thái</th>
+                )}
+                {activeTab === "PENDING" && !(currentUser?.role === "03" || currentUser?.role === "04") && pendingSubTab === "ACCOUNTS" && (
+                  <th className="px-8 py-8">Hành động</th>
+                )}
                 {activeTab === "ACTIVE" && <th className="px-8 py-8 text-center">Online</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {currentStaff.length > 0 ? currentStaff.map((staff) => (
+              {activeTab === "PENDING" && pendingSubTab === "ACCESS" ? (
+                accessRequests.length > 0 ? accessRequests.map((req) => (
+                  <tr key={req.id} className="group hover:bg-white/[0.02] transition-all">
+                    <td className="px-10 py-7">
+                      <div className="flex items-center gap-6">
+                        <div className="h-16 w-16 rounded-[24px] bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center text-2xl text-gold font-black border border-gold/10 shadow-xl group-hover:scale-110 transition-all">
+                          {req.staffName.charAt(0)}
+                        </div>
+                        <div className="whitespace-nowrap">
+                          <p className="text-lg font-black text-white group-hover:text-gold transition-colors">{req.staffName}</p>
+                          <p className="text-xs text-gray-500 font-bold uppercase mt-1 tracking-wider">ID: #{req.id}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-7">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-black text-white">{req.time}</span>
+                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Ngày: {new Date().toLocaleDateString()}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-7">
+                      <span className="text-sm font-medium text-gray-400 italic">"{req.reason}"</span>
+                    </td>
+                    <td className="px-8 py-7">
+                      <div className="flex items-center gap-3">
+                        <button 
+                          onClick={() => handleApproveAccess(req.id, req.staffName)}
+                          className="h-11 px-6 rounded-2xl bg-green-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-600 transition-all shadow-xl shadow-green-500/20"
+                        >
+                          Đồng ý
+                        </button>
+                        <button 
+                          onClick={() => handleDenyAccess(req.id, req.staffName)}
+                          className="h-11 px-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
+                        >
+                          Từ chối
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="px-10 py-20 text-center">
+                      <div className="flex flex-col items-center gap-4 opacity-20">
+                        <Clock size={60} />
+                        <p className="text-xl font-black uppercase tracking-[0.2em]">Không có yêu cầu truy cập</p>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              ) : (
+                currentStaff.length > 0 ? currentStaff.map((staff) => (
                 <tr key={`${staff.id}-${staff.username}`} className="group hover:bg-white/[0.02] transition-all cursor-pointer" onClick={() => setSelectedStaff(staff)}>
                   <td className="px-10 py-7">
                     <div className="flex items-center gap-6">
@@ -327,45 +492,52 @@ export default function StaffManagementPage() {
                       </span>
                     ) : (
                       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                        <select 
-                          id={`role-assign-${staff.id}`}
-                          className="h-10 px-4 rounded-xl bg-black/20 border border-white/10 text-[10px] font-black text-white uppercase outline-none focus:border-gold/50 cursor-pointer"
-                        >
-                          <option value="04">Nhân viên</option>
-                          <option value="03">QL Nhân sự</option>
-                          <option value="02">QL Công việc</option>
-                          <option value="01">Admin</option>
-                        </select>
+                        {!(currentUser?.role === "03" || currentUser?.role === "04") ? (
+                          <select 
+                            id={`role-assign-${staff.id}`}
+                            className="h-10 px-4 rounded-xl bg-black/20 border border-white/10 text-[10px] font-black text-white uppercase outline-none focus:border-gold/50 cursor-pointer"
+                          >
+                            <option value="04">Nhân viên</option>
+                            <option value="03">QL Nhân sự</option>
+                            <option value="02">QL Công việc</option>
+                            <option value="01">Admin</option>
+                          </select>
+                        ) : (
+                          <span className="text-xs text-gray-500 uppercase font-bold italic">Chờ phê duyệt</span>
+                        )}
                       </div>
                     )}
                   </td>
-                  <td className="px-8 py-7">
-                    {activeTab === "ACTIVE" ? (
-                      <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase border whitespace-nowrap ${
-                        staff.status === "ACTIVE" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"
-                      }`}>
-                        {staff.status === "ACTIVE" ? "Hoạt động" : "Đã khóa"}
-                      </span>
-                    ) : (
-                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                        <button 
-                          onClick={() => {
-                            const role = (document.getElementById(`role-assign-${staff.id}`) as HTMLSelectElement).value;
-                            handleApproveUser(staff.id, role);
-                          }}
-                          className="h-10 px-4 rounded-xl bg-gold/10 border border-gold/20 text-gold text-[10px] font-black uppercase hover:bg-gold hover:text-sidebar transition-all flex items-center gap-2"
-                        >
-                          <UserCheck size={14} /> Phê duyệt
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteUser(staff.id)}
-                          className="h-10 w-10 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    )}
-                  </td>
+                  {!(currentUser?.role === "03" || currentUser?.role === "04") && (
+                    <td className="px-8 py-7">
+                      {activeTab === "ACTIVE" ? (
+                        <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase border whitespace-nowrap ${
+                          staff.status === "ACTIVE" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"
+                        }`}>
+                          {staff.status === "ACTIVE" ? "Hoạt động" : "Đã khóa"}
+                        </span>
+                      ) : (
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            onClick={() => {
+                              const selectEl = document.getElementById(`role-assign-${staff.id}`) as HTMLSelectElement;
+                              const role = selectEl ? selectEl.value : "04";
+                              handleApproveUser(staff.id, role);
+                            }}
+                            className="h-10 px-4 rounded-xl bg-gold/10 border border-gold/20 text-gold text-[10px] font-black uppercase hover:bg-gold hover:text-sidebar transition-all flex items-center gap-2"
+                          >
+                            <UserCheck size={14} /> Phê duyệt
+                          </button>
+                          <button 
+                            onClick={() => handleDenyUser(staff.id)}
+                            className="h-10 w-10 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  )}
                   {activeTab === "ACTIVE" && (
                     <td className="px-10 py-7 text-center">
                       <div className={`h-3.5 w-3.5 rounded-full mx-auto shadow-lg border-2 border-sidebar ${staff.isOnline ? "bg-green-500 shadow-green-500/40" : "bg-red-500 shadow-red-500/40"}`} />
@@ -381,7 +553,7 @@ export default function StaffManagementPage() {
                     </div>
                   </td>
                 </tr>
-              )}
+              ))}
             </tbody>
           </table>
         </div>
@@ -478,25 +650,66 @@ export default function StaffManagementPage() {
                           ))}
                         </div>
                       </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-4">
+                    ) : (currentUser?.role === "01" || currentUser?.role === "02") && selectedStaff.id !== currentUser?.id && (
+                      <div className="grid grid-cols-2 gap-4 w-full">
+                        {/* Hàng trên: Lưu & Reset */}
                         <button 
-                          onClick={() => handleToggleStatus(selectedStaff.id)}
+                          onClick={() => {
+                            if (tempRole) {
+                              showConfirm("Xác nhận thay đổi", `Bạn có chắc chắn muốn cập nhật chức vụ mới cho nhân viên này?`, () => {
+                                handleUpdateRole(selectedStaff.id, tempRole as any);
+                                setToastMsg("Đã cập nhật thông tin thành công!");
+                                setShowToast(true);
+                                setTimeout(() => setShowToast(false), 2000);
+                              });
+                            }
+                          }}
+                          className="h-14 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-500 font-black uppercase text-[10px] tracking-widest hover:bg-green-500 hover:text-white transition-all flex flex-col items-center justify-center gap-1"
+                        >
+                          <Save size={18} />
+                          Lưu thông tin
+                        </button>
+                        <button 
+                          onClick={() => {
+                            showConfirm("Xác nhận Reset", "Hệ thống sẽ đặt lại mật khẩu và yêu cầu nhân viên đăng nhập lại. Tiếp tục?", () => {
+                              setToastMsg("Đã gửi yêu cầu Reset Password!");
+                              setShowToast(true);
+                              setTimeout(() => setShowToast(false), 2000);
+                            });
+                          }}
+                          className="h-14 rounded-2xl bg-white/5 border border-white/10 text-gray-400 font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-1"
+                        >
+                          <Shield size={18} />
+                          Reset Pass
+                        </button>
+
+                        {/* Hàng dưới: Khóa & Xóa */}
+                        <button 
+                          onClick={() => {
+                            const action = selectedStaff.status === "ACTIVE" ? "Khóa" : "Mở khóa";
+                            showConfirm(`Xác nhận ${action}`, `Bạn có chắc muốn ${action.toLowerCase()} tài khoản này?`, () => {
+                              handleToggleStatus(selectedStaff.id);
+                            });
+                          }}
                           className={`h-14 rounded-2xl border font-black uppercase text-[10px] tracking-widest transition-all flex flex-col items-center justify-center gap-1 ${
                             selectedStaff.status === "ACTIVE" 
-                            ? "bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white" 
+                            ? "bg-orange-500/10 border-orange-500/20 text-orange-500 hover:bg-orange-500 hover:text-white" 
                             : "bg-green-500/10 border-green-500/20 text-green-500 hover:bg-green-500 hover:text-white"
                           }`}
                         >
                           {selectedStaff.status === "ACTIVE" ? <XCircle size={18} /> : <CheckCircle2 size={18} />}
                           {selectedStaff.status === "ACTIVE" ? "Khóa Acc" : "Mở Khóa"}
                         </button>
-                        <button className="h-14 rounded-2xl bg-white/5 border border-white/10 text-gray-400 font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-1">
-                          <Shield size={18} />
-                          Reset Pass
+                        <button 
+                          onClick={() => handleDenyUser(selectedStaff.id)}
+                          className="h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-white transition-all flex flex-col items-center justify-center gap-1"
+                        >
+                          <Trash2 size={18} />
+                          Xóa tài khoản
                         </button>
                       </div>
-                    )}
+                    )
+                    }
                   </div>
                 </div>
 
@@ -513,9 +726,10 @@ export default function StaffManagementPage() {
                           <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Phân quyền</span>
                         </div>
                         <select 
-                          value={selectedStaff.role}
-                          onChange={(e) => handleUpdateRole(selectedStaff.id, e.target.value as any)}
-                          className="bg-transparent border-none outline-none text-sm font-black text-gold cursor-pointer text-right"
+                          value={tempRole || selectedStaff.role}
+                          disabled={!(currentUser?.role === "01" || currentUser?.role === "02") || selectedStaff.id === currentUser?.id}
+                          onChange={(e) => setTempRole(e.target.value)}
+                          className={`bg-transparent border-none outline-none text-sm font-black text-gold cursor-pointer text-right ${(!(currentUser?.role === "01" || currentUser?.role === "02") || selectedStaff.id === currentUser?.id) ? "opacity-50 cursor-not-allowed" : ""}`}
                         >
                           <option value="01" className="bg-sidebar">ADMIN</option>
                           <option value="02" className="bg-sidebar">QUẢN LÝ CÔNG VIỆC</option>

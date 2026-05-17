@@ -1,183 +1,148 @@
 import { StaffData, TaskAssignment } from "@/types/admin";
 
-// Dữ liệu người dùng hệ thống
+// 1. CẤU HÌNH NGƯỜI DÙNG HỆ THỐNG
 export const MOCK_USERS = [
-  { 
-    username: "01", 
-    password: "123", 
-    role: "ADMIN", 
-    name: "Quản Trị Viên",
-    email: "admin@aqmedia.vn",
-    phone: "01",
-    address: "Hà Nội, Việt Nam"
-  },
-  { 
-    username: "02", 
-    password: "123", 
-    role: "QUẢN LÝ CÔNG VIỆC", 
-    name: "Trần Quản Lý",
-    email: "manager.task@aqmedia.vn",
-    phone: "02",
-    address: "TP. Hồ Chí Minh"
-  },
-  { 
-    username: "03", 
-    password: "123", 
-    role: "QUẢN LÝ NHÂN SỰ", 
-    name: "Lê Nhân Sự",
-    email: "manager.hr@aqmedia.vn",
-    phone: "03",
-    address: "Đà Nẵng"
-  },
-  { 
-    username: "04", 
-    password: "123", 
-    role: "NHÂN VIÊN", 
-    name: "Nguyễn Nhân Viên",
-    email: "staff@aqmedia.vn",
-    phone: "04",
-    address: "Hải Phòng"
-  },
+  { username: "01", password: "123", role: "ADMIN", name: "Nguyễn Admin", email: "admin@aqmedia.vn" },
+  { username: "02", password: "123", role: "QUẢN LÝ CÔNG VIỆC", name: "Trần Quản Lý CV", email: "manager_task@aqmedia.vn" },
+  { username: "03", password: "123", role: "QUẢN LÝ NHÂN SỰ", name: "Lê Nhân Sự", email: "manager_hr@aqmedia.vn" },
+  // 8 Tài khoản nhân viên test
+  ...Array.from({ length: 8 }, (_, i) => ({
+    username: `staff${i + 1}`,
+    password: "123",
+    role: "NHÂN VIÊN",
+    name: `Nhân Viên ${i + 1}`,
+    email: `staff${i + 1}@aqmedia.vn`
+  }))
 ];
 
-export const MOCK_TASKS = [
-  { id: 1, title: "Thiết kế Landing Page", status: "In Progress" },
-  { id: 2, title: "Viết nội dung quảng cáo", status: "Completed" },
-];
-
+export const MOCK_ACCESS_REQUESTS = [];
 export const MOCK_OTP = "123456";
 
+// 2. DANH SÁCH NHÂN SỰ CHI TIẾT
+export const MOCK_STAFF: StaffData[] = [
+  { id: "1", name: "Nguyễn Admin", username: "01", email: "admin@aqmedia.vn", role: "01", status: "ACTIVE", isOnline: true, taskCount: 0, kpiProgress: 0, lastActive: "Vừa xong", birthYear: "1990", phone: "0988111111", address: "Hà Nội", password: "123" },
+  { id: "2", name: "Trần Quản Lý CV", username: "02", email: "manager_task@aqmedia.vn", role: "02", status: "ACTIVE", isOnline: true, taskCount: 0, kpiProgress: 0, lastActive: "Vừa xong", birthYear: "1992", phone: "0988222222", address: "Hải Phòng", password: "123" },
+  { id: "3", name: "Lê Quản Lý NS", username: "03", email: "manager_hr@aqmedia.vn", role: "03", status: "ACTIVE", isOnline: true, taskCount: 0, kpiProgress: 0, lastActive: "Vừa xong", birthYear: "1993", phone: "0988333333", address: "Đà Nẵng", password: "123" },
+  ...Array.from({ length: 8 }, (_, i) => ({
+    id: String(i + 4),
+    name: `Nhân Viên ${i + 1}`,
+    username: `staff${i + 1}`,
+    email: `staff${i + 1}@aqmedia.vn`,
+    role: "04" as const,
+    status: "ACTIVE" as const,
+    isOnline: true,
+    taskCount: 0,
+    kpiProgress: 0,
+    lastActive: "Vừa xong",
+    birthYear: String(1995 + i),
+    phone: `098844444${i + 1}`,
+    address: i % 2 === 0 ? "Hà Nội" : "TP.HCM",
+    password: "123"
+  }))
+];
+
+// 3. DANH SÁCH NHIỆM VỤ
+export const MOCK_TASK_ASSIGNMENTS: TaskAssignment[] = [
+  { id: "task-1", title: "Check, xóa, tạo", type: "MAIL_GOC", assigneeId: "", progress: 45, status: "IN_PROGRESS", deadline: "2024-05-30", mailCount: 150 },
+  { id: "task-2", title: "Mời kênh", type: "MAIL_VE_TINH", assigneeId: "", progress: 60, status: "IN_PROGRESS", deadline: "2024-05-30", mailCount: 80 },
+  { id: "task-3", title: "Làm kênh", type: "MAIL_VE_TINH", assigneeId: "", progress: 30, status: "IN_PROGRESS", deadline: "2024-05-30", mailCount: 45 },
+  { id: "task-4", title: "Kênh bật kiếm tiền", type: "MAIL_MONETIZED", assigneeId: "", progress: 15, status: "IN_PROGRESS", deadline: "2024-05-30", mailCount: 20 },
+];
+
+// 4. KHO DỮ LIỆU MAIL TỔNG (ĐÚNG 300 CÁI)
 export interface MailData {
   id: number;
   email: string;
   pass: string;
   recovery: string;
+  type: "ROOT" | "SATELLITE" | "MONETIZED";
+  status: "LIVE" | "DIE";
+  workStatus: "CHƯA LÀM" | "ĐANG LÀM" | "HOÀN THÀNH";
+  channelStatus?: string;
+  assignedTo?: string; 
+  assigneeId?: string; // ID của nhân viên được giao
   twoFA?: string;
   phone?: string;
   otpLink?: string;
-  type: "ROOT" | "SATELLITE" | "MONETIZED";
-  status: "LIVE" | "DIE";
-  channelStatus?: string;
-  assignedTo?: string; 
-  workStatus: "CHƯA LÀM" | "ĐANG LÀM" | "HOÀN THÀNH";
-  createdAt: string;
+  createdAt?: string;
 }
 
-const CHANNEL_STATUSES = [
-  "Chờ B2 ngày 15/05",
-  "Chờ B3 ngày 16/05",
-  "Lỗi B2",
-  "Đã bật ngày 14/05",
-  "Ngày 17/05 quay video",
-  "Đã Kháng",
-  "Die Spam",
-  "Chưa SUB",
-  "Mất kênh"
-];
-
 export const MOCK_MAILS: MailData[] = [
-  ...Array.from({ length: 150 }, (_, i) => ({
+  // 100 Mail Gốc
+  ...Array.from({ length: 100 }, (_, i) => ({
     id: i + 1,
-    email: `live.user${i + 1}@aqmedia.vn`,
-    pass: `pass${i + 1}`,
-    recovery: `rec${i + 1}@gmail.com`,
-    twoFA: "LIVE-2FA-CODE",
-    phone: `091${Math.floor(1000000 + Math.random() * 9000000)}`,
-    otpLink: "https://otp-aq.vn/live",
+    email: `root.user${i + 1}@aqmedia.vn`,
+    pass: "pass123",
+    recovery: `rec.root${i + 1}@gmail.com`,
+    type: "ROOT" as const,
     status: "LIVE" as const,
-    type: (i < 20 ? "MONETIZED" : i < 80 ? "SATELLITE" : "ROOT") as any,
     workStatus: "CHƯA LÀM" as const,
-    channelStatus: i < 20 ? CHANNEL_STATUSES[i % CHANNEL_STATUSES.length] : "",
-    createdAt: "2024-05-01"
-  })),
-  ...Array.from({ length: 50 }, (_, i) => ({
-    id: i + 151,
-    email: `die.user${i + 1}@aqmedia.vn`,
-    pass: `pass${i + 1}`,
-    recovery: `rec${i + 1}@gmail.com`,
-    twoFA: "DIE-2FA-CODE",
-    phone: `090${Math.floor(1000000 + Math.random() * 9000000)}`,
-    otpLink: "https://otp-aq.vn/die",
-    status: "DIE" as const,
-    type: "SATELLITE" as const,
-    workStatus: "CHƯA LÀM" as const,
-    channelStatus: "Mất kênh",
+    channelStatus: "",
     createdAt: "2024-05-10"
+  })),
+  // 100 Mail Vệ Tinh
+  ...Array.from({ length: 100 }, (_, i) => ({
+    id: i + 101,
+    email: `sat.user${i + 1}@aqmedia.vn`,
+    pass: "pass123",
+    recovery: `rec.sat${i + 1}@gmail.com`,
+    type: "SATELLITE" as const,
+    status: "LIVE" as const,
+    workStatus: "CHƯA LÀM" as const,
+    channelStatus: "",
+    createdAt: "2024-05-11"
+  })),
+  // 100 Mail Bật Kiếm Tiền
+  ...Array.from({ length: 100 }, (_, i) => ({
+    id: i + 201,
+    email: `mon.user${i + 1}@aqmedia.vn`,
+    pass: "pass123",
+    recovery: `rec.mon${i + 1}@gmail.com`,
+    type: "MONETIZED" as const,
+    status: "LIVE" as const,
+    workStatus: "CHƯA LÀM" as const,
+    channelStatus: "Đã bật quảng cáo",
+    createdAt: "2024-05-12"
   }))
 ];
 
+// 5. THỐNG KÊ DASHBOARD
 export const MOCK_DASHBOARD_STATS = {
-  totalMail: 200,
-  mailLive: 150,
-  mailDie: 50,
-  mailMonetized: 20,
-  mailWatchHours: 120,
-  staffOnline: 12,
-  tasksToday: 25
+  totalMail: 300,
+  mailLive: 300,
+  mailDie: 0,
+  mailRoot: 100,
+  mailSatellite: 100,
+  mailMonetized: 100,
+  tasksToday: 4,
+  staffOnline: 10,
+  mailWatchHours: 15
 };
 
+// 6. THIẾT LẬP KPI QUÝ
 export const MOCK_KPI_DATA = {
-  startDate: "2024-05-01",
-  endDate: "2024-05-31",
-  targetMonetized: 50,
-  targetWatchHours: 100,
-  currentMonetized: 32,
-  currentWatchHours: 65
+  targetMonetized: 500,
+  currentMonetized: 100,
+  targetWatchHours: 2000,
+  currentWatchHours: 450,
+  startDate: "2024-04-01",
+  endDate: "2024-06-30"
 };
 
-export const MOCK_STAFF_ATTENDANCE = [
-  { id: 1, name: "Nguyễn Văn A", role: "Nhân viên", morning: "08:00 - 12:00", afternoon: "13:30 - 17:30", totalHours: 8.0, status: "ONLINE" },
-  { id: 2, name: "Trần Thị B", role: "Nhân viên", morning: "08:15 - 12:00", afternoon: "13:30 - 17:00", totalHours: 7.25, status: "ONLINE" },
-  { id: 3, name: "Lê Văn C", role: "Quản lý công việc", morning: "08:00 - 12:00", afternoon: "13:30 - 18:00", totalHours: 8.5, status: "ONLINE" },
-  { id: 4, name: "Phạm Minh D", role: "Nhân viên", morning: "09:00 - 12:00", afternoon: "13:30 - 17:30", totalHours: 7.0, status: "ONLINE" },
-  { id: 5, name: "Hoàng An", role: "Quản lý nhân sự", morning: "08:00 - 12:00", afternoon: "13:30 - 17:30", totalHours: 8.0, status: "ONLINE" },
-  { id: 6, name: "Đặng Thu", role: "Nhân viên", morning: "08:00 - 12:00", afternoon: "13:30 - 17:30", totalHours: 8.0, status: "OFFLINE" },
-];
-
-export const MOCK_ACCESS_REQUESTS = [];
-
-export const MOCK_STAFF: StaffData[] = [
-  { id: "1", name: "Nguyễn Admin", username: "01", email: "admin@aqmedia.vn", role: "01", status: "ACTIVE", isOnline: true, taskCount: 5, kpiProgress: 85, lastActive: "Vừa xong", birthYear: "1990", phone: "0988111111", address: "Hà Nội", password: "123" },
-  { id: "2", name: "Trần Quản Lý CV", username: "02", email: "manager_task@aqmedia.vn", role: "02", status: "ACTIVE", isOnline: true, taskCount: 12, kpiProgress: 92, lastActive: "Vừa xong", birthYear: "1992", phone: "0988222222", address: "Hải Phòng", password: "123" },
-  { id: "3", name: "Lê Quản Lý NS", username: "03", email: "manager_hr@aqmedia.vn", role: "03", status: "ACTIVE", isOnline: false, taskCount: 8, kpiProgress: 45, lastActive: "10 phút trước", birthYear: "1993", phone: "0988333333", address: "Đà Nẵng", password: "123" },
-  { id: "4", name: "Phạm Nhân Viên", username: "04", email: "staff@aqmedia.vn", role: "04", status: "ACTIVE", isOnline: true, taskCount: 4, kpiProgress: 60, lastActive: "Vừa xong", birthYear: "1995", phone: "0988444444", address: "HCM", password: "123" },
-];
-
-// Utility to initialize Mock DB
 export const initMockDB = () => {
   if (typeof window !== "undefined") {
-    const stored = localStorage.getItem("global_users");
-    if (!stored) {
+    const storedMails = localStorage.getItem("global_mails_data");
+    const currentMails = storedMails ? JSON.parse(storedMails) : [];
+    
+    // Khởi tạo danh sách user nếu chưa có
+    if (!localStorage.getItem("global_users")) {
       localStorage.setItem("global_users", JSON.stringify(MOCK_STAFF));
-    } else {
-      // Sync the 4 fixed accounts to ensure they always exist for testing
-      const currentUsers = JSON.parse(stored);
-      let updated = false;
-      
-      MOCK_STAFF.forEach(mockUser => {
-        const index = currentUsers.findIndex((u: any) => u.username === mockUser.username);
-        if (index === -1) {
-          currentUsers.push(mockUser);
-          updated = true;
-        } else {
-          // Update password and role for these 4 specific accounts to match request
-          if (["01", "02", "03", "04"].includes(mockUser.username)) {
-            currentUsers[index] = { ...currentUsers[index], ...mockUser };
-            updated = true;
-          }
-        }
-      });
+    }
 
-      if (updated) {
-        localStorage.setItem("global_users", JSON.stringify(currentUsers));
-      }
+    if (!storedMails || currentMails.length !== 300) {
+      localStorage.setItem("global_mails_data", JSON.stringify(MOCK_MAILS));
+      localStorage.setItem("global_tasks_data", JSON.stringify(MOCK_TASK_ASSIGNMENTS));
+      localStorage.setItem("global_kpi_data", JSON.stringify(MOCK_KPI_DATA));
     }
   }
 };
-
-export const MOCK_TASK_ASSIGNMENTS: TaskAssignment[] = [
-  { id: "T1", title: "Nuôi mail vệ tinh đợt 1", type: "MAIL_VE_TINH", deadline: "2024-05-20", progress: 65, status: "IN_PROGRESS", assigneeId: "3", mailCount: 50 },
-  { id: "T2", title: "Kháng mail bật kiếm tiền", type: "MAIL_MONETIZED", deadline: "2024-05-18", progress: 100, status: "COMPLETED", assigneeId: "2", mailCount: 10 },
-  { id: "T3", title: "Cấu hình mail gốc hệ thống", type: "MAIL_GOC", deadline: "2024-05-25", progress: 20, status: "PENDING", mailCount: 100 },
-  { id: "T4", title: "Check spam danh sách 05", type: "MAIL_VE_TINH", deadline: "2024-05-15", progress: 45, status: "OVERDUE", assigneeId: "6", mailCount: 30 },
-];

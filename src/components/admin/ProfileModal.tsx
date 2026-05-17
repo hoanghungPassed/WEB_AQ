@@ -206,7 +206,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                     <ShieldCheck size={14} className="text-gold" /> Chức vụ hệ thống
                   </label>
                   <div className="flex h-12 w-full items-center rounded-2xl border border-white/5 bg-white/[0.02] px-4 text-sm font-black text-gray-400 uppercase tracking-wider">
-                    {getRoleLabel(formData.role)}
+                    {getRoleLabel(userData.role)}
                   </div>
                 </div>
               </div>

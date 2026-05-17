@@ -21,14 +21,28 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user }: HeaderProps) => 
   useEffect(() => {
     const loadNotifs = () => {
       const stored = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
-      setNotifications(stored);
+      const isAuthorizedManager = user?.role === "01" || user?.role === "02" || user?.role === "ADMIN";
+      let accessNotifs: any[] = [];
+      if (isAuthorizedManager) {
+        const accessReqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
+        accessNotifs = accessReqs.map((req: any) => ({
+          id: `access-${req.id}`,
+          title: "Yêu cầu truy cập ngoài giờ",
+          message: `Nhân viên ${req.staffName} đang xin phép vào hệ thống.`,
+          time: req.time,
+          type: "ACCESS_REQUEST",
+          read: false,
+          data: req
+        }));
+      }
+      setNotifications([...stored, ...accessNotifs]);
     };
 
     loadNotifs();
-    const interval = setInterval(loadNotifs, 5000); 
+    const interval = setInterval(loadNotifs, 3000); 
     
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === "admin_notifications") loadNotifs();
+      if (e.key === "admin_notifications" || e.key === "pending_access_requests" || e.key === "request_trigger") loadNotifs();
     };
     window.addEventListener("storage", handleStorage);
     
@@ -36,12 +50,28 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user }: HeaderProps) => 
       clearInterval(interval);
       window.removeEventListener("storage", handleStorage);
     };
-  }, []);
+  }, [user?.role]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const filteredNotifications = notifications.filter(n => {
+    // Chỉ Admin và QL Công việc được nhận thông báo duyệt đăng ký tài khoản
+    if (n.type === "REGISTRATION") {
+      return user?.role === "01" || user?.role === "02" || user?.role === "ADMIN";
+    }
+    return !n.targetUsername || n.targetUsername?.toLowerCase() === user?.username?.toLowerCase();
+  });
+  // Loại bỏ các thông báo trùng ID (do dữ liệu cũ trong localStorage)
+  const uniqueNotifications = filteredNotifications.filter((n, index, self) =>
+    index === self.findIndex((t) => t.id === n.id)
+  );
+  const unreadCount = uniqueNotifications.filter(n => !n.read).length;
 
   const markAllRead = () => {
-    const updated = notifications.map(n => ({ ...n, read: true }));
+    const updated = notifications.map(n => {
+      if (!n.targetUsername || n.targetUsername === user?.username) {
+        return { ...n, read: true };
+      }
+      return n;
+    });
     setNotifications(updated);
     localStorage.setItem("admin_notifications", JSON.stringify(updated));
   };
@@ -62,6 +92,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user }: HeaderProps) => 
   };
 
   const handleLogout = () => {
+    sessionStorage.removeItem("user");
     localStorage.removeItem("user");
     window.location.href = "/login";
   };
@@ -91,7 +122,18 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user }: HeaderProps) => 
         </div>
       </div>
 
-      <div className="flex items-center gap-8">
+      <div className="flex items-center gap-6">
+        {/* Static Time Display */}
+        <div className="hidden xl:flex items-center gap-3 px-6 border-l border-white/5 h-10">
+           <div className="flex flex-col items-end">
+             <span className="text-[10px] font-black text-gold uppercase tracking-[0.2em] leading-none mb-1">Hệ thống</span>
+             <div className="flex items-center gap-2">
+               <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+               <span className="text-sm font-black text-white tracking-tighter">16:20 (4:20 PM)</span>
+             </div>
+           </div>
+        </div>
+
         {/* Notifications */}
         <div className="relative">
           <button 
@@ -123,8 +165,8 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user }: HeaderProps) => 
                   </div>
                   
                   <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar pr-1">
-                    {notifications.length > 0 ? (
-                      notifications.map((n) => (
+                    {uniqueNotifications.length > 0 ? (
+                      uniqueNotifications.map((n) => (
                         <div 
                           key={n.id} 
                           onClick={() => handleNotificationClick(n)}
