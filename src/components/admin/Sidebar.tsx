@@ -176,11 +176,11 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
                   >
                     {item.subItems?.filter(sub => {
                       // RBAC for sub items
-                      if (user?.role === "04") {
+                      if (user?.role === "04" || user?.role === "NHÂN VIÊN") {
                         // Nhân viên chỉ được thấy Mail vệ tinh
                         return sub.title === "Mail vệ tinh";
                       }
-                      if (sub.title === "Mail bật kiếm tiền" && user?.role === "03") return false;
+                      if (sub.title === "Mail bật kiếm tiền" && (user?.role === "03" || user?.role === "QUẢN LÝ NHÂN SỰ")) return false;
                       return true;
                     }).map((sub) => (
                       <Link

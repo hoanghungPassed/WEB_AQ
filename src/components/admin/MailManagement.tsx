@@ -24,7 +24,7 @@ import { MOCK_MAILS, MailData } from "@/data/mockData";
 import { useRouter } from "next/navigation";
 
 const ConfigChannelModal = ({ mail, onClose, onSave }: { mail: any, onClose: () => void, onSave: (links: string[], names: string[]) => void }) => {
-  const [links, setLinks] = useState<string[]>(mail.channelLinks || ["", "", ""]);
+  const [links, setLinks] = useState<string[]>(mail.links || mail.channelLinks || ["", "", ""]);
   const [names, setNames] = useState<string[]>(mail.channelNames || ["", "", ""]);
   const [scanning, setScanning] = useState<boolean[]>([false, false, false]);
 
@@ -56,9 +56,9 @@ const ConfigChannelModal = ({ mail, onClose, onSave }: { mail: any, onClose: () 
           "Góc Thư Giãn Daily",
           "Kênh Chia Sẻ Kiến Thức"
         ];
-        finalNames[idx] = `Kênh đã xác minh: ${mockNames[Math.floor(Math.random() * mockNames.length)]} (${Math.floor(Math.random() * 80 + 10)}k Sub)`;
+        finalNames[idx] = `Tên kênh: ${mockNames[Math.floor(Math.random() * mockNames.length)]}`;
         setNames(finalNames);
-      }, 1200);
+      }, 1000);
     } else {
       const newNames = [...names];
       newNames[idx] = "";
@@ -87,15 +87,14 @@ const ConfigChannelModal = ({ mail, onClose, onSave }: { mail: any, onClose: () 
               <div className="flex items-center justify-between ml-1">
                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Link YouTube {idx + 1}</label>
                 {names[idx] && (
-                  <span className={`text-[10px] font-black uppercase flex items-center gap-1.5 ${scanning[idx] ? 'text-gray-400 animate-pulse' : 'text-gold'}`}>
-                    {scanning[idx] && <RefreshCcw size={10} className="animate-spin text-gold" />}
+                  <span className="text-[10px] font-black uppercase text-gold">
                     {names[idx]}
                   </span>
                 )}
               </div>
               <div className="relative group">
                 <input 
-                  value={links[idx]} 
+                  value={links[idx] || ""} 
                   onChange={(e) => handleLinkChange(idx, e.target.value)} 
                   placeholder="Dán link channel YouTube..." 
                   className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all" 
@@ -106,7 +105,7 @@ const ConfigChannelModal = ({ mail, onClose, onSave }: { mail: any, onClose: () 
         </div>
 
         <div className="grid grid-cols-2 gap-4 mt-10 relative z-10">
-          <button onClick={onClose} className="h-14 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-xs tracking-widest transition-all">Đóng</button>
+          <button onClick={onClose} className="h-14 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-xs tracking-widest transition-all">Hủy</button>
           <button 
             onClick={() => {
               onSave(links, names);
@@ -114,7 +113,7 @@ const ConfigChannelModal = ({ mail, onClose, onSave }: { mail: any, onClose: () 
             }} 
             className="h-14 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
           >
-            Lưu cấu hình
+            Lưu cập nhật
           </button>
         </div>
       </motion.div>
@@ -625,20 +624,19 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                   <td className="py-5 px-6 cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono" onClick={() => copyToClipboard(mail.pass, "Mật khẩu")}>{mail.pass}</td>
                   <td className="py-5 px-6 cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono" onClick={() => copyToClipboard(mail.twoFA || "", "2FA")}>{mail.twoFA || "---"}</td>
                   <td className="py-5 px-6 cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-bold" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
-                  <td className="py-5 px-6">
-                    {mail.otpLink ? <a href={mail.otpLink} target="_blank" className="text-blue-400 hover:text-white transition-all flex items-center gap-1 font-bold text-xs">Link OTP <ExternalLink size={12} /></a> : <span className="text-gray-700">---</span>}
+                   <td className="py-5 px-6 cursor-pointer" onClick={() => copyToClipboard(mail.otpLink || "", "Link OTP")}>
+                    {mail.otpLink ? <span className="text-blue-400 hover:text-white transition-all flex items-center gap-1 font-bold text-xs">Link OTP <ExternalLink size={12} /></span> : <span className="text-gray-700">---</span>}
                   </td>
                   <td className="py-5 px-6 text-center">
                     <select
-                      value={mail.workStatus || "CHƯA LÀM"}
+                      value={mail.workStatus === "ĐÃ LÀM KÊNH" || mail.workStatus === "ĐÃ MỜI MAIL" || mail.workStatus === "HOÀN THÀNH" || mail.workStatus === "ĐÃ LÀM" ? "ĐÃ LÀM" : 
+                             mail.workStatus === "LỖI" || mail.workStatus === "DIE" ? "LỖI" : "CHƯA LÀM"}
                       onChange={(e) => handleWorkStatusChange(mail.id, e.target.value)}
                       className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus)}`}
                     >
-                      <option value="CHƯA LÀM" className="bg-sidebar text-white">Chưa làm kênh</option>
-                      <option value="ĐÃ LÀM KÊNH" className="bg-sidebar text-white">Đã làm kênh</option>
-                      <option value="CHƯA MỜI MAIL" className="bg-sidebar text-white">Chưa mời mail</option>
-                      <option value="ĐÃ MỜI MAIL" className="bg-sidebar text-white">Đã mời mail</option>
-                      <option value="LỖI" className="bg-sidebar text-white">Lỗi (Die)</option>
+                      <option value="CHƯA LÀM" className="bg-sidebar text-white">Chưa làm</option>
+                      <option value="ĐÃ LÀM" className="bg-sidebar text-white">Đã làm</option>
+                      <option value="LỖI" className="bg-sidebar text-white">Lỗi</option>
                     </select>
                   </td>
                   {user?.role === "04" && (

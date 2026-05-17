@@ -107,7 +107,10 @@ const TaskCard = React.memo(({ task, onClick }: { task: TaskAssignment, onClick:
 TaskCard.displayName = "TaskCard";
 
 const AssignWorkModal = ({ staff, assigner, onClose, onSubmit }: { staff: StaffData, assigner: any, onClose: () => void, onSubmit: (type: string, start: number, end: number, note: string) => void }) => {
-  const [mailType, setMailType] = useState("ROOT");
+  const isStaff = (staff.role as any) === "04" || (staff.role as any) === "NHÂN VIÊN";
+  const isManager = (staff.role as any) === "02" || (staff.role as any) === "QUẢN LÝ CÔNG VIỆC";
+
+  const [mailType, setMailType] = useState(isStaff ? "SATELLITE" : "ROOT");
   const [startIdx, setStartIdx] = useState(1);
   const [endIdx, setEndIdx] = useState(10);
   const [note, setNote] = useState("");
@@ -134,6 +137,12 @@ const AssignWorkModal = ({ staff, assigner, onClose, onSubmit }: { staff: StaffD
     setter(num);
   };
 
+  const allowedTypes = [
+    { id: "ROOT", label: "Mail Gốc", icon: <Database size={24} />, count: inventory.root, allowed: isManager || (!isStaff && !isManager) },
+    { id: "SATELLITE", label: "Vệ Tinh", icon: <Zap size={24} />, count: inventory.satellite, allowed: isStaff || (!isStaff && !isManager) },
+    { id: "MONETIZED", label: "Kiếm Tiền", icon: <Mail size={24} />, count: inventory.monetized, allowed: isManager || (!isStaff && !isManager) },
+  ].filter(t => t.allowed);
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4">
       <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-sidebar border border-white/10 w-full max-w-2xl rounded-[56px] p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col max-h-[96vh]">
@@ -159,17 +168,13 @@ const AssignWorkModal = ({ staff, assigner, onClose, onSubmit }: { staff: StaffD
             </div>
             <div>
               <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Nhân viên nhận việc</p>
-              <h3 className="text-xl font-black text-white uppercase tracking-tight leading-none">{staff.name}</h3>
+              <h3 className="text-xl font-black text-white uppercase tracking-tight leading-none">{staff.name} ({isStaff ? "NHÂN VIÊN" : isManager ? "QUẢN LÝ CV" : "VAI TRÒ KHÁC"})</h3>
             </div>
           </div>
 
           {/* Chọn Loại Mail */}
           <div className="grid grid-cols-3 gap-4">
-            {[
-              { id: "ROOT", label: "Mail Gốc", icon: <Database size={24} />, count: inventory.root },
-              { id: "SATELLITE", label: "Vệ Tinh", icon: <Zap size={24} />, count: inventory.satellite },
-              { id: "MONETIZED", label: "Kiếm Tiền", icon: <Mail size={24} />, count: inventory.monetized },
-            ].map((t) => (
+            {allowedTypes.map((t) => (
               <button 
                 key={t.id}
                 onClick={() => { setMailType(t.id); setStartIdx(1); setEndIdx(Math.min(10, t.count)); }}
@@ -259,34 +264,91 @@ const AssignWorkModal = ({ staff, assigner, onClose, onSubmit }: { staff: StaffD
   );
 };
 
-const ConfigChannelModal = ({ mail, onClose }: { mail: any, onClose: () => void }) => {
-  const [links, setLinks] = useState(["", "", ""]);
-  const [scannedNames, setScannedNames] = useState(["", "", ""]);
+const ConfigChannelModal = ({ mail, onClose, onSave }: { mail: any, onClose: () => void, onSave: (links: string[]) => void }) => {
+  const [links, setLinks] = useState<string[]>(mail?.links || mail?.channelLinks || ["", "", ""]);
+  const [names, setNames] = useState<string[]>(mail?.channelNames || ["", "", ""]);
+  const [scanning, setScanning] = useState<boolean[]>([false, false, false]);
+
   const handleLinkPaste = (idx: number, val: string) => {
-    const nl = [...links]; nl[idx] = val; setLinks(nl);
+    const nl = [...links]; 
+    nl[idx] = val; 
+    setLinks(nl);
     if (val.trim()) {
-      const ns = [...scannedNames]; ns[idx] = "Đang quét dữ liệu..."; setScannedNames(ns);
-      setTimeout(() => { const names = [...scannedNames]; names[idx] = `Kênh đã xác minh #${Math.floor(Math.random() * 9999)}`; setScannedNames(names); }, 1000);
+      const ns = [...scanning];
+      ns[idx] = true;
+      setScanning(ns);
+
+      const nNames = [...names];
+      nNames[idx] = "Đang quét thông tin kênh...";
+      setNames(nNames);
+
+      setTimeout(() => {
+        const finalScanning = [...scanning];
+        finalScanning[idx] = false;
+        setScanning(finalScanning);
+
+        const finalNames = [...names];
+        const mockNames = [
+          "AQ Vlogs Premium",
+          "AQ Media Official",
+          "Thế Giới Công Nghệ AQ",
+          "Ẩm Thực Ba Miền",
+          "Góc Thư Giãn Daily",
+          "Kênh Chia Sẻ Kiến Thức"
+        ];
+        finalNames[idx] = `Tên kênh: ${mockNames[Math.floor(Math.random() * mockNames.length)]}`;
+        setNames(finalNames);
+      }, 1000);
+    } else {
+      const nNames = [...names];
+      nNames[idx] = "";
+      setNames(nNames);
     }
   };
+
+  const handleSave = () => {
+    onSave(links);
+    onClose();
+  };
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[400] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
       <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-sidebar border border-white/10 w-full max-w-xl rounded-[40px] p-10 shadow-2xl overflow-hidden">
         <div className="flex items-center gap-4 mb-8">
           <div className="h-14 w-14 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20"><Play size={28} /></div>
-          <div><h2 className="text-2xl font-black text-white uppercase tracking-tighter">Cấu hình liên kết Kênh</h2><p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">{mail?.email}</p></div>
+          <div>
+            <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Cấu hình liên kết Kênh</h2>
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">{mail?.email}</p>
+          </div>
         </div>
         <div className="space-y-6">
           {[0, 1, 2].map(idx => (
             <div key={idx} className="space-y-2">
-              <div className="flex items-center justify-between ml-1"><label className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Link YouTube {idx + 1}</label>{scannedNames[idx] && <span className="text-[11px] font-black text-gold uppercase flex items-center gap-2">{scannedNames[idx]}</span>}</div>
-              <div className="relative group"><div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-gold transition-colors"><LinkIcon size={18} /></div><input value={links[idx]} onChange={(e) => handleLinkPaste(idx, e.target.value)} placeholder="Dán link channel YouTube..." className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-14 pr-6 text-white text-sm outline-none focus:border-gold/50" /></div>
+              <div className="flex items-center justify-between ml-1">
+                <label className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Link YouTube {idx + 1}</label>
+                {names[idx] && (
+                  <span className="text-[11px] font-black text-gold uppercase flex items-center gap-2">
+                    {names[idx]}
+                  </span>
+                )}
+              </div>
+              <div className="relative group">
+                <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-gold transition-colors">
+                  <LinkIcon size={18} />
+                </div>
+                <input 
+                  value={links[idx] || ""} 
+                  onChange={(e) => handleLinkPaste(idx, e.target.value)} 
+                  placeholder="Dán link channel YouTube..." 
+                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-14 pr-6 text-white text-sm outline-none focus:border-gold/50" 
+                />
+              </div>
             </div>
           ))}
         </div>
         <div className="grid grid-cols-2 gap-4 mt-10">
-          <button onClick={onClose} className="h-14 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-xs tracking-widest">Đóng</button>
-          <button onClick={onClose} className="h-14 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2">Lưu cấu hình</button>
+          <button onClick={onClose} className="h-14 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-xs tracking-widest">Hủy</button>
+          <button onClick={handleSave} className="h-14 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2">Lưu cập nhật</button>
         </div>
       </motion.div>
     </motion.div>
@@ -444,6 +506,30 @@ export default function TaskManagementPage() {
     window.dispatchEvent(new Event('storage'));
   }, [selectedTask, tasks]);
 
+  const handleSaveChannels = useCallback((mailId: number, links: string[]) => {
+    const savedMails = localStorage.getItem("global_mails_data");
+    const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
+
+    const updatedMails = currentMails.map((m: any) => {
+      if (m.id === mailId) {
+        return {
+          ...m,
+          channelLinks: links,
+          links: links,
+          channelNames: links.map((lnk: string, idx: number) => lnk.trim() ? `Kênh #${idx + 1}` : ""),
+          channelStatus: links.filter(l => l.trim()).join(", ") || m.channelStatus
+        };
+      }
+      return m;
+    });
+
+    localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
+    setMails(updatedMails);
+    setNotification("Đã lưu liên kết kênh YouTube thành công.");
+    setTimeout(() => setNotification(null), 3000);
+    window.dispatchEvent(new Event("storage"));
+  }, []);
+
   const handleAssignWork = useCallback((staff: StaffData) => {
     setSelectedStaffToAssign(staff);
     setIsAssignModalOpen(true);
@@ -525,7 +611,11 @@ export default function TaskManagementPage() {
 
       <AnimatePresence>
         {isConfigModalOpen && selectedMailForConfig && (
-          <ConfigChannelModal mail={selectedMailForConfig} onClose={() => setIsConfigModalOpen(false)} />
+          <ConfigChannelModal 
+            mail={selectedMailForConfig} 
+            onClose={() => setIsConfigModalOpen(false)} 
+            onSave={(links) => handleSaveChannels(selectedMailForConfig.id, links)}
+          />
         )}
       </AnimatePresence>
 

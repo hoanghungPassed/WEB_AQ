@@ -48,7 +48,15 @@ export default function AdminDashboard() {
   const [showStaffMailsView, setShowStaffMailsView] = useState(false);
   const [selectedStaffTask, setSelectedStaffTask] = useState<any>(null);
   const [tasksList, setTasksList] = useState<any[]>([]);
+  const [copyToast, setCopyToast] = useState<string | null>(null);
   const itemsPerPage = 10;
+
+  const copyToClipboard = (text: string, label: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopyToast(`Đã sao chép ${label}`);
+    setTimeout(() => setCopyToast(null), 2000);
+  };
 
   const getRoleLabel = (role?: string) => {
     if (role === "01") return "ADMIN";
@@ -75,13 +83,38 @@ export default function AdminDashboard() {
       // Check current user role dynamically
       const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
       const currentUserObj = storedUser ? JSON.parse(storedUser) : null;
-      const isMinimalRole = currentUserObj?.role === "03" || currentUserObj?.role === "04";
+      const isMinimalRole = currentUserObj?.role === "03" || currentUserObj?.role === "04" || currentUserObj?.role === "NHÂN VIÊN" || currentUserObj?.role === "QUẢN LÝ NHÂN SỰ";
 
-      setTasksList(currentTasks);
-
-      if (isMinimalRole) {
+      let processedTasks = [...currentTasks];
+      if (isMinimalRole && currentUserObj) {
         const myMails = currentMails.filter((m: any) => String(m.assigneeId) === String(currentUserObj?.id));
-        const myTasks = currentTasks.filter((t: any) => String(t.assigneeId) === String(currentUserObj?.id) && t.status === "IN_PROGRESS");
+        const myMailsTypes = new Set(myMails.map((m: any) => m.type));
+        
+        processedTasks = processedTasks.map((t: any) => {
+          const isAssigned = String(t.assigneeId) === String(currentUserObj?.id);
+          if (isAssigned) return t;
+
+          const typeMatch = (t.type === "MAIL_VE_TINH" && myMailsTypes.has("SATELLITE")) ||
+                            (t.type === "MAIL_MONETIZED" && myMailsTypes.has("MONETIZED")) ||
+                            (t.type === "MAIL_GOC" && myMailsTypes.has("ROOT"));
+
+          if (typeMatch) {
+            return { 
+              ...t, 
+              assigneeId: currentUserObj?.id, 
+              assigneeName: currentUserObj?.name,
+              status: "IN_PROGRESS" 
+            };
+          }
+          return t;
+        });
+      }
+
+      setTasksList(processedTasks);
+
+      if (isMinimalRole && currentUserObj) {
+        const myMails = currentMails.filter((m: any) => String(m.assigneeId) === String(currentUserObj?.id));
+        const myTasks = processedTasks.filter((t: any) => String(t.assigneeId) === String(currentUserObj?.id) && t.status === "IN_PROGRESS");
         setStats({
           totalMail: myMails.length,
           mailLive: myMails.filter((m: any) => m.status === "LIVE").length,
@@ -347,6 +380,17 @@ export default function AdminDashboard() {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {copyToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -100, x: "-50%" }} animate={{ opacity: 1, y: 20, x: "-50%" }} exit={{ opacity: 0, y: -100, x: "-50%" }}
+            className="fixed top-0 left-1/2 z-[500] bg-gold px-6 py-2.5 rounded-full text-sidebar font-black text-sm shadow-2xl flex items-center gap-2"
+          >
+            <CheckCircle2 size={18} /> {copyToast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex items-center justify-between">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
           <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Bảng điều khiển</h1>
@@ -458,12 +502,12 @@ export default function AdminDashboard() {
                             .map((mail: any, index: number) => (
                               <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
                                 <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
-                                <td className="py-4 px-6 font-bold text-white cursor-pointer hover:text-gold transition-colors animate-pulse-subtle" onClick={() => { navigator.clipboard.writeText(mail.email); alert("Đã sao chép Email"); }}>{mail.email}</td>
-                                <td className="py-4 px-6 text-xs text-gray-400 cursor-pointer hover:text-gold transition-colors" onClick={() => { navigator.clipboard.writeText(mail.recovery); alert("Đã sao chép Mail KP"); }}>{mail.recovery}</td>
+                                <td className="py-4 px-6 font-bold text-white cursor-pointer hover:text-gold transition-colors animate-pulse-subtle" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
+                                <td className="py-4 px-6 text-xs text-gray-400 cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.recovery, "Mail KP")}>{mail.recovery}</td>
                                 <td className="py-4 px-6 text-center">
                                   <div className="flex items-center justify-center gap-2">
                                     <button 
-                                      onClick={() => handleStaffMailStatusChange(mail.id, "ĐÃ LÀM KÊNH")}
+                                      onClick={() => handleStaffMailStatusChange(mail.id, "ĐÃ LÀM")}
                                       className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
                                         mail.workStatus === "ĐÃ LÀM KÊNH" || mail.workStatus === "HOÀN THÀNH" || mail.workStatus === "ĐÃ LÀM"
                                           ? "bg-green-500/10 text-green-500 border-green-500/30"
@@ -563,15 +607,15 @@ export default function AdminDashboard() {
                             <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
                               <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
                               <td className="py-4 px-6 text-[10px] font-black text-gold/80">{mail.originalSTT || mail.id}</td>
-                              <td className="py-4 px-6 font-bold text-white cursor-pointer hover:text-gold transition-colors" onClick={() => { navigator.clipboard.writeText(mail.email); alert("Đã sao chép Email"); }}>{mail.email}</td>
-                              <td className="py-4 px-6 text-xs text-gray-400 cursor-pointer hover:text-gold transition-colors" onClick={() => { navigator.clipboard.writeText(mail.recovery); alert("Đã sao chép Mail KP"); }}>{mail.recovery}</td>
-                              <td className="py-4 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => { navigator.clipboard.writeText(mail.pass); alert("Đã sao chép Mật khẩu"); }}>{mail.pass}</td>
-                              <td className="py-4 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => { navigator.clipboard.writeText(mail.twoFA || ""); alert("Đã sao chép 2FA"); }}>{mail.twoFA || "---"}</td>
-                              <td className="py-4 px-6 text-xs text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors" onClick={() => { navigator.clipboard.writeText(mail.phone || ""); alert("Đã sao chép SĐT"); }}>{mail.phone || "---"}</td>
+                              <td className="py-4 px-6 font-bold text-white cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
+                              <td className="py-4 px-6 text-xs text-gray-400 cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.recovery, "Mail KP")}>{mail.recovery}</td>
+                              <td className="py-4 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.pass, "Mật khẩu")}>{mail.pass}</td>
+                              <td className="py-4 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.twoFA || "", "2FA")}>{mail.twoFA || "---"}</td>
+                              <td className="py-4 px-6 text-xs text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
                               <td className="py-4 px-6 text-center">
                                 <div className="flex items-center justify-center gap-2">
                                   <button 
-                                    onClick={() => handleStaffMailStatusChange(mail.id, "ĐÃ LÀM KÊNH")}
+                                    onClick={() => handleStaffMailStatusChange(mail.id, "ĐÃ LÀM")}
                                     className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
                                       mail.workStatus === "ĐÃ LÀM KÊNH" || mail.workStatus === "HOÀN THÀNH" || mail.workStatus === "ĐÃ LÀM" || mail.workStatus === "ĐÃ MỜI MAIL"
                                         ? "bg-green-500/10 text-green-500 border-green-500/30"

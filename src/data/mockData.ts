@@ -57,7 +57,7 @@ export interface MailData {
   recovery: string;
   type: "ROOT" | "SATELLITE" | "MONETIZED";
   status: "LIVE" | "DIE";
-  workStatus: "CHƯA LÀM" | "ĐANG LÀM" | "HOÀN THÀNH";
+  workStatus: "CHƯA LÀM" | "ĐÃ LÀM" | "LỖI";
   channelStatus?: string;
   assignedTo?: string; 
   assigneeId?: string; // ID của nhân viên được giao
@@ -65,6 +65,7 @@ export interface MailData {
   phone?: string;
   otpLink?: string;
   createdAt?: string;
+  links?: string[]; // Cột chứa tối đa 3 link channel YouTube
 }
 
 export const MOCK_MAILS: MailData[] = [
@@ -78,6 +79,10 @@ export const MOCK_MAILS: MailData[] = [
     status: "LIVE" as const,
     workStatus: "CHƯA LÀM" as const,
     channelStatus: "",
+    twoFA: `2FA_ROOT_${i + 1}`,
+    phone: `0900111${String(i).padStart(3, '0')}`,
+    otpLink: `https://otp.aqmedia.vn/root/${i + 1}`,
+    links: [],
     createdAt: "2024-05-10"
   })),
   // 100 Mail Vệ Tinh
@@ -90,6 +95,10 @@ export const MOCK_MAILS: MailData[] = [
     status: "LIVE" as const,
     workStatus: "CHƯA LÀM" as const,
     channelStatus: "",
+    twoFA: `2FA_SAT_${i + 1}`,
+    phone: `0900222${String(i).padStart(3, '0')}`,
+    otpLink: `https://otp.aqmedia.vn/sat/${i + 1}`,
+    links: [],
     createdAt: "2024-05-11"
   })),
   // 100 Mail Bật Kiếm Tiền
@@ -102,6 +111,10 @@ export const MOCK_MAILS: MailData[] = [
     status: "LIVE" as const,
     workStatus: "CHƯA LÀM" as const,
     channelStatus: "Đã bật quảng cáo",
+    twoFA: `2FA_MON_${i + 1}`,
+    phone: `0900333${String(i).padStart(3, '0')}`,
+    otpLink: `https://otp.aqmedia.vn/mon/${i + 1}`,
+    links: [],
     createdAt: "2024-05-12"
   }))
 ];
