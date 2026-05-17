@@ -437,13 +437,42 @@ export default function TaskManagementPage() {
     }
   };
 
-  const targetStaffBatches = useMemo(() => {
+  const dynamicStaffBatches = useMemo(() => {
     if (!targetStaffId) return [];
-    const theirSats = mails.filter((m: any) => m.type === "SATELLITE" && String(m.assigneeId) === String(targetStaffId));
-    const bSet = new Set<string>();
-    theirSats.forEach((m: any) => { if (m.batchName) bSet.add(m.batchName); });
-    return Array.from(bSet).sort();
+    
+    // Find all satellite mails assigned to this employee
+    const allSatellites = mails.filter((m: any) => m.type === "SATELLITE");
+    const theirSatellites = allSatellites.filter((m: any) => String(m.assigneeId) === String(targetStaffId));
+    
+    // Extract unique batchNames
+    const batchNames = Array.from(new Set(theirSatellites.map((m: any) => m.batchName).filter(Boolean))) as string[];
+    
+    // For each batch name, find the range in allSatellites
+    return batchNames.map(bName => {
+      const batchMails = theirSatellites.filter((m: any) => m.batchName === bName);
+      if (batchMails.length === 0) return { name: bName, range: "---", mailIds: [] };
+      
+      const firstIdx = allSatellites.findIndex((m: any) => m.id === batchMails[0].id) + 1;
+      const lastIdx = allSatellites.findIndex((m: any) => m.id === batchMails[batchMails.length - 1].id) + 1;
+      return {
+        name: bName,
+        range: `${firstIdx}-${lastIdx}`,
+        mailIds: batchMails.map((m: any) => m.id)
+      };
+    });
   }, [targetStaffId, mails]);
+
+  const targetStaffBatches = useMemo(() => {
+    return dynamicStaffBatches.map(b => b.name);
+  }, [dynamicStaffBatches]);
+
+  useEffect(() => {
+    if (dynamicStaffBatches.length > 0) {
+      setSelectedLo(dynamicStaffBatches[0].name);
+    } else {
+      setSelectedLo("");
+    }
+  }, [dynamicStaffBatches]);
 
   const eligibleStaff = useMemo(() => {
     if (!user) return [];
@@ -653,20 +682,17 @@ export default function TaskManagementPage() {
     else if (selectedTemplate === "Làm kênh") {
       typeLabel = "SATELLITE";
       taskType = "MAIL_VE_TINH";
-      const targetMails = allMails.filter((m: any) => 
-        m.type === "SATELLITE" && 
-        String(m.assigneeId) === String(targetStaffId) && 
-        m.batchName === selectedLo
-      );
       
-      if (targetMails.length === 0) {
-        alert(`Không tìm thấy mail vệ tinh thuộc ${selectedLo} của nhân sự này.`);
+      const selectedBatchObj = dynamicStaffBatches.find(b => b.name === selectedLo);
+      if (!selectedBatchObj) {
+        alert(`Nhân sự này chưa được gán lô ${selectedLo} hoặc không tìm thấy lô.`);
         return;
       }
-      assignedIds = targetMails.map((m: any) => m.id);
+      
+      assignedIds = selectedBatchObj.mailIds || [];
       mailCount = assignedIds.length;
-      mailRangeStr = selectedLo;
-      note = `${note} (Phân bổ ${selectedLo})`;
+      mailRangeStr = `${selectedLo} (STT ${selectedBatchObj.range})`;
+      note = `${note} - Lô gán: ${selectedLo} (STT ${selectedBatchObj.range})`;
     } 
     else if (selectedTemplate === "Kênh bật kiếm tiền") {
       typeLabel = "MONETIZED";
@@ -737,23 +763,39 @@ export default function TaskManagementPage() {
     const savedTasks = localStorage.getItem("global_tasks_data");
     let allTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
 
-    const newTask: TaskAssignment = {
+    const selectedBatchObj = dynamicStaffBatches.find(b => b.name === selectedLo);
+    const newTask: TaskAssignment & { taskName?: string; assignee?: string; assigneeName?: string; batch?: string; range?: string } = {
       id: `task-${Date.now()}`,
       title: selectedTemplate,
+      taskName: selectedTemplate,
       type: taskType,
       assigneeId: selectedStaff.id,
+      assigneeName: selectedStaff.name,
+      assignee: selectedStaff.name,
       progress: 0,
       status: "PENDING",
       deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       mailCount: mailCount,
       note: note,
       mailRange: mailRangeStr,
+      batch: selectedTemplate === "Làm kênh" ? selectedLo : "",
+      range: selectedTemplate === "Làm kênh" ? (selectedBatchObj?.range || "") : mailRangeStr,
       mailType: typeLabel as any
     };
 
     allTasks.push(newTask);
     localStorage.setItem("global_tasks_data", JSON.stringify(allTasks));
     setTasks(allTasks);
+
+    // Sync to API server database
+    fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        global_mails_data: JSON.stringify(allMails),
+        global_tasks_data: JSON.stringify(allTasks)
+      })
+    }).catch(err => console.error("Sync error:", err));
 
     // Trigger Real-time Toast and push system notification
     localStorage.setItem("realtime_toast", JSON.stringify({
@@ -958,13 +1000,16 @@ export default function TaskManagementPage() {
                             onChange={(e) => setSelectedLo(e.target.value)}
                             className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 cursor-pointer transition-all"
                           >
-                            <option value="Lô 1" className="bg-sidebar text-white">Lô 1 (17 mail)</option>
-                            <option value="Lô 2" className="bg-sidebar text-white">Lô 2 (17 mail)</option>
-                            <option value="Lô 3" className="bg-sidebar text-white">Lô 3 (17 mail)</option>
-                            <option value="Lô 4" className="bg-sidebar text-white">Lô 4 (17 mail)</option>
-                            <option value="Lô 5" className="bg-sidebar text-white">Lô 5 (17 mail)</option>
-                            <option value="Lô 6" className="bg-sidebar text-white">Lô 6 (17 mail)</option>
+                            <option value="" className="bg-sidebar text-white">-- Chọn Lô --</option>
+                            {dynamicStaffBatches.map(b => (
+                              <option key={b.name} value={b.name} className="bg-sidebar text-white">
+                                {b.name} (STT {b.range})
+                              </option>
+                            ))}
                           </select>
+                          {dynamicStaffBatches.length === 0 && (
+                            <p className="text-[10px] text-red-400 font-bold uppercase tracking-wider mt-1">Nhân sự này chưa được gán lô vệ tinh nào ở bước 1!</p>
+                          )}
                         </div>
                       </div>
                     )}
@@ -1140,63 +1185,67 @@ export default function TaskManagementPage() {
               
               <div className="flex-1 bg-white/[0.01] border border-white/10 rounded-[48px] flex flex-col overflow-hidden">
                 <div className="flex-1 overflow-auto custom-scrollbar bg-black/10">
-                  <table className="w-full text-left">
-                    <thead className="sticky top-0 bg-[#0d0d0d] z-30 shadow-xl">
-                      <tr className="border-b border-white/5 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
-                        <th className="px-10 py-6">STT</th>
-                        <th className="px-6 py-6">Email / Thông tin</th>
-                        <th className="px-6 py-6 text-center">Người thực hiện</th>
-                        <th className="px-6 py-6 text-center">Trạng thái</th>
-                        <th className="px-10 py-6 text-right">Hành động</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {taskMails.length > 0 ? (
-                        taskMails.map((mail, i) => {
-                          return (
-                            <tr key={`mail-${mail.id}`} className="group hover:bg-white/[0.02] transition-all">
-                              <td className="px-10 py-5 text-[10px] font-black text-gray-700">{i + 1}</td>
-                              <td className="px-6 py-5">
-                                <p className="text-sm font-bold text-white group-hover:text-gold transition-colors">{mail.email}</p>
-                                <p className="text-[10px] text-gray-600 font-bold uppercase">{mail.recovery}</p>
-                              </td>
-                              <td className="px-6 py-5 text-center">
-                                <span className="text-[10px] font-black text-white uppercase">{mail.assigneeName || "Không rõ"}</span>
-                              </td>
-                              <td className="px-6 py-5 text-center">
-                                <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
-                                  (mail.workStatus || "Chưa làm").toLowerCase() === "đã làm" || (mail.workStatus || "Chưa làm").toLowerCase() === "đã bán"
-                                    ? "bg-green-500/10 text-green-500 border-green-500/20" 
-                                    : (mail.workStatus || "Chưa làm").toLowerCase() === "lỗi" 
-                                      ? "bg-red-500/10 text-red-500 border-red-500/20" 
-                                      : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-                                }`}>
-                                  {mail.workStatus || "Chưa làm"}
-                                </span>
-                              </td>
-                              <td className="px-10 py-5 text-right">
-                                <button 
-                                  onClick={() => { setSelectedMailForConfig(mail); }} 
-                                  className="h-10 px-4 bg-gold/10 text-gold hover:bg-gold hover:text-sidebar rounded-xl text-[10px] font-black uppercase tracking-widest border border-gold/30 transition-all flex items-center gap-2 float-right"
-                                >
-                                  <Play size={14} /> Cấu hình
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      ) : (
-                        <tr>
-                          <td colSpan={5} className="px-10 py-20 text-center">
-                            <div className="flex flex-col items-center gap-4 opacity-20">
-                              <Mail size={60} className="text-gold" />
-                              <p className="text-xl font-black uppercase tracking-[0.2em] text-white">Chưa có mail nào được giao</p>
-                            </div>
-                          </td>
+                  <div className="w-full overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-left min-w-[900px]">
+                      <thead className="sticky top-0 bg-[#0d0d0d] z-30 shadow-xl">
+                        <tr className="border-b border-white/5 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
+                          <th className="px-10 py-3 whitespace-nowrap">STT</th>
+                          <th className="px-6 py-3 whitespace-nowrap">Email / Thông tin</th>
+                          <th className="px-6 py-3 text-center whitespace-nowrap">Người thực hiện</th>
+                          <th className="px-6 py-3 text-center whitespace-nowrap">Trạng thái</th>
+                          <th className="px-10 py-3 text-right whitespace-nowrap">Hành động</th>
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {taskMails.length > 0 ? (
+                          taskMails.map((mail, i) => {
+                            const rowPadding = !isAdminOrManager ? "py-1 px-6" : "py-2.5 px-6";
+                            const textSize = !isAdminOrManager ? "text-xs" : "text-sm";
+                            return (
+                              <tr key={`mail-${mail.id}`} className="group hover:bg-white/[0.02] transition-all">
+                                <td className={`${rowPadding} text-[10px] font-black text-gray-700 whitespace-nowrap`}>{i + 1}</td>
+                                <td className={`${rowPadding} whitespace-nowrap`}>
+                                  <p className={`${textSize} font-bold text-white group-hover:text-gold transition-colors whitespace-nowrap`}>{mail.email}</p>
+                                  <p className="text-[10px] text-gray-600 font-bold uppercase whitespace-nowrap">{mail.recovery}</p>
+                                </td>
+                                <td className={`${rowPadding} text-center whitespace-nowrap`}>
+                                  <span className="text-[10px] font-black text-white uppercase whitespace-nowrap">{mail.assigneeName || "Không rõ"}</span>
+                                </td>
+                                <td className={`${rowPadding} text-center whitespace-nowrap`}>
+                                  <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border whitespace-nowrap ${
+                                    (mail.workStatus || "Chưa làm").toLowerCase() === "đã làm" || (mail.workStatus || "Chưa làm").toLowerCase() === "đã bán"
+                                      ? "bg-green-500/10 text-green-500 border-green-500/20" 
+                                      : (mail.workStatus || "Chưa làm").toLowerCase() === "lỗi" 
+                                        ? "bg-red-500/10 text-red-500 border-red-500/20" 
+                                        : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                                  }`}>
+                                    {mail.workStatus || "Chưa làm"}
+                                  </span>
+                                </td>
+                                <td className={`${rowPadding} text-right whitespace-nowrap`}>
+                                  <button 
+                                    onClick={() => { setSelectedMailForConfig(mail); }} 
+                                    className="h-9 px-3 bg-gold/10 text-gold hover:bg-gold hover:text-sidebar rounded-xl text-[10px] font-black uppercase tracking-widest border border-gold/30 transition-all flex items-center gap-2 float-right whitespace-nowrap"
+                                  >
+                                    <Play size={12} /> Cấu hình
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={5} className="px-10 py-20 text-center">
+                              <div className="flex flex-col items-center gap-4 opacity-20">
+                                <Mail size={60} className="text-gold" />
+                                <p className="text-xl font-black uppercase tracking-[0.2em] text-white">Chưa có mail nào được giao</p>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </motion.div>

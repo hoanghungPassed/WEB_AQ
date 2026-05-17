@@ -134,72 +134,72 @@ function MailTableContent() {
       {/* Grid Table Area */}
       <div className="flex-1 min-h-0 rounded-2xl border border-border-custom bg-sidebar flex flex-col shadow-2xl overflow-hidden">
         <div className="flex-1 overflow-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse table-fixed">
+          <table className="w-full text-left border-collapse min-w-[1200px]">
             <thead className="sticky top-0 z-20 bg-[#121212]">
               <tr className="bg-white/5 border-b border-border-custom shadow-sm">
-                <th className="px-2 py-3 text-[10px] font-black text-gray-500 uppercase tracking-tighter border-r border-border-custom w-10 text-center">STT</th>
-                <th className="px-3 py-3 text-[10px] font-black text-gray-500 uppercase tracking-tighter border-r border-border-custom w-[18%]">Email</th>
-                <th className="px-3 py-3 text-[10px] font-black text-gray-500 uppercase tracking-tighter border-r border-border-custom w-[10%]">Mật khẩu</th>
-                <th className="px-3 py-3 text-[10px] font-black text-gray-500 uppercase tracking-tighter border-r border-border-custom w-[18%]">Khôi phục</th>
-                <th className="px-3 py-3 text-[10px] font-black text-gray-500 uppercase tracking-tighter border-r border-border-custom w-[12%]">2FA</th>
-                <th className="px-3 py-3 text-[10px] font-black text-gray-500 uppercase tracking-tighter border-r border-border-custom w-[10%]">SĐT</th>
-                <th className="px-3 py-3 text-[10px] font-black text-gray-500 uppercase tracking-tighter border-r border-border-custom w-[15%]">Trạng thái kênh</th>
-                <th className="px-3 py-3 text-[10px] font-black text-gray-500 uppercase tracking-tighter w-[7%] text-center">Link</th>
+                <th className="px-2 py-3 text-[10px] font-black text-gray-500 uppercase tracking-tighter border-r border-border-custom w-12 text-center whitespace-nowrap">STT</th>
+                <th className="px-3 py-3 text-[10px] font-black text-gray-500 uppercase tracking-tighter border-r border-border-custom whitespace-nowrap">Email</th>
+                <th className="px-3 py-3 text-[10px] font-black text-gray-500 uppercase tracking-tighter border-r border-border-custom whitespace-nowrap">Mật khẩu</th>
+                <th className="px-3 py-3 text-[10px] font-black text-gray-500 uppercase tracking-tighter border-r border-border-custom whitespace-nowrap">Khôi phục</th>
+                <th className="px-3 py-3 text-[10px] font-black text-gray-500 uppercase tracking-tighter border-r border-border-custom whitespace-nowrap">2FA</th>
+                <th className="px-3 py-3 text-[10px] font-black text-gray-500 uppercase tracking-tighter border-r border-border-custom whitespace-nowrap">SĐT</th>
+                <th className="px-3 py-3 text-[10px] font-black text-gray-500 uppercase tracking-tighter border-r border-border-custom whitespace-nowrap">Trạng thái kênh</th>
+                <th className="px-3 py-3 text-[10px] font-black text-gray-500 uppercase tracking-tighter text-center whitespace-nowrap">Link</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border-custom">
               {currentItems.map((mail, idx) => (
-                <tr key={mail.id} className="hover:bg-white/[0.03] transition-colors group">
-                  <td className="px-2 py-2 text-[10px] font-bold text-gray-600 border-r border-border-custom text-center">
+                <tr key={mail.id} className="hover:bg-white/[0.03] transition-colors group animate-fade-in">
+                  <td className="px-2 py-2 text-[10px] font-bold text-gray-600 border-r border-border-custom text-center whitespace-nowrap">
                     {startIndex + idx + 1}
                   </td>
                   <td 
                     onClick={() => copyToClipboard(mail.email)}
-                    className="px-3 py-2 border-r border-border-custom cursor-pointer active:bg-gold/10 overflow-hidden"
+                    className="px-3 py-2 border-r border-border-custom cursor-pointer active:bg-gold/10 overflow-hidden whitespace-nowrap animate-pulse-subtle"
                   >
                     <div className="flex items-center justify-between gap-1 overflow-hidden">
                       <span className="text-white font-medium text-[11px] truncate group-hover:text-gold transition-colors">{mail.email}</span>
-                      <span className={`text-[8px] px-1 py-0.5 rounded-md font-black flex-shrink-0 ${getStatusColor(mail.status)}`}>
+                      <span className={`text-[8px] px-1 py-0.5 rounded-md font-black flex-shrink-0 whitespace-nowrap ${getStatusColor(mail.status)}`}>
                         {mail.status}
                       </span>
                     </div>
                   </td>
                   <td 
                     onClick={() => copyToClipboard(mail.pass)}
-                    className="px-3 py-2 text-[11px] text-gray-400 font-mono border-r border-border-custom cursor-pointer active:bg-gold/10 hover:text-white truncate"
+                    className="px-3 py-2 text-[11px] text-gray-400 font-mono border-r border-border-custom cursor-pointer active:bg-gold/10 hover:text-white truncate whitespace-nowrap"
                   >
                     {mail.pass}
                   </td>
                   <td 
                     onClick={() => copyToClipboard(mail.recovery || "")}
-                    className="px-3 py-2 text-[11px] text-gray-400 border-r border-border-custom cursor-pointer active:bg-gold/10 hover:text-white truncate"
+                    className="px-3 py-2 text-[11px] text-gray-400 border-r border-border-custom cursor-pointer active:bg-gold/10 hover:text-white truncate whitespace-nowrap"
                   >
                     {mail.recovery}
                   </td>
                   <td 
                     onClick={() => copyToClipboard(mail.twoFA || "")}
-                    className="px-3 py-2 text-[11px] text-gray-400 font-mono border-r border-border-custom cursor-pointer active:bg-gold/10 hover:text-white truncate"
+                    className="px-3 py-2 text-[11px] text-gray-400 font-mono border-r border-border-custom cursor-pointer active:bg-gold/10 hover:text-white truncate whitespace-nowrap"
                   >
                     {mail.twoFA}
                   </td>
                   <td 
                     onClick={() => copyToClipboard(mail.phone || "")}
-                    className="px-3 py-2 text-[11px] text-gray-400 border-r border-border-custom cursor-pointer active:bg-gold/10 hover:text-white truncate"
+                    className="px-3 py-2 text-[11px] text-gray-400 border-r border-border-custom cursor-pointer active:bg-gold/10 hover:text-white truncate whitespace-nowrap"
                   >
                     {mail.phone}
                   </td>
-                  <td className="px-3 py-2 border-r border-border-custom">
+                  <td className="px-3 py-2 border-r border-border-custom whitespace-nowrap">
                     {mail.channelStatus && (
-                      <span className={`text-[9px] px-2 py-1 rounded-lg font-black border ${getChannelStatusColor(mail.channelStatus)}`}>
+                      <span className={`text-[9px] px-2 py-1 rounded-lg font-black border whitespace-nowrap ${getChannelStatusColor(mail.channelStatus)}`}>
                         {mail.channelStatus}
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-center">
+                  <td className="px-3 py-2 text-center whitespace-nowrap">
                     <a 
                       href={mail.otpLink} 
                       target="_blank" 
-                      className="text-gold hover:text-white transition-colors flex justify-center"
+                      className="text-gold hover:text-white transition-colors flex justify-center whitespace-nowrap"
                     >
                       <ExternalLink size={14} />
                     </a>

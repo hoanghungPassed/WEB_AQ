@@ -111,6 +111,17 @@ export default function BatchesManagementPage() {
     }
   }
 
+  // Calculate already assigned range for this batch
+  const assignedToThisBatch = allSatellites.filter((m: any) => m.assigneeId === selectedStaff?.id && m.batchName === selectedBatchForAlloc);
+  let assignedRangeStr = "";
+  if (assignedToThisBatch.length > 0) {
+    const firstAssigned = assignedToThisBatch[0];
+    const lastAssigned = assignedToThisBatch[assignedToThisBatch.length - 1];
+    const firstIdx = allSatellites.findIndex((m: any) => m.id === firstAssigned.id) + 1;
+    const lastIdx = allSatellites.findIndex((m: any) => m.id === lastAssigned.id) + 1;
+    assignedRangeStr = `${selectedBatchForAlloc} đã gán ${assignedToThisBatch.length} Mail (${firstIdx} - ${lastIdx})`;
+  }
+
   const handleAllocate = async () => {
     if (suggestions.length === 0) {
       alert("Không còn dải 17 mail nào trống để gán!");
@@ -171,19 +182,25 @@ export default function BatchesManagementPage() {
       <AnimatePresence>
         {showAllocateModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-sidebar border border-white/10 rounded-[40px] p-10 w-full max-w-md shadow-2xl">
-              <div className="flex items-center justify-between mb-8">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-sidebar border border-white/10 rounded-[40px] p-10 w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
+              <div className="flex items-center justify-between mb-8 flex-shrink-0">
                 <h3 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-4">
                   <Database className="text-gold" size={32} /> Gán Lô Vệ Tinh
                 </h3>
                 <button onClick={() => setShowAllocateModal(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-white transition-colors"><X /></button>
               </div>
               
-              <div className="space-y-6">
+              <div className="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 <div className="p-4 rounded-2xl bg-gold/5 border border-gold/20 flex flex-col items-center justify-center text-center">
                   <span className="text-gold font-black uppercase text-xl">{selectedBatchForAlloc}</span>
                   <span className="text-xs text-gray-400 mt-1 font-bold">Nhân viên: {selectedStaff?.name}</span>
                 </div>
+
+                {assignedRangeStr && (
+                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-400 text-xs font-bold text-center select-none opacity-60">
+                    {assignedRangeStr}
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Gợi ý dải mail trống</label>
@@ -213,7 +230,7 @@ export default function BatchesManagementPage() {
                 </div>
               </div>
 
-              <div className="flex gap-4 mt-8">
+              <div className="flex gap-4 mt-8 flex-shrink-0">
                 <button onClick={() => setShowAllocateModal(false)} className="flex-1 h-14 rounded-2xl border border-white/10 text-white font-bold uppercase text-xs tracking-widest hover:bg-white/5 transition-all">Hủy bỏ</button>
                 <button onClick={handleAllocate} disabled={suggestions.length === 0} className="flex-1 h-14 rounded-2xl bg-gold text-sidebar font-black uppercase text-xs tracking-widest hover:bg-gold/80 transition-all shadow-xl shadow-gold/20 disabled:opacity-30 disabled:pointer-events-none">Xác nhận Gán</button>
               </div>
@@ -307,17 +324,17 @@ export default function BatchesManagementPage() {
                 </div>
                 <div className="space-y-3">
                   <h4 className="text-sm font-black text-white uppercase tracking-tighter">Tạo thêm Lô</h4>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2">
                     <input 
                       type="text" 
                       placeholder="Tên lô mới..." 
                       value={newBatchName}
                       onChange={(e) => setNewBatchName(e.target.value)}
-                      className="flex-1 h-10 bg-white/5 border border-white/10 rounded-xl px-3 text-xs text-white outline-none focus:border-gold/50 transition-all"
+                      className="w-full h-10 bg-white/5 border border-white/10 rounded-xl px-3 text-xs text-white outline-none focus:border-gold/50 transition-all min-w-0"
                     />
                     <button 
                       onClick={handleAddCustomBatch}
-                      className="h-10 px-4 bg-gold/10 text-gold hover:bg-gold hover:text-sidebar border border-gold/30 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                      className="w-full h-10 bg-gold/10 text-gold hover:bg-gold hover:text-sidebar border border-gold/30 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
                     >
                       Thêm
                     </button>

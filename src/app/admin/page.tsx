@@ -207,7 +207,7 @@ export default function AdminDashboard() {
     setTimeout(() => setShowSuccess(false), 3000);
   };
 
-  const handleStaffMailStatusChange = (mailId: number, newWorkStatus: string) => {
+  const handleStaffMailStatusChange = async (mailId: number, newWorkStatus: string) => {
     const savedMails = localStorage.getItem("global_mails_data");
     const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
 
@@ -241,9 +241,21 @@ export default function AdminDashboard() {
     }));
 
     window.dispatchEvent(new Event("storage"));
+
+    try {
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          global_mails_data: JSON.stringify(updatedMails)
+        })
+      });
+    } catch (err) {
+      console.error("Sync error:", err);
+    }
   };
 
-  const handleTaskStatusChange = (taskId: string, newStatus: "IN_PROGRESS" | "COMPLETED") => {
+  const handleTaskStatusChange = async (taskId: string, newStatus: "IN_PROGRESS" | "COMPLETED") => {
     const savedTasks = localStorage.getItem("global_tasks_data");
     const currentTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
 
@@ -264,18 +276,21 @@ export default function AdminDashboard() {
       return prev;
     });
 
+    let finalKpi = localStorage.getItem("global_kpi_data") || "";
     if (newStatus === "COMPLETED") {
       const currentTaskObj = currentTasks.find((t: any) => t.id === taskId);
       if (currentTaskObj && currentTaskObj.mailType === "MONETIZED") {
         setKpi(prev => {
           const updatedKpi = { ...prev, currentMonetized: Math.min(prev.targetMonetized, prev.currentMonetized + 1) };
-          localStorage.setItem("global_kpi_data", JSON.stringify(updatedKpi));
+          finalKpi = JSON.stringify(updatedKpi);
+          localStorage.setItem("global_kpi_data", finalKpi);
           return updatedKpi;
         });
       } else {
         setKpi(prev => {
           const updatedKpi = { ...prev, currentWatchHours: Math.min(prev.targetWatchHours, prev.currentWatchHours + 1) };
-          localStorage.setItem("global_kpi_data", JSON.stringify(updatedKpi));
+          finalKpi = JSON.stringify(updatedKpi);
+          localStorage.setItem("global_kpi_data", finalKpi);
           return updatedKpi;
         });
       }
@@ -285,6 +300,19 @@ export default function AdminDashboard() {
     setTimeout(() => setCopyToast(null), 3000);
 
     window.dispatchEvent(new Event("storage"));
+
+    try {
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          global_tasks_data: JSON.stringify(updatedTasks),
+          global_kpi_data: finalKpi
+        })
+      });
+    } catch (err) {
+      console.error("Sync error:", err);
+    }
   };
 
   const handleInviteStatusChange = (mailId: number, chIdx: number, newInviteStatus: string) => {
@@ -602,8 +630,25 @@ export default function AdminDashboard() {
                               {task.status === "COMPLETED" ? "Hoàn thành" : task.status === "IN_PROGRESS" ? "Đang xử lý" : "Chưa bắt đầu"}
                             </span>
                           </div>
-                          <div className="text-xs text-gray-400 mb-4 font-medium leading-relaxed">
-                            <b>Ghi chú ca trực:</b> {task.note || "Tiến hành check tạo xóa và xử lý các mail vệ tinh/gốc được giao. Đảm bảo đúng tiến độ và báo cáo lỗi nếu có."}
+                          <div className="text-xs text-gray-400 mb-4 font-medium leading-relaxed space-y-1.5">
+                            {task.title === "Làm kênh" && task.batch ? (
+                              <div className="flex items-center gap-1.5 text-gold font-bold">
+                                <span className="text-[10px] uppercase tracking-wider text-gray-500">Chi tiết:</span>
+                                <span className="bg-gold/10 px-2.5 py-0.5 rounded-lg border border-gold/20 text-[10px] tracking-wide font-black uppercase text-gold">
+                                  {task.batch} (STT: {task.range})
+                                </span>
+                              </div>
+                            ) : task.mailRange ? (
+                              <div className="flex items-center gap-1.5 text-gold font-bold">
+                                <span className="text-[10px] uppercase tracking-wider text-gray-500">Chi tiết:</span>
+                                <span className="bg-gold/15 text-gold px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                                  STT: {task.mailRange}
+                                </span>
+                              </div>
+                            ) : null}
+                            <div className="pt-1">
+                              <b>Ghi chú:</b> {task.note || "Tiến hành check tạo xóa và xử lý các mail vệ tinh/gốc được giao. Đảm bảo đúng tiến độ và báo cáo lỗi nếu có."}
+                            </div>
                           </div>
                           <div className="flex items-center justify-between pt-4 border-t border-white/5 text-[10px] font-black uppercase tracking-widest text-gray-500">
                             <span>{task.mailCount || 0} Mail</span>
@@ -671,13 +716,13 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="overflow-x-auto custom-scrollbar">
-                      <table className="w-full text-left text-sm whitespace-nowrap">
+                      <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
                         <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
                           <tr>
-                            <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
-                            <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Email</th>
-                            <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Mail KP</th>
-                            <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Trạng thái công việc</th>
+                            <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT</th>
+                            <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Email</th>
+                            <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Mail KP</th>
+                            <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center whitespace-nowrap">Trạng thái công việc</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5 text-gray-300">
@@ -770,17 +815,17 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="overflow-x-auto custom-scrollbar">
-                    <table className="w-full text-left text-sm whitespace-nowrap">
+                    <table className="w-full text-left text-sm whitespace-nowrap min-w-[1000px]">
                       <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
                         <tr>
-                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
-                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT Gốc</th>
-                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Email</th>
-                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Mail KP</th>
-                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Pass</th>
-                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">2FA</th>
-                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">SĐT</th>
-                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Trạng thái công việc</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT Gốc</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Email</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Mail KP</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Pass</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">2FA</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">SĐT</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center whitespace-nowrap">Trạng thái công việc</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5 text-gray-300">
@@ -898,7 +943,7 @@ export default function AdminDashboard() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard title="Tổng mail" value={stats.totalMail} icon={<Mail size={32} />} color="blue" subtitle="Toàn hệ thống" onClick={() => router.push("/admin/mail/all")} />
             <StatCard title="Mail Gốc" value={stats.mailRoot} icon={<Database size={32} />} color="indigo" subtitle="Tồn kho mail gốc" onClick={() => router.push("/admin/mail/root")} />
             <StatCard title="Mail Vệ Tinh" value={stats.mailSatellite} icon={<Zap size={32} />} color="purple" subtitle="Tồn kho mail vệ tinh" onClick={() => router.push("/admin/mail/satellite")} />
@@ -907,7 +952,7 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             <StatCard title="Task hôm nay" value={stats.tasksToday} icon={<ClipboardList size={32} />} color="green" subtitle="Công việc đang chạy" onClick={() => setSelectedViewType("TASKS")} />
             
             {user?.role !== "04" && (

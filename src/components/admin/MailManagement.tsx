@@ -23,18 +23,18 @@ import * as XLSX from "xlsx";
 import { MOCK_MAILS, MailData } from "@/data/mockData";
 import { useRouter } from "next/navigation";
 
-const UnifiedMailDetailModal = ({ 
-  mail, 
-  type, 
+const UnifiedMailDetailModal = ({
+  mail,
+  type,
   user,
-  onClose, 
-  onSave 
-}: { 
-  mail: any; 
-  type: "ROOT" | "SATELLITE" | "MONETIZED"; 
+  onClose,
+  onSave
+}: {
+  mail: any;
+  type: "ROOT" | "SATELLITE" | "MONETIZED";
   user: any;
-  onClose: () => void; 
-  onSave: (updatedFields: any) => void; 
+  onClose: () => void;
+  onSave: (updatedFields: any) => void;
 }) => {
   const isAdminOrManager = user?.role === "01" || user?.role === "02" || user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC";
 
@@ -95,16 +95,16 @@ const UnifiedMailDetailModal = ({
     if (type === "ROOT") {
       onSave({ cccdDate, verificationStatus });
     } else if (type === "SATELLITE") {
-      onSave({ 
-        links, 
+      onSave({
+        links,
         channelNames: names,
         eligibleChannels
       });
     } else if (type === "MONETIZED") {
-      onSave({ 
-        reClickDate, 
-        step2PendingDate, 
-        channelStatusDetail 
+      onSave({
+        reClickDate,
+        step2PendingDate,
+        channelStatusDetail
       });
     }
     onClose();
@@ -171,11 +171,11 @@ const UnifiedMailDetailModal = ({
                     )}
                   </div>
                   <div className="flex items-center gap-3">
-                    <input 
-                      value={links[idx] || ""} 
-                      onChange={(e) => handleLinkChange(idx, e.target.value)} 
-                      placeholder="Dán link channel YouTube..." 
-                      className="flex-1 h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all" 
+                    <input
+                      value={links[idx] || ""}
+                      onChange={(e) => handleLinkChange(idx, e.target.value)}
+                      placeholder="Dán link channel YouTube..."
+                      className="flex-1 h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all"
                     />
                     {isAdminOrManager && (
                       <button
@@ -184,11 +184,10 @@ const UnifiedMailDetailModal = ({
                           newEligible[idx] = !newEligible[idx];
                           setEligibleChannels(newEligible);
                         }}
-                        className={`h-14 px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border flex items-center gap-2 flex-shrink-0 ${
-                          eligibleChannels[idx]
-                            ? "bg-gold text-sidebar border-gold shadow-lg shadow-gold/20" 
+                        className={`h-14 px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border flex items-center gap-2 flex-shrink-0 ${eligibleChannels[idx]
+                            ? "bg-gold text-sidebar border-gold shadow-lg shadow-gold/20"
                             : "bg-white/5 text-gray-400 border-white/10 hover:border-gold/30 hover:text-gold"
-                        }`}
+                          }`}
                       >
                         <CheckCircle size={16} />
                         {eligibleChannels[idx] ? "Đủ giờ" : "Đánh dấu"}
@@ -230,11 +229,10 @@ const UnifiedMailDetailModal = ({
                       key={status}
                       type="button"
                       onClick={() => setChannelStatusDetail(status)}
-                      className={`h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest border transition-all ${
-                        channelStatusDetail === status 
-                          ? "bg-gold/20 text-gold border-gold/45 shadow-lg shadow-gold/5" 
+                      className={`h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest border transition-all ${channelStatusDetail === status
+                          ? "bg-gold/20 text-gold border-gold/45 shadow-lg shadow-gold/5"
                           : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10"
-                      }`}
+                        }`}
                     >
                       {status}
                     </button>
@@ -247,8 +245,8 @@ const UnifiedMailDetailModal = ({
 
         <div className="grid grid-cols-2 gap-4 mt-8 relative z-10 pt-4 border-t border-white/5">
           <button onClick={onClose} className="h-14 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-xs tracking-widest transition-all">Đóng</button>
-          <button 
-            onClick={handleSave} 
+          <button
+            onClick={handleSave}
             className="h-14 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
           >
             Lưu cập nhật
@@ -270,6 +268,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [dateFilter, setDateFilter] = useState<"ALL" | "1_MONTH" | "2_MONTH">("ALL");
+  const [assignmentFilter, setAssignmentFilter] = useState<"ALL" | "ASSIGNED" | "UNASSIGNED">("ALL");
   const [selectedBatch, setSelectedBatch] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [showToast, setShowToast] = useState(false);
@@ -303,10 +302,22 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     return () => window.removeEventListener("storage", loadData);
   }, []);
 
-  const saveMails = (newMails: MailData[]) => {
+  const saveMails = async (newMails: MailData[]) => {
     setMails(newMails);
     localStorage.setItem("global_mails_data", JSON.stringify(newMails));
     window.dispatchEvent(new Event("storage"));
+
+    try {
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          global_mails_data: JSON.stringify(newMails)
+        })
+      });
+    } catch (err) {
+      console.error("Sync error:", err);
+    }
   };
 
   const triggerToast = (msg: string) => {
@@ -330,9 +341,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         } else if (newStatus === "Lỗi") {
           status = "DIE";
         }
-        return { 
-          ...m, 
-          workStatus: newStatus as any, 
+        return {
+          ...m,
+          workStatus: newStatus as any,
           status,
           updatedBy: user?.name || user?.id || m.updatedBy
         };
@@ -470,7 +481,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
   const filteredMails = useMemo(() => {
     const mailsOfType = mails.filter(m => type === "ALL" || m.type === type);
-    
+
     return mailsOfType
       .map((m, idx) => ({ ...m, originalSTT: idx + 1 }))
       .filter(m => {
@@ -479,9 +490,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           if (selectedBatch && m.batchName !== selectedBatch) return false;
         }
 
-        const matchesSearch = m.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             m.recovery.toLowerCase().includes(searchTerm.toLowerCase());
-        
+        const matchesSearch = m.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          m.recovery.toLowerCase().includes(searchTerm.toLowerCase());
+
         let matchesStatus = true;
         if (statusFilter !== "ALL") {
           const val = m.workStatus || (type === "MONETIZED" ? "Chưa bán" : "Chưa làm");
@@ -507,9 +518,18 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           }
         }
 
-        return matchesSearch && matchesStatus && matchesDate;
+        let matchesAssignment = true;
+        if (isAdminOrManager && type === "SATELLITE" && assignmentFilter !== "ALL") {
+          if (assignmentFilter === "ASSIGNED") {
+            matchesAssignment = !!m.assigneeId;
+          } else if (assignmentFilter === "UNASSIGNED") {
+            matchesAssignment = !m.assigneeId;
+          }
+        }
+
+        return matchesSearch && matchesStatus && matchesDate && matchesAssignment;
       });
-  }, [mails, type, searchTerm, user, statusFilter, dateFilter]);
+  }, [mails, type, searchTerm, user, statusFilter, dateFilter, assignmentFilter]);
 
   const staffStats = useMemo(() => {
     const myMails = mails.filter(m => String(m.assigneeId) === String(user?.id) && m.type === "SATELLITE");
@@ -609,12 +629,12 @@ export default function MailManagement({ type, user }: MailManagementProps) {
             </h2>
           </div>
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={async () => {
                 if (confirm("Xác nhận khôi phục toàn bộ dữ liệu về trạng thái ban đầu?")) {
                   try {
                     const { MOCK_STAFF, MOCK_MAILS, MOCK_TASK_ASSIGNMENTS, MOCK_KPI_DATA } = await import("@/data/mockData");
-                    
+
                     const resetPayload = {
                       global_users: JSON.stringify(MOCK_STAFF),
                       global_mails_data: JSON.stringify(MOCK_MAILS),
@@ -660,7 +680,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       )}
 
       {isStaff && !selectedBatch && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-sidebar border border-border-custom p-6 rounded-[24px] flex items-center justify-between shadow-xl">
             <div>
               <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Tổng mail được giao</p>
@@ -686,7 +706,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       )}
 
       {isStaff && type === "SATELLITE" && !selectedBatch ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {staffBatches.map(([batchName, count]) => (
             <button
               key={batchName}
@@ -707,12 +727,15 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           ))}
         </div>
       ) : (
-        <div className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex flex-col">
+        <div className={`bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex flex-col ${selectedBatch
+            ? "h-[calc(100vh-120px)] md:h-[calc(100vh-140px)] lg:h-[calc(100vh-160px)]"
+            : "h-[calc(100vh-220px)] md:h-[calc(100vh-240px)] lg:h-[calc(100vh-260px)]"
+          }`}>
           <div className="p-6 border-b border-white/5 bg-white/[0.02] flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4 w-full md:w-auto">
               {isStaff && type === "SATELLITE" && selectedBatch && (
-                <button 
-                  onClick={() => setSelectedBatch(null)} 
+                <button
+                  onClick={() => setSelectedBatch(null)}
                   className="h-10 px-4 flex items-center gap-2 bg-white/5 hover:bg-white/10 rounded-xl text-white font-black text-xs uppercase tracking-widest transition-all"
                 >
                   <ArrowLeft size={16} /> Quay lại
@@ -722,145 +745,158 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               <div className="h-8 w-px bg-white/10 hidden md:block" />
               <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-4 h-10 w-full md:w-64 lg:w-80 focus-within:border-gold transition-all">
                 <Search size={16} className="text-gray-500 shrink-0" />
-              <input type="text" placeholder="Tìm kiếm Email hoặc Mail KP..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none text-xs text-white w-full" />
-            </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
-            >
-              <option value="ALL" className="bg-sidebar text-white">Tất cả trạng thái</option>
-              {type !== "MONETIZED" ? (
-                <>
-                  <option value="Đã làm" className="bg-sidebar text-white">Đã làm</option>
-                  <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
-                  <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
-                </>
-              ) : (
-                <>
-                  <option value="Đã bán" className="bg-sidebar text-white">Đã bán</option>
-                  <option value="Chưa bán" className="bg-sidebar text-white">Chưa bán</option>
-                </>
-              )}
-            </select>
-            {isAdminOrManager && type === "ROOT" && (
+                <input type="text" placeholder="Tìm kiếm Email hoặc Mail KP..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none text-xs text-white w-full" />
+              </div>
               <select
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value as any)}
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
                 className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
               >
-                <option value="ALL" className="bg-sidebar text-white">Tất cả thời gian</option>
-                <option value="1_MONTH" className="bg-sidebar text-white">Làm trong 1 tháng</option>
-                <option value="2_MONTH" className="bg-sidebar text-white">Làm trong 2 tháng</option>
+                <option value="ALL" className="bg-sidebar text-white">Tất cả trạng thái</option>
+                {type !== "MONETIZED" ? (
+                  <>
+                    <option value="Đã làm" className="bg-sidebar text-white">Đã làm</option>
+                    <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
+                    <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="Đã bán" className="bg-sidebar text-white">Đã bán</option>
+                    <option value="Chưa bán" className="bg-sidebar text-white">Chưa bán</option>
+                  </>
+                )}
               </select>
-            )}
-            <div className="hidden md:flex items-center gap-3 px-5 py-2 bg-gold/10 border-2 border-gold/20 rounded-2xl shadow-lg shadow-gold/5 group">
-              <Mail size={18} className="text-gold animate-pulse" />
-              <span className="text-sm font-black text-white uppercase tracking-widest">
-                Tổng cộng: <span className="text-gold text-base ml-1">{filteredMails.length}</span> <span className="text-gold/60 text-[10px] ml-1">Mail</span>
-              </span>
+              {isAdminOrManager && type === "SATELLITE" && (
+                <select
+                  value={assignmentFilter}
+                  onChange={(e) => setAssignmentFilter(e.target.value as any)}
+                  className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all animate-fade-in"
+                >
+                  <option value="ALL" className="bg-sidebar text-white">Trạng thái gán</option>
+                  <option value="ASSIGNED" className="bg-sidebar text-white">Đã gán</option>
+                  <option value="UNASSIGNED" className="bg-sidebar text-white">Chưa gán</option>
+                </select>
+              )}
+              {isAdminOrManager && type === "ROOT" && (
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value as any)}
+                  className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
+                >
+                  <option value="ALL" className="bg-sidebar text-white">Tất cả thời gian</option>
+                  <option value="1_MONTH" className="bg-sidebar text-white">Làm trong 1 tháng</option>
+                  <option value="2_MONTH" className="bg-sidebar text-white">Làm trong 2 tháng</option>
+                </select>
+              )}
+              <div className="hidden md:flex items-center gap-3 px-5 py-2 bg-gold/10 border-2 border-gold/20 rounded-2xl shadow-lg shadow-gold/5 group">
+                <Mail size={18} className="text-gold animate-pulse" />
+                <span className="text-sm font-black text-white uppercase tracking-widest">
+                  Tổng cộng: <span className="text-gold text-base ml-1">{filteredMails.length}</span> <span className="text-gold/60 text-[10px] ml-1">Mail</span>
+                </span>
+              </div>
+            </div>
+            <button onClick={() => router.push("/admin")} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:bg-red-500/20 hover:text-red-500 transition-all"><X size={20} /></button>
+          </div>
+
+          <div className="flex-1 overflow-auto custom-scrollbar">
+            <div className="w-full overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left text-sm whitespace-nowrap min-w-[1200px]">
+                <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
+                  <tr>
+                    <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT</th>
+                    <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Email</th>
+                    <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Mail KP</th>
+                    <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Pass</th>
+                    <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">2FA</th>
+                    <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">SĐT</th>
+                    <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Link SĐT</th>
+                    {isAdminOrManager && type === "SATELLITE" && (
+                      <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Quản lý</th>
+                    )}
+                    <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] text-center whitespace-nowrap">Trạng thái</th>
+                    <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] text-center whitespace-nowrap">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-gray-300">
+                  {currentItems.length > 0 ? currentItems.map((mail: any) => {
+                    const rowPadding = isStaff ? "py-1.5 px-6" : "py-3.5 px-6";
+                    const textSize = isStaff ? "text-xs" : "text-sm";
+                    return (
+                      <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
+                        <td className={`${rowPadding} text-[10px] font-black text-gray-500 whitespace-nowrap`}>{mail.originalSTT}</td>
+                        <td className={`${rowPadding} cursor-pointer hover:text-gold transition-colors font-bold ${textSize} whitespace-nowrap`} onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
+                        <td className={`${rowPadding} cursor-pointer text-xs text-gray-400 hover:text-gold transition-colors whitespace-nowrap`} onClick={() => copyToClipboard(mail.recovery, "Mail KP")}>{mail.recovery}</td>
+                        <td className={`${rowPadding} cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono whitespace-nowrap`} onClick={() => copyToClipboard(mail.pass, "Mật khẩu")}>{mail.pass}</td>
+                        <td className={`${rowPadding} cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono whitespace-nowrap`} onClick={() => copyToClipboard(mail.twoFA || "", "2FA")}>{mail.twoFA || "---"}</td>
+                        <td className={`${rowPadding} cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-bold whitespace-nowrap`} onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
+                        <td className={`${rowPadding} cursor-pointer whitespace-nowrap`} onClick={() => copyToClipboard(mail.otpLink || "", "Link OTP")}>
+                          {mail.otpLink ? <span className="text-blue-400 hover:text-white transition-all flex items-center gap-1 font-bold text-xs whitespace-nowrap">Link OTP <ExternalLink size={12} /></span> : <span className="text-gray-700">---</span>}
+                        </td>
+                        {isAdminOrManager && type === "SATELLITE" && (
+                          <td className={`${rowPadding} text-xs font-bold whitespace-nowrap`}>
+                            {mail.assigneeId ? (
+                              <span className="text-gold">
+                                Đã gán cho {mail.assignedTo} - {mail.batchName}
+                              </span>
+                            ) : (
+                              <span className="text-gray-500">Chưa gán</span>
+                            )}
+                          </td>
+                        )}
+                        <td className={`${rowPadding} text-center whitespace-nowrap`}>
+                          {type === "MONETIZED" ? (
+                            <select
+                              value={mail.workStatus || "Chưa bán"}
+                              onChange={(e) => handleWorkStatusChange(mail.id, e.target.value)}
+                              className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus || "Chưa bán")}`}
+                            >
+                              <option value="Chưa bán" className="bg-sidebar text-white">Chưa bán</option>
+                              <option value="Đã bán" className="bg-sidebar text-white">Đã bán</option>
+                            </select>
+                          ) : (
+                            <select
+                              value={mail.workStatus || "Chưa làm"}
+                              onChange={(e) => handleWorkStatusChange(mail.id, e.target.value)}
+                              className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus || "Chưa làm")}`}
+                            >
+                              <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
+                              <option value="Đã làm" className="bg-sidebar text-white">Đã làm</option>
+                              <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
+                            </select>
+                          )}
+                        </td>
+                        <td className={`${rowPadding} text-center whitespace-nowrap`}>
+                          <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+                            <button
+                              onClick={() => {
+                                setSelectedMailForConfig(mail);
+                              }}
+                              className="px-4 py-1 rounded-xl bg-gold/10 hover:bg-gold hover:text-sidebar text-gold border border-gold/30 text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-gold/5 font-black"
+                            >
+                              Xem chi tiết
+                            </button>
+                            {isAdminOrManager && (
+                              <button onClick={() => deleteMail(mail.id)} className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-inner"><Trash2 size={16} /></button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }) : (
+                    <tr><td colSpan={isAdminOrManager && type === "SATELLITE" ? 10 : 9} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Không có dữ liệu</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-          <button onClick={() => router.push("/admin")} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:bg-red-500/20 hover:text-red-500 transition-all"><X size={20} /></button>
-        </div>
 
-        <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
-              <tr>
-                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
-                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px]">Email</th>
-                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px]">Mail KP</th>
-                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px]">Pass</th>
-                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px]">2FA</th>
-                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px]">SĐT</th>
-                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px]">Link SĐT</th>
-                {isAdminOrManager && type === "SATELLITE" && (
-                  <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px]">Quản lý</th>
-                )}
-                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] text-center">Trạng thái</th>
-                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] text-center">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5 text-gray-300">
-              {currentItems.length > 0 ? currentItems.map((mail: any) => {
-                const rowPadding = isStaff ? "py-1.5 px-6" : "py-3.5 px-6";
-                const textSize = isStaff ? "text-xs" : "text-sm";
-                return (
-                  <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
-                    <td className={`${rowPadding} text-[10px] font-black text-gray-500`}>{mail.originalSTT}</td>
-                    <td className={`${rowPadding} cursor-pointer hover:text-gold transition-colors font-bold ${textSize}`} onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
-                    <td className={`${rowPadding} cursor-pointer text-xs text-gray-400 hover:text-gold transition-colors`} onClick={() => copyToClipboard(mail.recovery, "Mail KP")}>{mail.recovery}</td>
-                    <td className={`${rowPadding} cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono`} onClick={() => copyToClipboard(mail.pass, "Mật khẩu")}>{mail.pass}</td>
-                    <td className={`${rowPadding} cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono`} onClick={() => copyToClipboard(mail.twoFA || "", "2FA")}>{mail.twoFA || "---"}</td>
-                    <td className={`${rowPadding} cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-bold`} onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
-                    <td className={`${rowPadding} cursor-pointer`} onClick={() => copyToClipboard(mail.otpLink || "", "Link OTP")}>
-                      {mail.otpLink ? <span className="text-blue-400 hover:text-white transition-all flex items-center gap-1 font-bold text-xs">Link OTP <ExternalLink size={12} /></span> : <span className="text-gray-700">---</span>}
-                    </td>
-                    {isAdminOrManager && type === "SATELLITE" && (
-                      <td className={`${rowPadding} text-xs font-bold`}>
-                        {mail.assigneeId ? (
-                          <span className="text-gold">
-                            Đã gán cho {mail.assignedTo} - {mail.batchName}
-                          </span>
-                        ) : (
-                          <span className="text-gray-500">Chưa gán</span>
-                        )}
-                      </td>
-                    )}
-                    <td className={`${rowPadding} text-center`}>
-                      {type === "MONETIZED" ? (
-                        <select
-                          value={mail.workStatus || "Chưa bán"}
-                          onChange={(e) => handleWorkStatusChange(mail.id, e.target.value)}
-                          className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus || "Chưa bán")}`}
-                        >
-                          <option value="Chưa bán" className="bg-sidebar text-white">Chưa bán</option>
-                          <option value="Đã bán" className="bg-sidebar text-white">Đã bán</option>
-                        </select>
-                      ) : (
-                        <select
-                          value={mail.workStatus || "Chưa làm"}
-                          onChange={(e) => handleWorkStatusChange(mail.id, e.target.value)}
-                          className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus || "Chưa làm")}`}
-                        >
-                          <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
-                          <option value="Đã làm" className="bg-sidebar text-white">Đã làm</option>
-                          <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
-                        </select>
-                      )}
-                    </td>
-                    <td className={`${rowPadding} text-center`}>
-                      <div className="flex items-center justify-center gap-2">
-                        <button 
-                          onClick={() => {
-                            setSelectedMailForConfig(mail);
-                          }}
-                          className="px-4 py-1 rounded-xl bg-gold/10 hover:bg-gold hover:text-sidebar text-gold border border-gold/30 text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-gold/5 font-black"
-                        >
-                          Xem chi tiết
-                        </button>
-                        {isAdminOrManager && (
-                          <button onClick={() => deleteMail(mail.id)} className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-inner"><Trash2 size={16} /></button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              }) : (
-                <tr><td colSpan={isAdminOrManager && type === "SATELLITE" ? 10 : 9} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Không có dữ liệu</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="p-6 border-t border-white/5 bg-black/20 flex items-center justify-between">
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-white font-black">{currentPage}</span> / {totalPages || 1}</span>
-          <div className="flex gap-2">
-            <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
-            <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
+          <div className="p-6 border-t border-white/5 bg-black/20 flex items-center justify-between">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-white font-black">{currentPage}</span> / {totalPages || 1}</span>
+            <div className="flex gap-2">
+              <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
+              <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
+            </div>
           </div>
-        </div>
         </div>
       )}
 

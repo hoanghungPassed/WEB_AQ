@@ -377,20 +377,20 @@ export default function StaffManagementPage() {
       {/* Table Section */}
       <div className="bg-sidebar border border-border-custom rounded-[40px] shadow-2xl flex flex-col overflow-hidden">
         <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse min-w-[1000px]">
+          <table className="w-full text-left border-collapse min-w-[1200px]">
             <thead>
               <tr className="bg-white/[0.02] border-b border-white/5 uppercase text-[11px] font-black tracking-widest text-gray-500">
-                <th className="px-10 py-8">Nhân viên</th>
-                <th className="px-8 py-8">{activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "Thời gian" : "Liên hệ"}</th>
-                <th className="px-8 py-8">{activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "Lý do" : "Chi tiết"}</th>
-                <th className="px-8 py-8">{activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "Duyệt nhanh" : (activeTab === "ACTIVE" ? "Role" : "Cấp quyền")}</th>
+                <th className="px-10 py-8 whitespace-nowrap">Nhân viên</th>
+                <th className="px-8 py-8 whitespace-nowrap">{activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "Thời gian" : "Liên hệ"}</th>
+                <th className="px-8 py-8 whitespace-nowrap">{activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "Lý do" : "Chi tiết"}</th>
+                <th className="px-8 py-8 whitespace-nowrap">{activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "Duyệt nhanh" : (activeTab === "ACTIVE" ? "Role" : "Cấp quyền")}</th>
                 {activeTab === "ACTIVE" && !(currentUser?.role === "03" || currentUser?.role === "04") && (
-                  <th className="px-8 py-8">Trạng thái</th>
+                  <th className="px-8 py-8 whitespace-nowrap">Trạng thái</th>
                 )}
                 {activeTab === "PENDING" && !(currentUser?.role === "03" || currentUser?.role === "04") && pendingSubTab === "ACCOUNTS" && (
-                  <th className="px-8 py-8">Hành động</th>
+                  <th className="px-8 py-8 whitespace-nowrap">Hành động</th>
                 )}
-                {activeTab === "ACTIVE" && <th className="px-8 py-8 text-center">Online</th>}
+                {activeTab === "ACTIVE" && <th className="px-8 py-8 text-center whitespace-nowrap">Online</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -612,11 +612,11 @@ export default function StaffManagementPage() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-4xl bg-sidebar border border-white/10 rounded-[48px] shadow-2xl overflow-hidden"
+              className="relative w-full max-w-4xl bg-sidebar border border-white/10 rounded-[48px] shadow-2xl overflow-y-auto md:overflow-hidden max-h-[90vh] custom-scrollbar"
             >
-              <div className="grid grid-cols-1 md:grid-cols-12">
+              <div className="grid grid-cols-1 md:grid-cols-12 max-h-[90vh] overflow-y-auto md:overflow-hidden">
                 {/* Left Side: Profile & Actions */}
-                <div className="md:col-span-5 p-12 bg-gradient-to-b from-white/[0.03] to-transparent border-r border-white/5 flex flex-col items-center text-center">
+                <div className="md:col-span-5 p-12 bg-gradient-to-b from-white/[0.03] to-transparent border-r border-white/5 flex flex-col items-center text-center md:max-h-[90vh] md:overflow-y-auto custom-scrollbar">
                   <div className="relative group">
                     <div className="h-32 w-32 rounded-[40px] bg-gold/10 border border-gold/20 flex items-center justify-center text-5xl text-gold font-black shadow-2xl group-hover:scale-105 transition-all">
                       {selectedStaff.avatar ? <img src={selectedStaff.avatar} className="w-full h-full object-cover rounded-[40px]" /> : selectedStaff.name.charAt(0)}
