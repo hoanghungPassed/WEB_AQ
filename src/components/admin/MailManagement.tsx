@@ -596,68 +596,70 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         )}
       </AnimatePresence>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <button onClick={() => router.push("/admin")} className="flex items-center gap-2 text-gold hover:text-white font-black uppercase text-xs tracking-widest transition-all group">
-            <div className="h-10 w-10 bg-gold/10 rounded-xl flex items-center justify-center group-hover:bg-gold/20 transition-all shadow-lg"><ArrowLeft size={20} /></div>
-            Quay lại bảng điều khiển
-          </button>
-          <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
-            <Mail className="text-gold" size={28} />
-            Danh sách {type === "ALL" ? "Tất cả" : type === "ROOT" ? "Mail Gốc" : type === "SATELLITE" ? "Mail Vệ Tinh" : "Mail Bật Kiếm Tiền"}
-          </h2>
-        </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={async () => {
-              if (confirm("Xác nhận khôi phục toàn bộ dữ liệu về trạng thái ban đầu?")) {
-                try {
-                  const { MOCK_STAFF, MOCK_MAILS, MOCK_TASK_ASSIGNMENTS, MOCK_KPI_DATA } = await import("@/data/mockData");
-                  
-                  const resetPayload = {
-                    global_users: JSON.stringify(MOCK_STAFF),
-                    global_mails_data: JSON.stringify(MOCK_MAILS),
-                    global_tasks_data: JSON.stringify(MOCK_TASK_ASSIGNMENTS),
-                    global_kpi_data: JSON.stringify(MOCK_KPI_DATA),
-                    admin_notifications: JSON.stringify([]),
-                    realtime_toast: JSON.stringify({ userId: "all", message: "Hệ thống đã được khôi phục dữ liệu gốc!" }),
-                    pending_access_requests: JSON.stringify([])
-                  };
+      {(!isStaff || !selectedBatch) && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <button onClick={() => router.push("/admin")} className="flex items-center gap-2 text-gold hover:text-white font-black uppercase text-xs tracking-widest transition-all group">
+              <div className="h-10 w-10 bg-gold/10 rounded-xl flex items-center justify-center group-hover:bg-gold/20 transition-all shadow-lg"><ArrowLeft size={20} /></div>
+              Quay lại bảng điều khiển
+            </button>
+            <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+              <Mail className="text-gold" size={28} />
+              Danh sách {type === "ALL" ? "Tất cả" : type === "ROOT" ? "Mail Gốc" : type === "SATELLITE" ? "Mail Vệ Tinh" : "Mail Bật Kiếm Tiền"}
+            </h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={async () => {
+                if (confirm("Xác nhận khôi phục toàn bộ dữ liệu về trạng thái ban đầu?")) {
+                  try {
+                    const { MOCK_STAFF, MOCK_MAILS, MOCK_TASK_ASSIGNMENTS, MOCK_KPI_DATA } = await import("@/data/mockData");
+                    
+                    const resetPayload = {
+                      global_users: JSON.stringify(MOCK_STAFF),
+                      global_mails_data: JSON.stringify(MOCK_MAILS),
+                      global_tasks_data: JSON.stringify(MOCK_TASK_ASSIGNMENTS),
+                      global_kpi_data: JSON.stringify(MOCK_KPI_DATA),
+                      admin_notifications: JSON.stringify([]),
+                      realtime_toast: JSON.stringify({ userId: "all", message: "Hệ thống đã được khôi phục dữ liệu gốc!" }),
+                      pending_access_requests: JSON.stringify([])
+                    };
 
-                  Object.entries(resetPayload).forEach(([k, v]) => {
-                    localStorage.setItem(k, v);
-                  });
+                    Object.entries(resetPayload).forEach(([k, v]) => {
+                      localStorage.setItem(k, v);
+                    });
 
-                  await fetch("/api/sync", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(resetPayload)
-                  });
+                    await fetch("/api/sync", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(resetPayload)
+                    });
 
-                  window.dispatchEvent(new Event("storage"));
-                  alert("Khôi phục dữ liệu gốc thành công! Toàn bộ hệ thống đã được đồng bộ lại.");
-                  window.location.reload();
-                } catch (err) {
-                  console.error("Reset error:", err);
-                  alert("Đã xảy ra lỗi khi khôi phục dữ liệu.");
+                    window.dispatchEvent(new Event("storage"));
+                    alert("Khôi phục dữ liệu gốc thành công! Toàn bộ hệ thống đã được đồng bộ lại.");
+                    window.location.reload();
+                  } catch (err) {
+                    console.error("Reset error:", err);
+                    alert("Đã xảy ra lỗi khi khôi phục dữ liệu.");
+                  }
                 }
-              }
-            }}
-            className="h-10 px-4 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 rounded-xl text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"
-          >
-            <RefreshCcw size={14} /> Khôi phục dữ liệu gốc
-          </button>
-          {isAdminOrManager && (
-            <>
-              <button onClick={() => setShowManualImport(true)} className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><PlusCircle size={14} className="text-gold" /> Thêm thủ công</button>
-              <label className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all cursor-pointer"><Upload size={14} className="text-gold" /> Import Excel <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleImportExcel} /></label>
-              <button onClick={handleExport} className="h-10 px-4 bg-gold/10 border border-gold/30 hover:bg-gold/20 rounded-xl text-gold text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><Download size={14} /> Export</button>
-            </>
-          )}
+              }}
+              className="h-10 px-4 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 rounded-xl text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"
+            >
+              <RefreshCcw size={14} /> Khôi phục dữ liệu gốc
+            </button>
+            {isAdminOrManager && (
+              <>
+                <button onClick={() => setShowManualImport(true)} className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><PlusCircle size={14} className="text-gold" /> Thêm thủ công</button>
+                <label className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all cursor-pointer"><Upload size={14} className="text-gold" /> Import Excel <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleImportExcel} /></label>
+                <button onClick={handleExport} className="h-10 px-4 bg-gold/10 border border-gold/30 hover:bg-gold/20 rounded-xl text-gold text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><Download size={14} /> Export</button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {isStaff && (
+      {isStaff && !selectedBatch && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-sidebar border border-border-custom p-6 rounded-[24px] flex items-center justify-between shadow-xl">
             <div>
@@ -766,69 +768,87 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
               <tr>
-                <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
-                <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Email</th>
-                <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Mail KP</th>
-                <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Pass</th>
-                <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">2FA</th>
-                <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">SĐT</th>
-                <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Link SĐT</th>
-                <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Trạng thái</th>
-                <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Thao tác</th>
+                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
+                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px]">Email</th>
+                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px]">Mail KP</th>
+                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px]">Pass</th>
+                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px]">2FA</th>
+                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px]">SĐT</th>
+                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px]">Link SĐT</th>
+                {isAdminOrManager && type === "SATELLITE" && (
+                  <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px]">Quản lý</th>
+                )}
+                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] text-center">Trạng thái</th>
+                <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] text-center">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-gray-300">
-              {currentItems.length > 0 ? currentItems.map((mail: any) => (
-                <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
-                  <td className="py-5 px-6 text-[10px] font-black text-gray-500">{mail.originalSTT}</td>
-                  <td className="py-5 px-6 cursor-pointer hover:text-gold transition-colors font-bold" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
-                  <td className="py-5 px-6 cursor-pointer text-xs text-gray-400 hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.recovery, "Mail KP")}>{mail.recovery}</td>
-                  <td className="py-5 px-6 cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono" onClick={() => copyToClipboard(mail.pass, "Mật khẩu")}>{mail.pass}</td>
-                  <td className="py-5 px-6 cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono" onClick={() => copyToClipboard(mail.twoFA || "", "2FA")}>{mail.twoFA || "---"}</td>
-                  <td className="py-5 px-6 cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-bold" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
-                  <td className="py-5 px-6 cursor-pointer" onClick={() => copyToClipboard(mail.otpLink || "", "Link OTP")}>
-                    {mail.otpLink ? <span className="text-blue-400 hover:text-white transition-all flex items-center gap-1 font-bold text-xs">Link OTP <ExternalLink size={12} /></span> : <span className="text-gray-700">---</span>}
-                  </td>
-                  <td className="py-5 px-6 text-center">
-                    {type === "MONETIZED" ? (
-                      <select
-                        value={mail.workStatus || "Chưa bán"}
-                        onChange={(e) => handleWorkStatusChange(mail.id, e.target.value)}
-                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus || "Chưa bán")}`}
-                      >
-                        <option value="Chưa bán" className="bg-sidebar text-white">Chưa bán</option>
-                        <option value="Đã bán" className="bg-sidebar text-white">Đã bán</option>
-                      </select>
-                    ) : (
-                      <select
-                        value={mail.workStatus || "Chưa làm"}
-                        onChange={(e) => handleWorkStatusChange(mail.id, e.target.value)}
-                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus || "Chưa làm")}`}
-                      >
-                        <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
-                        <option value="Đã làm" className="bg-sidebar text-white">Đã làm</option>
-                        <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
-                      </select>
+              {currentItems.length > 0 ? currentItems.map((mail: any) => {
+                const rowPadding = isStaff ? "py-1.5 px-6" : "py-3.5 px-6";
+                const textSize = isStaff ? "text-xs" : "text-sm";
+                return (
+                  <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
+                    <td className={`${rowPadding} text-[10px] font-black text-gray-500`}>{mail.originalSTT}</td>
+                    <td className={`${rowPadding} cursor-pointer hover:text-gold transition-colors font-bold ${textSize}`} onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
+                    <td className={`${rowPadding} cursor-pointer text-xs text-gray-400 hover:text-gold transition-colors`} onClick={() => copyToClipboard(mail.recovery, "Mail KP")}>{mail.recovery}</td>
+                    <td className={`${rowPadding} cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono`} onClick={() => copyToClipboard(mail.pass, "Mật khẩu")}>{mail.pass}</td>
+                    <td className={`${rowPadding} cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono`} onClick={() => copyToClipboard(mail.twoFA || "", "2FA")}>{mail.twoFA || "---"}</td>
+                    <td className={`${rowPadding} cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-bold`} onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
+                    <td className={`${rowPadding} cursor-pointer`} onClick={() => copyToClipboard(mail.otpLink || "", "Link OTP")}>
+                      {mail.otpLink ? <span className="text-blue-400 hover:text-white transition-all flex items-center gap-1 font-bold text-xs">Link OTP <ExternalLink size={12} /></span> : <span className="text-gray-700">---</span>}
+                    </td>
+                    {isAdminOrManager && type === "SATELLITE" && (
+                      <td className={`${rowPadding} text-xs font-bold`}>
+                        {mail.assigneeId ? (
+                          <span className="text-gold">
+                            Đã gán cho {mail.assignedTo} - {mail.batchName}
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">Chưa gán</span>
+                        )}
+                      </td>
                     )}
-                  </td>
-                  <td className="py-5 px-6 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <button 
-                        onClick={() => {
-                          setSelectedMailForConfig(mail);
-                        }}
-                        className="px-4 py-1.5 rounded-xl bg-gold/10 hover:bg-gold hover:text-sidebar text-gold border border-gold/30 text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-gold/5 font-black"
-                      >
-                        Xem chi tiết
-                      </button>
-                      {isAdminOrManager && (
-                        <button onClick={() => deleteMail(mail.id)} className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-inner"><Trash2 size={16} /></button>
+                    <td className={`${rowPadding} text-center`}>
+                      {type === "MONETIZED" ? (
+                        <select
+                          value={mail.workStatus || "Chưa bán"}
+                          onChange={(e) => handleWorkStatusChange(mail.id, e.target.value)}
+                          className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus || "Chưa bán")}`}
+                        >
+                          <option value="Chưa bán" className="bg-sidebar text-white">Chưa bán</option>
+                          <option value="Đã bán" className="bg-sidebar text-white">Đã bán</option>
+                        </select>
+                      ) : (
+                        <select
+                          value={mail.workStatus || "Chưa làm"}
+                          onChange={(e) => handleWorkStatusChange(mail.id, e.target.value)}
+                          className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus || "Chưa làm")}`}
+                        >
+                          <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
+                          <option value="Đã làm" className="bg-sidebar text-white">Đã làm</option>
+                          <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
+                        </select>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              )) : (
-                <tr><td colSpan={9} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Không có dữ liệu</td></tr>
+                    </td>
+                    <td className={`${rowPadding} text-center`}>
+                      <div className="flex items-center justify-center gap-2">
+                        <button 
+                          onClick={() => {
+                            setSelectedMailForConfig(mail);
+                          }}
+                          className="px-4 py-1 rounded-xl bg-gold/10 hover:bg-gold hover:text-sidebar text-gold border border-gold/30 text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-gold/5 font-black"
+                        >
+                          Xem chi tiết
+                        </button>
+                        {isAdminOrManager && (
+                          <button onClick={() => deleteMail(mail.id)} className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-inner"><Trash2 size={16} /></button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }) : (
+                <tr><td colSpan={isAdminOrManager && type === "SATELLITE" ? 10 : 9} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Không có dữ liệu</td></tr>
               )}
             </tbody>
           </table>

@@ -78,36 +78,31 @@ export interface MailData {
   channelStatusDetail?: string;
 }
 
-// Generate satellite mails dynamically so each Role 03 and Role 04 gets exactly 102 satellite mails divided into 6 batches of 17 mails
+// Generate a global pool of 340 unassigned satellite mails (20 sets of 17 mails)
 const generateSatelliteMails = () => {
-  const staffList = MOCK_STAFF.filter(s => s.role === "03" || s.role === "04");
   const list: MailData[] = [];
   let globalId = 101;
 
-  staffList.forEach((staff) => {
-    for (let loNum = 1; loNum <= 6; loNum++) {
-      for (let mIdx = 1; mIdx <= 17; mIdx++) {
-        list.push({
-          id: globalId++,
-          email: `sat.${staff.username}.lo${loNum}.${mIdx}@aqmedia.vn`,
-          pass: "pass123",
-          recovery: `rec.sat.${staff.username}@gmail.com`,
-          type: "SATELLITE" as const,
-          status: "LIVE" as const,
-          workStatus: "Chưa làm",
-          channelStatus: "",
-          twoFA: `2FA_SAT_${globalId}`,
-          phone: `0900222${String(globalId % 1000).padStart(3, '0')}`,
-          otpLink: `https://otp.aqmedia.vn/sat/${globalId}`,
-          links: [],
-          createdAt: "2024-05-11",
-          assigneeId: staff.id, // Fixed ownership
-          assignedTo: staff.name,
-          batchName: `Lô ${loNum}` // Fixed batch Lô 1 to Lô 6
-        });
-      }
-    }
-  });
+  for (let mIdx = 1; mIdx <= 340; mIdx++) {
+    list.push({
+      id: globalId++,
+      email: `sat.user.${mIdx}@aqmedia.vn`,
+      pass: "pass123",
+      recovery: `rec.sat.user.${mIdx}@gmail.com`,
+      type: "SATELLITE" as const,
+      status: "LIVE" as const,
+      workStatus: "Chưa làm",
+      channelStatus: "",
+      twoFA: `2FA_SAT_${globalId}`,
+      phone: `0900222${String(globalId % 1000).padStart(3, '0')}`,
+      otpLink: `https://otp.aqmedia.vn/sat/${globalId}`,
+      links: [],
+      createdAt: "2024-05-11",
+      assigneeId: "", // Initially unassigned
+      assignedTo: "", // Initially unassigned
+      batchName: ""   // Initially unassigned
+    });
+  }
   return list;
 };
 

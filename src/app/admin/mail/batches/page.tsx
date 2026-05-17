@@ -13,9 +13,10 @@ export default function BatchesManagementPage() {
   
   const [showAllocateModal, setShowAllocateModal] = useState(false);
   const [selectedBatchForAlloc, setSelectedBatchForAlloc] = useState("");
-  const [allocateCount, setAllocateCount] = useState(17);
+  const [selectedSugIndex, setSelectedSugIndex] = useState(0);
 
   const [toastMsg, setToastMsg] = useState("");
+  const [mails, setMails] = useState<any[]>([]);
 
   useEffect(() => {
     const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
@@ -45,6 +46,18 @@ export default function BatchesManagementPage() {
   }, []);
 
   useEffect(() => {
+    const loadMails = () => {
+      const savedMails = localStorage.getItem("global_mails_data");
+      if (savedMails) {
+        setMails(JSON.parse(savedMails));
+      }
+    };
+    loadMails();
+    window.addEventListener("storage", loadMails);
+    return () => window.removeEventListener("storage", loadMails);
+  }, []);
+
+  useEffect(() => {
     if (selectedStaff) {
       const defaultBatches = ["Lô 1", "Lô 2", "Lô 3", "Lô 4", "Lô 5", "Lô 6"];
       const savedCustom = localStorage.getItem(`custom_batches_${selectedStaff.id}`);
@@ -56,6 +69,12 @@ export default function BatchesManagementPage() {
       }
     }
   }, [selectedStaff]);
+
+  useEffect(() => {
+    if (showAllocateModal) {
+      setSelectedSugIndex(0);
+    }
+  }, [showAllocateModal]);
 
   const triggerToast = (msg: string) => {
     setToastMsg(msg);
@@ -74,36 +93,67 @@ export default function BatchesManagementPage() {
     setNewBatchName("");
   };
 
-  const handleAllocate = () => {
-    const savedMails = localStorage.getItem("global_mails_data");
-    if (!savedMails) return;
+  // Generate range suggestions dynamically based on unassigned satellite mails
+  const allSatellites = mails.filter((m: any) => m.type === "SATELLITE");
+  const emptySatellites = allSatellites.filter((m: any) => !m.assigneeId);
 
-    let allMails = JSON.parse(savedMails);
-    let emptySatellites = allMails.filter((m: any) => m.type === "SATELLITE" && !m.assigneeId);
+  const suggestions: { label: string; mailIds: number[] }[] = [];
+  const chunkSize = 17;
+  for (let i = 0; i < emptySatellites.length; i += chunkSize) {
+    const chunk = emptySatellites.slice(i, i + chunkSize);
+    if (chunk.length === chunkSize) {
+      const firstIdx = allSatellites.findIndex((m: any) => m.id === chunk[0].id) + 1;
+      const lastIdx = allSatellites.findIndex((m: any) => m.id === chunk[chunkSize - 1].id) + 1;
+      suggestions.push({
+        label: `Chọn mail: 17 mail (${firstIdx} - ${lastIdx})`,
+        mailIds: chunk.map((m: any) => m.id)
+      });
+    }
+  }
 
-    if (emptySatellites.length < allocateCount) {
-      alert(`Kho vệ tinh trống chỉ còn ${emptySatellites.length} mail. Không đủ ${allocateCount} mail để gán!`);
+  const handleAllocate = async () => {
+    if (suggestions.length === 0) {
+      alert("Không còn dải 17 mail nào trống để gán!");
       return;
     }
+    const currentSug = suggestions[selectedSugIndex];
+    if (!currentSug) return;
 
-    const mailsToAssign = emptySatellites.slice(0, allocateCount).map((m: any) => m.id);
+    let allMails = [...mails];
+    const mailsToAssign = currentSug.mailIds;
 
     allMails = allMails.map((m: any) => {
       if (mailsToAssign.includes(m.id)) {
         return {
           ...m,
           assigneeId: selectedStaff.id,
-          batchName: selectedBatchForAlloc
+          assignedTo: selectedStaff.name,
+          batchName: selectedBatchForAlloc,
+          batchLabel: selectedBatchForAlloc
         };
       }
       return m;
     });
 
     localStorage.setItem("global_mails_data", JSON.stringify(allMails));
-    window.dispatchEvent(new Event("storage"));
+    setMails(allMails);
 
+    // Sync to server database
+    try {
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          global_mails_data: JSON.stringify(allMails)
+        })
+      });
+    } catch (err) {
+      console.error("Sync error:", err);
+    }
+
+    window.dispatchEvent(new Event("storage"));
     setShowAllocateModal(false);
-    triggerToast(`Đã gán thành công ${allocateCount} mail vào ${selectedBatchForAlloc}!`);
+    triggerToast(`Đã gán thành công 17 mail vào ${selectedBatchForAlloc}!`);
   };
 
   return (
@@ -124,7 +174,7 @@ export default function BatchesManagementPage() {
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-sidebar border border-white/10 rounded-[40px] p-10 w-full max-w-md shadow-2xl">
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-4">
-                  <Database className="text-gold" size={32} /> Gán Lô
+                  <Database className="text-gold" size={32} /> Gán Lô Vệ Tinh
                 </h3>
                 <button onClick={() => setShowAllocateModal(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-white transition-colors"><X /></button>
               </div>
@@ -136,20 +186,36 @@ export default function BatchesManagementPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Số lượng mail cần cắt từ Kho</label>
-                  <input
-                    type="number"
-                    value={allocateCount}
-                    onChange={(e) => setAllocateCount(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all text-center font-bold text-lg"
-                  />
-                  <p className="text-[10px] text-gray-500 mt-2 ml-1">Hệ thống sẽ lấy tự động từ trên xuống dưới trong kho vệ tinh trống (Chưa có assigneeId).</p>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Gợi ý dải mail trống</label>
+                  {suggestions.length > 0 ? (
+                    <select
+                      value={selectedSugIndex}
+                      onChange={(e) => setSelectedSugIndex(parseInt(e.target.value))}
+                      className="w-full h-14 bg-black/40 border border-white/10 rounded-2xl px-6 text-white text-xs outline-none focus:border-gold transition-all font-bold text-center cursor-pointer uppercase tracking-wider"
+                    >
+                      {suggestions.map((sug, idx) => (
+                        <option key={idx} value={idx} className="bg-sidebar text-white text-left font-semibold">
+                          {sug.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-2xl text-center font-bold">
+                      Không còn dải 17 mail trống nào trong kho tổng!
+                    </div>
+                  )}
+                  <p className="text-[10px] text-gray-500 mt-2 ml-1">Hệ thống gợi ý các dải 17 mail vệ tinh trống liên tục cuốn chiếu.</p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
+                  <span className="text-xs text-gray-400 font-bold">Tổng cộng:</span>
+                  <span className="text-gold font-black text-sm uppercase tracking-widest">Tổng 17 mail</span>
                 </div>
               </div>
 
               <div className="flex gap-4 mt-8">
                 <button onClick={() => setShowAllocateModal(false)} className="flex-1 h-14 rounded-2xl border border-white/10 text-white font-bold uppercase text-xs tracking-widest hover:bg-white/5 transition-all">Hủy bỏ</button>
-                <button onClick={handleAllocate} className="flex-1 h-14 rounded-2xl bg-gold text-sidebar font-black uppercase text-xs tracking-widest hover:bg-gold/80 transition-all shadow-xl shadow-gold/20">Xác nhận Gán</button>
+                <button onClick={handleAllocate} disabled={suggestions.length === 0} className="flex-1 h-14 rounded-2xl bg-gold text-sidebar font-black uppercase text-xs tracking-widest hover:bg-gold/80 transition-all shadow-xl shadow-gold/20 disabled:opacity-30 disabled:pointer-events-none">Xác nhận Gán</button>
               </div>
             </motion.div>
           </motion.div>
