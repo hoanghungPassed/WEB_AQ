@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Lock, User, Eye, EyeOff, Loader2, UserPlus, ShieldAlert, CheckCircle2 } from "lucide-react";
@@ -8,7 +8,7 @@ import Link from "next/link";
 import { StaffData } from "@/types/admin";
 import { MOCK_STAFF, initMockDB } from "@/data/mockData";
 
-export default function LoginPage() {
+function LoginForm() {
   useEffect(() => {
     initMockDB();
   }, []);
@@ -196,5 +196,17 @@ export default function LoginPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <Loader2 className="animate-spin text-gold" size={48} />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

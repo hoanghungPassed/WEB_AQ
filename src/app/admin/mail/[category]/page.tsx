@@ -11,8 +11,14 @@ export default function MailCategoryPage() {
 
   useEffect(() => {
     const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
-    if (storedUser) setUser(JSON.parse(storedUser));
-  }, []);
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      if (parsedUser.role === "04" && category !== "satellite") {
+        window.location.href = "/admin/mail/satellite";
+      }
+    }
+  }, [category]);
 
   const getType = () => {
     switch (category) {

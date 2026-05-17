@@ -176,7 +176,11 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
                   >
                     {item.subItems?.filter(sub => {
                       // RBAC for sub items
-                      if (sub.title === "Mail bật kiếm tiền" && (user?.role === "03" || user?.role === "04")) return false;
+                      if (user?.role === "04") {
+                        // Nhân viên chỉ được thấy Mail vệ tinh
+                        return sub.title === "Mail vệ tinh";
+                      }
+                      if (sub.title === "Mail bật kiếm tiền" && user?.role === "03") return false;
                       return true;
                     }).map((sub) => (
                       <Link

@@ -44,6 +44,10 @@ export default function AdminDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [staffList, setStaffList] = useState<StaffData[]>([]);
   const [mails, setMails] = useState<any[]>([]);
+  const [showStaffTasksView, setShowStaffTasksView] = useState(false);
+  const [showStaffMailsView, setShowStaffMailsView] = useState(false);
+  const [selectedStaffTask, setSelectedStaffTask] = useState<any>(null);
+  const [tasksList, setTasksList] = useState<any[]>([]);
   const itemsPerPage = 10;
 
   const getRoleLabel = (role?: string) => {
@@ -61,7 +65,6 @@ export default function AdminDashboard() {
     const savedKPI = localStorage.getItem("global_kpi_data");
     if (savedKPI) setKpi(JSON.parse(savedKPI));
 
-    // Tính toán stats từ danh sách mail thực tế (Đảm bảo con số luôn chính xác)
     const refreshStats = () => {
       const savedMails = localStorage.getItem("global_mails_data");
       const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
@@ -69,16 +72,39 @@ export default function AdminDashboard() {
       const savedTasks = localStorage.getItem("global_tasks_data");
       const currentTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
 
-      setStats(prev => ({
-        ...prev,
-        totalMail: currentMails.length,
-        mailLive: currentMails.filter((m: any) => m.status === "LIVE").length,
-        mailDie: currentMails.filter((m: any) => m.status === "DIE").length,
-        mailRoot: currentMails.filter((m: any) => m.type === "ROOT" && !m.assigneeId).length,
-        mailSatellite: currentMails.filter((m: any) => m.type === "SATELLITE" && !m.assigneeId).length,
-        mailMonetized: currentMails.filter((m: any) => m.type === "MONETIZED").length,
-        tasksToday: currentTasks.filter((t: any) => t.status === "IN_PROGRESS").length,
-      }));
+      // Check current user role dynamically
+      const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
+      const currentUserObj = storedUser ? JSON.parse(storedUser) : null;
+      const isMinimalRole = currentUserObj?.role === "03" || currentUserObj?.role === "04";
+
+      setTasksList(currentTasks);
+
+      if (isMinimalRole) {
+        const myMails = currentMails.filter((m: any) => String(m.assigneeId) === String(currentUserObj?.id));
+        const myTasks = currentTasks.filter((t: any) => String(t.assigneeId) === String(currentUserObj?.id) && t.status === "IN_PROGRESS");
+        setStats({
+          totalMail: myMails.length,
+          mailLive: myMails.filter((m: any) => m.status === "LIVE").length,
+          mailDie: myMails.filter((m: any) => m.status === "DIE").length,
+          mailRoot: 0,
+          mailSatellite: 0,
+          mailMonetized: 0,
+          tasksToday: myTasks.length,
+          staffOnline: 0,
+          mailWatchHours: 0
+        });
+      } else {
+        setStats(prev => ({
+          ...prev,
+          totalMail: currentMails.length,
+          mailLive: currentMails.filter((m: any) => m.status === "LIVE").length,
+          mailDie: currentMails.filter((m: any) => m.status === "DIE").length,
+          mailRoot: currentMails.filter((m: any) => m.type === "ROOT" && !m.assigneeId).length,
+          mailSatellite: currentMails.filter((m: any) => m.type === "SATELLITE" && !m.assigneeId).length,
+          mailMonetized: currentMails.filter((m: any) => m.type === "MONETIZED").length,
+          tasksToday: currentTasks.filter((t: any) => t.status === "IN_PROGRESS").length,
+        }));
+      }
       setMails(currentMails);
     };
 
@@ -135,6 +161,38 @@ export default function AdminDashboard() {
     localStorage.setItem("global_kpi_data", JSON.stringify(kpi));
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
+  };
+
+  const handleStaffMailStatusChange = (mailId: number, newWorkStatus: string) => {
+    const savedMails = localStorage.getItem("global_mails_data");
+    const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
+
+    const updatedMails = currentMails.map((m: any) => {
+      if (m.id === mailId) {
+        let status = m.status;
+        if (newWorkStatus === "ĐÃ LÀM KÊNH" || newWorkStatus === "HOÀN THÀNH" || newWorkStatus === "ĐÃ LÀM") {
+          status = "LIVE";
+        } else if (newWorkStatus === "LỖI") {
+          status = "DIE";
+        }
+        return { ...m, workStatus: newWorkStatus, status };
+      }
+      return m;
+    });
+
+    localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
+    setMails(updatedMails);
+
+    // Sync stats
+    const myMails = updatedMails.filter((m: any) => String(m.assigneeId) === String(user?.id));
+    setStats(prev => ({
+      ...prev,
+      totalMail: myMails.length,
+      mailLive: myMails.filter((m: any) => m.status === "LIVE").length,
+      mailDie: myMails.filter((m: any) => m.status === "DIE").length,
+    }));
+
+    window.dispatchEvent(new Event("storage"));
   };
 
   const roleLabel = getRoleLabel(user?.role);
@@ -306,7 +364,258 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {isHRManager ? (
+      {user?.role === "03" || user?.role === "04" ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <StatCard 
+              title="Tổng mail được giao" 
+              value={stats.totalMail} 
+              icon={<Mail size={32} />} 
+              color="blue" 
+              subtitle="Nhấp để xem chi tiết kho mail được giao" 
+              onClick={() => {
+                setShowStaffMailsView(!showStaffMailsView);
+                setShowStaffTasksView(false);
+              }}
+            />
+            <StatCard 
+              title="Task hôm nay" 
+              value={stats.tasksToday} 
+              icon={<ClipboardList size={32} />} 
+              color="green" 
+              subtitle="Nhấp để xem chi tiết danh sách nhiệm vụ" 
+              onClick={() => {
+                setShowStaffTasksView(!showStaffTasksView);
+                setShowStaffMailsView(false);
+              }}
+            />
+          </div>
+
+          <AnimatePresence>
+            {showStaffTasksView && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="space-y-6">
+                <div className="bg-sidebar border border-border-custom rounded-[32px] p-8 shadow-2xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 h-48 w-48 bg-green-500/5 blur-[80px] -mr-24 -mt-24 transition-all group-hover:bg-green-500/10" />
+                  <div className="relative z-10 flex flex-col gap-2 mb-6">
+                    <h2 className="text-2xl font-black text-white flex items-center gap-3 tracking-tighter uppercase">
+                      <ClipboardList className="text-green-500" size={28} />
+                      Nhiệm vụ được giao
+                    </h2>
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Danh sách các ca trực và nhiệm vụ đang thực hiện</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {tasksList.filter(t => String(t.assigneeId) === String(user?.id) && t.status === "IN_PROGRESS").length > 0 ? (
+                      tasksList.filter(t => String(t.assigneeId) === String(user?.id) && t.status === "IN_PROGRESS").map((task: any) => (
+                        <div 
+                          key={task.id} 
+                          onClick={() => setSelectedStaffTask(selectedStaffTask?.id === task.id ? null : task)}
+                          className={`p-6 rounded-2xl border transition-all cursor-pointer ${selectedStaffTask?.id === task.id ? 'bg-gold/10 border-gold shadow-lg shadow-gold/5' : 'bg-white/[0.02] border-white/5 hover:border-gold/30'}`}
+                        >
+                          <h3 className="text-lg font-black text-white uppercase tracking-tighter mb-2">{task.title}</h3>
+                          <div className="text-xs text-gray-400 mb-4 font-medium leading-relaxed">
+                            <b>Ghi chú ca trực:</b> {task.note || "Tiến hành check tạo xóa và xử lý các mail vệ tinh/gốc được giao. Đảm bảo đúng tiến độ và báo cáo lỗi nếu có."}
+                          </div>
+                          <div className="flex items-center justify-between pt-4 border-t border-white/5 text-[10px] font-black uppercase tracking-widest text-gray-500">
+                            <span>{task.mailCount || 0} Mail</span>
+                            <span className="text-gold">Xem chi tiết & danh sách mail</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="md:col-span-2 py-10 text-center text-gray-600 font-bold uppercase tracking-widest">Không có nhiệm vụ nào được giao</div>
+                    )}
+                  </div>
+                </div>
+
+                {selectedStaffTask && (
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl">
+                    <div className="p-6 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                      <div>
+                        <h3 className="text-xl font-black text-white uppercase tracking-tighter">Danh sách Mail - {selectedStaffTask.title}</h3>
+                        <p className="text-xs text-gray-500 font-medium mt-1">Danh sách mail bạn cần xử lý cho nhiệm vụ này</p>
+                      </div>
+                      <button onClick={() => setSelectedStaffTask(null)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
+                    </div>
+
+                    <div className="overflow-x-auto custom-scrollbar">
+                      <table className="w-full text-left text-sm whitespace-nowrap">
+                        <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
+                          <tr>
+                            <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
+                            <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Email</th>
+                            <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Mail KP</th>
+                            <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Trạng thái công việc</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5 text-gray-300">
+                          {mails
+                            .filter((m: any) => String(m.assigneeId) === String(user?.id) && (
+                              selectedStaffTask.type === "MAIL_VE_TINH" ? m.type === "SATELLITE" : 
+                              selectedStaffTask.type === "MAIL_MONETIZED" ? m.type === "MONETIZED" : 
+                              m.type === "ROOT"
+                            ))
+                            .map((mail: any, index: number) => (
+                              <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
+                                <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
+                                <td className="py-4 px-6 font-bold text-white cursor-pointer hover:text-gold transition-colors animate-pulse-subtle" onClick={() => { navigator.clipboard.writeText(mail.email); alert("Đã sao chép Email"); }}>{mail.email}</td>
+                                <td className="py-4 px-6 text-xs text-gray-400 cursor-pointer hover:text-gold transition-colors" onClick={() => { navigator.clipboard.writeText(mail.recovery); alert("Đã sao chép Mail KP"); }}>{mail.recovery}</td>
+                                <td className="py-4 px-6 text-center">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <button 
+                                      onClick={() => handleStaffMailStatusChange(mail.id, "ĐÃ LÀM KÊNH")}
+                                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
+                                        mail.workStatus === "ĐÃ LÀM KÊNH" || mail.workStatus === "HOÀN THÀNH" || mail.workStatus === "ĐÃ LÀM"
+                                          ? "bg-green-500/10 text-green-500 border-green-500/30"
+                                          : "bg-white/5 text-gray-400 border-white/10 hover:border-green-500/30 hover:text-green-500"
+                                      }`}
+                                    >
+                                      Đã làm
+                                    </button>
+                                    <button 
+                                      onClick={() => handleStaffMailStatusChange(mail.id, "CHƯA LÀM")}
+                                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
+                                        mail.workStatus === "CHƯA LÀM" || !mail.workStatus
+                                          ? "bg-gray-500/10 text-gray-400 border-gray-500/30"
+                                          : "bg-white/5 text-gray-400 border-white/10 hover:border-gray-500/30 hover:text-gray-400"
+                                      }`}
+                                    >
+                                      Chưa làm
+                                    </button>
+                                    <button 
+                                      onClick={() => handleStaffMailStatusChange(mail.id, "LỖI")}
+                                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
+                                        mail.workStatus === "LỖI"
+                                          ? "bg-red-500/10 text-red-500 border-red-500/30"
+                                          : "bg-white/5 text-gray-400 border-white/10 hover:border-red-500/30 hover:text-red-500"
+                                      }`}
+                                    >
+                                      Lỗi
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          {mails.filter((m: any) => String(m.assigneeId) === String(user?.id) && (
+                            selectedStaffTask.type === "MAIL_VE_TINH" ? m.type === "SATELLITE" : 
+                            selectedStaffTask.type === "MAIL_MONETIZED" ? m.type === "MONETIZED" : 
+                            m.type === "ROOT"
+                          )).length === 0 && (
+                            <tr><td colSpan={4} className="py-10 text-center text-gray-600 font-bold uppercase tracking-widest">Không có mail nào được gán cho nhiệm vụ này</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+
+            {showStaffMailsView && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="space-y-6">
+                <div className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl">
+                  <div className="p-6 border-b border-white/5 bg-white/[0.02] flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
+                        <Mail className="text-gold" size={24} />
+                        Danh sách Mail được giao
+                      </h3>
+                      <p className="text-xs text-gray-500 font-medium mt-1">Danh sách tất cả tài khoản mail do Admin/QL Công việc gán cho bạn</p>
+                    </div>
+                    <div className="flex items-center gap-3 w-full md:w-auto">
+                      <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-4 h-10 w-full md:w-64 focus-within:border-gold transition-all">
+                        <Search size={14} className="text-gray-500" />
+                        <input 
+                          type="text" 
+                          placeholder="Tìm kiếm Email hoặc Mail KP..." 
+                          value={searchQuery} 
+                          onChange={(e) => setSearchQuery(e.target.value)} 
+                          className="bg-transparent border-none outline-none text-xs text-white w-full" 
+                        />
+                      </div>
+                      <button onClick={() => setShowStaffMailsView(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                      <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
+                        <tr>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT Gốc</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Email</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Mail KP</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Pass</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">2FA</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">SĐT</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Trạng thái công việc</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5 text-gray-300">
+                        {mails
+                          .filter((m: any) => String(m.assigneeId) === String(user?.id))
+                          .filter((m: any) => 
+                            !searchQuery || 
+                            m.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            m.recovery.toLowerCase().includes(searchQuery.toLowerCase())
+                          )
+                          .map((mail: any, index: number) => (
+                            <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
+                              <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
+                              <td className="py-4 px-6 text-[10px] font-black text-gold/80">{mail.originalSTT || mail.id}</td>
+                              <td className="py-4 px-6 font-bold text-white cursor-pointer hover:text-gold transition-colors" onClick={() => { navigator.clipboard.writeText(mail.email); alert("Đã sao chép Email"); }}>{mail.email}</td>
+                              <td className="py-4 px-6 text-xs text-gray-400 cursor-pointer hover:text-gold transition-colors" onClick={() => { navigator.clipboard.writeText(mail.recovery); alert("Đã sao chép Mail KP"); }}>{mail.recovery}</td>
+                              <td className="py-4 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => { navigator.clipboard.writeText(mail.pass); alert("Đã sao chép Mật khẩu"); }}>{mail.pass}</td>
+                              <td className="py-4 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => { navigator.clipboard.writeText(mail.twoFA || ""); alert("Đã sao chép 2FA"); }}>{mail.twoFA || "---"}</td>
+                              <td className="py-4 px-6 text-xs text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors" onClick={() => { navigator.clipboard.writeText(mail.phone || ""); alert("Đã sao chép SĐT"); }}>{mail.phone || "---"}</td>
+                              <td className="py-4 px-6 text-center">
+                                <div className="flex items-center justify-center gap-2">
+                                  <button 
+                                    onClick={() => handleStaffMailStatusChange(mail.id, "ĐÃ LÀM KÊNH")}
+                                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
+                                      mail.workStatus === "ĐÃ LÀM KÊNH" || mail.workStatus === "HOÀN THÀNH" || mail.workStatus === "ĐÃ LÀM" || mail.workStatus === "ĐÃ MỜI MAIL"
+                                        ? "bg-green-500/10 text-green-500 border-green-500/30"
+                                        : "bg-white/5 text-gray-400 border-white/10 hover:border-green-500/30 hover:text-green-500"
+                                    }`}
+                                  >
+                                    Đã làm
+                                  </button>
+                                  <button 
+                                    onClick={() => handleStaffMailStatusChange(mail.id, "CHƯA LÀM")}
+                                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
+                                      mail.workStatus === "CHƯA LÀM" || mail.workStatus === "CHƯA LÀM KÊNH" || mail.workStatus === "CHƯA MỜI MAIL" || !mail.workStatus
+                                        ? "bg-gray-500/10 text-gray-400 border-gray-500/30"
+                                        : "bg-white/5 text-gray-400 border-white/10 hover:border-gray-500/30 hover:text-gray-400"
+                                    }`}
+                                  >
+                                    Chưa làm
+                                  </button>
+                                  <button 
+                                    onClick={() => handleStaffMailStatusChange(mail.id, "LỖI")}
+                                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
+                                      mail.workStatus === "LỖI"
+                                        ? "bg-red-500/10 text-red-500 border-red-500/30"
+                                        : "bg-white/5 text-gray-400 border-white/10 hover:border-red-500/30 hover:text-red-500"
+                                    }`}
+                                  >
+                                    Lỗi
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        {mails.filter((m: any) => String(m.assigneeId) === String(user?.id)).length === 0 && (
+                          <tr><td colSpan={8} className="py-10 text-center text-gray-600 font-bold uppercase tracking-widest">Bạn chưa được gán tài khoản mail nào</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      ) : isHRManager ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <StatCard title="Nhân viên Online" value={stats.staffOnline} icon={<Users size={32} />} color="purple" subtitle="Đang làm việc" onClick={() => setSelectedViewType("STAFF")} />
@@ -382,7 +691,7 @@ export default function AdminDashboard() {
                   <div><p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Lỗi</p><h4 className="text-sm font-black text-white uppercase tracking-tighter">Die: {stats.mailDie}</h4></div>
                </div>
             </div>
-          </div>
+            </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             <motion.div className="xl:col-span-2 rounded-[32px] border border-border-custom bg-sidebar p-8 shadow-2xl relative overflow-hidden group">

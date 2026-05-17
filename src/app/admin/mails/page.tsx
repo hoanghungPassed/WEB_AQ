@@ -45,7 +45,7 @@ function MailTableContent() {
     
     const matchesChannelStatus = selectedStatus === "all" || (mail.channelStatus && mail.channelStatus.includes(selectedStatus));
     const matchesSearch = mail.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         mail.phone.includes(searchTerm);
+                         (mail.phone && mail.phone.includes(searchTerm));
     return matchesType && matchesChannelStatus && matchesSearch;
   });
 
@@ -171,19 +171,19 @@ function MailTableContent() {
                     {mail.pass}
                   </td>
                   <td 
-                    onClick={() => copyToClipboard(mail.recoveryEmail)}
+                    onClick={() => copyToClipboard(mail.recovery || "")}
                     className="px-3 py-2 text-[11px] text-gray-400 border-r border-border-custom cursor-pointer active:bg-gold/10 hover:text-white truncate"
                   >
-                    {mail.recoveryEmail}
+                    {mail.recovery}
                   </td>
                   <td 
-                    onClick={() => copyToClipboard(mail.twoFA)}
+                    onClick={() => copyToClipboard(mail.twoFA || "")}
                     className="px-3 py-2 text-[11px] text-gray-400 font-mono border-r border-border-custom cursor-pointer active:bg-gold/10 hover:text-white truncate"
                   >
                     {mail.twoFA}
                   </td>
                   <td 
-                    onClick={() => copyToClipboard(mail.phone)}
+                    onClick={() => copyToClipboard(mail.phone || "")}
                     className="px-3 py-2 text-[11px] text-gray-400 border-r border-border-custom cursor-pointer active:bg-gold/10 hover:text-white truncate"
                   >
                     {mail.phone}

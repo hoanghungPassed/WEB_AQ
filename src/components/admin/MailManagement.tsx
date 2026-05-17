@@ -23,6 +23,105 @@ import * as XLSX from "xlsx";
 import { MOCK_MAILS, MailData } from "@/data/mockData";
 import { useRouter } from "next/navigation";
 
+const ConfigChannelModal = ({ mail, onClose, onSave }: { mail: any, onClose: () => void, onSave: (links: string[], names: string[]) => void }) => {
+  const [links, setLinks] = useState<string[]>(mail.channelLinks || ["", "", ""]);
+  const [names, setNames] = useState<string[]>(mail.channelNames || ["", "", ""]);
+  const [scanning, setScanning] = useState<boolean[]>([false, false, false]);
+
+  const handleLinkChange = (idx: number, val: string) => {
+    const newLinks = [...links];
+    newLinks[idx] = val;
+    setLinks(newLinks);
+
+    if (val.trim()) {
+      const newScanning = [...scanning];
+      newScanning[idx] = true;
+      setScanning(newScanning);
+
+      const newNames = [...names];
+      newNames[idx] = "Đang quét thông tin kênh...";
+      setNames(newNames);
+
+      setTimeout(() => {
+        const finalScanning = [...scanning];
+        finalScanning[idx] = false;
+        setScanning(finalScanning);
+
+        const finalNames = [...names];
+        const mockNames = [
+          "AQ Vlogs Premium",
+          "AQ Media Official",
+          "Thế Giới Công Nghệ AQ",
+          "Ẩm Thực Ba Miền",
+          "Góc Thư Giãn Daily",
+          "Kênh Chia Sẻ Kiến Thức"
+        ];
+        finalNames[idx] = `Kênh đã xác minh: ${mockNames[Math.floor(Math.random() * mockNames.length)]} (${Math.floor(Math.random() * 80 + 10)}k Sub)`;
+        setNames(finalNames);
+      }, 1200);
+    } else {
+      const newNames = [...names];
+      newNames[idx] = "";
+      setNames(newNames);
+    }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4">
+      <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-sidebar border border-white/10 w-full max-w-xl rounded-[40px] p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)] relative overflow-hidden">
+        <div className="absolute top-0 right-0 h-96 w-96 bg-gold/5 blur-[120px] -mr-48 -mt-48" />
+
+        <div className="flex items-center gap-4 mb-8 relative z-10">
+          <div className="h-14 w-14 rounded-2xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 shadow-lg">
+            <ExternalLink size={28} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Cấu hình liên kết Kênh</h2>
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">{mail?.email}</p>
+          </div>
+        </div>
+
+        <div className="space-y-6 relative z-10">
+          {[0, 1, 2].map(idx => (
+            <div key={idx} className="space-y-2">
+              <div className="flex items-center justify-between ml-1">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Link YouTube {idx + 1}</label>
+                {names[idx] && (
+                  <span className={`text-[10px] font-black uppercase flex items-center gap-1.5 ${scanning[idx] ? 'text-gray-400 animate-pulse' : 'text-gold'}`}>
+                    {scanning[idx] && <RefreshCcw size={10} className="animate-spin text-gold" />}
+                    {names[idx]}
+                  </span>
+                )}
+              </div>
+              <div className="relative group">
+                <input 
+                  value={links[idx]} 
+                  onChange={(e) => handleLinkChange(idx, e.target.value)} 
+                  placeholder="Dán link channel YouTube..." 
+                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all" 
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mt-10 relative z-10">
+          <button onClick={onClose} className="h-14 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-xs tracking-widest transition-all">Đóng</button>
+          <button 
+            onClick={() => {
+              onSave(links, names);
+              onClose();
+            }} 
+            className="h-14 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
+          >
+            Lưu cấu hình
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 interface MailManagementProps {
   type: "ROOT" | "SATELLITE" | "MONETIZED" | "ALL";
   user: any;
@@ -32,6 +131,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const router = useRouter();
   const [mails, setMails] = useState<MailData[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
@@ -40,6 +140,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const [showManualImport, setShowManualImport] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState({ title: "", msg: "", onConfirm: () => { } });
+  const [selectedMailForConfig, setSelectedMailForConfig] = useState<any>(null);
 
   const [manualData, setManualData] = useState("");
   const itemsPerPage = 20;
@@ -89,6 +190,49 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     if (!text) return;
     navigator.clipboard.writeText(text);
     triggerToast(`Đã sao chép ${label}`);
+  };
+
+  const handleWorkStatusChange = (mailId: number, newStatus: string) => {
+    const updated = mails.map(m => {
+      if (m.id === mailId) {
+        let status = m.status;
+        if (newStatus === "ĐÃ LÀM KÊNH") {
+          status = "LIVE";
+        } else if (newStatus === "LỖI") {
+          status = "DIE";
+        }
+        return { ...m, workStatus: newStatus as any, status };
+      }
+      return m;
+    });
+    saveMails(updated);
+    window.dispatchEvent(new Event("storage"));
+    triggerToast("Đã cập nhật trạng thái công việc!");
+  };
+
+  const handleSaveChannels = (mailId: number, channelLinks: string[], channelNames: string[]) => {
+    const updated = mails.map(m => {
+      if (m.id === mailId) {
+        return {
+          ...m,
+          channelLinks,
+          channelNames,
+          channelStatus: channelNames.filter(name => name && !name.includes("Đang quét")).join(", ") || m.channelStatus
+        };
+      }
+      return m;
+    });
+    saveMails(updated);
+    window.dispatchEvent(new Event("storage"));
+    triggerToast("Đã cập nhật liên kết Kênh YouTube!");
+  };
+
+  const getStatusSelectStyle = (status: string) => {
+    const val = status || "CHƯA LÀM";
+    if (val === "CHƯA LÀM" || val === "CHƯA LÀM KÊNH" || val === "CHƯA MỜI MAIL") return "bg-gray-500/10 text-gray-400 border-gray-500/20";
+    if (val === "ĐÃ LÀM KÊNH" || val === "HOÀN THÀNH" || val === "ĐÃ LÀM" || val === "ĐÃ MỜI MAIL") return "bg-green-500/10 text-green-500 border-green-500/20";
+    if (val === "LỖI") return "bg-red-500/10 text-red-500 border-red-500/20";
+    return "bg-gray-500/10 text-gray-400 border-gray-500/20";
   };
 
   // Hàm mở Modal xác nhận xóa
@@ -244,18 +388,48 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   };
 
   const filteredMails = useMemo(() => {
+    const isStaff = user?.role === "04";
     // Lấy toàn bộ mail của loại này để tính STT gốc
     const mailsOfType = mails.filter(m => type === "ALL" || m.type === type);
     
     return mailsOfType
       .map((m, idx) => ({ ...m, originalSTT: idx + 1 })) // Gắn STT gốc
       .filter(m => {
-        const isUnassigned = !m.assigneeId;
+        if (isStaff) {
+          // Nhân viên chỉ xem mail được giao cho mình
+          if (String(m.assigneeId) !== String(user?.id)) return false;
+        } else {
+          // Admin/QL CV chỉ xem những mail chưa giao
+          if (m.assigneeId) return false;
+        }
+
         const matchesSearch = m.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
                              m.recovery.toLowerCase().includes(searchTerm.toLowerCase());
-        return isUnassigned && matchesSearch;
+        
+        let matchesStatus = true;
+        if (statusFilter !== "ALL") {
+          const val = (m.workStatus || "CHƯA LÀM") as string;
+          if (statusFilter === "CHƯA LÀM KÊNH") {
+            matchesStatus = val === "CHƯA LÀM" || val === "CHƯA LÀM KÊNH";
+          } else if (statusFilter === "ĐÃ LÀM KÊNH") {
+            matchesStatus = val === "ĐÃ LÀM KÊNH" || val === "HOÀN THÀNH" || val === "ĐÃ LÀM";
+          } else {
+            matchesStatus = val === statusFilter;
+          }
+        }
+        return matchesSearch && matchesStatus;
       });
-  }, [mails, type, searchTerm]);
+  }, [mails, type, searchTerm, user, statusFilter]);
+
+  const staffStats = useMemo(() => {
+    const myMails = mails.filter(m => String(m.assigneeId) === String(user?.id) && m.type === "SATELLITE");
+    return {
+      totalAssigned: myMails.length,
+      doneChannel: myMails.filter(m => (m.workStatus as string) === "ĐÃ LÀM KÊNH" || (m.workStatus as string) === "HOÀN THÀNH" || (m.workStatus as string) === "ĐÃ LÀM").length,
+      invitedMail: myMails.filter(m => (m.workStatus as string) === "ĐÃ MỜI MAIL").length,
+      failed: myMails.filter(m => (m.workStatus as string) === "LỖI").length,
+    };
+  }, [mails, user]);
 
   const totalPages = Math.ceil(filteredMails.length / itemsPerPage);
   const currentItems = filteredMails.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -317,9 +491,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
-
-      {/* Main UI Header */}
+      </AnimatePresence>      {/* Main UI Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-6">
           <button onClick={() => router.push("/admin")} className="flex items-center gap-2 text-gold hover:text-white font-black uppercase text-xs tracking-widest transition-all group">
@@ -346,7 +518,6 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           >
             <RefreshCcw size={14} /> Khôi phục dữ liệu gốc
           </button>
-
           {isAdminOrManager && (
             <>
               <button onClick={() => setShowManualImport(true)} className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><PlusCircle size={14} className="text-gold" /> Thêm thủ công</button>
@@ -356,6 +527,40 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           )}
         </div>
       </div>
+
+      {/* Thẻ thống kê hiệu suất cá nhân của Nhân viên (Role 04) */}
+      {user?.role === "04" && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-sidebar border border-border-custom p-6 rounded-[24px] flex items-center justify-between shadow-xl">
+            <div>
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Tổng mail được giao</p>
+              <h3 className="text-2xl font-black text-white">{staffStats.totalAssigned}</h3>
+            </div>
+            <div className="h-12 w-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20"><Mail size={24} /></div>
+          </div>
+          <div className="bg-sidebar border border-border-custom p-6 rounded-[24px] flex items-center justify-between shadow-xl">
+            <div>
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Đã làm kênh</p>
+              <h3 className="text-2xl font-black text-green-500">{staffStats.doneChannel}</h3>
+            </div>
+            <div className="h-12 w-12 rounded-xl bg-green-500/10 text-green-500 flex items-center justify-center border border-green-500/20"><CheckCircle size={24} /></div>
+          </div>
+          <div className="bg-sidebar border border-border-custom p-6 rounded-[24px] flex items-center justify-between shadow-xl">
+            <div>
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Đã mời mail</p>
+              <h3 className="text-2xl font-black text-blue-400">{staffStats.invitedMail}</h3>
+            </div>
+            <div className="h-12 w-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20"><CheckCircle size={24} /></div>
+          </div>
+          <div className="bg-sidebar border border-border-custom p-6 rounded-[24px] flex items-center justify-between shadow-xl">
+            <div>
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Lỗi (Die)</p>
+              <h3 className="text-2xl font-black text-red-500">{staffStats.failed}</h3>
+            </div>
+            <div className="h-12 w-12 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20"><AlertTriangle size={24} /></div>
+          </div>
+        </div>
+      )}
 
       {/* Table Section */}
       <div className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex flex-col">
@@ -367,6 +572,20 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               <Search size={16} className="text-gray-500" />
               <input type="text" placeholder="Tìm kiếm Email hoặc Mail KP..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none text-xs text-white w-full" />
             </div>
+            {user?.role === "04" && (
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
+              >
+                <option value="ALL" className="bg-sidebar text-white">Tất cả trạng thái</option>
+                <option value="CHƯA LÀM KÊNH" className="bg-sidebar text-white">Chưa làm kênh</option>
+                <option value="ĐÃ LÀM KÊNH" className="bg-sidebar text-white">Đã làm kênh</option>
+                <option value="CHƯA MỜI MAIL" className="bg-sidebar text-white">Chưa mời mail</option>
+                <option value="ĐÃ MỜI MAIL" className="bg-sidebar text-white">Đã mời mail</option>
+                <option value="LỖI" className="bg-sidebar text-white">Lỗi (Die)</option>
+              </select>
+            )}
             <div className="hidden md:flex items-center gap-3 px-5 py-2 bg-gold/10 border-2 border-gold/20 rounded-2xl shadow-lg shadow-gold/5 group">
               <Mail size={18} className="text-gold animate-pulse" />
               <span className="text-sm font-black text-white uppercase tracking-widest">
@@ -388,7 +607,13 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                 <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">2FA</th>
                 <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">SĐT</th>
                 <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Link SĐT</th>
-                <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Xóa</th>
+                <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Trạng thái</th>
+                {user?.role === "04" && (
+                  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Cấu hình</th>
+                )}
+                {(user?.role === "01" || user?.role === "02") && (
+                  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Xóa</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-gray-300">
@@ -404,11 +629,38 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                     {mail.otpLink ? <a href={mail.otpLink} target="_blank" className="text-blue-400 hover:text-white transition-all flex items-center gap-1 font-bold text-xs">Link OTP <ExternalLink size={12} /></a> : <span className="text-gray-700">---</span>}
                   </td>
                   <td className="py-5 px-6 text-center">
-                    <button onClick={() => deleteMail(mail.id)} className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-inner"><Trash2 size={16} /></button>
+                    <select
+                      value={mail.workStatus || "CHƯA LÀM"}
+                      onChange={(e) => handleWorkStatusChange(mail.id, e.target.value)}
+                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus)}`}
+                    >
+                      <option value="CHƯA LÀM" className="bg-sidebar text-white">Chưa làm kênh</option>
+                      <option value="ĐÃ LÀM KÊNH" className="bg-sidebar text-white">Đã làm kênh</option>
+                      <option value="CHƯA MỜI MAIL" className="bg-sidebar text-white">Chưa mời mail</option>
+                      <option value="ĐÃ MỜI MAIL" className="bg-sidebar text-white">Đã mời mail</option>
+                      <option value="LỖI" className="bg-sidebar text-white">Lỗi (Die)</option>
+                    </select>
                   </td>
+                  {user?.role === "04" && (
+                    <td className="py-5 px-6 text-center">
+                      <button 
+                        onClick={() => {
+                          setSelectedMailForConfig(mail);
+                        }}
+                        className="px-4 py-1.5 rounded-xl bg-gold/10 hover:bg-gold hover:text-sidebar text-gold border border-gold/30 text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-gold/5"
+                      >
+                        Thêm Link Kênh
+                      </button>
+                    </td>
+                  )}
+                  {(user?.role === "01" || user?.role === "02") && (
+                    <td className="py-5 px-6 text-center">
+                      <button onClick={() => deleteMail(mail.id)} className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-inner"><Trash2 size={16} /></button>
+                    </td>
+                  )}
                 </tr>
               )) : (
-                <tr><td colSpan={8} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Không có dữ liệu</td></tr>
+                <tr><td colSpan={user?.role === "04" ? 9 : (user?.role === "01" || user?.role === "02") ? 9 : 8} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Không có dữ liệu</td></tr>
               )}
             </tbody>
           </table>
@@ -422,6 +674,17 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           </div>
         </div>
       </div>
+
+      {/* YouTube Channel Config Modal */}
+      <AnimatePresence>
+        {selectedMailForConfig && (
+          <ConfigChannelModal
+            mail={selectedMailForConfig}
+            onClose={() => setSelectedMailForConfig(null)}
+            onSave={(links, names) => handleSaveChannels(selectedMailForConfig.id, links, names)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
