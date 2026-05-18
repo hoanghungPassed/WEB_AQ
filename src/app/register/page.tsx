@@ -94,15 +94,35 @@ export default function RegisterPage() {
     }
 
     setIsLoading(true);
-    // Giả lập gửi thông báo tới Admin
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    
-    const existingUsers = JSON.parse(localStorage.getItem("global_users") || "[]");
+
+    // Lấy danh sách user mới nhất từ server trước khi đăng ký để tránh ghi đè hoặc trùng lặp
+    let existingUsers: any[] = [];
+    try {
+      const res = await fetch("/api/sync");
+      if (res.ok) {
+        const serverStore = await res.json();
+        if (serverStore.global_users) {
+          existingUsers = JSON.parse(serverStore.global_users);
+          localStorage.setItem("global_users", serverStore.global_users);
+        } else {
+          existingUsers = JSON.parse(localStorage.getItem("global_users") || "[]");
+        }
+      } else {
+        existingUsers = JSON.parse(localStorage.getItem("global_users") || "[]");
+      }
+    } catch (err) {
+      console.error("Register check fetch error:", err);
+      existingUsers = JSON.parse(localStorage.getItem("global_users") || "[]");
+    }
+
     if (existingUsers.some((u: any) => u.username === formData.username)) {
       setErrors({ username: "Username đã tồn tại" });
       setIsLoading(false);
       return;
     }
+
+    // Giả lập độ trễ mạng ngắn
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
     const newUser = {
       id: Date.now().toString(),
@@ -119,7 +139,19 @@ export default function RegisterPage() {
     localStorage.setItem("global_users", JSON.stringify(existingUsers));
 
     // Tạo thông báo cho Admin
-    const notifications = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
+    let notifications = [];
+    try {
+      const res = await fetch("/api/sync");
+      if (res.ok) {
+        const serverStore = await res.json();
+        if (serverStore.admin_notifications) {
+          notifications = JSON.parse(serverStore.admin_notifications);
+        }
+      }
+    } catch (err) {
+      console.error("Register fetch notifs error:", err);
+    }
+    
     notifications.unshift({
       id: Date.now(),
       title: "Yêu cầu phê duyệt mới",
@@ -130,6 +162,20 @@ export default function RegisterPage() {
       read: false
     });
     localStorage.setItem("admin_notifications", JSON.stringify(notifications));
+
+    // Đồng bộ ngay lập tức lên server để Admin nhận được trong thời gian thực!
+    try {
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          global_users: JSON.stringify(existingUsers),
+          admin_notifications: JSON.stringify(notifications)
+        })
+      });
+    } catch (err) {
+      console.error("Register publish error:", err);
+    }
 
     setSuccess(true);
     setTimeout(() => {

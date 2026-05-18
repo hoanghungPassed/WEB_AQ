@@ -12,6 +12,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { StaffData } from "@/types/admin";
 import { MOCK_STAFF } from "@/data/mockData";
 
+const getStableDateString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function StaffManagementPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -31,24 +39,40 @@ export default function StaffManagementPage() {
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
 
+  const isRestricted = useMemo(() => {
+    const curRoleUpper = String(currentUser?.role || "").toUpperCase();
+    return curRoleUpper === "03" || 
+           curRoleUpper === "04" || 
+           curRoleUpper === "QL NHÂN SỰ" || 
+           curRoleUpper === "QUẢN LÝ NHÂN SỰ" || 
+           curRoleUpper === "NHÂN VIÊN";
+  }, [currentUser]);
+
+  const isAdminOrWorkManager = useMemo(() => {
+    const curRoleUpper = String(currentUser?.role || "").toUpperCase();
+    return curRoleUpper === "01" || 
+           curRoleUpper === "ADMIN" || 
+           curRoleUpper === "02" || 
+           curRoleUpper === "QL CÔNG VIỆC" || 
+           curRoleUpper === "QUẢN LÝ CÔNG VIỆC";
+  }, [currentUser]);
+
   // Handle tab from URL
   useEffect(() => {
     const tab = searchParams.get("tab");
-    const isRestricted = currentUser?.role === "03" || currentUser?.role === "04";
     if (tab === "pending" && !isRestricted) {
       setActiveTab("PENDING");
     }
-  }, [searchParams, currentUser]);
+  }, [searchParams, isRestricted]);
 
   // Force active tab to ACTIVE if restricted role tries to view PENDING
   useEffect(() => {
     if (currentUser) {
-      const isRestricted = currentUser.role === "03" || currentUser.role === "04";
       if (isRestricted && activeTab === "PENDING") {
         setActiveTab("ACTIVE");
       }
     }
-  }, [currentUser, activeTab]);
+  }, [currentUser, isRestricted, activeTab]);
 
   // Initialize data from localStorage
   useEffect(() => {
@@ -59,20 +83,23 @@ export default function StaffManagementPage() {
 
     syncUser();
 
-    const stored = localStorage.getItem("global_users");
-    let initialList: StaffData[] = [];
-    if (stored) {
-      initialList = JSON.parse(stored);
-    } else {
-      initialList = MOCK_STAFF;
-      localStorage.setItem("global_users", JSON.stringify(MOCK_STAFF));
-    }
-    
-    // Deduplicate by ID to prevent "duplicate key" errors
-    const uniqueList = initialList.filter((item, index, self) =>
-      index === self.findIndex((t) => t.id === item.id)
-    );
-    setStaffList(uniqueList);
+    const reloadStaffList = () => {
+      const stored = localStorage.getItem("global_users");
+      if (stored) {
+        const parsed: StaffData[] = JSON.parse(stored);
+        const unique = parsed.filter((item, index, self) =>
+          index === self.findIndex((t) => t.id === item.id)
+        );
+        // Chỉ cập nhật nếu thực sự có thay đổi (tránh loop vô tận với useEffect save)
+        setStaffList(prev => {
+          const prevStr = JSON.stringify(prev);
+          const nextStr = JSON.stringify(unique);
+          return prevStr === nextStr ? prev : unique;
+        });
+      }
+    };
+
+    reloadStaffList();
 
     const loadAccessRequests = () => {
       const saved = localStorage.getItem("pending_access_requests");
@@ -81,26 +108,29 @@ export default function StaffManagementPage() {
 
     loadAccessRequests();
 
-    // Listen for user updates from layout
-    window.addEventListener("storage", (e) => {
+    // Listen for updates from layout (sync từ server)
+    const handleStorage = () => {
       syncUser();
-      if (!e.key || e.key === "pending_access_requests" || e.key === "request_trigger") {
-        loadAccessRequests();
-      }
-    });
-    const accessInterval = setInterval(loadAccessRequests, 3000);
+      reloadStaffList();
+      loadAccessRequests();
+    };
+
+    window.addEventListener("storage", handleStorage);
+    // Poll định kỳ để bắt kịp user mới đăng ký sau khi reset
+    const pollInterval = setInterval(() => {
+      reloadStaffList();
+      loadAccessRequests();
+    }, 3000);
+
     return () => {
-      window.removeEventListener("storage", syncUser);
-      clearInterval(accessInterval);
+      window.removeEventListener("storage", handleStorage);
+      clearInterval(pollInterval);
     };
   }, []);
 
-  // Save to localStorage whenever staffList changes
-  useEffect(() => {
-    if (staffList.length > 0) {
-      localStorage.setItem("global_users", JSON.stringify(staffList));
-    }
-  }, [staffList]);
+  // NOTE: Không có auto-save useEffect ở đây để tránh ghi đè data mới từ server.
+  // Tất cả các hàm mutation (handleApproveUser, handleToggleStatus...) đã tự gọi
+  // localStorage.setItem và pushToServer() một cách tường minh.
 
   // Stats calculation
   const stats = useMemo(() => {
@@ -162,6 +192,18 @@ export default function StaffManagementPage() {
     setModalConfig({ isOpen: true, type: "CONFIRM", title, message, onConfirm });
   };
 
+  const pushToServer = async (data: Record<string, string>) => {
+    try {
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+    } catch (err) {
+      console.error("Staff page sync error:", err);
+    }
+  };
+
   const handleToggleStatus = (id: string) => {
     if (currentUser?.id === id) {
       showAlert("Thông báo hệ thống", "Bạn không thể tự khóa tài khoản của chính mình!");
@@ -178,6 +220,7 @@ export default function StaffManagementPage() {
 
     localStorage.setItem("global_users", JSON.stringify(updatedStaffList));
     setStaffList(updatedStaffList);
+    pushToServer({ global_users: JSON.stringify(updatedStaffList) });
 
     const updatedStaff = updatedStaffList.find(s => s.id === id);
     if (updatedStaff && selectedStaff?.id === id) {
@@ -205,7 +248,8 @@ export default function StaffManagementPage() {
       type: "ROLE_UPDATE"
     };
     const existingNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
-    localStorage.setItem("admin_notifications", JSON.stringify([newNotif, ...existingNotifs]));
+    const updatedNotifs = [newNotif, ...existingNotifs];
+    localStorage.setItem("admin_notifications", JSON.stringify(updatedNotifs));
     
     const updatedStaffList: StaffData[] = staffList.map(s => {
       if (s.id === id) {
@@ -217,7 +261,12 @@ export default function StaffManagementPage() {
     localStorage.setItem("global_users", JSON.stringify(updatedStaffList));
     setStaffList(updatedStaffList);
 
-    // Trigger storage event
+    // Đồng bộ lên server ngay lập tức
+    pushToServer({
+      global_users: JSON.stringify(updatedStaffList),
+      admin_notifications: JSON.stringify(updatedNotifs)
+    });
+
     window.dispatchEvent(new Event("storage"));
 
     if (selectedStaff?.id === id) {
@@ -234,6 +283,10 @@ export default function StaffManagementPage() {
     });
     localStorage.setItem("global_users", JSON.stringify(updatedStaffList));
     setStaffList(updatedStaffList);
+    
+    // ĐẨY LÊN SERVER NGAY LẬP TỨC để nhân viên đăng nhập thấy status ACTIVE!
+    pushToServer({ global_users: JSON.stringify(updatedStaffList) });
+    
     window.dispatchEvent(new Event("storage"));
   };
 
@@ -243,6 +296,7 @@ export default function StaffManagementPage() {
       localStorage.setItem("global_users", JSON.stringify(updatedStaffList));
       setStaffList(updatedStaffList);
       setSelectedStaff(null);
+      pushToServer({ global_users: JSON.stringify(updatedStaffList) });
       window.dispatchEvent(new Event("storage"));
     });
   };
@@ -252,6 +306,10 @@ export default function StaffManagementPage() {
     setAccessRequests(updated);
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     localStorage.setItem(`access_response_${name}`, "DENIED");
+    pushToServer({
+      pending_access_requests: JSON.stringify(updated),
+      [`access_response_${name}`]: "DENIED"
+    });
     setToastMsg(`Đã từ chối truy cập cho ${name}`);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
@@ -262,7 +320,12 @@ export default function StaffManagementPage() {
     setAccessRequests(updated);
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     localStorage.setItem(`access_response_${name}`, "APPROVED");
-    localStorage.setItem(`access_${new Date().toLocaleDateString()}_${name}`, "true");
+    localStorage.setItem(`access_${getStableDateString()}_${name}`, "true");
+    pushToServer({
+      pending_access_requests: JSON.stringify(updated),
+      [`access_response_${name}`]: "APPROVED",
+      [`access_${getStableDateString()}_${name}`]: "true"
+    });
     setToastMsg(`Đã cấp quyền truy cập cho ${name}`);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
@@ -298,7 +361,7 @@ export default function StaffManagementPage() {
             >
               <Users size={18} /> Nhân viên ({stats.total})
             </button>
-            {!(currentUser?.role === "03" || currentUser?.role === "04") && (
+            {!isRestricted && (
               <div className="flex items-center gap-2 p-1 bg-white/5 rounded-[24px] border border-white/5 shadow-inner">
                 <button 
                   onClick={() => { setActiveTab("PENDING"); setPendingSubTab("ACCOUNTS"); }}
@@ -321,7 +384,7 @@ export default function StaffManagementPage() {
           <StatCard title="Tổng nhân viên" value={stats.total} icon={<Users className="text-blue-400" />} color="blue" />
           <StatCard title="Đang Online" value={stats.online} icon={<Activity className="text-green-400" />} color="green" />
           <StatCard title="Offline" value={stats.offline} icon={<Clock className="text-gray-400" />} color="gray" />
-          {!(currentUser?.role === "03" || currentUser?.role === "04") && (
+          {!isRestricted && (
             <StatCard title="Chờ phê duyệt" value={stats.pending} icon={<AlertCircle className="text-gold" />} color="gold" />
           )}
         </div>
@@ -384,10 +447,10 @@ export default function StaffManagementPage() {
                 <th className="px-8 py-8 whitespace-nowrap">{activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "Thời gian" : "Liên hệ"}</th>
                 <th className="px-8 py-8 whitespace-nowrap">{activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "Lý do" : "Chi tiết"}</th>
                 <th className="px-8 py-8 whitespace-nowrap">{activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "Duyệt nhanh" : (activeTab === "ACTIVE" ? "Role" : "Cấp quyền")}</th>
-                {activeTab === "ACTIVE" && !(currentUser?.role === "03" || currentUser?.role === "04") && (
+                {activeTab === "ACTIVE" && !isRestricted && (
                   <th className="px-8 py-8 whitespace-nowrap">Trạng thái</th>
                 )}
-                {activeTab === "PENDING" && !(currentUser?.role === "03" || currentUser?.role === "04") && pendingSubTab === "ACCOUNTS" && (
+                {activeTab === "PENDING" && !isRestricted && pendingSubTab === "ACCOUNTS" && (
                   <th className="px-8 py-8 whitespace-nowrap">Hành động</th>
                 )}
                 {activeTab === "ACTIVE" && <th className="px-8 py-8 text-center whitespace-nowrap">Online</th>}
@@ -492,7 +555,7 @@ export default function StaffManagementPage() {
                       </span>
                     ) : (
                       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                        {!(currentUser?.role === "03" || currentUser?.role === "04") ? (
+                        {!isRestricted ? (
                           <select 
                             id={`role-assign-${staff.id}`}
                             className="h-10 px-4 rounded-xl bg-black/20 border border-white/10 text-[10px] font-black text-white uppercase outline-none focus:border-gold/50 cursor-pointer"
@@ -508,7 +571,7 @@ export default function StaffManagementPage() {
                       </div>
                     )}
                   </td>
-                  {!(currentUser?.role === "03" || currentUser?.role === "04") && (
+                  {!isRestricted && (
                     <td className="px-8 py-7">
                       {activeTab === "ACTIVE" ? (
                         <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase border whitespace-nowrap ${
@@ -650,7 +713,7 @@ export default function StaffManagementPage() {
                           ))}
                         </div>
                       </div>
-                    ) : (currentUser?.role === "01" || currentUser?.role === "02") && selectedStaff.id !== currentUser?.id && (
+                    ) : isAdminOrWorkManager && selectedStaff.id !== currentUser?.id && (
                       <div className="grid grid-cols-2 gap-4 w-full">
                         {/* Hàng trên: Lưu & Reset */}
                         <button 

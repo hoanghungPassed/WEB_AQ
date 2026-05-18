@@ -21,7 +21,8 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user }: HeaderProps) => 
   useEffect(() => {
     const loadNotifs = () => {
       const stored = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
-      const isAuthorizedManager = user?.role === "01" || user?.role === "02" || user?.role === "ADMIN";
+      const roleUpper = String(user?.role || "").toUpperCase();
+      const isAuthorizedManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
       let accessNotifs: any[] = [];
       if (isAuthorizedManager) {
         const accessReqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
@@ -55,7 +56,8 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user }: HeaderProps) => 
   const filteredNotifications = notifications.filter(n => {
     // Chỉ Admin và QL Công việc được nhận thông báo duyệt đăng ký tài khoản
     if (n.type === "REGISTRATION") {
-      return user?.role === "01" || user?.role === "02" || user?.role === "ADMIN";
+      const roleUpper = String(user?.role || "").toUpperCase();
+      return roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
     }
     return !n.targetUsername || n.targetUsername?.toLowerCase() === user?.username?.toLowerCase();
   });
@@ -84,10 +86,11 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user }: HeaderProps) => 
   };
 
   const getRoleLabel = (role?: string) => {
-    if (role === "01") return "ADMIN";
-    if (role === "02") return "QL CÔNG VIỆC";
-    if (role === "03") return "QL NHÂN SỰ";
-    if (role === "04") return "NHÂN VIÊN";
+    const r = String(role || "").toUpperCase();
+    if (r === "01" || r === "ADMIN") return "ADMIN";
+    if (r === "02" || r === "QL CÔNG VIỆC" || r === "QUẢN LÝ CÔNG VIỆC") return "QL CÔNG VIỆC";
+    if (r === "03" || r === "QL NHÂN SỰ" || r === "QUẢN LÝ NHÂN SỰ") return "QL NHÂN SỰ";
+    if (r === "04" || r === "NHÂN VIÊN") return "NHÂN VIÊN";
     return "GUEST";
   };
 

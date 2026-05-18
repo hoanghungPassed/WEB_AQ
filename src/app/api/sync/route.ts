@@ -21,3 +21,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: String(err) }, { status: 500 });
   }
 }
+
+export async function DELETE() {
+  // Xóa toàn bộ server store để reset về trạng thái ban đầu
+  for (const key of Object.keys(globalStore)) {
+    delete globalStore[key];
+  }
+  return NextResponse.json({ success: true, message: "Server store cleared" });
+}

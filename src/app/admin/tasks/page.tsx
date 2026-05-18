@@ -40,7 +40,12 @@ const UnifiedMailDetailModal = ({
   onClose: () => void; 
   onSave: (updatedFields: any) => void; 
 }) => {
-  const isAdminOrManager = user?.role === "01" || user?.role === "02" || user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC";
+  const roleUpper = String(user?.role || "").toUpperCase();
+  const isAdminOrManager = roleUpper === "01" || 
+                           roleUpper === "ADMIN" || 
+                           roleUpper === "02" || 
+                           roleUpper === "QL CÔNG VIỆC" || 
+                           roleUpper === "QUẢN LÝ CÔNG VIỆC";
 
   // State for ROOT
   const [cccdDate, setCccdDate] = useState(mail.cccdDate || "");
@@ -402,7 +407,12 @@ export default function TaskManagementPage() {
     };
   }, [loadData]);
 
-  const isAdminOrManager = user?.role === "01" || user?.role === "02";
+  const roleUpper = String(user?.role || "").toUpperCase();
+  const isAdminOrManager = roleUpper === "01" || 
+                           roleUpper === "ADMIN" || 
+                           roleUpper === "02" || 
+                           roleUpper === "QL CÔNG VIỆC" || 
+                           roleUpper === "QUẢN LÝ CÔNG VIỆC";
 
   const inventory = useMemo(() => {
     return {

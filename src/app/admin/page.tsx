@@ -375,6 +375,23 @@ export default function AdminDashboard() {
   const totalPages = Math.ceil(filteredMails.length / itemsPerPage);
   const currentItems = filteredMails.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  const filteredTasks = useMemo(() => {
+    if (selectedViewType !== "TASKS" || !isAdminOrManager) return [];
+    return tasksList.filter(t => {
+      const titleMatch = t.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const noteMatch = t.note ? t.note.toLowerCase().includes(searchQuery.toLowerCase()) : false;
+      const staffName = (() => {
+        const assignee = staffList.find(s => String(s.id) === String(t.assigneeId));
+        return assignee ? assignee.name.toLowerCase() : "chưa giao";
+      })();
+      const staffMatch = staffName.includes(searchQuery.toLowerCase());
+      return titleMatch || noteMatch || staffMatch;
+    });
+  }, [selectedViewType, tasksList, searchQuery, isAdminOrManager, staffList]);
+
+  const totalTasksPages = Math.ceil(filteredTasks.length / itemsPerPage);
+  const currentTasksItems = filteredTasks.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   const getChannelStatusColor = (status: string) => {
     if (!status) return "bg-gray-500/10 text-gray-400 border-gray-500/20";
     const lower = status.toLowerCase();
@@ -468,6 +485,61 @@ export default function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
+            ) : selectedViewType === "TASKS" && isAdminOrManager ? (
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
+                  <tr>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Tiêu đề</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Loại công việc</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Nhân sự được giao</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Số lượng mail</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Tiến độ</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Trạng thái</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Hạn chót</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-gray-300">
+                  {currentTasksItems.map((task: any, index: number) => {
+                    const assignee = staffList.find(s => String(s.id) === String(task.assigneeId));
+                    const taskTypeLabel = task.type === "MAIL_GOC" ? "Mail Gốc" : (task.type === "MAIL_VE_TINH" ? "Mail Vệ Tinh" : "Mail BKT");
+                    return (
+                      <tr key={`task-row-${task.id}`} className="hover:bg-white/[0.02] transition-colors group">
+                        <td className="py-4 px-6 text-[10px] font-black text-gray-500">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                        <td className="py-4 px-6 text-sm font-bold text-white">
+                          <div>
+                            <span className="block">{task.title}</span>
+                            {task.note && <span className="text-[10px] text-gray-500 block font-normal whitespace-pre-wrap">{task.note}</span>}
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gold">{taskTypeLabel}</td>
+                        <td className="py-4 px-6 text-xs text-gray-400 font-bold">{assignee ? assignee.name : "Chưa giao"}</td>
+                        <td className="py-4 px-6 text-xs text-gray-400 font-bold">{task.mailCount || 0} Mail</td>
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                              <div className="h-full bg-gold" style={{ width: `${task.progress || 0}%` }} />
+                            </div>
+                            <span className="text-[10px] font-black text-gold">{task.progress || 0}%</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${
+                            task.status === "COMPLETED" 
+                              ? "bg-green-500/10 text-green-500 border-green-500/20" 
+                              : task.status === "IN_PROGRESS"
+                              ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                              : "bg-gray-500/10 text-gray-400 border-gray-500/20"
+                          }`}>
+                            {task.status === "COMPLETED" ? "Hoàn thành" : task.status === "IN_PROGRESS" ? "Đang xử lý" : "Chưa làm"}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-xs text-gray-500 font-bold">{task.deadline || "---"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             ) : (
               <table className="w-full text-left text-sm whitespace-nowrap">
                 <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
@@ -511,10 +583,10 @@ export default function AdminDashboard() {
           
           {selectedViewType !== "STAFF" && (
             <div className="p-6 border-t border-white/5 bg-black/20 flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-white font-black">{currentPage}</span> / {totalPages || 1}</span>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-white font-black">{currentPage}</span> / {selectedViewType === "TASKS" && isAdminOrManager ? totalTasksPages || 1 : totalPages || 1}</span>
               <div className="flex gap-2">
                 <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
-                <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
+                <button disabled={currentPage >= (selectedViewType === "TASKS" && isAdminOrManager ? totalTasksPages : totalPages)} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
               </div>
             </div>
           )}
@@ -839,7 +911,7 @@ export default function AdminDashboard() {
                           .map((mail: any, index: number) => (
                             <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
                               <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
-                              <td className="py-4 px-6 text-[10px] font-black text-gold/80">{mail.originalSTT || mail.id}</td>
+                              <td className="py-4 px-6 text-[10px] font-black text-gold/80">{mail.satelliteIndex || mail.originalSTT || mail.id}</td>
                               <td className="py-4 px-6 font-bold text-white cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
                               <td className="py-4 px-6 text-xs text-gray-400 cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.recovery, "Mail KP")}>{mail.recovery}</td>
                               <td className="py-4 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.pass, "Mật khẩu")}>{mail.pass}</td>

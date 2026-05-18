@@ -36,7 +36,12 @@ const UnifiedMailDetailModal = ({
   onClose: () => void;
   onSave: (updatedFields: any) => void;
 }) => {
-  const isAdminOrManager = user?.role === "01" || user?.role === "02" || user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC";
+  const roleUpper = String(user?.role || "").toUpperCase();
+  const isAdminOrManager = roleUpper === "01" || 
+                           roleUpper === "ADMIN" || 
+                           roleUpper === "02" || 
+                           roleUpper === "QL CÔNG VIỆC" || 
+                           roleUpper === "QUẢN LÝ CÔNG VIỆC";
 
   // State for ROOT
   const [cccdDate, setCccdDate] = useState(mail.cccdDate || "");
@@ -283,8 +288,17 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const [manualData, setManualData] = useState("");
   const itemsPerPage = 20;
 
-  const isStaff = user?.role === "04" || user?.role === "NHÂN VIÊN" || user?.role === "03" || user?.role === "QL NHÂN SỰ";
-  const isAdminOrManager = user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC" || user?.role === "01" || user?.role === "02";
+  const roleUpper = String(user?.role || "").toUpperCase();
+  const isStaff = roleUpper === "04" || 
+                  roleUpper === "NHÂN VIÊN" || 
+                  roleUpper === "03" || 
+                  roleUpper === "QL NHÂN SỰ" || 
+                  roleUpper === "QUẢN LÝ NHÂN SỰ";
+  const isAdminOrManager = roleUpper === "01" || 
+                           roleUpper === "ADMIN" || 
+                           roleUpper === "02" || 
+                           roleUpper === "QL CÔNG VIỆC" || 
+                           roleUpper === "QUẢN LÝ CÔNG VIỆC";
 
   useEffect(() => {
     const loadData = () => {
@@ -483,7 +497,12 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     const mailsOfType = mails.filter(m => type === "ALL" || m.type === type);
 
     return mailsOfType
-      .map((m, idx) => ({ ...m, originalSTT: idx + 1 }))
+      .map((m: any) => ({ 
+        ...m, 
+        // Với mail vệ tinh: dùng satelliteIndex (1-500) làm STT gốc hiển thị cho nhân viên
+        // Với mail khác: dùng m.id
+        originalSTT: m.type === "SATELLITE" && m.satelliteIndex ? m.satelliteIndex : m.id 
+      }))
       .filter(m => {
         if (isStaff && type === "SATELLITE") {
           if (String(m.assigneeId) !== String(user?.id)) return false;
@@ -529,7 +548,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
         return matchesSearch && matchesStatus && matchesDate && matchesAssignment;
       });
-  }, [mails, type, searchTerm, user, statusFilter, dateFilter, assignmentFilter]);
+  }, [mails, type, searchTerm, user, statusFilter, dateFilter, assignmentFilter, selectedBatch, isStaff, isAdminOrManager]);
 
   const staffStats = useMemo(() => {
     const myMails = mails.filter(m => String(m.assigneeId) === String(user?.id) && m.type === "SATELLITE");
@@ -540,8 +559,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     };
   }, [mails, user]);
 
-  const totalPages = Math.ceil(filteredMails.length / itemsPerPage);
-  const currentItems = filteredMails.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = isStaff && type === "SATELLITE" ? 1 : Math.ceil(filteredMails.length / itemsPerPage);
+  const currentItems = isStaff && type === "SATELLITE" ? filteredMails : filteredMails.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const staffBatches = useMemo(() => {
     if (!isStaff || type !== "SATELLITE") return [];
@@ -890,13 +909,15 @@ export default function MailManagement({ type, user }: MailManagementProps) {
             </div>
           </div>
 
-          <div className="p-6 border-t border-white/5 bg-black/20 flex items-center justify-between">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-white font-black">{currentPage}</span> / {totalPages || 1}</span>
-            <div className="flex gap-2">
-              <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
-              <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
+          {!(isStaff && type === "SATELLITE") && (
+            <div className="p-6 border-t border-white/5 bg-black/20 flex items-center justify-between">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-white font-black">{currentPage}</span> / {totalPages || 1}</span>
+              <div className="flex gap-2">
+                <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
+                <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

@@ -21,21 +21,50 @@ export default function AccessLock({ message, userName, onSendRequest, onLogout 
     return () => clearInterval(timer);
   }, []);
 
-  // Kiểm tra phản hồi từ quản lý
+  // Kiểm tra phản hồi từ quản lý - kéo từ cả localStorage lẫn server
   useEffect(() => {
     if (!requestSent) return;
 
-    const checkInterval = setInterval(() => {
-      const response = localStorage.getItem(`access_response_${userName}`);
-      if (response === "APPROVED") {
+    const checkApproval = async () => {
+      // 1. Kiểm tra localStorage (cùng tab hoặc đã được sync về)
+      const localResponse = localStorage.getItem(`access_response_${userName}`);
+      if (localResponse === "APPROVED") {
         setStatus("APPROVED");
-        clearInterval(checkInterval);
-        // Không cần reload, AdminLayout sẽ tự động ẩn AccessLock khi isAccessGranted = true
-      } else if (response === "DENIED") {
+        return true;
+      } else if (localResponse === "DENIED") {
         setStatus("DENIED");
-        clearInterval(checkInterval);
+        return true;
       }
-    }, 2000);
+
+      // 2. Nếu chưa có trong localStorage, fetch thẳng từ server (cho tab ẩn danh)
+      try {
+        const res = await fetch("/api/sync");
+        if (res.ok) {
+          const serverStore = await res.json();
+          const serverResponse = serverStore[`access_response_${userName}`];
+          if (serverResponse === "APPROVED") {
+            localStorage.setItem(`access_response_${userName}`, "APPROVED");
+            setStatus("APPROVED");
+            return true;
+          } else if (serverResponse === "DENIED") {
+            localStorage.setItem(`access_response_${userName}`, "DENIED");
+            setStatus("DENIED");
+            return true;
+          }
+        }
+      } catch (err) {
+        console.error("AccessLock server check error:", err);
+      }
+      return false;
+    };
+
+    const checkInterval = setInterval(async () => {
+      const done = await checkApproval();
+      if (done) clearInterval(checkInterval);
+    }, 1000);
+
+    // Kiểm tra ngay lập tức
+    checkApproval();
 
     return () => clearInterval(checkInterval);
   }, [requestSent, userName]);

@@ -9,8 +9,32 @@ import { StaffData } from "@/types/admin";
 import { MOCK_STAFF, initMockDB } from "@/data/mockData";
 
 function LoginForm() {
+  const syncDatabaseFromServer = async () => {
+    try {
+      const res = await fetch("/api/sync");
+      if (res.ok) {
+        const serverStore = await res.json();
+        if (serverStore.global_users) {
+          localStorage.setItem("global_users", serverStore.global_users);
+        }
+        if (serverStore.global_mails_data) {
+          localStorage.setItem("global_mails_data", serverStore.global_mails_data);
+        }
+        if (serverStore.global_tasks_data) {
+          localStorage.setItem("global_tasks_data", serverStore.global_tasks_data);
+        }
+      }
+    } catch (err) {
+      console.error("Login page sync error:", err);
+    }
+  };
+
   useEffect(() => {
-    initMockDB();
+    // Thứ tự quan trọng: SYNC SERVER TRƯỚC để lấy data mới nhất, 
+    // sau đó initMockDB chỉ điền những gì còn thiếu
+    syncDatabaseFromServer().then(() => {
+      initMockDB();
+    });
   }, []);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -34,10 +58,13 @@ function LoginForm() {
     setMessage("");
     setIsLoading(true);
 
-    // Giả lập độ trễ mạng
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    // Đồng bộ lại database trước khi kiểm tra đăng nhập để nhận trạng thái phê duyệt mới nhất từ Admin!
+    await syncDatabaseFromServer();
 
-    // Lấy dữ liệu từ localStorage (đã được initMockDB xử lý)
+    // Giả lập độ trễ mạng ngắn
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    // Lấy dữ liệu từ localStorage (đã được đồng bộ với server)
     const allUsers: StaffData[] = JSON.parse(localStorage.getItem("global_users") || "[]");
 
     const user = allUsers.find(
@@ -65,6 +92,19 @@ function LoginForm() {
         return u;
       });
       localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+
+      // Đồng bộ trạng thái online lên server
+      try {
+        await fetch("/api/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            global_users: JSON.stringify(updatedUsers)
+          })
+        });
+      } catch (err) {
+        console.error("Login online status sync error:", err);
+      }
 
       // Lưu session giả lập với isOnline = true
       const onlineUser = { ...user, isOnline: true, lastActive: "Vừa xong" };

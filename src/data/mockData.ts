@@ -78,14 +78,13 @@ export interface MailData {
   channelStatusDetail?: string;
 }
 
-// Generate a global pool of 340 unassigned satellite mails (20 sets of 17 mails)
+// Generate a global pool of 500 unassigned satellite mails (each set is 17 mails)
 const generateSatelliteMails = () => {
   const list: MailData[] = [];
-  let globalId = 101;
 
-  for (let mIdx = 1; mIdx <= 340; mIdx++) {
+  for (let mIdx = 1; mIdx <= 500; mIdx++) {
     list.push({
-      id: globalId++,
+      id: mIdx + 1000,  // ID duy nhất (1001-1500), không trùng với mail gốc (1-500)
       email: `sat.user.${mIdx}@aqmedia.vn`,
       pass: "pass123",
       recovery: `rec.sat.user.${mIdx}@gmail.com`,
@@ -93,22 +92,24 @@ const generateSatelliteMails = () => {
       status: "LIVE" as const,
       workStatus: "Chưa làm",
       channelStatus: "",
-      twoFA: `2FA_SAT_${globalId}`,
-      phone: `0900222${String(globalId % 1000).padStart(3, '0')}`,
-      otpLink: `https://otp.aqmedia.vn/sat/${globalId}`,
+      twoFA: `2FA_SAT_${mIdx}`,
+      phone: `0900222${String(mIdx).padStart(3, '0')}`,
+      otpLink: `https://otp.aqmedia.vn/sat/${mIdx}`,
       links: [],
       createdAt: "2024-05-11",
-      assigneeId: "", // Initially unassigned
-      assignedTo: "", // Initially unassigned
-      batchName: ""   // Initially unassigned
-    });
+      assigneeId: "",
+      assignedTo: "",
+      batchName: "",
+      satelliteIndex: mIdx  // STT gốc trong kho vệ tinh (1-500), dùng để hiển thị cho nhân viên
+    } as any);
   }
   return list;
 };
 
+
 export const MOCK_MAILS: MailData[] = [
-  // 100 Mail Gốc
-  ...Array.from({ length: 100 }, (_, i) => ({
+  // 500 Mail Gốc
+  ...Array.from({ length: 500 }, (_, i) => ({
     id: i + 1,
     email: `root.user${i + 1}@aqmedia.vn`,
     pass: "pass123",
@@ -123,10 +124,10 @@ export const MOCK_MAILS: MailData[] = [
     links: [],
     createdAt: "2024-05-10"
   })),
-  // 102 Mail vệ tinh cho mỗi nhân sự 03, 04 (chia thành 6 lô, 17 mail mỗi lô)
+  // 500 Mail vệ tinh cho mỗi nhân sự 03, 04
   ...generateSatelliteMails(),
-  // 100 Mail Bật Kiếm Tiền
-  ...Array.from({ length: 100 }, (_, i) => ({
+  // 500 Mail Bật Kiếm Tiền
+  ...Array.from({ length: 500 }, (_, i) => ({
     id: i + 2000,
     email: `mon.user${i + 1}@aqmedia.vn`,
     pass: "pass123",
@@ -145,12 +146,12 @@ export const MOCK_MAILS: MailData[] = [
 
 // 5. THỐNG KÊ DASHBOARD
 export const MOCK_DASHBOARD_STATS = {
-  totalMail: 1118,
-  mailLive: 1118,
+  totalMail: 1500,
+  mailLive: 1500,
   mailDie: 0,
-  mailRoot: 100,
-  mailSatellite: 918,
-  mailMonetized: 100,
+  mailRoot: 500,
+  mailSatellite: 500,
+  mailMonetized: 500,
   tasksToday: 4,
   staffOnline: 11,
   mailWatchHours: 15
@@ -171,13 +172,55 @@ export const initMockDB = () => {
     const storedMails = localStorage.getItem("global_mails_data");
     const currentMails = storedMails ? JSON.parse(storedMails) : [];
     
-    // Khởi tạo danh sách user nếu chưa có
-    if (!localStorage.getItem("global_users")) {
+    const storedUsers = localStorage.getItem("global_users");
+
+    // CHỈ seed nếu localStorage HOÀN TOÀN trống (lần đầu mở trình duyệt)
+    // KHÔNG BAO GIỜ overwrite dữ liệu đã có để tránh xóa trạng thái đã duyệt!
+    if (!storedUsers) {
       localStorage.setItem("global_users", JSON.stringify(MOCK_STAFF));
+    } else {
+      // Chỉ merge thêm các tài khoản staff1-8 còn thiếu, KHÔNG xóa tài khoản hiện có
+      const currentUsers = JSON.parse(storedUsers);
+      const staffAccounts = MOCK_STAFF.filter(s => s.username.startsWith("staff") || ["01","02","03"].includes(s.username));
+      let changed = false;
+      let merged = [...currentUsers];
+      for (const staffUser of staffAccounts) {
+        const exists = merged.some((u: any) => u.username === staffUser.username);
+        if (!exists) {
+          merged.push(staffUser);
+          changed = true;
+        }
+      }
+      if (changed) {
+        localStorage.setItem("global_users", JSON.stringify(merged));
+      }
     }
 
-    if (!storedMails || currentMails.length < 300) {
-      localStorage.setItem("global_mails_data", JSON.stringify(MOCK_MAILS));
+    // Kiểm tra xem data vệ tinh có field satelliteIndex chưa (migration check)
+    const firstSatellite = currentMails.find((m: any) => m.type === "SATELLITE");
+    const needsMigration = firstSatellite && !("satelliteIndex" in firstSatellite);
+
+    if (!storedMails || currentMails.length < 1500 || needsMigration) {
+      // Nếu đã có assignment data, phải giữ lại sau khi reseed
+      const existingAssignments: Record<number, any> = {};
+      currentMails.forEach((m: any) => {
+        if (m.type === "SATELLITE" && (m.assigneeId || m.batchName)) {
+          // Tìm index tương ứng: mail cũ có id=1001+idx, new id=1001+idx vẫn vậy
+          existingAssignments[m.id] = {
+            assigneeId: m.assigneeId,
+            assignedTo: m.assignedTo,
+            batchName: m.batchName,
+            workStatus: m.workStatus,
+          };
+        }
+      });
+
+      const freshMails = MOCK_MAILS.map((m: any) => {
+        const saved = existingAssignments[m.id];
+        return saved ? { ...m, ...saved } : m;
+      });
+
+      localStorage.setItem("global_mails_data", JSON.stringify(freshMails));
       localStorage.setItem("global_tasks_data", JSON.stringify(MOCK_TASK_ASSIGNMENTS));
       localStorage.setItem("global_kpi_data", JSON.stringify(MOCK_KPI_DATA));
     }

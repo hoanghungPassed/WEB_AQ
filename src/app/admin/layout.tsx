@@ -12,6 +12,14 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const lastSyncedCache: Record<string, string | null> = {};
 
+const getStableDateString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function AdminLayout({
   children,
 }: {
@@ -59,6 +67,91 @@ export default function AdminLayout({
   const [lastNotifCount, setLastNotifCount] = useState(0);
   const [isNotifInitialized, setIsNotifInitialized] = useState(false);
 
+  const syncDatabase = React.useCallback(async () => {
+    try {
+      const standardKeys = [
+        "global_users",
+        "global_mails_data",
+        "global_tasks_data",
+        "global_kpi_data",
+        "admin_notifications",
+        "realtime_toast",
+        "pending_access_requests"
+      ];
+
+      // Quét các key truy cập ngoài giờ hiện có trong localStorage để đồng bộ
+      const localAccessKeys: string[] = [];
+      if (typeof window !== "undefined") {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith("access_") || key.startsWith("access_response_"))) {
+            localAccessKeys.push(key);
+          }
+        }
+      }
+
+      const res = await fetch("/api/sync");
+      if (!res.ok) return;
+      const serverStore = await res.json();
+
+      // Thêm cả các key access hiện có trên server
+      const serverAccessKeys = Object.keys(serverStore).filter(key => 
+        key.startsWith("access_") || key.startsWith("access_response_")
+      );
+
+      const keys = Array.from(new Set([...standardKeys, ...localAccessKeys, ...serverAccessKeys]));
+
+      const localUpdates: Record<string, string> = {};
+      let hasLocalChanges = false;
+      let hasRemoteChanges = false;
+
+      keys.forEach(key => {
+        const localVal = localStorage.getItem(key);
+        const serverVal = serverStore[key];
+        const prevSyncedVal = lastSyncedCache[key];
+
+        if (localVal !== prevSyncedVal && localVal !== serverVal) {
+          // Local value has changed! Push to server
+          if (localVal !== null) {
+            localUpdates[key] = localVal;
+            lastSyncedCache[key] = localVal;
+            hasLocalChanges = true;
+          }
+        } else if (serverVal !== prevSyncedVal && serverVal !== localVal) {
+          // Server value has changed! Pull to local
+          if (serverVal !== undefined && serverVal !== null) {
+            localStorage.setItem(key, serverVal);
+            lastSyncedCache[key] = serverVal;
+            hasRemoteChanges = true;
+          }
+        } else {
+          // No changes, just sync our tracker cache
+          if (serverVal) {
+            lastSyncedCache[key] = serverVal;
+          } else if (localVal) {
+            lastSyncedCache[key] = localVal;
+            localUpdates[key] = localVal;
+            hasLocalChanges = true;
+          }
+        }
+      });
+
+      if (hasLocalChanges) {
+        await fetch("/api/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(localUpdates)
+        });
+      }
+
+      if (hasRemoteChanges) {
+        window.dispatchEvent(new Event("storage"));
+      }
+    } catch (err) {
+      console.error("Sync error:", err);
+    }
+  }, []);
+
   useEffect(() => {
     const getActiveUserStr = () => {
       const sess = sessionStorage.getItem("user");
@@ -75,74 +168,15 @@ export default function AdminLayout({
     if (!storedUserStr) {
       router.push("/login");
       return;
-    }
-
-    const syncDatabase = async () => {
-      try {
-        const keys = [
-          "global_users",
-          "global_mails_data",
-          "global_tasks_data",
-          "global_kpi_data",
-          "admin_notifications",
-          "realtime_toast",
-          "pending_access_requests"
-        ];
-
-        const res = await fetch("/api/sync");
-        if (!res.ok) return;
-        const serverStore = await res.json();
-
-        const localUpdates: Record<string, string> = {};
-        let hasLocalChanges = false;
-        let hasRemoteChanges = false;
-
-        keys.forEach(key => {
-          const localVal = localStorage.getItem(key);
-          const serverVal = serverStore[key];
-          const prevSyncedVal = lastSyncedCache[key];
-
-          if (localVal !== prevSyncedVal && localVal !== serverVal) {
-            // Local value has changed! Push to server
-            if (localVal !== null) {
-              localUpdates[key] = localVal;
-              lastSyncedCache[key] = localVal;
-              hasLocalChanges = true;
-            }
-          } else if (serverVal !== prevSyncedVal && serverVal !== localVal) {
-            // Server value has changed! Pull to local
-            if (serverVal !== undefined && serverVal !== null) {
-              localStorage.setItem(key, serverVal);
-              lastSyncedCache[key] = serverVal;
-              hasRemoteChanges = true;
-            }
-          } else {
-            // No changes, just sync our tracker cache
-            if (serverVal) {
-              lastSyncedCache[key] = serverVal;
-            } else if (localVal) {
-              lastSyncedCache[key] = localVal;
-              localUpdates[key] = localVal;
-              hasLocalChanges = true;
-            }
-          }
-        });
-
-        if (hasLocalChanges) {
-          await fetch("/api/sync", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(localUpdates)
-          });
-        }
-
-        if (hasRemoteChanges) {
-          window.dispatchEvent(new Event("storage"));
-        }
-      } catch (err) {
-        console.error("Sync error:", err);
+    } else {
+      // Khởi tạo thông tin user & kiểm tra quyền truy cập ban đầu khi load trang
+      const currentUser = JSON.parse(storedUserStr);
+      const emergencyAccess = localStorage.getItem(`access_${getStableDateString()}_${currentUser.name}`);
+      const accessResponse = localStorage.getItem(`access_response_${currentUser.name}`);
+      if (emergencyAccess === "true" || accessResponse === "APPROVED") {
+        setIsAccessGranted(true);
       }
-    };
+    }
 
     const syncUserRole = () => {
       const activeUserStr = getActiveUserStr();
@@ -210,10 +244,25 @@ export default function AdminLayout({
     syncDatabase();
     syncUserRole();
     checkNewNotifications();
-    const interval = setInterval(() => {
-      syncDatabase();
+
+    const interval = setInterval(async () => {
+      // Sync trước, sau đó mới kiểm tra quyền để đảm bảo data đã được kéo từ server về
+      await syncDatabase();
       syncUserRole();
       checkNewNotifications();
+
+      // Kiểm tra định kỳ và cập nhật isAccessGranted từ localStorage đã được đồng bộ
+      const activeUserStr = getActiveUserStr();
+      if (activeUserStr) {
+        const currentUser = JSON.parse(activeUserStr);
+        const emergencyAccess = localStorage.getItem(`access_${getStableDateString()}_${currentUser.name}`);
+        const accessResponse = localStorage.getItem(`access_response_${currentUser.name}`);
+        if (emergencyAccess === "true" || accessResponse === "APPROVED") {
+          setIsAccessGranted(true);
+        } else {
+          setIsAccessGranted(false);
+        }
+      }
     }, 1500); 
 
     const handleStorageChange = (e: StorageEvent) => {
@@ -235,12 +284,17 @@ export default function AdminLayout({
         }
       }
       
-      if (e.key?.startsWith("access_response_")) {
+      if (e.key?.startsWith("access_response_") || e.key?.startsWith("access_")) {
         const activeUserStr = getActiveUserStr();
         if (activeUserStr) {
           const currentUser = JSON.parse(activeUserStr);
-          const emergencyAccess = localStorage.getItem(`access_${new Date().toLocaleDateString()}_${currentUser.name}`);
-          if (emergencyAccess) setIsAccessGranted(true);
+          const emergencyAccess = localStorage.getItem(`access_${getStableDateString()}_${currentUser.name}`);
+          const accessResponse = localStorage.getItem(`access_response_${currentUser.name}`);
+          if (emergencyAccess === "true" || accessResponse === "APPROVED") {
+            setIsAccessGranted(true);
+          } else {
+            setIsAccessGranted(false);
+          }
         }
       }
     };
@@ -290,6 +344,9 @@ export default function AdminLayout({
     localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
     // Tạo trigger để các tab khác nhận được
     localStorage.setItem("request_trigger", Date.now().toString());
+    
+    // Đồng bộ lên server ngay lập tức để Admin nhận được yêu cầu
+    syncDatabase();
   };
 
   const handleApprove = (request: any) => {
@@ -298,7 +355,11 @@ export default function AdminLayout({
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     // Cấp quyền và thông báo cho nhân viên
     localStorage.setItem(`access_response_${request.staffName}`, "APPROVED");
-    localStorage.setItem(`access_${new Date().toLocaleDateString()}_${request.staffName}`, "true");
+    localStorage.setItem(`access_${getStableDateString()}_${request.staffName}`, "true");
+    
+    // Đồng bộ lên server ngay lập tức để Nhân viên nhận được quyền mở khóa!
+    syncDatabase();
+    
     alert(`Đã cấp quyền truy cập cho ${request.staffName}`);
   };
 
@@ -308,6 +369,9 @@ export default function AdminLayout({
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     // Thông báo từ chối cho nhân viên
     localStorage.setItem(`access_response_${request.staffName}`, "DENIED");
+    
+    // Đồng bộ lên server ngay lập tức
+    syncDatabase();
   };
 
   // Thông tin mặc định nếu chưa load xong hoặc để modal hiển thị

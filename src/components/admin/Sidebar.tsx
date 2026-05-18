@@ -33,10 +33,19 @@ interface SidebarProps {
 
 const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
   const pathname = usePathname();
-  const [openMenus, setOpenMenus] = useState<string[]>(["Quản lý mail"]);
+  const [openMenus, setOpenMenus] = useState<string[]>(["Kho mail", "Quản lý mail"]);
 
-  const isAdminOrManager = user?.role === "01" || user?.role === "02" || user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC";
-  const isMinimalRole = user?.role === "03" || user?.role === "04" || user?.role === "QL NHÂN SỰ" || user?.role === "NHÂN VIÊN";
+  const roleUpper = String(user?.role || "").toUpperCase();
+  const isAdminOrManager = roleUpper === "01" || 
+                           roleUpper === "ADMIN" || 
+                           roleUpper === "02" || 
+                           roleUpper === "QL CÔNG VIỆC" || 
+                           roleUpper === "QUẢN LÝ CÔNG VIỆC";
+  const isMinimalRole = roleUpper === "03" || 
+                         roleUpper === "04" || 
+                         roleUpper === "QL NHÂN SỰ" || 
+                         roleUpper === "QUẢN LÝ NHÂN SỰ" || 
+                         roleUpper === "NHÂN VIÊN";
 
   const dynamicMenuItems: any[] = [
     { title: "Dashboard", icon: <LayoutDashboard size={24} />, href: "/admin" }
@@ -50,7 +59,7 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
     });
   } else {
     dynamicMenuItems.push({
-      title: "Quản lý mail",
+      title: "Kho mail",
       icon: <Mail size={24} />,
       subItems: [
         { title: "Mail gốc", href: "/admin/mail/root" },
@@ -58,14 +67,16 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
         { title: "Mail bật kiếm tiền", href: "/admin/mail/monetized" },
       ],
     });
+    dynamicMenuItems.push({
+      title: "Quản lý mail",
+      icon: <LayoutGrid size={24} />,
+      subItems: [
+        { title: "Lô mail vệ tinh", href: "/admin/mail/batches" },
+      ],
+    });
   }
 
   if (isAdminOrManager) {
-    dynamicMenuItems.push({
-      title: "Quản lý lô mail vệ tinh",
-      icon: <LayoutGrid size={24} />,
-      href: "/admin/mail/batches",
-    });
     dynamicMenuItems.push({
       title: "Phân công",
       icon: <ClipboardList size={24} />,
@@ -125,20 +136,20 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
     if (!confirmReset) return;
 
     try {
-      const keys = [
-        "global_users",
-        "global_mails_data",
-        "global_tasks_data",
-        "global_kpi_data",
-        "admin_notifications",
-        "realtime_toast",
-        "pending_access_requests"
-      ];
-      
-      keys.forEach(key => localStorage.removeItem(key));
+      // 1. Xóa toàn bộ localStorage (bao gồm cả access_ keys)
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) keysToRemove.push(key);
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      // 2. Xóa server store trước để đảm bảo không còn data cũ
+      await fetch("/api/sync", { method: "DELETE" });
 
       const { MOCK_STAFF, MOCK_MAILS, MOCK_TASK_ASSIGNMENTS, MOCK_KPI_DATA } = await import("@/data/mockData");
       
+      // 3. Seed lại localStorage với data mới (có satelliteIndex)
       localStorage.setItem("global_users", JSON.stringify(MOCK_STAFF));
       localStorage.setItem("global_mails_data", JSON.stringify(MOCK_MAILS));
       localStorage.setItem("global_tasks_data", JSON.stringify(MOCK_TASK_ASSIGNMENTS));
@@ -146,6 +157,7 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
       localStorage.setItem("admin_notifications", JSON.stringify([]));
       localStorage.setItem("pending_access_requests", JSON.stringify([]));
 
+      // 4. Push data mới lên server để các tab khác nhận được
       const resetPayload = {
         global_users: JSON.stringify(MOCK_STAFF),
         global_mails_data: JSON.stringify(MOCK_MAILS),
