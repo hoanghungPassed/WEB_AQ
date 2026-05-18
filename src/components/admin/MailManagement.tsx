@@ -16,251 +16,20 @@ import {
   AlertTriangle,
   Database,
   Mail,
-  RefreshCcw
+  RefreshCcw,
+  Copy,
+  Phone
 } from "lucide-react";
+import TOTPDisplay from "./TOTPDisplay";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
 import { MOCK_MAILS, MailData } from "@/data/mockData";
 import { useRouter } from "next/navigation";
+import MailDetailModal from "@/components/admin/MailDetailModal";
 
-const UnifiedMailDetailModal = ({
-  mail,
-  type,
-  user,
-  onClose,
-  onSave
-}: {
-  mail: any;
-  type: "ROOT" | "SATELLITE" | "MONETIZED";
-  user: any;
-  onClose: () => void;
-  onSave: (updatedFields: any) => void;
-}) => {
-  const roleUpper = String(user?.role || "").toUpperCase();
-  const isAdminOrManager = roleUpper === "01" || 
-                           roleUpper === "ADMIN" || 
-                           roleUpper === "02" || 
-                           roleUpper === "QL CÔNG VIỆC" || 
-                           roleUpper === "QUẢN LÝ CÔNG VIỆC";
-
-  // State for ROOT
-  const [cccdDate, setCccdDate] = useState(mail.cccdDate || "");
-  const [verificationStatus, setVerificationStatus] = useState(mail.verificationStatus || "Chưa xanh");
-
-  // State for SATELLITE
-  const [links, setLinks] = useState<string[]>(mail.links || ["", "", ""]);
-  const [names, setNames] = useState<string[]>(mail.channelNames || ["", "", ""]);
-  const [scanning, setScanning] = useState<boolean[]>([false, false, false]);
-  const [eligibleChannels, setEligibleChannels] = useState<boolean[]>(mail.eligibleChannels || [false, false, false]);
-
-  // State for MONETIZED
-  const [reClickDate, setReClickDate] = useState(mail.reClickDate || "");
-  const [step2PendingDate, setStep2PendingDate] = useState(mail.step2PendingDate || "");
-  const [channelStatusDetail, setChannelStatusDetail] = useState(mail.channelStatusDetail || "Chưa Done");
-
-  const handleLinkChange = (idx: number, val: string) => {
-    const newLinks = [...links];
-    newLinks[idx] = val;
-    setLinks(newLinks);
-
-    if (val.trim()) {
-      const newScanning = [...scanning];
-      newScanning[idx] = true;
-      setScanning(newScanning);
-
-      const newNames = [...names];
-      newNames[idx] = "Đang quét thông tin kênh...";
-      setNames(newNames);
-
-      setTimeout(() => {
-        const finalScanning = [...scanning];
-        finalScanning[idx] = false;
-        setScanning(finalScanning);
-
-        const finalNames = [...names];
-        const mockNames = [
-          "AQ Vlogs Premium",
-          "AQ Media Official",
-          "Thế Giới Công Nghệ AQ",
-          "Ẩm Thực Ba Miền",
-          "Góc Thư Giãn Daily",
-          "Kênh Chia Sẻ Kiến Thức"
-        ];
-        finalNames[idx] = `Tên kênh: ${mockNames[Math.floor(Math.random() * mockNames.length)]}`;
-        setNames(finalNames);
-      }, 800);
-    } else {
-      const newNames = [...names];
-      newNames[idx] = "";
-      setNames(newNames);
-    }
-  };
-
-  const handleSave = () => {
-    if (type === "ROOT") {
-      onSave({ cccdDate, verificationStatus });
-    } else if (type === "SATELLITE") {
-      onSave({
-        links,
-        channelNames: names,
-        eligibleChannels
-      });
-    } else if (type === "MONETIZED") {
-      onSave({
-        reClickDate,
-        step2PendingDate,
-        channelStatusDetail
-      });
-    }
-    onClose();
-  };
-
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4">
-      <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-sidebar border border-white/10 w-full max-w-xl rounded-[40px] p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="absolute top-0 right-0 h-96 w-96 bg-gold/5 blur-[120px] -mr-48 -mt-48" />
-
-        <div className="flex items-center justify-between mb-8 relative z-10">
-          <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 shadow-lg font-black">
-              {type === "ROOT" ? <Database size={28} /> : type === "SATELLITE" ? <ExternalLink size={28} /> : <Mail size={28} />}
-            </div>
-            <div>
-              <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
-                {type === "ROOT" ? "Chi tiết Mail Gốc" : type === "SATELLITE" ? "Chi tiết Mail Vệ Tinh" : "Cấu hình Kiếm Tiền"}
-              </h2>
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">{mail?.email}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="h-10 w-10 bg-white/5 hover:bg-white/10 text-white rounded-full flex items-center justify-center border border-white/10 transition-all"><X size={20} /></button>
-        </div>
-
-        <div className="space-y-6 relative z-10 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-          {type === "ROOT" && (
-            <>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Quét lại CCCD vào ngày</label>
-                <input
-                  type="date"
-                  value={cccdDate}
-                  onChange={(e) => setCccdDate(e.target.value)}
-                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Tình trạng xác minh</label>
-                <select
-                  value={verificationStatus}
-                  onChange={(e) => setVerificationStatus(e.target.value)}
-                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
-                >
-                  <option value="Mail Veri mail" className="bg-sidebar text-white">Mail Veri mail</option>
-                  <option value="Đã xanh" className="bg-sidebar text-white">Đã xanh</option>
-                  <option value="Chưa xanh" className="bg-sidebar text-white">Chưa xanh</option>
-                </select>
-              </div>
-            </>
-          )}
-
-          {type === "SATELLITE" && (
-            <>
-              {[0, 1, 2].map(idx => (
-                <div key={idx} className="space-y-2">
-                  <div className="flex items-center justify-between ml-1">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Link YouTube {idx + 1}</label>
-                    {names[idx] && (
-                      <span className="text-[10px] font-black uppercase text-gold">
-                        {names[idx]}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <input
-                      value={links[idx] || ""}
-                      onChange={(e) => handleLinkChange(idx, e.target.value)}
-                      placeholder="Dán link channel YouTube..."
-                      className="flex-1 h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all"
-                    />
-                    {isAdminOrManager && (
-                      <button
-                        onClick={() => {
-                          const newEligible = [...eligibleChannels];
-                          newEligible[idx] = !newEligible[idx];
-                          setEligibleChannels(newEligible);
-                        }}
-                        className={`h-14 px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border flex items-center gap-2 flex-shrink-0 ${eligibleChannels[idx]
-                            ? "bg-gold text-sidebar border-gold shadow-lg shadow-gold/20"
-                            : "bg-white/5 text-gray-400 border-white/10 hover:border-gold/30 hover:text-gold"
-                          }`}
-                      >
-                        <CheckCircle size={16} />
-                        {eligibleChannels[idx] ? "Đủ giờ" : "Đánh dấu"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
-
-          {type === "MONETIZED" && (
-            <>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Ngày bấm lại</label>
-                <input
-                  type="date"
-                  value={reClickDate}
-                  onChange={(e) => setReClickDate(e.target.value)}
-                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chờ bước 2</label>
-                <input
-                  type="date"
-                  value={step2PendingDate}
-                  onChange={(e) => setStep2PendingDate(e.target.value)}
-                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Trạng thái chi tiết</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {["Chờ bước 3", "Mất kênh", "Chưa SUB", "DONE", "Gắn lại gà", "Die Spam", "Chưa Done"].map((status) => (
-                    <button
-                      key={status}
-                      type="button"
-                      onClick={() => setChannelStatusDetail(status)}
-                      className={`h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest border transition-all ${channelStatusDetail === status
-                          ? "bg-gold/20 text-gold border-gold/45 shadow-lg shadow-gold/5"
-                          : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10"
-                        }`}
-                    >
-                      {status}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mt-8 relative z-10 pt-4 border-t border-white/5">
-          <button onClick={onClose} className="h-14 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-xs tracking-widest transition-all">Đóng</button>
-          <button
-            onClick={handleSave}
-            className="h-14 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
-          >
-            Lưu cập nhật
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
+// UnifiedMailDetailModal is now MailDetailModal from @/components/admin/MailDetailModal
+const _UNUSED = ({
+}: any) => null;
 
 interface MailManagementProps {
   type: "ROOT" | "SATELLITE" | "MONETIZED" | "ALL";
@@ -347,6 +116,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   };
 
   const handleWorkStatusChange = (mailId: number, newStatus: string) => {
+    const now = new Date().toISOString();
     const updated = mails.map(m => {
       if (m.id === mailId) {
         let status = m.status;
@@ -359,6 +129,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           ...m,
           workStatus: newStatus as any,
           status,
+          lastUpdated: now,
           updatedBy: user?.name || user?.id || m.updatedBy
         };
       }
@@ -384,14 +155,14 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   };
 
   const getStatusSelectStyle = (status: string) => {
-    const val = (status || "Chưa làm").toLowerCase();
-    if (val === "đã làm" || val === "đã bán") {
+    const val = (status || "").toLowerCase().trim();
+    if (val.startsWith("đã") || val.startsWith("hoàn thành")) {
       return "bg-green-500/10 text-green-500 border-green-500/20";
     }
-    if (val === "lỗi") {
+    if (val === "lỗi" || val === "die") {
       return "bg-red-500/10 text-red-500 border-red-500/20";
     }
-    return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+    return "bg-amber-500/10 text-amber-500 border-amber-500/20";
   };
 
   const deleteMail = (id: number) => {
@@ -421,12 +192,12 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
         const importedMails: MailData[] = data.map((item: any, i: number) => ({
           id: Date.now() + i,
-          email: String(item.Email || item.email || "").trim(),
-          pass: String(item.Password || item.pass || item.Pass || "").trim(),
-          recovery: String(item.Recovery || item.recovery || item["Mail KP"] || "").trim(),
+          email: String(item.MAIL || item.Mail || item.Email || item.email || "").trim(),
+          pass: String(item.PASS || item.Pass || item.Password || item.pass || "").trim(),
+          recovery: String(item["MAIL KP"] || item["Mail KP"] || item.Recovery || item.recovery || "").trim(),
           twoFA: String(item["2FA"] || item.twoFA || "").trim(),
           phone: String(item["SĐT"] || item.phone || "").trim(),
-          otpLink: String(item["Link SĐT"] || item.otpLink || "").trim(),
+          otpLink: String(item["LINK OTP"] || item["Link OTP"] || item["Link SĐT"] || item.otpLink || "").trim(),
           type: (type === "ALL" ? "SATELLITE" : type) as "ROOT" | "SATELLITE" | "MONETIZED",
           status: "LIVE" as const,
           workStatus: (type === "MONETIZED" ? "Chưa bán" : "Chưa làm") as any,
@@ -497,13 +268,16 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     const mailsOfType = mails.filter(m => type === "ALL" || m.type === type);
 
     return mailsOfType
-      .map((m: any) => ({ 
-        ...m, 
-        // Với mail vệ tinh: dùng satelliteIndex (1-500) làm STT gốc hiển thị cho nhân viên
-        // Với mail khác: dùng m.id
-        originalSTT: m.type === "SATELLITE" && m.satelliteIndex ? m.satelliteIndex : m.id 
-      }))
-      .filter(m => {
+      .map((m: any) => {
+        const globalSTT = m.type === "ROOT" ? m.id 
+                        : m.type === "SATELLITE" ? m.id - 1000 
+                        : m.id - 2000;
+        return {
+          ...m,
+          originalSTT: globalSTT
+        };
+      })
+      .filter((m: any) => {
         if (isStaff && type === "SATELLITE") {
           if (String(m.assigneeId) !== String(user?.id)) return false;
           if (selectedBatch && m.batchName !== selectedBatch) return false;
@@ -538,7 +312,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         }
 
         let matchesAssignment = true;
-        if (isAdminOrManager && type === "SATELLITE" && assignmentFilter !== "ALL") {
+        if (isAdminOrManager && (type === "SATELLITE" || type === "ROOT" || type === "MONETIZED") && assignmentFilter !== "ALL") {
           if (assignmentFilter === "ASSIGNED") {
             matchesAssignment = !!m.assigneeId;
           } else if (assignmentFilter === "UNASSIGNED") {
@@ -690,7 +464,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
             {isAdminOrManager && (
               <>
                 <button onClick={() => setShowManualImport(true)} className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><PlusCircle size={14} className="text-gold" /> Thêm thủ công</button>
-                <label className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all cursor-pointer"><Upload size={14} className="text-gold" /> Import Excel <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleImportExcel} /></label>
+                <label className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all cursor-pointer"><Upload size={14} className="text-gold" /> Import Excel / CSV <input type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={handleImportExcel} /></label>
                 <button onClick={handleExport} className="h-10 px-4 bg-gold/10 border border-gold/30 hover:bg-gold/20 rounded-xl text-gold text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><Download size={14} /> Export</button>
               </>
             )}
@@ -774,6 +548,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                 <option value="ALL" className="bg-sidebar text-white">Tất cả trạng thái</option>
                 {type !== "MONETIZED" ? (
                   <>
+                    <option value="Đang xử lí" className="bg-sidebar text-white">Đang xử lí</option>
                     <option value="Đã làm" className="bg-sidebar text-white">Đã làm</option>
                     <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
                     <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
@@ -785,7 +560,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                   </>
                 )}
               </select>
-              {isAdminOrManager && type === "SATELLITE" && (
+              {isAdminOrManager && (type === "SATELLITE" || type === "ROOT" || type === "MONETIZED") && (
                 <select
                   value={assignmentFilter}
                   onChange={(e) => setAssignmentFilter(e.target.value as any)}
@@ -817,9 +592,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
             <button onClick={() => router.push("/admin")} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:bg-red-500/20 hover:text-red-500 transition-all"><X size={20} /></button>
           </div>
 
-          <div className="flex-1 overflow-auto custom-scrollbar">
-            <div className="w-full overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left text-sm whitespace-nowrap min-w-[1200px]">
+          <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto custom-scrollbar">
+            <div className="min-w-[1200px]">
+              <table className="w-full text-left text-sm whitespace-nowrap">
                 <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
                   <tr>
                     <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT</th>
@@ -829,7 +604,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                     <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">2FA</th>
                     <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">SĐT</th>
                     <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Link SĐT</th>
-                    {isAdminOrManager && type === "SATELLITE" && (
+                    {isAdminOrManager && (type === "SATELLITE" || type === "ROOT" || type === "MONETIZED") && (
                       <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Quản lý</th>
                     )}
                     <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] text-center whitespace-nowrap">Trạng thái</th>
@@ -846,16 +621,49 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                         <td className={`${rowPadding} cursor-pointer hover:text-gold transition-colors font-bold ${textSize} whitespace-nowrap`} onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
                         <td className={`${rowPadding} cursor-pointer text-xs text-gray-400 hover:text-gold transition-colors whitespace-nowrap`} onClick={() => copyToClipboard(mail.recovery, "Mail KP")}>{mail.recovery}</td>
                         <td className={`${rowPadding} cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono whitespace-nowrap`} onClick={() => copyToClipboard(mail.pass, "Mật khẩu")}>{mail.pass}</td>
-                        <td className={`${rowPadding} cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono whitespace-nowrap`} onClick={() => copyToClipboard(mail.twoFA || "", "2FA")}>{mail.twoFA || "---"}</td>
-                        <td className={`${rowPadding} cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-bold whitespace-nowrap`} onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
-                        <td className={`${rowPadding} cursor-pointer whitespace-nowrap`} onClick={() => copyToClipboard(mail.otpLink || "", "Link OTP")}>
-                          {mail.otpLink ? <span className="text-blue-400 hover:text-white transition-all flex items-center gap-1 font-bold text-xs whitespace-nowrap">Link OTP <ExternalLink size={12} /></span> : <span className="text-gray-700">---</span>}
+                        {/* 2FA - TOTP real-time */}
+                        <td className={`${rowPadding} whitespace-nowrap`}>
+                          {mail.twoFA ? (
+                            <TOTPDisplay secret={mail.twoFA} compact onCopy={copyToClipboard} />
+                          ) : (
+                            <span className="text-gray-700">---</span>
+                          )}
                         </td>
-                        {isAdminOrManager && type === "SATELLITE" && (
+                        {/* SĐT - click to copy */}
+                        <td className={`${rowPadding} whitespace-nowrap`}>
+                          {mail.phone ? (
+                            <button
+                              onClick={() => copyToClipboard(mail.phone, "SĐT")}
+                              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gold transition-colors font-bold group/sdt"
+                            >
+                              <Phone size={12} className="text-gray-600 group-hover/sdt:text-gold" />
+                              {mail.phone}
+                              <Copy size={10} className="opacity-0 group-hover/sdt:opacity-100 transition-opacity" />
+                            </button>
+                          ) : (
+                            <span className="text-gray-700">---</span>
+                          )}
+                        </td>
+                        {/* Link OTP - click to open new tab */}
+                        <td className={`${rowPadding} whitespace-nowrap`}>
+                          {mail.otpLink ? (
+                            <a
+                              href={mail.otpLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-blue-400 hover:text-blue-300 transition-colors font-bold text-xs"
+                            >
+                              Mở OTP <ExternalLink size={12} />
+                            </a>
+                          ) : (
+                            <span className="text-gray-700">---</span>
+                          )}
+                        </td>
+                        {isAdminOrManager && (type === "SATELLITE" || type === "ROOT" || type === "MONETIZED") && (
                           <td className={`${rowPadding} text-xs font-bold whitespace-nowrap`}>
                             {mail.assigneeId ? (
                               <span className="text-gold">
-                                Đã gán cho {mail.assignedTo} - {mail.batchName}
+                                {mail.assignedTo || "Đã gán"}{mail.batchName ? ` - ${mail.batchName}` : ""}
                               </span>
                             ) : (
                               <span className="text-gray-500">Chưa gán</span>
@@ -879,6 +687,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                               className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus || "Chưa làm")}`}
                             >
                               <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
+                              <option value="Đang xử lí" className="bg-sidebar text-white">Đang xử lí</option>
                               <option value="Đã làm" className="bg-sidebar text-white">Đã làm</option>
                               <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
                             </select>
@@ -902,7 +711,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                       </tr>
                     );
                   }) : (
-                    <tr><td colSpan={isAdminOrManager && type === "SATELLITE" ? 10 : 9} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Không có dữ liệu</td></tr>
+                    <tr><td colSpan={isAdminOrManager && (type === "SATELLITE" || type === "ROOT" || type === "MONETIZED") ? 10 : 9} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Không có dữ liệu</td></tr>
                   )}
                 </tbody>
               </table>
@@ -923,7 +732,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
       <AnimatePresence>
         {selectedMailForConfig && (
-          <UnifiedMailDetailModal
+          <MailDetailModal
             mail={selectedMailForConfig}
             type={selectedMailForConfig.type}
             user={user}

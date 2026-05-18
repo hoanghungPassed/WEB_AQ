@@ -1,13 +1,47 @@
 @import "tailwindcss";
 
+/* =============================================
+   DESIGN TOKENS — DARK MODE (default)
+   ============================================= */
 :root {
-  --background: #0f1115;
-  --foreground: #ffffff;
+  --background: #0d0f12;
+  --foreground: #f1f5f9;
   --gold: #d4af37;
   --gold-hover: #f1c40f;
-  --sidebar-bg: #161a1f;
-  --header-bg: #1a1f26;
-  --border-color: #2d343c;
+  --sidebar-bg: #141820;
+  --header-bg: #141820;
+  --border-color: #252d3a;
+  --table-head-bg: #0a0c10;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --row-hover: rgba(255,255,255,0.025);
+  --card-bg: rgba(255,255,255,0.03);
+  --input-bg: rgba(255,255,255,0.05);
+  --divider: rgba(255,255,255,0.06);
+  --scrollbar-thumb: #252d3a;
+}
+
+/* =============================================
+   DESIGN TOKENS — LIGHT MODE
+   ============================================= */
+[data-theme="light"] {
+  --background: #eef2f7;
+  --foreground: #1e293b;
+  --gold: #a07800;
+  --gold-hover: #c99a00;
+  --sidebar-bg: #ffffff;
+  --header-bg: #ffffff;
+  --border-color: #dde3ed;
+  --table-head-bg: #f4f7fb;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --row-hover: rgba(0,0,0,0.03);
+  --card-bg: rgba(0,0,0,0.02);
+  --input-bg: rgba(0,0,0,0.04);
+  --divider: rgba(0,0,0,0.07);
+  --scrollbar-thumb: #cbd5e1;
 }
 
 @theme inline {
@@ -23,8 +57,20 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* =============================================
+   SMOOTH TRANSITION
+   ============================================= */
+body, header, aside, main, nav, section, div,
+table, thead, tbody, tr, th, td,
+input, select, button, span, p, a, h1, h2, h3, h4 {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease;
+}
+
+/* =============================================
+   BASE STYLES
+   ============================================= */
 html {
-  font-size: 14px; /* Khiến 100% trông gọn gàng như 80%-90% */
+  font-size: 14px;
 }
 
 body {
@@ -35,22 +81,184 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Tối ưu hóa padding toàn cục cho Compact Mode */
+/* =============================================
+   LIGHT MODE OVERRIDES
+   ============================================= */
+[data-theme="light"] .text-white {
+  color: var(--text-primary) !important;
+}
+[data-theme="light"] .text-gray-300 {
+  color: #334155 !important;
+}
+[data-theme="light"] .text-gray-400 {
+  color: #475569 !important;
+}
+[data-theme="light"] .text-gray-500 {
+  color: #64748b !important;
+}
+[data-theme="light"] .text-gray-600 {
+  color: #475569 !important;
+}
+[data-theme="light"] .text-gray-700 {
+  color: #334155 !important;
+}
+
+/* Sidebar */
+[data-theme="light"] .bg-sidebar {
+  background-color: var(--sidebar-bg) !important;
+  box-shadow: 0 0 40px rgba(0,0,0,0.06) !important;
+}
+
+/* Borders & Dividers */
+[data-theme="light"] .border-white\/5,
+[data-theme="light"] .border-white\/10,
+[data-theme="light"] .border-white\/20,
+[data-theme="light"] [class*="divide-"] > *,
+[data-theme="light"] tr,
+[data-theme="light"] td,
+[data-theme="light"] th {
+  border-color: #e2e8f0 !important;
+}
+
+/* Card backgrounds */
+[data-theme="light"] .bg-white\/5 {
+  background-color: rgba(0,0,0,0.04) !important;
+}
+[data-theme="light"] .bg-white\/\[0\.02\] {
+  background-color: rgba(0,0,0,0.025) !important;
+}
+[data-theme="light"] .bg-white\/\[0\.03\] {
+  background-color: rgba(0,0,0,0.03) !important;
+}
+[data-theme="light"] .bg-white\/\[0\.05\] {
+  background-color: rgba(0,0,0,0.04) !important;
+}
+
+/* Row hover */
+[data-theme="light"] .hover\:bg-white\/\[0\.02\]:hover,
+[data-theme="light"] .hover\:bg-white\/5:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.03\]:hover {
+  background-color: rgba(0,0,0,0.035) !important;
+}
+
+/* Header backdrop */
+[data-theme="light"] header {
+  background-color: rgba(255,255,255,0.92) !important;
+  border-bottom-color: #dde3ed !important;
+}
+
+/* Table header rows */
+[data-theme="light"] thead tr {
+  background-color: var(--table-head-bg) !important;
+}
+[data-theme="light"] thead th {
+  color: #64748b !important;
+  border-bottom-color: #dde3ed !important;
+}
+
+/* Pagination & panel footer & inputs */
+[data-theme="light"] .bg-black\/10 {
+  background-color: rgba(0,0,0,0.02) !important;
+}
+[data-theme="light"] .bg-black\/20 {
+  background-color: rgba(0,0,0,0.03) !important;
+}
+[data-theme="light"] .bg-black\/30 {
+  background-color: rgba(0,0,0,0.05) !important;
+}
+[data-theme="light"] .bg-black\/40 {
+  background-color: rgba(0,0,0,0.06) !important;
+}
+[data-theme="light"] .bg-black\/80 {
+  background-color: rgba(255,255,255,0.85) !important;
+  backdrop-filter: blur(12px) !important;
+}
+[data-theme="light"] .bg-black\/90 {
+  background-color: rgba(255,255,255,0.92) !important;
+  backdrop-filter: blur(20px) !important;
+}
+[data-theme="light"] .bg-\[\#0a0a0a\] {
+  background-color: #f8fafc !important;
+}
+[data-theme="light"] .bg-\[\#0b0b0b\] {
+  background-color: #ffffff !important;
+}
+[data-theme="light"] .bg-\[\#0c0c0c\] {
+  background-color: #ffffff !important;
+}
+[data-theme="light"] .bg-\[\#0d0d0d\] {
+  background-color: #f1f5f9 !important;
+}
+[data-theme="light"] .bg-\[\#0f0f0f\] {
+  background-color: #f1f5f9 !important;
+}
+[data-theme="light"] .border-white\/5 {
+  border-color: rgba(0,0,0,0.06) !important;
+}
+[data-theme="light"] .border-white\/10 {
+  border-color: rgba(0,0,0,0.08) !important;
+}
+[data-theme="light"] .border-white\/20 {
+  border-color: rgba(0,0,0,0.12) !important;
+}
+[data-theme="light"] .text-gold\/80 {
+  color: var(--gold) !important;
+}
+
+[data-theme="light"] input, [data-theme="light"] select, [data-theme="light"] textarea {
+  color: var(--text-primary);
+  background-color: rgba(0,0,0,0.02);
+  border-color: rgba(0,0,0,0.08);
+}
+
+/* Specificity overrides for status elements in Light Mode */
+[data-theme="light"] select[class*="text-green-500"],
+[data-theme="light"] button[class*="text-green-500"],
+[data-theme="light"] span[class*="text-green-500"] {
+  color: #10b981 !important;
+  background-color: rgba(16, 185, 129, 0.1) !important;
+  border-color: rgba(16, 185, 129, 0.2) !important;
+}
+[data-theme="light"] select[class*="text-red-500"],
+[data-theme="light"] button[class*="text-red-500"],
+[data-theme="light"] span[class*="text-red-500"] {
+  color: #ef4444 !important;
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+}
+[data-theme="light"] select[class*="text-amber-500"],
+[data-theme="light"] button[class*="text-amber-500"],
+[data-theme="light"] span[class*="text-amber-500"] {
+  color: #b45309 !important;
+  background-color: rgba(245, 158, 11, 0.1) !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+[data-theme="light"] input::placeholder, [data-theme="light"] textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* =============================================
+   CUSTOM CONTAINER
+   ============================================= */
 .custom-container {
   padding: 1.5rem !important;
 }
 
-/* Custom scrollbar for dark mode */
+/* =============================================
+   CUSTOM SCROLLBAR
+   ============================================= */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--background);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: var(--scrollbar-thumb);
   border-radius: 10px;
 }
 

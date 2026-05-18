@@ -30,6 +30,7 @@ import {
 import { MOCK_DASHBOARD_STATS, MOCK_KPI_DATA, MOCK_MAILS, MOCK_STAFF, MOCK_TASK_ASSIGNMENTS } from "@/data/mockData";
 import { StaffData } from "@/types/admin";
 import { useRouter } from "next/navigation";
+import MailDetailModal from "@/components/admin/MailDetailModal";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -52,7 +53,35 @@ export default function AdminDashboard() {
   const [tasksList, setTasksList] = useState<any[]>([]);
   const [copyToast, setCopyToast] = useState<string | null>(null);
   const [isEligibleChannelsModalOpen, setIsEligibleChannelsModalOpen] = useState(false);
+  const [selectedMailForModal, setSelectedMailForModal] = useState<any>(null);
+  const [missingLinksWarning, setMissingLinksWarning] = useState<{stt: number; email: string; missing: number}[]>([]);
   const itemsPerPage = 10;
+
+  // Helper: quét toàn bộ mail thuộc task hiện tại, trả về danh sách STT thiếu link
+  const runMissingLinksCheck = React.useCallback((allMails: any[], task: any) => {
+    if (!task) return;
+    const mailType = task.type === "MAIL_VE_TINH" ? "SATELLITE"
+      : task.type === "MAIL_MONETIZED" ? "MONETIZED" : "ROOT";
+    if (mailType !== "SATELLITE") return; // chỉ kiểm tra SATELLITE
+
+    const taskMails = allMails.filter((m: any) => {
+      const belongsToUser = String(m.assigneeId) === String(task.assigneeId);
+      if (!belongsToUser) return false;
+      if (task.selectedMailIds && Array.isArray(task.selectedMailIds))
+        return task.selectedMailIds.includes(m.id);
+      return m.type === mailType;
+    });
+
+    const result: {stt: number; email: string; missing: number}[] = [];
+    taskMails.forEach((m: any, idx: number) => {
+      const links: string[] = m.links || [];
+      const emptyCount = [0, 1, 2].filter(i => !links[i] || links[i].trim() === "").length;
+      if (emptyCount > 0) {
+        result.push({ stt: idx + 1, email: m.email, missing: emptyCount });
+      }
+    });
+    setMissingLinksWarning(result);
+  }, []);
 
   const copyToClipboard = (text: string, label: string) => {
     if (!text) return;
@@ -214,15 +243,17 @@ export default function AdminDashboard() {
     const updatedMails = currentMails.map((m: any) => {
       if (m.id === mailId) {
         let status = m.status;
-        if (newWorkStatus === "ĐÃ LÀM KÊNH" || newWorkStatus === "HOÀN THÀNH" || newWorkStatus === "ĐÃ LÀM" || newWorkStatus === "CHƯA LÀM") {
+        const norm = (newWorkStatus || "").toUpperCase();
+        if (norm === "ĐÃ LÀM KÊNH" || norm === "HOÀN THÀNH" || norm === "ĐÃ LÀM" || norm === "CHƯA LÀM" || norm === "ĐANG XỬ LÍ") {
           status = "LIVE";
-        } else if (newWorkStatus === "LỖI") {
+        } else if (norm === "LỖI") {
           status = "DIE";
         }
         return { 
           ...m, 
           workStatus: newWorkStatus, 
           status,
+          lastUpdated: new Date().toISOString(),
           updatedBy: user?.name || user?.id || m.updatedBy
         };
       }
@@ -240,14 +271,109 @@ export default function AdminDashboard() {
       mailDie: myMails.filter((m: any) => m.status === "DIE").length,
     }));
 
+    // Recalculate progress for all tasks that contain this mail
+    const savedTasks = localStorage.getItem("global_tasks_data");
+    let currentTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
+    
+    currentTasks = currentTasks.map((t: any) => {
+      let mailType = "ROOT";
+      if (t.type === "MAIL_VE_TINH") mailType = "SATELLITE";
+      if (t.type === "MAIL_MONETIZED") mailType = "MONETIZED";
+
+      let filtered = updatedMails.filter((m: any) => m.type === mailType && String(m.assigneeId) === String(t.assigneeId));
+      if (t.selectedMailIds && Array.isArray(t.selectedMailIds)) {
+        filtered = updatedMails.filter((m: any) => t.selectedMailIds?.includes(m.id));
+      } else if (t.title === "Check, xóa, tạo" || t.title === "Kênh bật kiếm tiền") {
+        if (t.mailRange) {
+          const parts = t.mailRange.split("-");
+          if (parts.length === 2) {
+            const start = parseInt(parts[0].trim());
+            const end = parseInt(parts[1].trim());
+            const withSTT = updatedMails.filter((m: any) => m.type === mailType).map((m: any, idx: number) => ({ ...m, currentSTT: idx + 1 }));
+            const idsInRange = withSTT.filter((m: any) => m.currentSTT >= start && m.currentSTT <= end).map((m: any) => m.id);
+            filtered = filtered.filter((m: any) => idsInRange.includes(m.id));
+          }
+        }
+      } else if (t.title === "Làm kênh") {
+        if (t.mailRange) {
+          filtered = filtered.filter((m: any) => m.batchName === t.mailRange);
+        }
+      } else if (t.title === "Mời kênh" && t.mailRange) {
+        const parts = t.mailRange.split("+");
+        const loPart = parts.pop()?.trim();
+        filtered = updatedMails.filter((m: any) => 
+          (m.type === "SATELLITE" && m.batchName === loPart && String(m.assigneeId) === String(t.assigneeId)) ||
+          (m.type === "ROOT" && t.note && t.note.includes(m.email))
+        );
+      }
+
+      const totalTaskMails = filtered.length;
+      if (totalTaskMails > 0) {
+        const completedCount = filtered.filter((m: any) => {
+          const normStatus = (m.workStatus || "").toUpperCase();
+          return normStatus === "ĐÃ LÀM" || normStatus === "ĐÃ BÁN" || normStatus === "HOÀN THÀNH" || normStatus === "ĐÃ LÀM KÊNH";
+        }).length;
+        const progressPercent = Math.round((completedCount / totalTaskMails) * 100);
+        return {
+          ...t,
+          progress: progressPercent,
+          status: progressPercent === 100 ? "COMPLETED" : (progressPercent > 0 ? "IN_PROGRESS" : "PENDING")
+        };
+      }
+      return t;
+    });
+
+    localStorage.setItem("global_tasks_data", JSON.stringify(currentTasks));
+    setTasksList(currentTasks);
+
+    // Sync selectedStaffTask if active
+    setSelectedStaffTask((prev: any) => {
+      if (!prev) return null;
+      const found = currentTasks.find((t: any) => t.id === prev.id);
+      return found || prev;
+    });
+
     window.dispatchEvent(new Event("storage"));
+
+    // Kiểm tra link bị thiếu: chỉ khi chọn "Đã làm" cho mail đó
+    if (selectedStaffTask) {
+      const norm = (newWorkStatus || "").toUpperCase();
+      if (norm === "ĐÃ LÀM") {
+        // Chỉ kiểm tra mail vừa được cập nhật
+        const mailType = selectedStaffTask.type === "MAIL_VE_TINH" ? "SATELLITE" : "OTHER";
+        if (mailType === "SATELLITE") {
+          const taskMails = updatedMails.filter((m: any) => {
+            const belongsToUser = String(m.assigneeId) === String(selectedStaffTask.assigneeId || user?.id);
+            if (!belongsToUser) return false;
+            if (selectedStaffTask.selectedMailIds && Array.isArray(selectedStaffTask.selectedMailIds))
+              return selectedStaffTask.selectedMailIds.includes(m.id);
+            return m.type === "SATELLITE";
+          });
+          const idx = taskMails.findIndex((m: any) => m.id === mailId);
+          const changedMail = taskMails[idx];
+          if (changedMail) {
+            const links: string[] = changedMail.links || [];
+            const emptyCount = [0, 1, 2].filter(i => !links[i] || links[i].trim() === "").length;
+            if (emptyCount > 0) {
+              setMissingLinksWarning([{ stt: idx + 1, email: changedMail.email, missing: emptyCount }]);
+            } else {
+              setMissingLinksWarning([]);
+            }
+          }
+        }
+      } else {
+        // Trạng thái khác (Đang xử lí, Chưa làm, Lỗi) → xóa cảnh báo
+        setMissingLinksWarning([]);
+      }
+    }
 
     try {
       await fetch("/api/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          global_mails_data: JSON.stringify(updatedMails)
+          global_mails_data: JSON.stringify(updatedMails),
+          global_tasks_data: JSON.stringify(currentTasks)
         })
       });
     } catch (err) {
@@ -258,23 +384,88 @@ export default function AdminDashboard() {
   const handleTaskStatusChange = async (taskId: string, newStatus: "IN_PROGRESS" | "COMPLETED") => {
     const savedTasks = localStorage.getItem("global_tasks_data");
     const currentTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
+    const targetTask = currentTasks.find((t: any) => t.id === taskId);
 
     const updatedTasks = currentTasks.map((t: any) => {
       if (t.id === taskId) {
-        return { ...t, status: newStatus };
+        return { ...t, status: newStatus, progress: newStatus === "COMPLETED" ? 100 : t.progress };
       }
       return t;
     });
 
     localStorage.setItem("global_tasks_data", JSON.stringify(updatedTasks));
     setTasksList(updatedTasks);
-    
+
     setSelectedStaffTask((prev: any) => {
       if (prev && prev.id === taskId) {
-        return { ...prev, status: newStatus };
+        return { ...prev, status: newStatus, progress: newStatus === "COMPLETED" ? 100 : prev.progress };
       }
       return prev;
     });
+
+    const now = new Date().toISOString();
+    const savedMails = localStorage.getItem("global_mails_data");
+    const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
+
+    // Xác định mail IDs thuộc task
+    let taskMailIds: number[] = [];
+    if (targetTask) {
+      if (targetTask.selectedMailIds && Array.isArray(targetTask.selectedMailIds)) {
+        taskMailIds = targetTask.selectedMailIds;
+      } else {
+        const mailType = targetTask.type === "MAIL_VE_TINH" ? "SATELLITE"
+          : targetTask.type === "MAIL_MONETIZED" ? "MONETIZED" : "ROOT";
+        let filtered = currentMails.filter((m: any) =>
+          m.type === mailType && String(m.assigneeId) === String(targetTask.assigneeId)
+        );
+        if (targetTask.mailRange) {
+          const parts = targetTask.mailRange.split("-");
+          if (parts.length === 2 && !isNaN(parseInt(parts[0]))) {
+            const start = parseInt(parts[0].trim());
+            const end = parseInt(parts[1].trim());
+            const withSTT = currentMails
+              .filter((m: any) => m.type === mailType)
+              .map((m: any, idx: number) => ({ ...m, _stt: idx + 1 }));
+            const idsInRange = withSTT
+              .filter((m: any) => m._stt >= start && m._stt <= end)
+              .map((m: any) => m.id);
+            filtered = filtered.filter((m: any) => idsInRange.includes(m.id));
+          } else {
+            filtered = filtered.filter((m: any) =>
+              m.batchName === targetTask.mailRange ||
+              (targetTask.mailRange && targetTask.mailRange.includes(m.batchName))
+            );
+          }
+        }
+        taskMailIds = filtered.map((m: any) => m.id);
+      }
+    }
+
+    // Khi COMPLETED và task SATELLITE: kiểm tra link từng mail
+    // Đủ 3 link → "Đã làm"; thiếu bất kỳ link nào → "Lỗi"
+    const isSatelliteTask = targetTask?.type === "MAIL_VE_TINH";
+    const newWorkStatus = newStatus === "COMPLETED" ? "Đã làm" : "Đang xử lí";
+
+    const updatedMails = currentMails.map((m: any) => {
+      if (!taskMailIds.includes(m.id)) return m;
+      if (newStatus === "COMPLETED" && isSatelliteTask) {
+        const links: string[] = m.links || [];
+        const hasAllLinks = [0, 1, 2].every(i => links[i] && links[i].trim() !== "");
+        const resolvedStatus = hasAllLinks ? "Đã làm" : "Lỗi";
+        return { ...m, workStatus: resolvedStatus, lastUpdated: now, updatedBy: user?.name || user?.id || m.updatedBy };
+      }
+      return { ...m, workStatus: newWorkStatus, lastUpdated: now, updatedBy: user?.name || user?.id || m.updatedBy };
+    });
+
+    localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
+    setMails(updatedMails);
+
+    // Kiểm tra link bị thiếu: chỉ khi COMPLETED → quét toàn bộ; IN_PROGRESS → xóa cảnh báo
+    if (newStatus === "COMPLETED") {
+      runMissingLinksCheck(updatedMails, targetTask);
+    } else {
+      setMissingLinksWarning([]);
+    }
 
     let finalKpi = localStorage.getItem("global_kpi_data") || "";
     if (newStatus === "COMPLETED") {
@@ -296,7 +487,7 @@ export default function AdminDashboard() {
       }
     }
 
-    setCopyToast(`Đã chuyển trạng thái Task sang ${newStatus === "COMPLETED" ? "HOÀN THÀNH" : "ĐANG XỬ LÝ"}`);
+    setCopyToast(`✓ Đã cập nhật ${taskMailIds.length} mail sang "${newWorkStatus}"`);
     setTimeout(() => setCopyToast(null), 3000);
 
     window.dispatchEvent(new Event("storage"));
@@ -307,6 +498,7 @@ export default function AdminDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           global_tasks_data: JSON.stringify(updatedTasks),
+          global_mails_data: JSON.stringify(updatedMails),
           global_kpi_data: finalKpi
         })
       });
@@ -400,6 +592,232 @@ export default function AdminDashboard() {
     if (lower.includes("đã bật") || lower.includes("đã kháng")) return "bg-blue-500/10 text-blue-400 border-blue-500/30";
     return "bg-gray-500/10 text-gray-400 border-gray-500/20";
   };
+
+  // ============================================================
+  // FULL-SCREEN TASK DETAIL for Role 03/04
+  // ============================================================
+  // Lock scroll on the main element when task detail is open
+  React.useEffect(() => {
+    const mainEl = document.querySelector("main");
+    if (!mainEl) return;
+    if (selectedStaffTask && (user?.role === "03" || user?.role === "04")) {
+      mainEl.style.overflow = "hidden";
+    } else {
+      mainEl.style.overflow = "";
+    }
+    return () => { mainEl.style.overflow = ""; };
+  }, [selectedStaffTask, user?.role]);
+
+  if (selectedStaffTask && (user?.role === "03" || user?.role === "04")) {
+    const taskMails = mails.filter((m: any) => {
+      const belongsToUser = String(m.assigneeId) === String(user?.id);
+      if (!belongsToUser) return false;
+      if (selectedStaffTask.selectedMailIds && Array.isArray(selectedStaffTask.selectedMailIds)) {
+        return selectedStaffTask.selectedMailIds.includes(m.id);
+      }
+      return selectedStaffTask.type === "MAIL_VE_TINH" ? m.type === "SATELLITE" :
+             selectedStaffTask.type === "MAIL_MONETIZED" ? m.type === "MONETIZED" :
+             m.type === "ROOT";
+    });
+
+    const mailType: "ROOT" | "SATELLITE" | "MONETIZED" =
+      selectedStaffTask.type === "MAIL_VE_TINH" ? "SATELLITE" :
+      selectedStaffTask.type === "MAIL_MONETIZED" ? "MONETIZED" : "ROOT";
+
+    const getStatusStyle = (ws: string) => {
+      const v = (ws || "").toLowerCase();
+      if (v === "đã làm") return "bg-green-500/10 text-green-500 border-green-500/20";
+      if (v === "lỗi") return "bg-red-500/10 text-red-500 border-red-500/20";
+      if (v === "đang xử lí") return "bg-zinc-800/50 text-zinc-400 border-zinc-700";
+      return "bg-gray-500/10 text-gray-400 border-gray-500/20";
+    };
+
+    return (
+      <div
+        className="flex flex-col overflow-hidden bg-background"
+        style={{ height: "calc(100vh - 80px)", margin: "-1rem -1rem -1rem -1rem" }}
+      >
+        {/* Toast */}
+        <AnimatePresence>
+          {copyToast && (
+            <motion.div initial={{ opacity: 0, y: -40, x: "-50%" }} animate={{ opacity: 1, y: 20, x: "-50%" }} exit={{ opacity: 0, y: -40, x: "-50%" }}
+              className="fixed top-0 left-1/2 z-[500] bg-gold px-6 py-2.5 rounded-full text-sidebar font-black text-sm shadow-2xl flex items-center gap-2">
+              <CheckCircle2 size={18} /> {copyToast}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* MailDetailModal */}
+        <AnimatePresence>
+          {selectedMailForModal && (
+            <MailDetailModal
+              mail={selectedMailForModal}
+              type={mailType}
+              user={user}
+              onClose={() => setSelectedMailForModal(null)}
+              onSave={(updatedFields: any) => {
+                const saved = localStorage.getItem("global_mails_data");
+                const all = saved ? JSON.parse(saved) : [];
+                const now = new Date().toISOString();
+                const updated = all.map((m: any) =>
+                  m.id === selectedMailForModal.id ? { ...m, ...updatedFields, lastUpdated: now, updatedBy: user?.name || user?.id } : m
+                );
+                localStorage.setItem("global_mails_data", JSON.stringify(updated));
+                setMails(updated);
+                window.dispatchEvent(new Event("storage"));
+                setSelectedMailForModal(null);
+              }}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Sticky Header */}
+        <div className="flex-shrink-0 bg-sidebar border-b border-white/10 px-6 py-4 shadow-2xl z-10">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSelectedStaffTask(null)}
+                className="h-10 w-10 bg-gold/10 rounded-xl flex items-center justify-center text-gold hover:bg-gold/20 transition-all shadow-lg"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <div>
+                <h1 className="text-xl font-black text-white uppercase tracking-tighter">
+                  Nhiệm vụ được giao: {selectedStaffTask.title} ({taskMails.length} mail)
+                </h1>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
+                  {selectedStaffTask.note || "Xử lý danh sách mail được giao"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => handleTaskStatusChange(selectedStaffTask.id, "IN_PROGRESS")}
+                className={`h-10 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                  selectedStaffTask.status === "IN_PROGRESS"
+                    ? "bg-yellow-500 text-sidebar border-yellow-500"
+                    : "bg-white/5 text-gray-400 border-white/10 hover:border-yellow-500/50 hover:text-yellow-500"
+                }`}
+              >
+                Đang xử lí
+              </button>
+              <button
+                onClick={() => handleTaskStatusChange(selectedStaffTask.id, "COMPLETED")}
+                className={`h-10 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                  selectedStaffTask.status === "COMPLETED"
+                    ? "bg-green-500 text-sidebar border-green-500"
+                    : "bg-white/5 text-gray-400 border-white/10 hover:border-green-500/50 hover:text-green-500"
+                }`}
+              >
+                Hoàn thành
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Missing Links Warning Panel */}
+        {missingLinksWarning.length > 0 && (
+          <div className="flex-shrink-0 mx-4 mt-3">
+            <div className="bg-gradient-to-r from-red-950/60 to-orange-950/40 border border-red-500/40 rounded-2xl overflow-hidden shadow-lg shadow-red-500/10">
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-3 border-b border-red-500/20">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-red-500/20 border border-red-500/30 flex items-center justify-center flex-shrink-0">
+                    <span className="text-red-400 font-black text-lg">!</span>
+                  </div>
+                  <div>
+                    <p className="text-red-300 font-black text-sm uppercase tracking-widest">
+                      {missingLinksWarning.length} mail chưa điền đủ link kênh YouTube
+                    </p>
+                    <p className="text-red-500/70 text-xs font-bold uppercase tracking-wider mt-1">
+                      Các mail thiếu link sẽ bị đánh dấu Lỗi — bổ sung link trong popup "Xem chi tiết"
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setMissingLinksWarning([])}
+                  className="h-7 w-7 rounded-lg bg-red-500/10 hover:bg-red-500/30 text-red-400 hover:text-white transition-all flex items-center justify-center"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              {/* STT Badges */}
+              <div className="px-5 py-3 flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-black text-red-500/60 uppercase tracking-widest mr-2">STT thiếu link:</span>
+                {missingLinksWarning.map((w) => (
+                  <span
+                    key={w.stt}
+                    title={`${w.email} - thiếu ${w.missing} link`}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 font-black text-sm cursor-default hover:bg-red-500/30 transition-colors"
+                  >
+                    <span className="font-black text-white text-base">{w.stt}</span>
+                    <span className="text-red-500/40 font-normal text-xs">|</span>
+                    <span className="text-red-400/80 font-bold text-xs">{w.missing} link trống</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Scrollable mail table */}
+        <div className="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
+          <table className="w-full text-left text-sm whitespace-nowrap min-w-[1000px]">
+            <thead className="sticky top-0 bg-[#0a0a0a] text-gray-500 border-b border-white/5 z-10">
+              <tr>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">Email</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">Pass</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">2FA</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">SĐT</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">Link OTP</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] text-center">Trạng thái</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] text-center">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5 text-gray-300">
+              {taskMails.length === 0 ? (
+                <tr><td colSpan={8} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Không có mail nào</td></tr>
+              ) : taskMails.map((mail: any, idx: number) => (
+                <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
+                  <td className="py-3 px-6 text-[10px] font-black text-gray-500">{idx + 1}</td>
+                  <td className="py-3 px-6 font-bold text-white text-xs cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
+                  <td className="py-3 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.pass, "Pass")}>{mail.pass || "---"}</td>
+                  <td className="py-3 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.twoFA || "", "2FA")}>{mail.twoFA || "---"}</td>
+                  <td className="py-3 px-6 text-xs text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
+                  <td className="py-3 px-6">
+                    {mail.otpLink ? (
+                      <span className="text-blue-400 hover:text-white transition-all flex items-center gap-1 font-bold text-xs cursor-pointer" onClick={() => copyToClipboard(mail.otpLink, "Link OTP")}>Link OTP <ExternalLink size={12} /></span>
+                    ) : <span className="text-gray-700">---</span>}
+                  </td>
+                  <td className="py-3 px-6 text-center">
+                    <select
+                      value={mail.workStatus || "Chưa làm"}
+                      onChange={(e) => handleStaffMailStatusChange(mail.id, e.target.value)}
+                      className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusStyle(mail.workStatus || "Chưa làm")}`}
+                    >
+                      <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
+                      <option value="Đang xử lí" className="bg-sidebar text-white">Đang xử lí</option>
+                      <option value="Đã làm" className="bg-sidebar text-white">Đã làm</option>
+                      <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
+                    </select>
+                  </td>
+                  <td className="py-3 px-6 text-center">
+                    <button
+                      onClick={() => setSelectedMailForModal(mail)}
+                      className="px-4 py-1 rounded-xl bg-gold/10 hover:bg-gold hover:text-sidebar text-gold border border-gold/30 text-[10px] font-black uppercase tracking-widest transition-all"
+                    >
+                      Xem chi tiết
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
 
   if (selectedViewType) {
     return (
@@ -683,12 +1101,10 @@ export default function AdminDashboard() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {tasksList.filter(t => String(t.assigneeId) === String(user?.id)).length > 0 ? (
                       tasksList.filter(t => String(t.assigneeId) === String(user?.id)).map((task: any) => (
-                        <div 
-                          key={task.id} 
-                          onClick={() => setSelectedStaffTask(selectedStaffTask?.id === task.id ? null : task)}
-                          className={`p-6 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
-                            selectedStaffTask?.id === task.id ? 'bg-gold/10 border-gold shadow-lg shadow-gold/5' : 'bg-white/[0.02] border-white/5 hover:border-gold/30'
-                          }`}
+                        <div
+                          key={task.id}
+                          onClick={() => setSelectedStaffTask(task)}
+                          className="p-6 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group bg-white/[0.02] border-white/5 hover:border-gold/30"
                         >
                           <div className="flex items-center justify-between mb-2">
                             <h3 className="text-lg font-black text-white uppercase tracking-tighter">{task.title}</h3>
@@ -733,130 +1149,6 @@ export default function AdminDashboard() {
                     )}
                   </div>
                 </div>
-
-                {selectedStaffTask && (
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl">
-                    <div className="p-6 border-b border-white/5 bg-white/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <h3 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
-                          <span>Danh sách Mail - {selectedStaffTask.title}</span>
-                           <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase border tracking-widest ${
-                            selectedStaffTask.status === "COMPLETED" 
-                              ? "bg-green-500/10 text-green-500 border-green-500/20" 
-                              : selectedStaffTask.status === "IN_PROGRESS"
-                              ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-                              : "bg-gray-500/10 text-gray-400 border-gray-500/20"
-                          }`}>
-                            {selectedStaffTask.status === "COMPLETED" ? "Hoàn thành" : selectedStaffTask.status === "IN_PROGRESS" ? "Đang xử lý" : "Chưa bắt đầu"}
-                          </span>
-                        </h3>
-                        <p className="text-xs text-gray-500 font-medium mt-1">Danh sách mail bạn cần xử lý cho nhiệm vụ này</p>
-                        {selectedStaffTask.title === "Mời kênh" && (
-                          <div className="mt-4 p-4 bg-gold/10 border border-gold/30 rounded-2xl flex items-center justify-between shadow-inner w-full max-w-lg">
-                            <div>
-                              <p className="text-[10px] font-black text-gold uppercase tracking-widest">Chi tiết Ghép cặp</p>
-                              <p className="text-sm font-bold text-white mt-1">{selectedStaffTask.note}</p>
-                            </div>
-                            <div className="h-2 w-2 rounded-full bg-gold animate-ping" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <button 
-                          onClick={() => handleTaskStatusChange(selectedStaffTask.id, "IN_PROGRESS")}
-                          className={`h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
-                            selectedStaffTask.status === "IN_PROGRESS"
-                              ? "bg-yellow-500 text-sidebar border-yellow-500 font-bold"
-                              : "bg-white/5 text-gray-400 border-white/10 hover:border-yellow-500/30 hover:text-yellow-500"
-                          }`}
-                        >
-                          Đang xử lý
-                        </button>
-                        <button 
-                          onClick={() => handleTaskStatusChange(selectedStaffTask.id, "COMPLETED")}
-                          className={`h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
-                            selectedStaffTask.status === "COMPLETED"
-                              ? "bg-green-500 text-sidebar border-green-500 font-bold"
-                              : "bg-white/5 text-gray-400 border-white/10 hover:border-green-500/30 hover:text-green-500"
-                          }`}
-                        >
-                          Hoàn thành
-                        </button>
-                        <div className="h-6 w-px bg-white/10" />
-                        <button onClick={() => setSelectedStaffTask(null)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
-                      </div>
-                    </div>
-
-                    <div className="overflow-x-auto custom-scrollbar">
-                      <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
-                        <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
-                          <tr>
-                            <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT</th>
-                            <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Email</th>
-                            <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Mail KP</th>
-                            <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center whitespace-nowrap">Trạng thái công việc</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5 text-gray-300">
-                          {mails
-                            .filter((m: any) => String(m.assigneeId) === String(user?.id) && (
-                              selectedStaffTask.type === "MAIL_VE_TINH" ? m.type === "SATELLITE" : 
-                              selectedStaffTask.type === "MAIL_MONETIZED" ? m.type === "MONETIZED" : 
-                              m.type === "ROOT"
-                            ))
-                            .map((mail: any, index: number) => (
-                              <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
-                                <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
-                                <td className="py-4 px-6 font-bold text-white cursor-pointer hover:text-gold transition-colors animate-pulse-subtle" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
-                                <td className="py-4 px-6 text-xs text-gray-400 cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.recovery, "Mail KP")}>{mail.recovery}</td>
-                                <td className="py-4 px-6 text-center">
-                                  <div className="flex items-center justify-center gap-2">
-                                    <button 
-                                      onClick={() => handleStaffMailStatusChange(mail.id, "ĐÃ LÀM")}
-                                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
-                                        mail.workStatus === "ĐÃ LÀM KÊNH" || mail.workStatus === "HOÀN THÀNH" || mail.workStatus === "ĐÃ LÀM"
-                                          ? "bg-green-500/10 text-green-500 border-green-500/30"
-                                          : "bg-white/5 text-gray-400 border-white/10 hover:border-green-500/30 hover:text-green-500"
-                                      }`}
-                                    >
-                                      Đã làm
-                                    </button>
-                                    <button 
-                                      onClick={() => handleStaffMailStatusChange(mail.id, "CHƯA LÀM")}
-                                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
-                                        mail.workStatus === "CHƯA LÀM" || !mail.workStatus
-                                          ? "bg-gray-500/10 text-gray-400 border-gray-500/30"
-                                          : "bg-white/5 text-gray-400 border-white/10 hover:border-gray-500/30 hover:text-gray-400"
-                                      }`}
-                                    >
-                                      Chưa làm
-                                    </button>
-                                    <button 
-                                      onClick={() => handleStaffMailStatusChange(mail.id, "LỖI")}
-                                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
-                                        mail.workStatus === "LỖI"
-                                          ? "bg-red-500/10 text-red-500 border-red-500/30"
-                                          : "bg-white/5 text-gray-400 border-white/10 hover:border-red-500/30 hover:text-red-500"
-                                      }`}
-                                    >
-                                      Lỗi
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          {mails.filter((m: any) => String(m.assigneeId) === String(user?.id) && (
-                            selectedStaffTask.type === "MAIL_VE_TINH" ? m.type === "SATELLITE" : 
-                            selectedStaffTask.type === "MAIL_MONETIZED" ? m.type === "MONETIZED" : 
-                            m.type === "ROOT"
-                          )).length === 0 && (
-                            <tr><td colSpan={4} className="py-10 text-center text-gray-600 font-bold uppercase tracking-widest">Không có mail nào được gán cho nhiệm vụ này</td></tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </motion.div>
-                )}
               </motion.div>
             )}
 
@@ -911,39 +1203,50 @@ export default function AdminDashboard() {
                           .map((mail: any, index: number) => (
                             <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
                               <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
-                              <td className="py-4 px-6 text-[10px] font-black text-gold/80">{mail.satelliteIndex || mail.originalSTT || mail.id}</td>
+                              <td className="py-4 px-6 text-[10px] font-black text-gold/80">
+                                {mail.type === "ROOT" ? mail.id 
+                                  : mail.type === "SATELLITE" ? mail.id - 1000 
+                                  : mail.id - 2000}
+                              </td>
                               <td className="py-4 px-6 font-bold text-white cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
                               <td className="py-4 px-6 text-xs text-gray-400 cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.recovery, "Mail KP")}>{mail.recovery}</td>
                               <td className="py-4 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.pass, "Mật khẩu")}>{mail.pass}</td>
                               <td className="py-4 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.twoFA || "", "2FA")}>{mail.twoFA || "---"}</td>
                               <td className="py-4 px-6 text-xs text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
                               <td className="py-4 px-6 text-center">
-                                <div className="flex items-center justify-center gap-2">
+                                 <div className="flex items-center justify-center gap-2">
+                                  {mail.workStatus === "Đang xử lí" && (
+                                    <span className="px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase border border-amber-500/30 bg-amber-500/10 text-amber-500">
+                                      Đang xử lí
+                                    </span>
+                                  )}
                                   <button 
-                                    onClick={() => handleStaffMailStatusChange(mail.id, "ĐÃ LÀM")}
+                                    onClick={() => handleStaffMailStatusChange(mail.id, "Đã làm")}
                                     className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
-                                      mail.workStatus === "ĐÃ LÀM KÊNH" || mail.workStatus === "HOÀN THÀNH" || mail.workStatus === "ĐÃ LÀM" || mail.workStatus === "ĐÃ MỜI MAIL"
-                                        ? "bg-green-500/10 text-green-500 border-green-500/30"
+                                      mail.workStatus === "ĐÃ LÀM KÊNH" || mail.workStatus === "HOÀN THÀNH" || mail.workStatus === "Đã làm" || mail.workStatus === "ĐÃ LÀM" || mail.workStatus === "ĐÃ MỜI MAIL"
+                                        ? "bg-green-500/10 text-green-500 border-green-500/30 font-bold"
                                         : "bg-white/5 text-gray-400 border-white/10 hover:border-green-500/30 hover:text-green-500"
                                     }`}
                                   >
                                     Đã làm
                                   </button>
+                                  {mail.workStatus !== "Đang xử lí" && (
+                                    <button 
+                                      onClick={() => handleStaffMailStatusChange(mail.id, "Chưa làm")}
+                                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
+                                        mail.workStatus === "Chưa làm" || mail.workStatus === "CHƯA LÀM" || mail.workStatus === "CHƯA LÀM KÊNH" || mail.workStatus === "CHƯA MỜI MAIL" || !mail.workStatus
+                                          ? "bg-amber-500/10 text-amber-500 border-amber-500/30 font-bold"
+                                          : "bg-white/5 text-gray-400 border-white/10 hover:border-amber-500/30 hover:text-amber-500"
+                                      }`}
+                                    >
+                                      Chưa làm
+                                    </button>
+                                  )}
                                   <button 
-                                    onClick={() => handleStaffMailStatusChange(mail.id, "CHƯA LÀM")}
+                                    onClick={() => handleStaffMailStatusChange(mail.id, "Lỗi")}
                                     className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
-                                      mail.workStatus === "CHƯA LÀM" || mail.workStatus === "CHƯA LÀM KÊNH" || mail.workStatus === "CHƯA MỜI MAIL" || !mail.workStatus
-                                        ? "bg-gray-500/10 text-gray-400 border-gray-500/30"
-                                        : "bg-white/5 text-gray-400 border-white/10 hover:border-gray-500/30 hover:text-gray-400"
-                                    }`}
-                                  >
-                                    Chưa làm
-                                  </button>
-                                  <button 
-                                    onClick={() => handleStaffMailStatusChange(mail.id, "LỖI")}
-                                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
-                                      mail.workStatus === "LỖI"
-                                        ? "bg-red-500/10 text-red-500 border-red-500/30"
+                                      mail.workStatus === "Lỗi" || mail.workStatus === "LỖI"
+                                        ? "bg-red-500/10 text-red-500 border-red-500/30 font-bold"
                                         : "bg-white/5 text-gray-400 border-white/10 hover:border-red-500/30 hover:text-red-500"
                                     }`}
                                   >

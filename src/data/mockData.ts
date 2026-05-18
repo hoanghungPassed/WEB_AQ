@@ -1,4 +1,7 @@
 import { StaffData, TaskAssignment } from "@/types/admin";
+import { ROOT_MAILS } from "./rootData";
+import { SATELLITE_MAILS } from "./satelliteData";
+import { MONETIZED_MAILS } from "./monetizedData";
 
 // 1. CẤU HÌNH NGƯỜI DÙNG HỆ THỐNG
 export const MOCK_USERS = [
@@ -76,82 +79,23 @@ export interface MailData {
   reClickDate?: string;
   step2PendingDate?: string;
   channelStatusDetail?: string;
+  lastUpdated?: string;
 }
 
-// Generate a global pool of 500 unassigned satellite mails (each set is 17 mails)
-const generateSatelliteMails = () => {
-  const list: MailData[] = [];
-
-  for (let mIdx = 1; mIdx <= 500; mIdx++) {
-    list.push({
-      id: mIdx + 1000,  // ID duy nhất (1001-1500), không trùng với mail gốc (1-500)
-      email: `sat.user.${mIdx}@aqmedia.vn`,
-      pass: "pass123",
-      recovery: `rec.sat.user.${mIdx}@gmail.com`,
-      type: "SATELLITE" as const,
-      status: "LIVE" as const,
-      workStatus: "Chưa làm",
-      channelStatus: "",
-      twoFA: `2FA_SAT_${mIdx}`,
-      phone: `0900222${String(mIdx).padStart(3, '0')}`,
-      otpLink: `https://otp.aqmedia.vn/sat/${mIdx}`,
-      links: [],
-      createdAt: "2024-05-11",
-      assigneeId: "",
-      assignedTo: "",
-      batchName: "",
-      satelliteIndex: mIdx  // STT gốc trong kho vệ tinh (1-500), dùng để hiển thị cho nhân viên
-    } as any);
-  }
-  return list;
-};
-
-
 export const MOCK_MAILS: MailData[] = [
-  // 500 Mail Gốc
-  ...Array.from({ length: 500 }, (_, i) => ({
-    id: i + 1,
-    email: `root.user${i + 1}@aqmedia.vn`,
-    pass: "pass123",
-    recovery: `rec.root${i + 1}@gmail.com`,
-    type: "ROOT" as const,
-    status: "LIVE" as const,
-    workStatus: "Chưa làm",
-    channelStatus: "",
-    twoFA: `2FA_ROOT_${i + 1}`,
-    phone: `0900111${String(i).padStart(3, '0')}`,
-    otpLink: `https://otp.aqmedia.vn/root/${i + 1}`,
-    links: [],
-    createdAt: "2024-05-10"
-  })),
-  // 500 Mail vệ tinh cho mỗi nhân sự 03, 04
-  ...generateSatelliteMails(),
-  // 500 Mail Bật Kiếm Tiền
-  ...Array.from({ length: 500 }, (_, i) => ({
-    id: i + 2000,
-    email: `mon.user${i + 1}@aqmedia.vn`,
-    pass: "pass123",
-    recovery: `rec.mon${i + 1}@gmail.com`,
-    type: "MONETIZED" as const,
-    status: "LIVE" as const,
-    workStatus: "Chưa bán",
-    channelStatus: "Đã bật quảng cáo",
-    twoFA: `2FA_MON_${i + 1}`,
-    phone: `0900333${String(i).padStart(3, '0')}`,
-    otpLink: `https://otp.aqmedia.vn/mon/${i + 1}`,
-    links: [],
-    createdAt: "2024-05-12"
-  }))
+  ...ROOT_MAILS,
+  ...SATELLITE_MAILS,
+  ...MONETIZED_MAILS
 ];
 
 // 5. THỐNG KÊ DASHBOARD
 export const MOCK_DASHBOARD_STATS = {
-  totalMail: 1500,
-  mailLive: 1500,
+  totalMail: ROOT_MAILS.length + SATELLITE_MAILS.length + MONETIZED_MAILS.length,
+  mailLive: ROOT_MAILS.length + SATELLITE_MAILS.length + MONETIZED_MAILS.length,
   mailDie: 0,
-  mailRoot: 500,
-  mailSatellite: 500,
-  mailMonetized: 500,
+  mailRoot: ROOT_MAILS.length,
+  mailSatellite: SATELLITE_MAILS.length,
+  mailMonetized: MONETIZED_MAILS.length,
   tasksToday: 4,
   staffOnline: 11,
   mailWatchHours: 15
@@ -196,11 +140,11 @@ export const initMockDB = () => {
       }
     }
 
-    // Kiểm tra xem data vệ tinh có field satelliteIndex chưa (migration check)
-    const firstSatellite = currentMails.find((m: any) => m.type === "SATELLITE");
-    const needsMigration = firstSatellite && !("satelliteIndex" in firstSatellite);
+    // Migration: phát hiện data cũ (email giả sat.user.xxx hoặc root.user hoặc mon.user)
+    const hasOldFakeData = currentMails.some((m: any) => m.email.includes("sat.user.") || m.email.includes("root.user") || m.email.includes("mon.user"));
+    const totalExpected = MOCK_MAILS.length;
 
-    if (!storedMails || currentMails.length < 1500 || needsMigration) {
+    if (!storedMails || currentMails.length !== totalExpected || hasOldFakeData) {
       // Nếu đã có assignment data, phải giữ lại sau khi reseed
       const existingAssignments: Record<number, any> = {};
       currentMails.forEach((m: any) => {

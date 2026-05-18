@@ -20,7 +20,8 @@ import {
   ChevronLeft,
   ArrowRight,
   Database,
-  RefreshCcw
+  RefreshCcw,
+  Search
 } from "lucide-react";
 
 import { MOCK_STAFF, MOCK_TASK_ASSIGNMENTS, MOCK_MAILS, MailData } from "@/data/mockData";
@@ -345,6 +346,11 @@ export default function TaskManagementPage() {
   const [selectedRootMailId, setSelectedRootMailId] = useState<string>("");
   const [selectedMoiKenhLo, setSelectedMoiKenhLo] = useState<string>("Lô 1");
 
+  // Custom selector state for "Check, xóa, tạo"
+  const [isSelectMailModalOpen, setIsSelectMailModalOpen] = useState<boolean>(false);
+  const [selectedMailIdsForTask, setSelectedMailIdsForTask] = useState<number[]>([]);
+  const [modalSearchQuery, setModalSearchQuery] = useState<string>("");
+
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
@@ -548,6 +554,10 @@ export default function TaskManagementPage() {
     if (selectedTask.type === "MAIL_VE_TINH") mailType = "SATELLITE";
     if (selectedTask.type === "MAIL_MONETIZED") mailType = "MONETIZED";
 
+    if (selectedTask.selectedMailIds && Array.isArray(selectedTask.selectedMailIds)) {
+      return mails.filter(m => selectedTask.selectedMailIds?.includes(m.id));
+    }
+
     let filtered = mails.filter(m => m.type === mailType && String(m.assigneeId) === String(selectedTask.assigneeId));
 
     if (selectedTask.title === "Check, xóa, tạo" || selectedTask.title === "Kênh bật kiếm tiền") {
@@ -601,7 +611,9 @@ export default function TaskManagementPage() {
       if (selectedTask.type === "MAIL_MONETIZED") mailType = "MONETIZED";
 
       let filtered = allMails.filter((m: any) => m.type === mailType && String(m.assigneeId) === String(selectedTask.assigneeId));
-      if (selectedTask.title === "Check, xóa, tạo" || selectedTask.title === "Kênh bật kiếm tiền") {
+      if (selectedTask.selectedMailIds && Array.isArray(selectedTask.selectedMailIds)) {
+        filtered = allMails.filter((m: any) => selectedTask.selectedMailIds?.includes(m.id));
+      } else if (selectedTask.title === "Check, xóa, tạo" || selectedTask.title === "Kênh bật kiếm tiền") {
         if (selectedTask.mailRange) {
           const parts = selectedTask.mailRange.split("-");
           if (parts.length === 2) {
@@ -676,18 +688,20 @@ export default function TaskManagementPage() {
     if (selectedTemplate === "Check, xóa, tạo") {
       typeLabel = "ROOT";
       taskType = "MAIL_GOC";
-      const mailsOfType = allMails.filter((m: any) => m.type === "ROOT");
-      const mailsWithSTT = mailsOfType.map((m: any, idx: number) => ({ ...m, currentSTT: idx + 1 }));
-      assignedIds = mailsWithSTT
-        .filter((m: any) => m.currentSTT >= mailRangeStart && m.currentSTT <= mailRangeEnd && !m.assigneeId)
-        .map((m: any) => m.id);
-
-      if (assignedIds.length === 0) {
-        alert("Không tìm thấy mail gốc khả dụng trong dải STT này.");
+      if (selectedMailIdsForTask.length === 0) {
+        alert("Vui lòng click chọn ít nhất 1 mail gốc khả dụng trong popup trước!");
         return;
       }
+      assignedIds = [...selectedMailIdsForTask];
       mailCount = assignedIds.length;
-      mailRangeStr = `${mailRangeStart} - ${mailRangeEnd}`;
+      
+      const mailsOfType = allMails.filter((m: any) => m.type === "ROOT");
+      const indices = assignedIds.map(id => mailsOfType.findIndex((m: any) => m.id === id) + 1).filter(idx => idx > 0).sort((a, b) => a - b);
+      if (indices.length > 0) {
+        mailRangeStr = `${indices[0]}-${indices[indices.length - 1]}`;
+      } else {
+        mailRangeStr = `${mailCount} mail`;
+      }
     } 
     else if (selectedTemplate === "Làm kênh") {
       typeLabel = "SATELLITE";
@@ -763,7 +777,7 @@ export default function TaskManagementPage() {
           assigneeName: selectedStaff.name,
           assignedAt: new Date().toISOString(),
           assignmentNote: note,
-          workStatus: m.type === "MONETIZED" ? "Chưa bán" : "Chưa làm"
+          workStatus: m.type === "ROOT" ? "Đang xử lí" : (m.type === "MONETIZED" ? "Chưa bán" : "Chưa làm")
         };
       }
       return m;
@@ -774,7 +788,7 @@ export default function TaskManagementPage() {
     let allTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
 
     const selectedBatchObj = dynamicStaffBatches.find(b => b.name === selectedLo);
-    const newTask: TaskAssignment & { taskName?: string; assignee?: string; assigneeName?: string; batch?: string; range?: string } = {
+    const newTask: TaskAssignment & { taskName?: string; assignee?: string; assigneeName?: string; batch?: string; range?: string; selectedMailIds?: number[] } = {
       id: `task-${Date.now()}`,
       title: selectedTemplate,
       taskName: selectedTemplate,
@@ -790,12 +804,14 @@ export default function TaskManagementPage() {
       mailRange: mailRangeStr,
       batch: selectedTemplate === "Làm kênh" ? selectedLo : "",
       range: selectedTemplate === "Làm kênh" ? (selectedBatchObj?.range || "") : mailRangeStr,
-      mailType: typeLabel as any
+      mailType: typeLabel as any,
+      selectedMailIds: selectedTemplate === "Check, xóa, tạo" ? assignedIds : undefined
     };
 
     allTasks.push(newTask);
     localStorage.setItem("global_tasks_data", JSON.stringify(allTasks));
     setTasks(allTasks);
+    setSelectedMailIdsForTask([]);
 
     // Sync to API server database
     fetch("/api/sync", {
@@ -977,27 +993,24 @@ export default function TaskManagementPage() {
                     </div>
 
                     {selectedTemplate === "Check, xóa, tạo" && (
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Bắt đầu từ STT</label>
-                            <input 
-                              type="number"
-                              value={mailRangeStart}
-                              onChange={(e) => setMailRangeStart(Math.max(1, parseInt(e.target.value) || 1))}
-                              className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Đến STT (Tổng {inventory.root})</label>
-                            <input 
-                              type="number"
-                              value={mailRangeEnd}
-                              onChange={(e) => setMailRangeEnd(Math.max(1, parseInt(e.target.value) || 1))}
-                              className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all"
-                            />
-                          </div>
-                        </div>
+                      <div className="space-y-4">
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chọn danh sách Mail Gốc</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!targetStaffId) {
+                              alert("Vui lòng chọn nhân viên nhận việc trước!");
+                              return;
+                            }
+                            setIsSelectMailModalOpen(true);
+                          }}
+                          className="w-full h-14 bg-[#0a0a0a] hover:bg-gold/5 text-gold border border-gold/20 hover:border-gold/50 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg"
+                        >
+                          <Mail size={16} />
+                          {selectedMailIdsForTask.length > 0 
+                            ? `Đã chọn: ${selectedMailIdsForTask.length} mail gốc (Nhấn để thay đổi)` 
+                            : "Chọn mail"}
+                        </button>
                       </div>
                     )}
 
@@ -1272,6 +1285,180 @@ export default function TaskManagementPage() {
             onClose={() => setSelectedMailForConfig(null)} 
             onSave={(updatedFields) => handleSaveUnifiedDetails(selectedMailForConfig.id, updatedFields)}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isSelectMailModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-sidebar border border-white/10 w-full max-w-4xl rounded-[40px] p-8 md:p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="absolute top-0 right-0 h-96 w-96 bg-gold/5 blur-[120px] -mr-48 -mt-48" />
+
+              <div className="flex items-center justify-between mb-6 relative z-10">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 shadow-lg">
+                    <Mail size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-white uppercase tracking-tighter">Chọn Mail Gốc</h2>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">Chỉ hiển thị mail "Đã xanh" & "Chưa làm"</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsSelectMailModalOpen(false)}
+                  className="h-10 w-10 bg-white/5 hover:bg-white/10 text-white rounded-full flex items-center justify-center border border-white/10 transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Search box inside modal */}
+              <div className="mb-6 relative z-10">
+                <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-2xl px-4 h-12 w-full focus-within:border-gold transition-all">
+                  <Search size={16} className="text-gray-500 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm Email hoặc Mail KP..."
+                    value={modalSearchQuery}
+                    onChange={(e) => setModalSearchQuery(e.target.value)}
+                    className="bg-transparent border-none outline-none text-xs text-white w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Table wrapper */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-6 relative z-10 min-h-[250px]">
+                {(() => {
+                  const availableMails = mails.filter((m: any) => 
+                    m.type === "ROOT" && 
+                    m.verificationStatus === "Đã xanh" && 
+                    (m.workStatus === "Chưa làm" || !m.workStatus) &&
+                    (!modalSearchQuery || 
+                     m.email.toLowerCase().includes(modalSearchQuery.toLowerCase()) || 
+                     m.recovery.toLowerCase().includes(modalSearchQuery.toLowerCase()))
+                  );
+
+                  // Calculate master checkbox state
+                  const allSelected = availableMails.length > 0 && availableMails.every((m: any) => selectedMailIdsForTask.includes(m.id));
+                  const someSelected = availableMails.some((m: any) => selectedMailIdsForTask.includes(m.id)) && !allSelected;
+
+                  const handleSelectAll = () => {
+                    if (allSelected) {
+                      // Remove all available from selection
+                      setSelectedMailIdsForTask(prev => prev.filter(id => !availableMails.some((m: any) => m.id === id)));
+                    } else {
+                      // Add all available to selection
+                      const newIds = [...selectedMailIdsForTask];
+                      availableMails.forEach((m: any) => {
+                        if (!newIds.includes(m.id)) newIds.push(m.id);
+                      });
+                      setSelectedMailIdsForTask(newIds);
+                    }
+                  };
+
+                  const handleToggleRow = (id: number) => {
+                    setSelectedMailIdsForTask(prev => 
+                      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                    );
+                  };
+
+                  return (
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                      <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5 sticky top-0 z-20">
+                        <tr>
+                          <th className="py-4 px-6 text-center w-12">
+                            <input
+                              type="checkbox"
+                              checked={allSelected}
+                              ref={(el) => {
+                                if (el) el.indeterminate = someSelected;
+                              }}
+                              onChange={handleSelectAll}
+                              className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 cursor-pointer h-4 w-4"
+                            />
+                          </th>
+                          <th className="py-4 px-6 font-black uppercase tracking-widest text-[9px]">STT</th>
+                          <th className="py-4 px-6 font-black uppercase tracking-widest text-[9px]">STT Gốc</th>
+                          <th className="py-4 px-6 font-black uppercase tracking-widest text-[9px]">Email</th>
+                          <th className="py-4 px-6 font-black uppercase tracking-widest text-[9px]">Mail KP</th>
+                          <th className="py-4 px-6 font-black uppercase tracking-widest text-[9px] text-center">Xác Minh</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5 text-gray-300">
+                        {availableMails.length > 0 ? (
+                          availableMails.map((mail: any, index: number) => (
+                            <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
+                              <td className="py-3 px-6 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedMailIdsForTask.includes(mail.id)}
+                                  onChange={() => handleToggleRow(mail.id)}
+                                  className="rounded border-white/10 bg-white/5 text-gold focus:ring-0 cursor-pointer h-4 w-4"
+                                />
+                              </td>
+                              <td className="py-3 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
+                              <td className="py-3 px-6 text-[10px] font-black text-gold/80">
+                                {mail.type === "ROOT" ? mail.id 
+                                  : mail.type === "SATELLITE" ? mail.id - 1000 
+                                  : mail.id - 2000}
+                              </td>
+                              <td className="py-3 px-6 font-bold text-white cursor-pointer" onClick={() => handleToggleRow(mail.id)}>{mail.email}</td>
+                              <td className="py-3 px-6 text-xs text-gray-400 font-mono">{mail.recovery}</td>
+                              <td className="py-3 px-6 text-center">
+                                <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-green-500/10 text-green-500 border border-green-500/20">
+                                  {mail.verificationStatus}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="py-12 text-center text-gray-600 font-bold uppercase tracking-widest text-xs">
+                              Không tìm thấy mail gốc khả dụng nào
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  );
+                })()}
+              </div>
+
+              {/* Bottom bar */}
+              <div className="flex items-center justify-between pt-6 border-t border-white/5 relative z-10">
+                <span className="text-sm font-black text-gold uppercase tracking-wider">
+                  Đã chọn: {selectedMailIdsForTask.length} mail
+                </span>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => {
+                      setSelectedMailIdsForTask([]);
+                      setIsSelectMailModalOpen(false);
+                    }}
+                    className="h-12 px-6 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-xs tracking-widest transition-all"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={() => setIsSelectMailModalOpen(false)}
+                    className="h-12 px-6 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
+                  >
+                    Xác nhận giao việc
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

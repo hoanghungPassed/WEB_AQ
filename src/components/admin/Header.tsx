@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Search, Bell, Menu, User, PanelLeftClose, PanelLeftOpen, LogOut, UserSearch, UserPlus, CheckCircle2 } from "lucide-react";
+import { Search, Bell, Menu, User, PanelLeftClose, PanelLeftOpen, LogOut, UserSearch, UserPlus, CheckCircle2, Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface HeaderProps {
   isCollapsed: boolean;
@@ -14,6 +15,7 @@ interface HeaderProps {
 
 const Header = ({ isCollapsed, onToggle, onOpenProfile, user }: HeaderProps) => {
   const router = useRouter();
+  const { theme, toggleTheme } = useTheme();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -136,6 +138,39 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user }: HeaderProps) => 
              </div>
            </div>
         </div>
+
+        {/* Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          title={theme === "dark" ? "Chuyển Light Mode" : "Chuyển Dark Mode"}
+          className="relative flex h-12 w-12 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-white/5 hover:text-gold border border-transparent hover:border-white/5 overflow-hidden"
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            {theme === "dark" ? (
+              <motion.span
+                key="sun"
+                initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
+                animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                exit={{ rotate: 90, opacity: 0, scale: 0.5 }}
+                transition={{ duration: 0.2 }}
+                className="absolute"
+              >
+                <Sun size={22} />
+              </motion.span>
+            ) : (
+              <motion.span
+                key="moon"
+                initial={{ rotate: 90, opacity: 0, scale: 0.5 }}
+                animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                exit={{ rotate: -90, opacity: 0, scale: 0.5 }}
+                transition={{ duration: 0.2 }}
+                className="absolute"
+              >
+                <Moon size={22} />
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </button>
 
         {/* Notifications */}
         <div className="relative">

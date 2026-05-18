@@ -28,6 +28,7 @@ export interface TaskAssignment {
   note?: string;
   mailRange?: string;
   mailType?: "ROOT" | "SATELLITE" | "MONETIZED";
+  selectedMailIds?: number[];
 }
 
 export interface TaskMail {
