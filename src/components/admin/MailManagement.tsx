@@ -31,6 +31,34 @@ import MailDetailModal from "@/components/admin/MailDetailModal";
 const _UNUSED = ({
 }: any) => null;
 
+const normalizeAndFixStoredMails = (mails: MailData[]): MailData[] => {
+  if (!mails || mails.length === 0) return [];
+  const rootMails = mails.filter(m => m.type === "ROOT");
+  const satMails = mails.filter(m => m.type === "SATELLITE");
+  const monMails = mails.filter(m => m.type === "MONETIZED");
+
+  const fixSequences = (items: MailData[], startOffset: number) => {
+    const cleanItems = items.filter(m => m.id < startOffset + 1000 && m.id >= startOffset);
+    const dirtyItems = items.filter(m => m.id >= 1000000000000 || m.id < startOffset || m.id >= startOffset + 1000);
+
+    let nextId = cleanItems.reduce((max, m) => m.id > max ? m.id : max, startOffset - 1) + 1;
+    
+    return [
+      ...cleanItems,
+      ...dirtyItems.map((m) => {
+        const fixedId = nextId++;
+        return { ...m, id: fixedId };
+      })
+    ];
+  };
+
+  return [
+    ...fixSequences(rootMails, 1),
+    ...fixSequences(satMails, 1001),
+    ...fixSequences(monMails, 2001)
+  ];
+};
+
 interface MailManagementProps {
   type: "ROOT" | "SATELLITE" | "MONETIZED" | "ALL";
   user: any;
@@ -73,7 +101,18 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     const loadData = () => {
       const saved = localStorage.getItem("global_mails_data");
       if (saved) {
-        setMails(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        const fixed = normalizeAndFixStoredMails(parsed);
+        setMails(fixed);
+        const hasChanges = JSON.stringify(parsed) !== JSON.stringify(fixed);
+        if (hasChanges) {
+          localStorage.setItem("global_mails_data", JSON.stringify(fixed));
+          fetch("/api/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ global_mails_data: JSON.stringify(fixed) })
+          }).catch(err => console.error("Auto migration sync error:", err));
+        }
       } else {
         setMails(MOCK_MAILS);
         localStorage.setItem("global_mails_data", JSON.stringify(MOCK_MAILS));
@@ -84,6 +123,10 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     window.addEventListener("storage", loadData);
     return () => window.removeEventListener("storage", loadData);
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, assignmentFilter, dateFilter, selectedBatch, type]);
 
   const saveMails = async (newMails: MailData[]) => {
     setMails(newMails);
@@ -188,30 +231,163 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       try {
         const bstr = evt.target?.result;
         const wb = XLSX.read(bstr, { type: "binary" });
-        const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
 
-        const importedMails: MailData[] = data.map((item: any, i: number) => ({
-          id: Date.now() + i,
-          email: String(item.MAIL || item.Mail || item.Email || item.email || "").trim(),
-          pass: String(item.PASS || item.Pass || item.Password || item.pass || "").trim(),
-          recovery: String(item["MAIL KP"] || item["Mail KP"] || item.Recovery || item.recovery || "").trim(),
-          twoFA: String(item["2FA"] || item.twoFA || "").trim(),
-          phone: String(item["SĐT"] || item.phone || "").trim(),
-          otpLink: String(item["LINK OTP"] || item["Link OTP"] || item["Link SĐT"] || item.otpLink || "").trim(),
-          type: (type === "ALL" ? "SATELLITE" : type) as "ROOT" | "SATELLITE" | "MONETIZED",
-          status: "LIVE" as const,
-          workStatus: (type === "MONETIZED" ? "Chưa bán" : "Chưa làm") as any,
-          createdAt: new Date().toISOString().split("T")[0]
-        } as MailData)).filter(m => m.email);
-
-        if (importedMails.length === 0) {
+        if (rawRows.length === 0) {
           triggerToast("Không tìm thấy dữ liệu mail hợp lệ!");
           return;
         }
 
-        const filteredExisting = mails.filter(m => !importedMails.some(i => i.email === m.email));
-        saveMails([...importedMails, ...filteredExisting]);
-        triggerToast(`Import thành công ${importedMails.length} mail!`);
+        let startIndex = 0;
+        const firstRow = rawRows[0] || [];
+        const firstCellStr = String(firstRow[0] || "").toLowerCase().trim();
+
+        // Detect if first row is a header row
+        const hasAt = firstCellStr.includes("@");
+        const isHeaderRow = !hasAt && (
+                            firstCellStr === "mail" || 
+                            firstCellStr === "email" || 
+                            firstCellStr.includes("tài khoản") || 
+                            firstCellStr.includes("tai khoan") || 
+                            firstCellStr === "tk" ||
+                            firstRow.some(cell => {
+                              const s = String(cell || "").toLowerCase().trim();
+                              return s === "pass" || s === "recovery" || s === "2fa" || s === "sđt" || s === "sdt" || s === "link otp" || s === "link sđt";
+                            }));
+
+        let emailIdx = 0;
+        let passIdx = 1;
+        let recoveryIdx = 2;
+        let twoFAIdx = 3;
+        let phoneIdx = 4;
+        let otpLinkIdx = 5;
+
+        if (isHeaderRow) {
+          firstRow.forEach((cell, idx) => {
+            const s = String(cell || "").trim().toUpperCase()
+              .replace(/\s+/g, ' ')
+              .replace(/[ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÂÊÔƠƯưăâêôơư]/g, (c) => {
+                const map: any = {
+                  'Đ': 'D', 'đ': 'd',
+                  'À': 'A', 'Á': 'A', 'Â': 'A', 'Ã': 'A', 'È': 'E', 'É': 'E', 'Ê': 'E',
+                  'Ì': 'I', 'Í': 'I', 'Ò': 'O', 'Ó': 'O', 'Ô': 'O', 'Õ': 'O', 'Ù': 'U',
+                  'Ú': 'U', 'Ă': 'A', 'Ĩ': 'I', 'Ũ': 'U', 'Ơ': 'O',
+                  'à': 'a', 'á': 'a', 'â': 'a', 'ã': 'a', 'è': 'e', 'é': 'e', 'ê': 'e',
+                  'ì': 'i', 'í': 'i', 'ò': 'o', 'ó': 'o', 'ô': 'o', 'õ': 'o', 'ù': 'u',
+                  'ú': 'u', 'ă': 'a', 'ĩ': 'i', 'ũ': 'u', 'ơ': 'o'
+                };
+                return map[c] || c;
+              });
+            
+            if (s.includes("MAIL") || s.includes("EMAIL") || s.includes("TAI KHOAN") || s.includes("TK")) {
+              if (!s.includes("KP") && !s.includes("KHOI PHUC")) {
+                emailIdx = idx;
+              } else {
+                recoveryIdx = idx;
+              }
+            } else if (s.includes("PASS") || s.includes("PASSWORD") || s.includes("MAT KHAU") || s.includes("MK")) {
+              passIdx = idx;
+            } else if (s.includes("RECOVERY") || s.includes("MAIL KP") || s.includes("MAIL KHOI PHUC") || s.includes("EMAIL KP") || s.includes("EMAIL KHOI PHUC")) {
+              recoveryIdx = idx;
+            } else if (s.includes("2FA") || s.includes("TWOFA") || s.includes("MA 2FA") || s.includes("SECRET KEY")) {
+              twoFAIdx = idx;
+            } else if (s.includes("SDT") || s.includes("PHONE") || s.includes("SO DIEN THOAI") || s.includes("TELEPHONE")) {
+              phoneIdx = idx;
+            } else if (s.includes("LINK OTP") || s.includes("LINK SDT") || s.includes("OTPLINK") || s.includes("MO OTP")) {
+              otpLinkIdx = idx;
+            }
+          });
+          startIndex = 1;
+        } else {
+          // If headerless, auto scan first row's cell contents to align columns
+          firstRow.forEach((cell, idx) => {
+            const val = String(cell || "").trim();
+            if (val.includes("@")) {
+              if (emailIdx === 0 && idx === 0) {
+                emailIdx = idx;
+              } else {
+                recoveryIdx = idx;
+              }
+            } else if (val.startsWith("http") || val.includes("?token=")) {
+              otpLinkIdx = idx;
+            } else if (/^[0-9]+$/.test(val) && val.length >= 8) {
+              phoneIdx = idx;
+            } else if (val.length >= 30 && /^[a-z0-9]+$/i.test(val)) {
+              twoFAIdx = idx;
+            }
+          });
+          startIndex = 0;
+        }
+
+        // Determine starting ID based on offset rules:
+        // ROOT: starts at 1
+        // SATELLITE: starts at 1001
+        // MONETIZED: starts at 2001
+        let startId = 1;
+        const targetType = (type === "ALL" ? "SATELLITE" : type) as "ROOT" | "SATELLITE" | "MONETIZED";
+        if (targetType === "ROOT") {
+          const rootMails = mails.filter(m => m.type === "ROOT");
+          const maxId = rootMails.reduce((max, m) => m.id > max ? m.id : max, 0);
+          startId = maxId > 0 ? maxId + 1 : 1;
+        } else if (targetType === "SATELLITE") {
+          const satMails = mails.filter(m => m.type === "SATELLITE");
+          const maxId = satMails.reduce((max, m) => m.id > max ? m.id : max, 1000);
+          startId = maxId > 1000 ? maxId + 1 : 1001;
+        } else if (targetType === "MONETIZED") {
+          const monMails = mails.filter(m => m.type === "MONETIZED");
+          const maxId = monMails.reduce((max, m) => m.id > max ? m.id : max, 2000);
+          startId = maxId > 2000 ? maxId + 1 : 2001;
+        }
+
+        const importedMails: MailData[] = [];
+        let importedCount = 0;
+        let duplicateCount = 0;
+        for (let r = startIndex; r < rawRows.length; r++) {
+          const row = rawRows[r];
+          if (!row || row.length === 0) continue;
+          const email = String(row[emailIdx] || "").trim();
+          if (!email) continue;
+
+          const isDuplicate = importedMails.some(im => im.email.toLowerCase() === email.toLowerCase()) ||
+                              mails.some(m => m.email.toLowerCase() === email.toLowerCase());
+
+          if (isDuplicate) {
+            duplicateCount++;
+            continue;
+          }
+
+          importedMails.push({
+            id: startId + importedCount,
+            email,
+            pass: String(row[passIdx] || "").trim(),
+            recovery: String(row[recoveryIdx] || "").trim(),
+            twoFA: String(row[twoFAIdx] || "").trim(),
+            phone: String(row[phoneIdx] || "").trim(),
+            otpLink: String(row[otpLinkIdx] || "").trim(),
+            type: targetType,
+            status: "LIVE" as const,
+            workStatus: (targetType === "MONETIZED" ? "Chưa bán" : "Chưa làm") as any,
+            createdAt: new Date().toISOString().split("T")[0]
+          });
+          importedCount++;
+        }
+
+        if (importedMails.length === 0) {
+          if (duplicateCount > 0) {
+            triggerToast(`Bỏ qua tất cả ${duplicateCount} mail do bị trùng lặp!`);
+          } else {
+            triggerToast("Không tìm thấy dữ liệu mail hợp lệ!");
+          }
+          return;
+        }
+
+        saveMails([...mails, ...importedMails]);
+        if (duplicateCount > 0) {
+          triggerToast(`Nạp thành công ${importedMails.length} mail mới, bỏ qua ${duplicateCount} mail trùng!`);
+        } else {
+          triggerToast(`Import thành công ${importedMails.length} mail!`);
+        }
       } catch (err) {
         console.error("Import Error:", err);
         triggerToast("Lỗi xử lý dữ liệu file Excel!");
@@ -224,33 +400,74 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const handleManualImport = () => {
     if (!manualData.trim()) return;
     const lines = manualData.split("\n");
-    const newItems: MailData[] = lines.filter(l => l.trim()).map((line, i) => {
+
+    let startId = 1;
+    const targetType = (type === "ALL" ? "SATELLITE" : type) as "ROOT" | "SATELLITE" | "MONETIZED";
+    if (targetType === "ROOT") {
+      const rootMails = mails.filter(m => m.type === "ROOT");
+      const maxId = rootMails.reduce((max, m) => m.id > max ? m.id : max, 0);
+      startId = maxId > 0 ? maxId + 1 : 1;
+    } else if (targetType === "SATELLITE") {
+      const satMails = mails.filter(m => m.type === "SATELLITE");
+      const maxId = satMails.reduce((max, m) => m.id > max ? m.id : max, 1000);
+      startId = maxId > 1000 ? maxId + 1 : 1001;
+    } else if (targetType === "MONETIZED") {
+      const monMails = mails.filter(m => m.type === "MONETIZED");
+      const maxId = monMails.reduce((max, m) => m.id > max ? m.id : max, 2000);
+      startId = maxId > 2000 ? maxId + 1 : 2001;
+    }
+
+    const newItems: MailData[] = [];
+    let importedCount = 0;
+    let duplicateCount = 0;
+
+    lines.filter(l => l.trim()).forEach((line) => {
       const parts = line.split(/[\t|]|\s{2,}/);
-      return {
-        id: Date.now() + i,
-        email: String(parts[0] || "").trim(),
+      const email = String(parts[0] || "").trim();
+      if (!email) return;
+
+      const isDuplicate = newItems.some(ni => ni.email.toLowerCase() === email.toLowerCase()) ||
+                          mails.some(m => m.email.toLowerCase() === email.toLowerCase());
+
+      if (isDuplicate) {
+        duplicateCount++;
+        return;
+      }
+
+      newItems.push({
+        id: startId + importedCount,
+        email,
         pass: String(parts[1] || "").trim(),
         recovery: String(parts[2] || "").trim(),
         twoFA: String(parts[3] || "").trim(),
         phone: String(parts[4] || "").trim(),
         otpLink: String(parts[5] || "").trim(),
-        type: (type === "ALL" ? "SATELLITE" : type) as "ROOT" | "SATELLITE" | "MONETIZED",
+        type: targetType,
         status: "LIVE" as const,
-        workStatus: (type === "MONETIZED" ? "Chưa bán" : "Chưa làm") as any,
+        workStatus: (targetType === "MONETIZED" ? "Chưa bán" : "Chưa làm") as any,
         createdAt: new Date().toISOString().split("T")[0]
-      } as MailData;
-    }).filter(m => m.email);
+      });
+      importedCount++;
+    });
 
     if (newItems.length === 0) {
-      triggerToast("Không có dữ liệu hợp lệ!");
+      if (duplicateCount > 0) {
+        triggerToast(`Bỏ qua tất cả ${duplicateCount} mail thủ công do trùng lặp!`);
+      } else {
+        triggerToast("Không có dữ liệu hợp lệ!");
+      }
       return;
     }
 
-    const filteredExisting = mails.filter(m => !newItems.some(ni => ni.email === m.email));
-    saveMails([...newItems, ...filteredExisting]);
+    saveMails([...mails, ...newItems]);
     setManualData("");
     setShowManualImport(false);
-    triggerToast(`Thêm thành công ${newItems.length} mail!`);
+    
+    if (duplicateCount > 0) {
+      triggerToast(`Thêm thành công ${newItems.length} mail mới, bỏ qua ${duplicateCount} mail trùng!`);
+    } else {
+      triggerToast(`Thêm thành công ${newItems.length} mail!`);
+    }
   };
 
   const handleExport = () => {
@@ -283,8 +500,11 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           if (selectedBatch && m.batchName !== selectedBatch) return false;
         }
 
-        const matchesSearch = m.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          m.recovery.toLowerCase().includes(searchTerm.toLowerCase());
+        const term = searchTerm.toLowerCase().trim();
+        const matchesSearch = m.email.toLowerCase().includes(term) ||
+          m.recovery.toLowerCase().includes(term) ||
+          m.pass.toLowerCase().includes(term) ||
+          m.phone.toLowerCase().includes(term);
 
         let matchesStatus = true;
         if (statusFilter !== "ALL") {
@@ -538,7 +758,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               <div className="h-8 w-px bg-white/10 hidden md:block" />
               <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-4 h-10 w-full md:w-64 lg:w-80 focus-within:border-gold transition-all">
                 <Search size={16} className="text-gray-500 shrink-0" />
-                <input type="text" placeholder="Tìm kiếm Email hoặc Mail KP..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none text-xs text-white w-full" />
+                <input type="text" placeholder="Tìm kiếm Email, Pass, Mail KP, SĐT..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none text-xs text-white w-full" />
               </div>
               <select
                 value={statusFilter}
