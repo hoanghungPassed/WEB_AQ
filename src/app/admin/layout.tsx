@@ -7,7 +7,7 @@ import ProfileModal from "@/components/admin/ProfileModal";
 import AccessLock from "@/components/admin/modals/AccessLock";
 import { useRouter } from "next/navigation";
 import { MOCK_ACCESS_REQUESTS, initMockDB } from "@/data/mockData";
-import { Bell, Check, X } from "lucide-react";
+import { Bell, Check, X, Clock, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const lastSyncedCache: Record<string, string | null> = {};
@@ -30,6 +30,25 @@ export default function AdminLayout({
   }, []);
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(1200);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setWindowWidth(window.innerWidth);
+      const handleResize = () => {
+        setWindowWidth(window.innerWidth);
+        if (window.innerWidth < 1200) {
+          setIsCollapsed(true);
+        } else {
+          setIsCollapsed(false);
+        }
+      };
+      handleResize();
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }
+  }, []);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [realtimeToast, setRealtimeToast] = useState<string | null>(null);
@@ -66,6 +85,13 @@ export default function AdminLayout({
   const [roleUpdateNotif, setRoleUpdateNotif] = useState<{title: string, message: string} | null>(null);
   const [lastNotifCount, setLastNotifCount] = useState(0);
   const [isNotifInitialized, setIsNotifInitialized] = useState(false);
+  const [accessSuccessMsg, setAccessSuccessMsg] = useState<string | null>(null);
+  const [isLate, setIsLate] = useState(false);
+  const [lateMins, setLateMins] = useState(0);
+  const [fineAmount, setFineAmount] = useState(0);
+  const [isFinePaid, setIsFinePaid] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [fineSuccessToast, setFineSuccessToast] = useState<string | null>(null);
 
   const syncDatabase = React.useCallback(async () => {
     try {
@@ -241,15 +267,53 @@ export default function AdminLayout({
       }
     };
 
+    const checkLateStatus = () => {
+      const activeUserStr = getActiveUserStr();
+      if (!activeUserStr) return;
+      const currentUser = JSON.parse(activeUserStr);
+      const isStaff = currentUser.role === "04" || currentUser.role === "NHÂN VIÊN" || String(currentUser.role).includes("04");
+      if (!isStaff) {
+        setIsLate(false);
+        return;
+      }
+
+      const checkInISO = localStorage.getItem(`checkin_time_${currentUser.username}`);
+      if (checkInISO) {
+        const dIn = new Date(checkInISO);
+        const H = dIn.getHours();
+        const M = dIn.getMinutes();
+        const mins = H * 60 + M;
+        if (mins > 480) { // 8:00 AM
+          setIsLate(true);
+          const diff = mins - 480;
+          setLateMins(diff);
+          
+          let amt = 50000;
+          if (diff >= 1 && diff <= 5) amt = 10000;
+          else if (diff >= 6 && diff <= 19) amt = 20000;
+          setFineAmount(amt);
+        } else {
+          setIsLate(false);
+        }
+      } else {
+        setIsLate(false);
+      }
+
+      const paid = localStorage.getItem(`late_fine_paid_${getStableDateString()}_${currentUser.username}`) === "true";
+      setIsFinePaid(paid);
+    };
+
     syncDatabase();
     syncUserRole();
     checkNewNotifications();
+    checkLateStatus();
 
     const interval = setInterval(async () => {
       // Sync trước, sau đó mới kiểm tra quyền để đảm bảo data đã được kéo từ server về
       await syncDatabase();
       syncUserRole();
       checkNewNotifications();
+      checkLateStatus();
 
       // Kiểm tra định kỳ và cập nhật isAccessGranted từ localStorage đã được đồng bộ
       const activeUserStr = getActiveUserStr();
@@ -266,9 +330,10 @@ export default function AdminLayout({
     }, 1500); 
 
     const handleStorageChange = (e: StorageEvent) => {
-      if (!e.key || e.key === "global_users" || e.key === "admin_notifications" || e.key === "pending_access_requests" || e.key === "request_trigger") {
+      if (!e.key || e.key === "global_users" || e.key === "admin_notifications" || e.key === "pending_access_requests" || e.key === "request_trigger" || e.key.startsWith("checkin_time_") || e.key.startsWith("late_fine_paid_")) {
         syncUserRole();
         checkNewNotifications();
+        checkLateStatus();
       }
       
       if (e.key === "pending_access_requests") {
@@ -306,7 +371,7 @@ export default function AdminLayout({
     };
   }, [user?.role, isNotifInitialized, lastNotifCount]); // Re-run if role changes locally to keep listeners fresh
 
-  // Kiểm tra giờ làm việc
+  // Kiểm tra giờ làm việc & ngày Chủ Nhật
   const now = new Date();
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
@@ -315,11 +380,16 @@ export default function AdminLayout({
   const startTime = 7 * 60 + 50; // 7:50 AM
   const endTime = 18 * 60; // 6:00 PM
   
+  const isSunday = now.getDay() === 0;
+  const isSundayLockedRole = user?.role === "03" || user?.role === "04" || String(user?.role).includes("03") || String(user?.role).includes("04");
   const isWorkingHours = totalMinutes >= startTime && totalMinutes < endTime;
   const isStaff = user?.role === "04" || user?.role === "NHÂN VIÊN" || String(user?.role).includes("04");
-  const shouldLock = isStaff && !isWorkingHours && !isAccessGranted;
+  
+  const shouldLock = ((isSunday && isSundayLockedRole) || (isStaff && !isWorkingHours)) && !isAccessGranted;
+  const isLateLocked = isStaff && isLate && !isFinePaid && !isAccessGranted;
 
   const getLockMessage = () => {
+    if (isSunday) return "Hôm nay là Chủ Nhật. Hệ thống tạm khóa đối với nhân sự và quản lý nhân sự.";
     if (totalMinutes < startTime) return "Chưa đến giờ làm việc, vui lòng đăng nhập lại vào lúc 7:50 AM";
     return "Đã hết giờ làm việc. Hệ thống tự động khóa để bảo mật dữ liệu.";
   };
@@ -360,7 +430,7 @@ export default function AdminLayout({
     // Đồng bộ lên server ngay lập tức để Nhân viên nhận được quyền mở khóa!
     syncDatabase();
     
-    alert(`Đã cấp quyền truy cập cho ${request.staffName}`);
+    setAccessSuccessMsg(`Đã cấp quyền truy cập cho ${request.staffName}`);
   };
 
   const handleDeny = (request: any) => {
@@ -388,12 +458,12 @@ export default function AdminLayout({
   return (
     <div className="flex h-screen bg-background text-xl overflow-hidden">
       {/* Sidebar */}
-      <Sidebar isCollapsed={isCollapsed} user={user} />
+      <Sidebar isCollapsed={isCollapsed} user={user} windowWidth={windowWidth} />
 
       {/* Main Container */}
       <div 
         className="flex flex-1 flex-col transition-all duration-300 overflow-hidden relative"
-        style={{ paddingLeft: isCollapsed ? "100px" : "320px" }}
+        style={{ paddingLeft: isCollapsed ? (windowWidth < 640 ? "70px" : "100px") : "320px" }}
       >
         {/* Header */}
         <Header 
@@ -401,6 +471,7 @@ export default function AdminLayout({
           onToggle={() => setIsCollapsed(!isCollapsed)} 
           onOpenProfile={() => setIsModalOpen(true)}
           user={user}
+          windowWidth={windowWidth}
         />
 
         {/* Content Area */}
@@ -493,6 +564,138 @@ export default function AdminLayout({
         />
       )}
 
+      {/* Late Access Lock Screen */}
+      {!shouldLock && isLateLocked && (
+        <div className="fixed inset-0 z-[500] bg-[#070707] text-white flex flex-col items-center justify-center p-6 overflow-y-auto custom-scrollbar">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.05)_0%,transparent_70%)] pointer-events-none" />
+          
+          <div className="w-full max-w-2xl bg-sidebar border border-gold/20 rounded-[32px] p-8 shadow-[0_20px_50px_rgba(212,175,55,0.1)] relative overflow-hidden text-center my-auto">
+            {/* Header info */}
+            <div className="h-16 w-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-500/5">
+              <Clock size={32} className="animate-pulse" />
+            </div>
+            
+            <h2 className="text-3xl font-black uppercase tracking-tighter text-white mb-2">Báo cáo đi muộn</h2>
+            <p className="text-gray-400 text-sm font-medium max-w-md mx-auto leading-relaxed mb-6">
+              Hôm nay bạn check-in lúc <span className="text-red-400 font-bold font-mono">
+                {user ? new Date(localStorage.getItem(`checkin_time_${user.username}`) || "").toLocaleTimeString("vi-VN") : "---"}
+              </span>, đi muộn <span className="text-red-400 font-bold font-mono">{lateMins} phút</span> so với giờ quy định (8:00 AM).
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center border-t border-b border-white/5 py-8 my-6 text-left">
+              {/* QR Code and Payment details */}
+              <div className="flex flex-col items-center justify-center border-r border-white/5 pr-0 md:pr-6 pb-6 md:pb-0">
+                <div className="bg-white p-4 rounded-2xl shadow-xl border-2 border-gold/40 relative">
+                  {/* Styled Mock QR Code using SVGs */}
+                  <svg width="180" height="180" viewBox="0 0 180 180" className="text-sidebar">
+                    <rect width="180" height="180" fill="white" />
+                    {/* Outer corners */}
+                    <rect x="15" y="15" width="40" height="40" fill="currentColor" />
+                    <rect x="25" y="25" width="20" height="20" fill="white" />
+                    <rect x="30" y="30" width="10" height="10" fill="currentColor" />
+                    
+                    <rect x="125" y="15" width="40" height="40" fill="currentColor" />
+                    <rect x="135" y="25" width="20" height="20" fill="white" />
+                    <rect x="140" y="30" width="10" height="10" fill="currentColor" />
+                    
+                    <rect x="15" y="125" width="40" height="40" fill="currentColor" />
+                    <rect x="25" y="135" width="20" height="20" fill="white" />
+                    <rect x="130" y="130" width="10" height="10" fill="currentColor" />
+                    
+                    {/* Random beautiful mock data QR squares */}
+                    <rect x="65" y="20" width="15" height="15" fill="currentColor" />
+                    <rect x="90" y="35" width="20" height="10" fill="currentColor" />
+                    <rect x="70" y="60" width="10" height="30" fill="currentColor" />
+                    <rect x="20" y="70" width="30" height="15" fill="currentColor" />
+                    <rect x="110" y="65" width="40" height="15" fill="currentColor" />
+                    <rect x="120" y="90" width="15" height="30" fill="currentColor" />
+                    <rect x="65" y="110" width="30" height="20" fill="currentColor" />
+                    <rect x="15" y="100" width="15" height="15" fill="currentColor" />
+                    <rect x="145" y="145" width="20" height="20" fill="currentColor" />
+                    <rect x="100" y="135" width="20" height="20" fill="currentColor" />
+                    <rect x="65" y="145" width="25" height="15" fill="currentColor" />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className="bg-gold text-sidebar text-[9px] font-black uppercase px-2 py-0.5 rounded-md border border-white tracking-widest shadow-md">AQ MEDIA</span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black mt-3 text-center">Quét mã nộp phạt qua Ngân hàng</p>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Ngân hàng thụ hưởng</span>
+                  <span className="text-sm font-black text-white">MB BANK (Ngân hàng Quân Đội)</span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Số tài khoản</span>
+                  <span className="text-sm font-black text-gold font-mono">19030000000</span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Tên người nhận</span>
+                  <span className="text-sm font-black text-white">CÔNG TY TNHH AQ MEDIA</span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Số tiền nộp phạt</span>
+                  <span className="text-lg font-black text-red-400 font-mono">
+                    {fineAmount.toLocaleString("vi-VN")} VND
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Nội dung chuyển khoản</span>
+                  <span className="text-xs font-bold text-gray-300 font-mono bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg block overflow-hidden text-ellipsis whitespace-nowrap">
+                    PHAT DI MUON {user?.username.toUpperCase()} {lateMins} PHUT
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => {
+                  localStorage.setItem(`late_fine_paid_${getStableDateString()}_${user?.username}`, "true");
+                  setIsFinePaid(true);
+                  setFineSuccessToast("Thanh toán thành công! Chào mừng bạn đến ngày làm việc mới.");
+                  setTimeout(() => setFineSuccessToast(null), 5000);
+                  syncDatabase();
+                }}
+                className="flex-1 h-14 bg-gold text-sidebar font-black text-sm uppercase tracking-widest rounded-2xl hover:bg-white hover:text-sidebar transition-all duration-300 shadow-lg shadow-gold/25"
+              >
+                Đã chuyển khoản
+              </button>
+              
+              <button
+                onClick={handleRequestAccess}
+                className="flex-1 h-14 bg-white/5 border border-white/10 hover:border-gold/50 text-white font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300"
+              >
+                Gửi yêu cầu Quản lý
+              </button>
+              
+              <button
+                onClick={handleLogout}
+                className="h-14 px-6 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300"
+              >
+                Đăng xuất
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fine Success Toast */}
+      <AnimatePresence>
+        {fineSuccessToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -100, x: "-50%" }}
+            animate={{ opacity: 1, y: 30, x: "-50%" }}
+            exit={{ opacity: 0, y: -100, x: "-50%" }}
+            className="fixed top-0 left-1/2 z-[9999] bg-green-500 text-white px-8 py-4 rounded-[24px] shadow-2xl flex items-center gap-4 font-black text-sm uppercase tracking-widest border border-white/20"
+          >
+            <CheckCircle2 size={24} className="animate-bounce" /> {fineSuccessToast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Profile Modal - Highest level for perfect centering */}
       <ProfileModal 
         key={`profile_${user?.id}_${user?.role}`}
@@ -504,6 +707,42 @@ export default function AdminLayout({
           address: (displayUser as any).address || "Hà Nội, Việt Nam"
         }}
       />
+      {/* Success Access Approval Modal */}
+      <AnimatePresence>
+        {accessSuccessMsg && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-sidebar border border-gold/30 rounded-[32px] p-8 w-full max-w-md shadow-2xl relative text-center"
+            >
+              <div className="mx-auto h-20 w-20 bg-green-500/10 rounded-full flex items-center justify-center text-green-400 border border-green-500/20 mb-6 shadow-lg shadow-green-500/10">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 10 }}
+                >
+                  <Check size={40} />
+                </motion.div>
+              </div>
+              <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-3">Cấp quyền thành công</h3>
+              <p className="text-gray-400 font-medium leading-relaxed mb-8">{accessSuccessMsg}</p>
+              <button
+                onClick={() => setAccessSuccessMsg(null)}
+                className="w-full h-14 bg-gold text-sidebar font-black text-sm uppercase tracking-widest rounded-2xl hover:bg-white hover:text-sidebar transition-all duration-300 shadow-lg shadow-gold/20"
+              >
+                Đồng ý & Đóng
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

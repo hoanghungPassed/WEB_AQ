@@ -107,19 +107,19 @@ export default function MailDetailModal({
     onClose();
   };
 
-  // Format lastUpdated
-  const formatLastUpdated = (iso?: string) => {
+  // Format updatedAt to HH:mm DD/MM/YYYY
+  const formatUpdatedAt = (iso?: string) => {
     if (!iso) return null;
     try {
       const d = new Date(iso);
       const pad = (n: number) => String(n).padStart(2, "0");
-      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
     } catch {
       return iso;
     }
   };
 
-  const lastUpdatedStr = formatLastUpdated(mail.lastUpdated);
+  const updatedAtStr = formatUpdatedAt(mail.updatedAt || mail.lastUpdated);
 
   return (
     <motion.div
@@ -192,14 +192,17 @@ export default function MailDetailModal({
                   onChange={(e) => setVerificationStatus(e.target.value)}
                   className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
                 >
-                  <option value="Mail Veri mail" className="bg-sidebar text-white">
-                    Mail Veri mail
+                  <option value="Mail veri" className="bg-sidebar text-white">
+                    Mail veri
                   </option>
                   <option value="Đã xanh" className="bg-sidebar text-white">
                     Đã xanh
                   </option>
                   <option value="Chưa xanh" className="bg-sidebar text-white">
                     Chưa xanh
+                  </option>
+                  <option value="Quét CCCD" className="bg-sidebar text-white">
+                    Quét CCCD
                   </option>
                 </select>
               </div>
@@ -332,15 +335,14 @@ export default function MailDetailModal({
           </button>
         </div>
 
-        {/* lastUpdated */}
-        {lastUpdatedStr && (
-          <div className="flex items-center justify-center mt-4 relative z-10">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-gold/30 bg-gold/10">
-              <span className="text-[10px] font-black text-gold/60 uppercase tracking-widest">Cập nhật lần cuối:</span>
-              <span className="text-sm font-black text-gold">{lastUpdatedStr}</span>
-            </div>
+        {/* Update History Footer */}
+        <div className="flex items-center justify-center mt-4 relative z-10">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-gold/30 bg-gold/10">
+            <span className="text-[10px] font-black text-gold/60 uppercase tracking-widest">
+              Cập nhật gần đây lúc: <span className="text-gold font-mono">{updatedAtStr || "---"}</span> - Người thực hiện: <span className="text-white">{mail.updatedBy || "---"}</span>
+            </span>
           </div>
-        )}
+        </div>
       </motion.div>
     </motion.div>
   );

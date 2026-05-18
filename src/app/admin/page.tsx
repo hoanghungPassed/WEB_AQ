@@ -25,12 +25,23 @@ import {
   Zap,
   CheckCircle2,
   XCircle,
-  Play
+  Play,
+  ShieldAlert,
+  Check
 } from "lucide-react";
 import { MOCK_DASHBOARD_STATS, MOCK_KPI_DATA, MOCK_MAILS, MOCK_STAFF, MOCK_TASK_ASSIGNMENTS } from "@/data/mockData";
+
+const getStableDateString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 import { StaffData } from "@/types/admin";
 import { useRouter } from "next/navigation";
 import MailDetailModal from "@/components/admin/MailDetailModal";
+import TOTPDisplay from "@/components/admin/TOTPDisplay";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -55,6 +66,51 @@ export default function AdminDashboard() {
   const [isEligibleChannelsModalOpen, setIsEligibleChannelsModalOpen] = useState(false);
   const [selectedMailForModal, setSelectedMailForModal] = useState<any>(null);
   const [missingLinksWarning, setMissingLinksWarning] = useState<{stt: number; email: string; missing: number}[]>([]);
+  const [checkInTime, setCheckInTime] = useState<string | null>(null);
+  const [checkOutTime, setCheckOutTime] = useState<string | null>(null);
+  const [timekeepingModal, setTimekeepingModal] = useState<{ type: "in" | "out"; time: string; warning?: string } | null>(null);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+
+  const loadRequests = () => {
+    const saved = localStorage.getItem("pending_access_requests");
+    if (saved) setPendingRequests(JSON.parse(saved));
+    else setPendingRequests([]);
+  };
+
+  const handleApproveRequest = (request: any) => {
+    const saved = localStorage.getItem("pending_access_requests") || "[]";
+    const reqs = JSON.parse(saved);
+    const updated = reqs.filter((r: any) => r.id !== request.id);
+    setPendingRequests(updated);
+    localStorage.setItem("pending_access_requests", JSON.stringify(updated));
+    localStorage.setItem(`access_response_${request.staffName}`, "APPROVED");
+    localStorage.setItem(`access_${getStableDateString()}_${request.staffName}`, "true");
+    
+    localStorage.setItem("request_trigger", Date.now().toString());
+    setCopyToast(`Đã cấp quyền truy cập cho ${request.staffName}`);
+    setTimeout(() => setCopyToast(null), 3000);
+  };
+
+  const handleDenyRequest = (request: any) => {
+    const saved = localStorage.getItem("pending_access_requests") || "[]";
+    const reqs = JSON.parse(saved);
+    const updated = reqs.filter((r: any) => r.id !== request.id);
+    setPendingRequests(updated);
+    localStorage.setItem("pending_access_requests", JSON.stringify(updated));
+    localStorage.setItem(`access_response_${request.staffName}`, "DENIED");
+    
+    localStorage.setItem("request_trigger", Date.now().toString());
+    setCopyToast(`Đã từ chối quyền truy cập cho ${request.staffName}`);
+    setTimeout(() => setCopyToast(null), 3000);
+  };
+
+  useEffect(() => {
+    if (user?.username) {
+      setCheckInTime(localStorage.getItem(`checkin_time_${user.username}`));
+      setCheckOutTime(localStorage.getItem(`checkout_time_${user.username}`));
+    }
+  }, [user]);
+
   const itemsPerPage = 10;
 
   // Helper: quét toàn bộ mail thuộc task hiện tại, trả về danh sách STT thiếu link
@@ -169,7 +225,11 @@ export default function AdminDashboard() {
 
     refreshStats();
     loadStaff();
-    const staffInterval = setInterval(loadStaff, 4000);
+    loadRequests();
+    const staffInterval = setInterval(() => {
+      loadStaff();
+      loadRequests();
+    }, 2000);
 
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "global_kpi_data" && e.newValue) {
@@ -183,6 +243,9 @@ export default function AdminDashboard() {
       }
       if (e.key === "global_users") {
         loadStaff();
+      }
+      if (e.key === "pending_access_requests" || e.key === "request_trigger") {
+        loadRequests();
       }
       if (e.key === "user" && e.newValue) {
         const newUserObj = JSON.parse(e.newValue);
@@ -230,6 +293,90 @@ export default function AdminDashboard() {
     setFilterMailType("ALL");
   }, [selectedViewType]);
 
+  const syncDatabase = async () => {
+    try {
+      const keys = ["global_users", "global_mails_data", "global_tasks_data", "global_kpi_data", "admin_notifications", "realtime_toast", "pending_access_requests"];
+      const payload: Record<string, string> = {};
+      keys.forEach(k => {
+        const val = localStorage.getItem(k);
+        if (val !== null) payload[k] = val;
+      });
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.error("Sync error:", err);
+    }
+  };
+
+  const handleCheckIn = async () => {
+    if (!user) return;
+    const timeStr = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    const fullISO = new Date().toISOString();
+    localStorage.setItem(`checkin_time_${user.username}`, fullISO);
+    setCheckInTime(fullISO);
+    
+    // Trigger real-time modal
+    setTimekeepingModal({ type: "in", time: timeStr });
+    
+    // Sync with online status or user info
+    const savedUsers = localStorage.getItem("global_users");
+    if (savedUsers) {
+      const allUsers = JSON.parse(savedUsers);
+      const updated = allUsers.map((u: any) => 
+        u.username === user.username ? { ...u, checkInTime: timeStr, isOnline: true } : u
+      );
+      localStorage.setItem("global_users", JSON.stringify(updated));
+      window.dispatchEvent(new Event("storage"));
+      await syncDatabase();
+    }
+  };
+
+  const handleCheckOut = async () => {
+    if (!user) return;
+    const checkInISO = localStorage.getItem(`checkin_time_${user.username}`);
+    if (!checkInISO) return;
+    
+    const timeStr = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    const fullISO = new Date().toISOString();
+    localStorage.setItem(`checkout_time_${user.username}`, fullISO);
+    setCheckOutTime(fullISO);
+    
+    // Calculate total hours
+    const dIn = new Date(checkInISO);
+    const dOut = new Date(fullISO);
+    const t_in = dIn.getHours() * 60 + dIn.getMinutes();
+    const t_out = dOut.getHours() * 60 + dOut.getMinutes();
+    
+    // Overlaps for 8:00 - 12:00 (480 to 720) and 13:30 - 17:30 (810 to 1050)
+    const overlap1 = Math.max(0, Math.min(720, t_out) - Math.max(480, t_in));
+    const overlap2 = Math.max(0, Math.min(1050, t_out) - Math.max(810, t_in));
+    const totalWorkingMins = overlap1 + overlap2;
+    
+    let warning = undefined;
+    if (totalWorkingMins < 480) {
+      const missing = 480 - totalWorkingMins;
+      warning = `Hôm nay bạn chưa làm đủ 8 tiếng, còn thiếu ${missing} phút nữa.`;
+    }
+    
+    // Trigger real-time modal
+    setTimekeepingModal({ type: "out", time: timeStr, warning });
+    
+    // Sync with online status or user info
+    const savedUsers = localStorage.getItem("global_users");
+    if (savedUsers) {
+      const allUsers = JSON.parse(savedUsers);
+      const updated = allUsers.map((u: any) => 
+        u.username === user.username ? { ...u, checkOutTime: timeStr, totalHours: (totalWorkingMins / 60).toFixed(2) } : u
+      );
+      localStorage.setItem("global_users", JSON.stringify(updated));
+      window.dispatchEvent(new Event("storage"));
+      await syncDatabase();
+    }
+  };
+
   const handleSaveKPI = () => {
     localStorage.setItem("global_kpi_data", JSON.stringify(kpi));
     setShowSuccess(true);
@@ -254,7 +401,8 @@ export default function AdminDashboard() {
           workStatus: newWorkStatus, 
           status,
           lastUpdated: new Date().toISOString(),
-          updatedBy: user?.name || user?.id || m.updatedBy
+          updatedAt: new Date().toISOString(),
+          updatedBy: user?.name || user?.username || "Hệ thống"
         };
       }
       return m;
@@ -770,6 +918,7 @@ export default function AdminDashboard() {
                 <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">Pass</th>
                 <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">2FA</th>
                 <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">SĐT</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">Mail KP</th>
                 <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">Link OTP</th>
                 <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] text-center">Trạng thái</th>
                 <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] text-center">Thao tác</th>
@@ -777,17 +926,20 @@ export default function AdminDashboard() {
             </thead>
             <tbody className="divide-y divide-white/5 text-gray-300">
               {taskMails.length === 0 ? (
-                <tr><td colSpan={8} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Không có mail nào</td></tr>
+                <tr><td colSpan={9} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Không có mail nào</td></tr>
               ) : taskMails.map((mail: any, idx: number) => (
                 <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
                   <td className="py-3 px-6 text-[10px] font-black text-gray-500">{idx + 1}</td>
                   <td className="py-3 px-6 font-bold text-white text-xs cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
                   <td className="py-3 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.pass, "Pass")}>{mail.pass || "---"}</td>
-                  <td className="py-3 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.twoFA || "", "2FA")}>{mail.twoFA || "---"}</td>
+                  <td className="py-3 px-6 text-xs text-gray-500 font-mono">
+                    <TOTPDisplay secret={mail.twoFA || ""} compact onCopy={copyToClipboard} />
+                  </td>
                   <td className="py-3 px-6 text-xs text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
+                  <td className="py-3 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.recovery || "", "Mail KP")}>{mail.recovery || "---"}</td>
                   <td className="py-3 px-6">
                     {mail.otpLink ? (
-                      <span className="text-blue-400 hover:text-white transition-all flex items-center gap-1 font-bold text-xs cursor-pointer" onClick={() => copyToClipboard(mail.otpLink, "Link OTP")}>Link OTP <ExternalLink size={12} /></span>
+                      <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-white transition-all flex items-center gap-1 font-bold text-xs cursor-pointer">Link OTP <ExternalLink size={12} /></a>
                     ) : <span className="text-gray-700">---</span>}
                   </td>
                   <td className="py-3 px-6 text-center">
@@ -883,22 +1035,33 @@ export default function AdminDashboard() {
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Tên nhân viên</th>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Vai trò</th>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Trạng thái</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Check-in</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Check-out</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Tổng giờ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-gray-300">
                   {staffList
                     .filter(s => s.status === "ACTIVE" && s.role !== "01")
                     .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                    .map((staff, index) => (
+                    .map((staff: any, index) => (
                     <tr key={`staff-${staff.id}`} className="hover:bg-white/[0.02] transition-colors group">
                       <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
-                      <td className="py-4 px-6 text-sm font-bold text-white">{staff.name}</td>
+                      <td className="py-4 px-6 text-sm font-bold text-white flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center font-black text-xs text-gold uppercase shrink-0">
+                          {staff.name ? staff.name.slice(0, 2) : "NV"}
+                        </div>
+                        {staff.name}
+                      </td>
                       <td className="py-4 px-6 text-xs text-gray-400 uppercase font-black">{getRoleLabel(staff.role)}</td>
                       <td className="py-4 px-6">
                         <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${staff.isOnline ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
                           {staff.isOnline ? "ONLINE" : "OFFLINE"}
                         </span>
                       </td>
+                      <td className="py-4 px-6 text-xs text-gray-400 font-mono font-bold">{staff.checkInTime || "---"}</td>
+                      <td className="py-4 px-6 text-xs text-gray-400 font-mono font-bold">{staff.checkOutTime || "---"}</td>
+                      <td className="py-4 px-6 text-xs text-gold font-mono font-black">{staff.totalHours ? `${staff.totalHours}h` : "---"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1041,26 +1204,66 @@ export default function AdminDashboard() {
         )}
       </AnimatePresence>
 
+      {/* Timekeeping Success Modal */}
+      <AnimatePresence>
+        {timekeepingModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[600] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-sidebar border border-gold/30 rounded-[32px] p-8 w-full max-w-md shadow-2xl relative text-center"
+            >
+              <div className={`mx-auto h-20 w-20 rounded-full flex items-center justify-center border mb-6 shadow-lg ${
+                timekeepingModal.type === "in" 
+                  ? "bg-green-500/10 text-green-400 border-green-500/20 shadow-green-500/10" 
+                  : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20 shadow-yellow-500/10"
+              }`}>
+                <CheckCircle2 size={40} className="animate-pulse" />
+              </div>
+              <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-3">
+                {timekeepingModal.type === "in" ? "Check-in thành công" : "Check-out thành công"}
+              </h3>
+              <p className="text-gray-400 font-medium leading-relaxed mb-6">
+                Bạn đã check {timekeepingModal.type === "in" ? "in" : "out"} lúc <span className="text-gold font-bold font-mono text-lg">{timekeepingModal.time}</span>.
+              </p>
+              
+              {timekeepingModal.warning && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 mb-6 flex items-start gap-3 text-left">
+                  <AlertTriangle className="text-red-400 shrink-0 mt-0.5" size={20} />
+                  <div>
+                    <p className="text-xs font-black text-red-400 uppercase tracking-widest">Cảnh báo thiếu giờ</p>
+                    <p className="text-xs text-gray-300 font-medium leading-relaxed mt-1">{timekeepingModal.warning}</p>
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={() => setTimekeepingModal(null)}
+                className="w-full h-14 bg-gold text-sidebar font-black text-sm uppercase tracking-widest rounded-2xl hover:bg-white hover:text-sidebar transition-all duration-300 shadow-lg shadow-gold/25"
+              >
+                Đồng ý & Đóng
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex items-center justify-between">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
           <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Bảng điều khiển</h1>
           <p className="text-lg text-gray-500 mt-1 font-medium italic">Chào mừng trở lại! Đây là tình hình AQ MEDIA hôm nay.</p>
         </motion.div>
-        <div className="hidden lg:flex items-center gap-3 bg-sidebar p-1.5 rounded-2xl border border-border-custom shadow-xl">
-          <div className="bg-gold/10 p-2.5 rounded-xl text-gold"><Calendar size={20} /></div>
-          <div className="pr-3">
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ngày hiện tại</p>
-            <p className="text-xs font-black text-white uppercase flex items-center gap-2">
-              <Clock size={12} className="text-gold" />
-              16:20 (4:20 PM) - {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
-          </div>
-        </div>
       </div>
 
       {user?.role === "03" || user?.role === "04" ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard 
               title="Tổng mail được giao" 
               value={stats.totalMail} 
@@ -1083,6 +1286,51 @@ export default function AdminDashboard() {
                 setShowStaffMailsView(false);
               }}
             />
+            
+            {/* Chấm công card */}
+            <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl relative overflow-hidden group flex flex-col justify-between min-h-[160px]">
+              <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[50px] -mr-16 -mt-16 transition-all group-hover:bg-gold/10" />
+              <div className="relative z-10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Thời gian làm việc</p>
+                    <h3 className="text-xl font-black text-white uppercase tracking-tighter mt-1">Chấm công</h3>
+                  </div>
+                  <div className="h-12 w-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold shadow-lg shadow-gold/5">
+                    <Clock size={24} />
+                  </div>
+                </div>
+                <div className="mt-4 text-xs font-bold text-gray-400 space-y-1">
+                  <p>Trạng thái: <span className={`uppercase tracking-wider text-[10px] px-2 py-0.5 rounded font-black ${!checkInTime ? "bg-red-500/10 text-red-400 border border-red-500/20" : !checkOutTime ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20" : "bg-green-500/10 text-green-400 border border-green-500/20"}`}>{!checkInTime ? "Chưa Check-in" : !checkOutTime ? "Đang làm việc" : "Đã Check-out"}</span></p>
+                  {checkInTime && <p>Check-in lúc: <span className="text-white font-mono font-bold">{new Date(checkInTime).toLocaleTimeString("vi-VN")}</span></p>}
+                  {checkOutTime && <p>Check-out lúc: <span className="text-white font-mono font-bold">{new Date(checkOutTime).toLocaleTimeString("vi-VN")}</span></p>}
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6 relative z-10">
+                <button
+                  onClick={handleCheckIn}
+                  disabled={!!checkInTime}
+                  className={`flex-1 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    !checkInTime 
+                      ? "bg-gold text-sidebar hover:bg-white hover:text-sidebar shadow-lg shadow-gold/25" 
+                      : "bg-white/5 text-gray-600 cursor-not-allowed border border-white/5"
+                  }`}
+                >
+                  Check-in
+                </button>
+                <button
+                  onClick={handleCheckOut}
+                  disabled={!checkInTime || !!checkOutTime}
+                  className={`flex-1 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    checkInTime && !checkOutTime 
+                      ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white" 
+                      : "bg-white/5 text-gray-600 cursor-not-allowed border border-white/5"
+                  }`}
+                >
+                  Check-out
+                </button>
+              </div>
+            </div>
           </div>
 
           <AnimatePresence>
@@ -1412,11 +1660,67 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </motion.div>
-            <div className="rounded-[32px] border border-gold/20 bg-gold/5 p-8 flex flex-col justify-center text-center space-y-4">
-              <div className="mx-auto h-20 w-20 bg-gold rounded-full flex items-center justify-center shadow-2xl shadow-gold/20 text-sidebar"><Target size={36} /></div>
-              <h3 className="text-xl font-black text-white uppercase tracking-tighter">Mục tiêu quý II</h3>
-              <p className="text-gray-400 mt-2 text-sm leading-relaxed">Tập trung tối ưu hóa tỉ lệ <b>Mail Live</b> và đẩy mạnh các kênh đạt đủ 4000 giờ xem.</p>
-              <button className="h-12 w-full bg-white/10 hover:bg-white/20 transition-all rounded-xl font-bold text-white uppercase tracking-widest text-xs">Xem báo cáo chi tiết</button>
+            <div className="flex flex-col gap-6">
+              {/* Approval Center Card */}
+              {isAdminOrManager && (
+                <div className="rounded-[32px] border border-border-custom bg-sidebar p-6 shadow-2xl relative overflow-hidden group text-left">
+                  <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[50px] pointer-events-none" />
+                  
+                  <div className="flex items-center justify-between mb-4 relative z-10">
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                      <ShieldAlert className="text-gold" size={18} />
+                      Yêu cầu truy cập ngoài giờ
+                    </h3>
+                    <span className="bg-gold/10 text-gold border border-gold/30 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">
+                      {pendingRequests.length} Đang chờ
+                    </span>
+                  </div>
+
+                  <div className="space-y-4 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
+                    {pendingRequests.length > 0 ? (
+                      pendingRequests.map((req: any) => (
+                        <div key={`req-card-${req.id}`} className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex flex-col gap-3 hover:border-gold/30 transition-all">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-xs font-black text-white">{req.staffName}</p>
+                              <p className="text-[9px] text-gray-500 font-mono mt-0.5">{req.time}</p>
+                            </div>
+                            <span className="text-[8px] font-black uppercase bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded-md">
+                              Chờ duyệt
+                            </span>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleApproveRequest(req)}
+                              className="flex-1 h-9 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-wider flex items-center justify-center gap-1 transition-all"
+                            >
+                              <Check size={12} /> Đồng ý
+                            </button>
+                            <button
+                              onClick={() => handleDenyRequest(req)}
+                              className="h-9 w-9 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-500 rounded-xl flex items-center justify-center transition-all"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-8 text-center text-gray-600 text-xs font-bold uppercase tracking-widest leading-relaxed">
+                        Không có yêu cầu nào cần duyệt
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Original Objectives Card */}
+              <div className="rounded-[32px] border border-gold/20 bg-gold/5 p-6 flex flex-col justify-center text-center space-y-4">
+                <div className="mx-auto h-16 w-16 bg-gold rounded-full flex items-center justify-center shadow-2xl shadow-gold/20 text-sidebar"><Target size={28} /></div>
+                <h3 className="text-lg font-black text-white uppercase tracking-tighter">Mục tiêu quý II</h3>
+                <p className="text-gray-400 text-xs leading-relaxed">Tối ưu hóa tỷ lệ <b>Mail Live</b> và tăng tốc các kênh vệ tinh đạt 4000 giờ xem.</p>
+              </div>
             </div>
           </div>
         </>

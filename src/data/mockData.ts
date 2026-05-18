@@ -62,6 +62,7 @@ export interface MailData {
   status: "LIVE" | "DIE";
   workStatus: string; // Dynamic status based on type
   updatedBy?: string;
+  updatedAt?: string;
   channelStatus?: string;
   assignedTo?: string; 
   assigneeId?: string; // ID của nhân viên được giao

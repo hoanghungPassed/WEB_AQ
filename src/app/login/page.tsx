@@ -8,6 +8,39 @@ import Link from "next/link";
 import { StaffData } from "@/types/admin";
 import { MOCK_STAFF, initMockDB } from "@/data/mockData";
 
+function RealTimeClock() {
+  const [timeStr, setTimeStr] = useState("");
+  const [dateStr, setDateStr] = useState("");
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      const ss = String(now.getSeconds()).padStart(2, "0");
+      setTimeStr(`${hh}:${mm}:${ss}`);
+
+      const days = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+      const dayName = days[now.getDay()];
+      const day = String(now.getDate()).padStart(2, "0");
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const year = now.getFullYear();
+      setDateStr(`${dayName}, ${day}/${month}/${year}`);
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="absolute right-8 top-8 z-20 flex flex-col items-end rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md text-right font-mono text-white shadow-lg">
+      <div className="text-2xl font-black tracking-widest text-gold">{timeStr}</div>
+      <div className="text-[10px] font-black uppercase tracking-wider text-gray-400 mt-1">{dateStr}</div>
+    </div>
+  );
+}
+
 function LoginForm() {
   const syncDatabaseFromServer = async () => {
     try {
@@ -119,6 +152,9 @@ function LoginForm() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0a0a0a] font-sans">
+      {/* Real-time clock widget in the corner */}
+      <RealTimeClock />
+
       {/* Background Orbs */}
       <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-gold/10 blur-[120px]" />
       <div className="absolute -bottom-20 -right-20 h-96 w-96 rounded-full bg-gold/5 blur-[120px]" />
@@ -163,7 +199,7 @@ function LoginForm() {
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-3">
               <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">
-                Username đăng nhập
+                Tài khoản
               </label>
               <div className="group relative">
                 <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors">
@@ -174,7 +210,7 @@ function LoginForm() {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="admin_01"
+                  placeholder="Username"
                   className="h-14 w-full rounded-2xl border border-white/10 bg-white/5 pl-14 pr-6 text-sm text-white transition-all focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 shadow-inner"
                 />
               </div>
@@ -183,7 +219,7 @@ function LoginForm() {
             <div className="space-y-3">
               <div className="flex items-center justify-between ml-1">
                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                  Mật khẩu bảo mật
+                  Mật khẩu
                 </label>
                 <Link href="/forgot-password" className="text-[10px] font-black text-gold hover:underline uppercase tracking-tighter">
                   Quên mật khẩu?
@@ -198,7 +234,7 @@ function LoginForm() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="đủ 6 kí tự, có số và chữ và kí tự đặc biệt"
                   className="h-14 w-full rounded-2xl border border-white/10 bg-white/5 pl-14 pr-14 text-sm text-white transition-all focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 shadow-inner"
                 />
                 <button

@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
-  LayoutDashboard, 
   Mail, 
   Users, 
   BarChart3, 
@@ -15,8 +14,13 @@ import {
   ShieldAlert,
   LogOut,
   ClipboardList,
-  LayoutGrid,
-  RotateCcw
+  RotateCcw,
+  Play,
+  Globe,
+  Gauge,
+  Blocks,
+  Inbox,
+  Layers
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
@@ -29,9 +33,10 @@ function cn(...inputs: ClassValue[]) {
 interface SidebarProps {
   isCollapsed: boolean;
   user: any;
+  windowWidth?: number;
 }
 
-const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
+const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
   const pathname = usePathname();
   const [openMenus, setOpenMenus] = useState<string[]>(["Kho mail", "Quản lý mail"]);
 
@@ -48,7 +53,31 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
                          roleUpper === "NHÂN VIÊN";
 
   const dynamicMenuItems: any[] = [
-    { title: "Dashboard", icon: <LayoutDashboard size={24} />, href: "/admin" }
+    { title: "Dashboard", icon: <Gauge size={24} />, href: "/admin" },
+    {
+      title: "Ứng dụng",
+      icon: <Blocks size={24} />,
+      subItems: [
+        { 
+          title: "Youtube Studio", 
+          href: "https://studio.youtube.com/", 
+          isExternal: true, 
+          icon: <Play size={14} className="text-red-500 shrink-0" /> 
+        },
+        { 
+          title: "Google Brand", 
+          href: "https://myaccount.google.com/brandaccounts", 
+          isExternal: true, 
+          icon: <Globe size={14} className="text-blue-400 shrink-0" /> 
+        },
+        { 
+          title: "Gmail", 
+          href: "https://accounts.google.com/Login?btmpl=mobile_tier2&hl=vi&service=mail", 
+          isExternal: true, 
+          icon: <Mail size={14} className="text-yellow-500 shrink-0" /> 
+        }
+      ]
+    }
   ];
 
   if (isMinimalRole) {
@@ -60,7 +89,7 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
   } else {
     dynamicMenuItems.push({
       title: "Kho mail",
-      icon: <Mail size={24} />,
+      icon: <Inbox size={24} />,
       subItems: [
         { title: "Mail gốc", href: "/admin/mail/root" },
         { title: "Mail vệ tinh", href: "/admin/mail/satellite" },
@@ -69,7 +98,7 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
     });
     dynamicMenuItems.push({
       title: "Quản lý mail",
-      icon: <LayoutGrid size={24} />,
+      icon: <Layers size={24} />,
       subItems: [
         { title: "Lô mail vệ tinh", href: "/admin/mail/batches" },
       ],
@@ -136,7 +165,6 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
     if (!confirmReset) return;
 
     try {
-      // 1. Xóa toàn bộ localStorage (bao gồm cả access_ keys)
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -144,12 +172,10 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
       }
       keysToRemove.forEach(key => localStorage.removeItem(key));
 
-      // 2. Xóa server store trước để đảm bảo không còn data cũ
       await fetch("/api/sync", { method: "DELETE" });
 
       const { MOCK_STAFF, MOCK_MAILS, MOCK_TASK_ASSIGNMENTS, MOCK_KPI_DATA } = await import("@/data/mockData");
       
-      // 3. Seed lại localStorage với data mới (có satelliteIndex)
       localStorage.setItem("global_users", JSON.stringify(MOCK_STAFF));
       localStorage.setItem("global_mails_data", JSON.stringify(MOCK_MAILS));
       localStorage.setItem("global_tasks_data", JSON.stringify(MOCK_TASK_ASSIGNMENTS));
@@ -157,7 +183,6 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
       localStorage.setItem("admin_notifications", JSON.stringify([]));
       localStorage.setItem("pending_access_requests", JSON.stringify([]));
 
-      // 4. Push data mới lên server để các tab khác nhận được
       const resetPayload = {
         global_users: JSON.stringify(MOCK_STAFF),
         global_mails_data: JSON.stringify(MOCK_MAILS),
@@ -186,7 +211,7 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
   return (
     <motion.aside 
       initial={false}
-      animate={{ width: isCollapsed ? 100 : 320 }}
+      animate={{ width: isCollapsed ? (windowWidth && windowWidth < 640 ? 70 : 100) : 320 }}
       className="fixed left-0 top-0 z-40 h-screen border-r border-white/5 bg-sidebar text-white flex flex-col shadow-2xl"
     >
       {/* Logo */}
@@ -257,17 +282,37 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
                     initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
                     className="ml-12 space-y-2 overflow-hidden"
                   >
-                    {item.subItems?.map((sub: any) => (
-                      <Link
-                        key={sub.title} href={sub.href}
-                        className={cn(
-                          "block rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-widest transition-colors hover:text-gold",
-                          pathname === sub.href ? "text-gold bg-gold/5" : "text-gray-600"
-                        )}
-                      >
-                        {sub.title}
-                      </Link>
-                    ))}
+                    {item.subItems?.map((sub: any) => {
+                      const subContent = (
+                        <div className="flex items-center gap-2">
+                          {sub.icon && <span className="flex-shrink-0">{sub.icon}</span>}
+                          <span>{sub.title}</span>
+                        </div>
+                      );
+                      if (sub.isExternal) {
+                        return (
+                          <a
+                            key={sub.title} href={sub.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all hover:text-gold text-gray-600 hover:bg-white/[0.02] flex items-center"
+                          >
+                            {subContent}
+                          </a>
+                        );
+                      }
+                      return (
+                        <Link
+                          key={sub.title} href={sub.href}
+                          className={cn(
+                            "block rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-widest transition-colors hover:text-gold",
+                            pathname === sub.href ? "text-gold bg-gold/5" : "text-gray-600"
+                          )}
+                        >
+                          {subContent}
+                        </Link>
+                      );
+                    })}
                   </motion.div>
                 )}
               </AnimatePresence>

@@ -69,7 +69,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const [mails, setMails] = useState<MailData[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [dateFilter, setDateFilter] = useState<"ALL" | "1_MONTH" | "2_MONTH">("ALL");
+  const [dateFilter, setDateFilter] = useState<"ALL" | "1_WEEK" | "1_MONTH" | "2_MONTH">("ALL");
   const [assignmentFilter, setAssignmentFilter] = useState<"ALL" | "ASSIGNED" | "UNASSIGNED">("ALL");
   const [selectedBatch, setSelectedBatch] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -173,7 +173,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           workStatus: newStatus as any,
           status,
           lastUpdated: now,
-          updatedBy: user?.name || user?.id || m.updatedBy
+          updatedAt: now,
+          updatedBy: user?.name || user?.username || "Hệ thống"
         };
       }
       return m;
@@ -183,12 +184,15 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   };
 
   const handleSaveUnifiedDetails = (mailId: number, updatedFields: any) => {
+    const now = new Date().toISOString();
     const updated = mails.map(m => {
       if (m.id === mailId) {
         return {
           ...m,
           ...updatedFields,
-          updatedBy: user?.name || user?.id || m.updatedBy
+          lastUpdated: now,
+          updatedAt: now,
+          updatedBy: user?.name || user?.username || "Hệ thống"
         };
       }
       return m;
@@ -199,10 +203,10 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
   const getStatusSelectStyle = (status: string) => {
     const val = (status || "").toLowerCase().trim();
-    if (val.startsWith("đã") || val.startsWith("hoàn thành")) {
+    if (val.startsWith("đã") || val.startsWith("hoàn thành") || val === "mail veri") {
       return "bg-green-500/10 text-green-500 border-green-500/20";
     }
-    if (val === "lỗi" || val === "die") {
+    if (val === "lỗi" || val === "die" || val === "chưa xanh") {
       return "bg-red-500/10 text-red-500 border-red-500/20";
     }
     return "bg-amber-500/10 text-amber-500 border-amber-500/20";
@@ -508,27 +512,46 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
         let matchesStatus = true;
         if (statusFilter !== "ALL") {
-          const val = m.workStatus || (type === "MONETIZED" ? "Chưa bán" : "Chưa làm");
-          matchesStatus = String(val).toLowerCase() === statusFilter.toLowerCase();
+          if (type === "ROOT") {
+            const val = m.verificationStatus || "Chưa xanh";
+            matchesStatus = String(val).toLowerCase() === statusFilter.toLowerCase();
+          } else if (type === "MONETIZED") {
+            const val = m.workStatus || "Chưa bán";
+            matchesStatus = String(val).toLowerCase() === statusFilter.toLowerCase();
+          } else {
+            const val = m.workStatus || "Chưa làm";
+            matchesStatus = String(val).toLowerCase() === statusFilter.toLowerCase();
+          }
         }
 
         let matchesDate = true;
-        if (isAdminOrManager && type === "ROOT" && dateFilter !== "ALL") {
-          const doneDateVal = (m as any).cccdDate;
-          if (!doneDateVal) {
-            matchesDate = false;
-          } else {
+        if (dateFilter !== "ALL") {
+          const isWithinTimeRange = (dateStr: string | undefined, filterType: "1_WEEK" | "1_MONTH" | "2_MONTH") => {
+            if (!dateStr) return false;
             try {
-              const today = new Date("2026-05-17");
-              const done = new Date(doneDateVal);
-              const diffTime = Math.abs(today.getTime() - done.getTime());
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-              const limit = dateFilter === "1_MONTH" ? 30 : 60;
-              if (diffDays > limit) matchesDate = false;
+              const today = new Date("2026-05-18");
+              const targetDate = new Date(dateStr);
+              const diffTime = today.getTime() - targetDate.getTime();
+              const diffDays = diffTime / (1000 * 60 * 60 * 24);
+              
+              if (diffDays < 0) return true;
+              
+              let limitDays = 30;
+              if (filterType === "1_WEEK") limitDays = 7;
+              else if (filterType === "1_MONTH") limitDays = 30;
+              else if (filterType === "2_MONTH") limitDays = 60;
+              
+              return diffDays <= limitDays;
             } catch (e) {
-              matchesDate = false;
+              return false;
             }
-          }
+          };
+
+          const dateToFilter = (type === "ROOT" && m.verificationStatus === "Quét CCCD")
+            ? m.cccdDate
+            : (m.updatedAt || m.createdAt);
+
+          matchesDate = isWithinTimeRange(dateToFilter, dateFilter as any);
         }
 
         let matchesAssignment = true;
@@ -744,8 +767,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
             ? "h-[calc(100vh-120px)] md:h-[calc(100vh-140px)] lg:h-[calc(100vh-160px)]"
             : "h-[calc(100vh-220px)] md:h-[calc(100vh-240px)] lg:h-[calc(100vh-260px)]"
           }`}>
-          <div className="p-6 border-b border-white/5 bg-white/[0.02] flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="p-6 border-b border-white/5 bg-white/[0.02] flex flex-col xl:flex-row items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
               {isStaff && type === "SATELLITE" && selectedBatch && (
                 <button
                   onClick={() => setSelectedBatch(null)}
@@ -766,17 +789,24 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                 className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
               >
                 <option value="ALL" className="bg-sidebar text-white">Tất cả trạng thái</option>
-                {type !== "MONETIZED" ? (
+                {type === "ROOT" ? (
+                  <>
+                    <option value="Mail veri" className="bg-sidebar text-white">Mail veri</option>
+                    <option value="Đã xanh" className="bg-sidebar text-white">Đã xanh</option>
+                    <option value="Chưa xanh" className="bg-sidebar text-white">Chưa xanh</option>
+                    <option value="Quét CCCD" className="bg-sidebar text-white">Quét CCCD</option>
+                  </>
+                ) : type === "MONETIZED" ? (
+                  <>
+                    <option value="Đã bán" className="bg-sidebar text-white">Đã bán</option>
+                    <option value="Chưa bán" className="bg-sidebar text-white">Chưa bán</option>
+                  </>
+                ) : (
                   <>
                     <option value="Đang xử lí" className="bg-sidebar text-white">Đang xử lí</option>
                     <option value="Đã làm" className="bg-sidebar text-white">Đã làm</option>
                     <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
                     <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="Đã bán" className="bg-sidebar text-white">Đã bán</option>
-                    <option value="Chưa bán" className="bg-sidebar text-white">Chưa bán</option>
                   </>
                 )}
               </select>
@@ -791,18 +821,17 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                   <option value="UNASSIGNED" className="bg-sidebar text-white">Chưa gán</option>
                 </select>
               )}
-              {isAdminOrManager && type === "ROOT" && (
-                <select
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value as any)}
-                  className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
-                >
-                  <option value="ALL" className="bg-sidebar text-white">Tất cả thời gian</option>
-                  <option value="1_MONTH" className="bg-sidebar text-white">Làm trong 1 tháng</option>
-                  <option value="2_MONTH" className="bg-sidebar text-white">Làm trong 2 tháng</option>
-                </select>
-              )}
-              <div className="hidden md:flex items-center gap-3 px-5 py-2 bg-gold/10 border-2 border-gold/20 rounded-2xl shadow-lg shadow-gold/5 group">
+              <select
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value as any)}
+                className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
+              >
+                <option value="ALL" className="bg-sidebar text-white">Tất cả thời gian</option>
+                <option value="1_WEEK" className="bg-sidebar text-white">1 tuần gần đây</option>
+                <option value="1_MONTH" className="bg-sidebar text-white">1 tháng gần đây</option>
+                <option value="2_MONTH" className="bg-sidebar text-white">2 tháng gần đây</option>
+              </select>
+              <div className="hidden xl:flex items-center gap-3 px-5 py-2 bg-gold/10 border-2 border-gold/20 rounded-2xl shadow-lg shadow-gold/5 group">
                 <Mail size={18} className="text-gold animate-pulse" />
                 <span className="text-sm font-black text-white uppercase tracking-widest">
                   Tổng cộng: <span className="text-gold text-base ml-1">{filteredMails.length}</span> <span className="text-gold/60 text-[10px] ml-1">Mail</span>
@@ -891,7 +920,20 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                           </td>
                         )}
                         <td className={`${rowPadding} text-center whitespace-nowrap`}>
-                          {type === "MONETIZED" ? (
+                          {type === "ROOT" ? (
+                            <select
+                              value={mail.verificationStatus || "Chưa xanh"}
+                              onChange={(e) => handleSaveUnifiedDetails(mail.id, { verificationStatus: e.target.value })}
+                              className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.verificationStatus || "Chưa xanh")}`}
+                            >
+                              <option value="Mail veri" className="bg-sidebar text-white">Mail veri</option>
+                              <option value="Đã xanh" className="bg-sidebar text-white">Đã xanh</option>
+                              <option value="Chưa xanh" className="bg-sidebar text-white">Chưa xanh</option>
+                              <option value="Quét CCCD" className="bg-sidebar text-white">
+                                Quét CCCD {mail.cccdDate ? `(${mail.cccdDate})` : ""}
+                              </option>
+                            </select>
+                          ) : type === "MONETIZED" ? (
                             <select
                               value={mail.workStatus || "Chưa bán"}
                               onChange={(e) => handleWorkStatusChange(mail.id, e.target.value)}
