@@ -7,7 +7,7 @@ import ProfileModal from "@/components/admin/ProfileModal";
 import AccessLock from "@/components/admin/modals/AccessLock";
 import { useRouter } from "next/navigation";
 import { MOCK_ACCESS_REQUESTS, initMockDB } from "@/data/mockData";
-import { Bell, Check, X, Clock, CheckCircle2 } from "lucide-react";
+import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const lastSyncedCache: Record<string, string | null> = {};
@@ -52,6 +52,14 @@ export default function AdminLayout({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [realtimeToast, setRealtimeToast] = useState<string | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatTab, setChatTab] = useState<"COMPANY" | "PRIVATE">("COMPANY");
+  const [chatMessage, setChatMessage] = useState("");
+  const [companyMessages, setCompanyMessages] = useState<any[]>([]);
+  const [privateMessages, setPrivateMessages] = useState<any[]>([]);
+  const [activeChatUser, setActiveChatUser] = useState<any>(null);
+  const [chatUsers, setChatUsers] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const checkRealtimeToast = () => {
@@ -102,7 +110,10 @@ export default function AdminLayout({
         "global_kpi_data",
         "admin_notifications",
         "realtime_toast",
-        "pending_access_requests"
+        "pending_access_requests",
+        "global_company_chat",
+        "global_private_messages",
+        "global_newsfeed_posts"
       ];
 
       // Quét các key truy cập ngoài giờ hiện có trong localStorage để đồng bộ
@@ -277,6 +288,10 @@ export default function AdminLayout({
         return;
       }
 
+      const savedUsersStr = localStorage.getItem("global_users");
+      const allUsers = savedUsersStr ? JSON.parse(savedUsersStr) : [];
+      const userProfile = allUsers.find((u: any) => u.username === currentUser.username);
+
       const checkInISO = localStorage.getItem(`checkin_time_${currentUser.username}`);
       if (checkInISO) {
         const dIn = new Date(checkInISO);
@@ -284,7 +299,6 @@ export default function AdminLayout({
         const M = dIn.getMinutes();
         const mins = H * 60 + M;
         if (mins > 480) { // 8:00 AM
-          setIsLate(true);
           const diff = mins - 480;
           setLateMins(diff);
           
@@ -292,6 +306,16 @@ export default function AdminLayout({
           if (diff >= 1 && diff <= 5) amt = 10000;
           else if (diff >= 6 && diff <= 19) amt = 20000;
           setFineAmount(amt);
+
+          // If they are late and user profile isLateLocked hasn't been set yet
+          if (userProfile && userProfile.isLateLocked === undefined) {
+            const updatedUsers = allUsers.map((u: any) => u.username === currentUser.username ? { ...u, isLateLocked: true } : u);
+            localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+            window.dispatchEvent(new Event("storage"));
+          }
+          
+          const locked = userProfile ? userProfile.isLateLocked !== false : true;
+          setIsLate(locked);
         } else {
           setIsLate(false);
         }
@@ -299,8 +323,8 @@ export default function AdminLayout({
         setIsLate(false);
       }
 
-      const paid = localStorage.getItem(`late_fine_paid_${getStableDateString()}_${currentUser.username}`) === "true";
-      setIsFinePaid(paid);
+      const isLocked = userProfile ? userProfile.isLateLocked !== false : false;
+      setIsFinePaid(!isLocked);
     };
 
     syncDatabase();
@@ -370,6 +394,246 @@ export default function AdminLayout({
       window.removeEventListener("storage", handleStorageChange);
     };
   }, [user?.role, isNotifInitialized, lastNotifCount]); // Re-run if role changes locally to keep listeners fresh
+
+  // 2s auto-reload polling for locked tab
+  useEffect(() => {
+    if (!isLate) return;
+    const checkUnlockInterval = setInterval(() => {
+      const savedUsersStr = localStorage.getItem("global_users");
+      if (savedUsersStr && user) {
+        const allUsers = JSON.parse(savedUsersStr);
+        const userProfile = allUsers.find((u: any) => u.username === user.username);
+        if (userProfile && userProfile.isLateLocked === false) {
+          window.location.reload();
+        }
+      }
+    }, 2000);
+    return () => clearInterval(checkUnlockInterval);
+  }, [isLate, user]);
+
+  const formatLateMins = (mins: number) => {
+    if (mins < 60) return `${mins} phút`;
+    const hrs = Math.floor(mins / 60);
+    const rem = mins % 60;
+    return rem > 0 ? `${hrs} giờ ${rem} phút` : `${hrs} giờ`;
+  };
+
+  const getUnreadCountForUser = (senderUsername: string) => {
+    if (!user) return 0;
+    const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user.username}_${senderUsername}`);
+    const lastReadTime = lastReadTimeStr ? Number(lastReadTimeStr) : 0;
+    
+    let count = 0;
+    privateMessages.forEach((msg: any) => {
+      if (msg.sender === senderUsername && msg.receiver === user.username) {
+        const msgTime = Number(msg.id.split("_")[1]) || 0;
+        if (msgTime > 0 && msgTime > lastReadTime) {
+          count++;
+        }
+      }
+    });
+    return count;
+  };
+
+  const getCompanyUnreadCount = () => {
+    if (!user) return 0;
+    const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user.username}`);
+    const lastReadTime = lastReadTimeStr ? Number(lastReadTimeStr) : 0;
+    
+    let count = 0;
+    companyMessages.forEach((msg: any) => {
+      const isMe = msg.senderName === (user.name || user.username);
+      const msgTime = Number(msg.id.split("_")[1]) || 0;
+      if (!isMe && msgTime > 0 && msgTime > lastReadTime) {
+        count++;
+      }
+    });
+    return count;
+  };
+
+  const getPrivateUnreadCount = () => {
+    if (!user) return 0;
+    let count = 0;
+    chatUsers.forEach((u: any) => {
+      count += getUnreadCountForUser(u.username);
+    });
+    return count;
+  };
+
+  useEffect(() => {
+    const loadChatData = () => {
+      const savedCompany = localStorage.getItem("global_company_chat");
+      let companyArr = [];
+      if (savedCompany) {
+        companyArr = JSON.parse(savedCompany);
+        setCompanyMessages(companyArr);
+      } else {
+        const defaultCompany = [
+          { id: "company_1715000000000", senderName: "Admin", senderRole: "01", text: "Chào mừng mọi người đến với AQ MEDIA!", time: "08:00" },
+          { id: "company_1715000000001", senderName: "HR Manager", senderRole: "03", text: "Chúc mọi người ngày làm việc hiệu quả nhé!", time: "08:05" }
+        ];
+        localStorage.setItem("global_company_chat", JSON.stringify(defaultCompany));
+        setCompanyMessages(defaultCompany);
+        companyArr = defaultCompany;
+      }
+
+      const savedPrivate = localStorage.getItem("global_private_messages");
+      let privateArr = [];
+      if (savedPrivate) {
+        privateArr = JSON.parse(savedPrivate);
+        setPrivateMessages(privateArr);
+      } else {
+        localStorage.setItem("global_private_messages", "[]");
+        setPrivateMessages([]);
+      }
+
+      const savedUsers = localStorage.getItem("global_users");
+      if (savedUsers) {
+        const allUsers = JSON.parse(savedUsers);
+        if (user) {
+          setChatUsers(allUsers.filter((u: any) => u.username !== user.username));
+        } else {
+          setChatUsers(allUsers);
+        }
+      }
+
+      // Calculate unread count
+      let unread = 0;
+      if (user) {
+        const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user.username}`);
+        const lastReadTime = lastReadTimeStr ? Number(lastReadTimeStr) : 0;
+
+        companyArr.forEach((msg: any) => {
+          const isMe = msg.senderName === (user.name || user.username);
+          const msgTime = Number(msg.id.split("_")[1]) || 0;
+          if (!isMe && msgTime > 0 && msgTime > lastReadTime) {
+            unread++;
+          }
+        });
+
+        privateArr.forEach((msg: any) => {
+          const isMe = msg.sender === user.username;
+          const isForMe = msg.receiver === user.username;
+          const msgTime = Number(msg.id.split("_")[1]) || 0;
+          if (!isMe && isForMe && msgTime > 0) {
+            const senderReadTimeStr = localStorage.getItem(`chat_last_read_time_${user.username}_${msg.sender}`);
+            const senderReadTime = senderReadTimeStr ? Number(senderReadTimeStr) : 0;
+            if (msgTime > senderReadTime) {
+              unread++;
+            }
+          }
+        });
+      }
+      setUnreadCount(unread);
+    };
+
+    loadChatData();
+
+    const handleChatStorage = (e: StorageEvent) => {
+      if (e.key === "global_company_chat" || e.key === "global_private_messages" || e.key === "global_users") {
+        loadChatData();
+      }
+    };
+
+    window.addEventListener("storage", handleChatStorage);
+    const interval = setInterval(loadChatData, 2000);
+
+    return () => {
+      window.removeEventListener("storage", handleChatStorage);
+      clearInterval(interval);
+    };
+  }, [user]);
+
+  // Update last read time when chat is open or when new message is loaded
+  useEffect(() => {
+    if (isChatOpen && user) {
+      localStorage.setItem(`chat_last_read_time_${user.username}`, Date.now().toString());
+      
+      // If we are actively chatting with a private partner
+      if (chatTab === "PRIVATE" && activeChatUser) {
+        localStorage.setItem(`chat_last_read_time_${user.username}_${activeChatUser.username}`, Date.now().toString());
+      }
+      
+      // Trigger a local state recalculation to instantly clear badge
+      const savedCompany = localStorage.getItem("global_company_chat");
+      const savedPrivate = localStorage.getItem("global_private_messages");
+      let unread = 0;
+      
+      const companyArr = savedCompany ? JSON.parse(savedCompany) : [];
+      companyArr.forEach((msg: any) => {
+        const isMe = msg.senderName === (user.name || user.username);
+        const msgTime = Number(msg.id.split("_")[1]) || 0;
+        if (!isMe && msgTime > 0 && msgTime > Date.now()) {
+          unread++;
+        }
+      });
+
+      const privateArr = savedPrivate ? JSON.parse(savedPrivate) : [];
+      privateArr.forEach((msg: any) => {
+        const isMe = msg.sender === user.username;
+        const isForMe = msg.receiver === user.username;
+        const msgTime = Number(msg.id.split("_")[1]) || 0;
+        if (!isMe && isForMe && msgTime > 0) {
+          const senderReadTimeStr = localStorage.getItem(`chat_last_read_time_${user.username}_${msg.sender}`);
+          const senderReadTime = senderReadTimeStr ? Number(senderReadTimeStr) : 0;
+          if (msgTime > senderReadTime) {
+            unread++;
+          }
+        }
+      });
+      setUnreadCount(unread);
+    }
+  }, [isChatOpen, chatTab, activeChatUser, companyMessages, privateMessages, user]);
+
+  const handleSendCompanyMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatMessage.trim() || !user) return;
+
+    const newMsg = {
+      id: `company_${Date.now()}`,
+      senderName: user.name || user.username,
+      senderRole: user.role,
+      text: chatMessage,
+      time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
+    };
+
+    const updated = [...companyMessages, newMsg];
+    localStorage.setItem("global_company_chat", JSON.stringify(updated));
+    setCompanyMessages(updated);
+    setChatMessage("");
+    window.dispatchEvent(new Event("storage"));
+    
+    fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ global_company_chat: JSON.stringify(updated) })
+    }).catch(err => console.error("Chat sync error:", err));
+  };
+
+  const handleSendPrivateMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatMessage.trim() || !user || !activeChatUser) return;
+
+    const newMsg = {
+      id: `private_${Date.now()}`,
+      sender: user.username,
+      receiver: activeChatUser.username,
+      text: chatMessage,
+      time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
+    };
+
+    const updated = [...privateMessages, newMsg];
+    localStorage.setItem("global_private_messages", JSON.stringify(updated));
+    setPrivateMessages(updated);
+    setChatMessage("");
+    window.dispatchEvent(new Event("storage"));
+
+    fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ global_private_messages: JSON.stringify(updated) })
+    }).catch(err => console.error("Chat sync error:", err));
+  };
 
   // Kiểm tra giờ làm việc & ngày Chủ Nhật
   const now = new Date();
@@ -579,42 +843,18 @@ export default function AdminLayout({
             <p className="text-gray-400 text-sm font-medium max-w-md mx-auto leading-relaxed mb-6">
               Hôm nay bạn check-in lúc <span className="text-red-400 font-bold font-mono">
                 {user ? new Date(localStorage.getItem(`checkin_time_${user.username}`) || "").toLocaleTimeString("vi-VN") : "---"}
-              </span>, đi muộn <span className="text-red-400 font-bold font-mono">{lateMins} phút</span> so với giờ quy định (8:00 AM).
+              </span>, đi muộn <span className="text-red-400 font-bold font-mono">{formatLateMins(lateMins)}</span> so với giờ quy định (8:00 AM).
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center border-t border-b border-white/5 py-8 my-6 text-left">
               {/* QR Code and Payment details */}
               <div className="flex flex-col items-center justify-center border-r border-white/5 pr-0 md:pr-6 pb-6 md:pb-0">
                 <div className="bg-white p-4 rounded-2xl shadow-xl border-2 border-gold/40 relative">
-                  {/* Styled Mock QR Code using SVGs */}
-                  <svg width="180" height="180" viewBox="0 0 180 180" className="text-sidebar">
-                    <rect width="180" height="180" fill="white" />
-                    {/* Outer corners */}
-                    <rect x="15" y="15" width="40" height="40" fill="currentColor" />
-                    <rect x="25" y="25" width="20" height="20" fill="white" />
-                    <rect x="30" y="30" width="10" height="10" fill="currentColor" />
-                    
-                    <rect x="125" y="15" width="40" height="40" fill="currentColor" />
-                    <rect x="135" y="25" width="20" height="20" fill="white" />
-                    <rect x="140" y="30" width="10" height="10" fill="currentColor" />
-                    
-                    <rect x="15" y="125" width="40" height="40" fill="currentColor" />
-                    <rect x="25" y="135" width="20" height="20" fill="white" />
-                    <rect x="130" y="130" width="10" height="10" fill="currentColor" />
-                    
-                    {/* Random beautiful mock data QR squares */}
-                    <rect x="65" y="20" width="15" height="15" fill="currentColor" />
-                    <rect x="90" y="35" width="20" height="10" fill="currentColor" />
-                    <rect x="70" y="60" width="10" height="30" fill="currentColor" />
-                    <rect x="20" y="70" width="30" height="15" fill="currentColor" />
-                    <rect x="110" y="65" width="40" height="15" fill="currentColor" />
-                    <rect x="120" y="90" width="15" height="30" fill="currentColor" />
-                    <rect x="65" y="110" width="30" height="20" fill="currentColor" />
-                    <rect x="15" y="100" width="15" height="15" fill="currentColor" />
-                    <rect x="145" y="145" width="20" height="20" fill="currentColor" />
-                    <rect x="100" y="135" width="20" height="20" fill="currentColor" />
-                    <rect x="65" y="145" width="25" height="15" fill="currentColor" />
-                  </svg>
+                  <img 
+                    src={`https://img.vietqr.io/image/MB-686820388888-compact2.png?amount=${fineAmount}&addInfo=${user?.username || 'Guest'}_Nop_Phat`} 
+                    alt="VietQR Fine Code" 
+                    className="h-[180px] w-[180px] object-contain rounded-xl"
+                  />
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <span className="bg-gold text-sidebar text-[9px] font-black uppercase px-2 py-0.5 rounded-md border border-white tracking-widest shadow-md">AQ MEDIA</span>
                   </div>
@@ -629,7 +869,7 @@ export default function AdminLayout({
                 </div>
                 <div>
                   <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Số tài khoản</span>
-                  <span className="text-sm font-black text-gold font-mono">19030000000</span>
+                  <span className="text-sm font-black text-gold font-mono">686820388888</span>
                 </div>
                 <div>
                   <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Tên người nhận</span>
@@ -644,7 +884,7 @@ export default function AdminLayout({
                 <div>
                   <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Nội dung chuyển khoản</span>
                   <span className="text-xs font-bold text-gray-300 font-mono bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg block overflow-hidden text-ellipsis whitespace-nowrap">
-                    PHAT DI MUON {user?.username.toUpperCase()} {lateMins} PHUT
+                    {user?.username.toUpperCase()}_NOP_PHAT
                   </span>
                 </div>
               </div>
@@ -653,11 +893,25 @@ export default function AdminLayout({
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={() => {
-                  localStorage.setItem(`late_fine_paid_${getStableDateString()}_${user?.username}`, "true");
+                  const savedUsers = localStorage.getItem("global_users");
+                  if (savedUsers && user) {
+                    const allUsers = JSON.parse(savedUsers);
+                    const updated = allUsers.map((u: any) => 
+                      u.username === user.username ? { ...u, isLateLocked: false } : u
+                    );
+                    localStorage.setItem("global_users", JSON.stringify(updated));
+                    // Push sync request
+                    fetch("/api/sync", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ global_users: JSON.stringify(updated) })
+                    }).catch(err => console.error("Sync pay error:", err));
+                  }
                   setIsFinePaid(true);
+                  setIsLate(false);
                   setFineSuccessToast("Thanh toán thành công! Chào mừng bạn đến ngày làm việc mới.");
                   setTimeout(() => setFineSuccessToast(null), 5000);
-                  syncDatabase();
+                  window.dispatchEvent(new Event("storage"));
                 }}
                 className="flex-1 h-14 bg-gold text-sidebar font-black text-sm uppercase tracking-widest rounded-2xl hover:bg-white hover:text-sidebar transition-all duration-300 shadow-lg shadow-gold/25"
               >
@@ -743,6 +997,200 @@ export default function AdminLayout({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Floating Chat Widget */}
+      {user && (
+        <div className="fixed bottom-6 right-6 z-[450] flex flex-col items-end">
+          <AnimatePresence>
+            {isChatOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 50, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 50, scale: 0.95 }}
+                className="w-96 h-[500px] bg-[#161616]/95 border border-white/10 rounded-[32px] shadow-2xl flex flex-col overflow-hidden mb-4 backdrop-blur-xl"
+              >
+                {/* Header */}
+                <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                    <h3 className="text-xs font-black text-white uppercase tracking-widest">AQ CHAT BOX</h3>
+                  </div>
+                  <button 
+                    onClick={() => setIsChatOpen(false)}
+                    className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-white/5 text-gray-500 hover:text-white transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* Tabs */}
+                <div className="grid grid-cols-2 border-b border-white/5 text-center">
+                  <button
+                    onClick={() => setChatTab("COMPANY")}
+                    className={`py-3 text-[10px] font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 ${chatTab === "COMPANY" ? "text-gold border-b-2 border-gold bg-white/[0.01]" : "text-gray-500 hover:text-white"}`}
+                  >
+                    <span>Công ty</span>
+                    {getCompanyUnreadCount() > 0 && (
+                      <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setChatTab("PRIVATE")}
+                    className={`py-3 text-[10px] font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 ${chatTab === "PRIVATE" ? "text-gold border-b-2 border-gold bg-white/[0.01]" : "text-gray-500 hover:text-white"}`}
+                  >
+                    <span>Chat với</span>
+                    {getPrivateUnreadCount() > 0 && (
+                      <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Content Area */}
+                <div className="flex-1 flex overflow-hidden">
+                  {chatTab === "COMPANY" ? (
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                      {/* Messages Area */}
+                      <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar flex flex-col">
+                        {companyMessages.map((msg: any) => {
+                          const isMe = msg.senderName === (user?.name || user?.username);
+                          return (
+                            <div key={msg.id} className={`flex flex-col max-w-[80%] ${isMe ? "self-end items-end" : "self-start items-start"}`}>
+                              {!isMe && (
+                                <span className="text-[8px] font-black uppercase tracking-wider text-gray-500 mb-0.5 ml-1">
+                                  {msg.senderName} ({msg.senderRole === "01" ? "ADMIN" : msg.senderRole === "02" ? "QLCV" : msg.senderRole === "03" ? "QLNS" : "NV"})
+                                </span>
+                              )}
+                              <div className={`p-3 rounded-2xl text-xs font-medium leading-relaxed break-all ${isMe ? "bg-gold text-sidebar rounded-tr-none" : "bg-white/5 text-white rounded-tl-none border border-white/5"}`}>
+                                {msg.text}
+                              </div>
+                              <span className="text-[8px] font-bold text-gray-600 font-mono mt-1 px-1">{msg.time}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Input Box */}
+                      <form onSubmit={handleSendCompanyMessage} className="p-3 border-t border-white/5 bg-[#0e0e0e] flex gap-2 items-center">
+                        <input
+                          type="text"
+                          placeholder="Nhập nội dung tin nhắn..."
+                          value={chatMessage}
+                          onChange={(e) => setChatMessage(e.target.value)}
+                          className="flex-1 h-10 bg-white/5 border border-white/5 focus:border-gold/50 rounded-xl px-4 text-xs text-white focus:outline-none transition-all placeholder:text-gray-600"
+                        />
+                        <button type="submit" className="h-10 w-10 bg-gold text-sidebar rounded-xl flex items-center justify-center hover:bg-white hover:text-sidebar transition-colors shadow-lg shadow-gold/10">
+                          <Send size={14} />
+                        </button>
+                      </form>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex overflow-hidden">
+                      {/* Left: User Select sidebar */}
+                      {!activeChatUser ? (
+                        <div className="flex-1 flex flex-col overflow-y-auto p-2 divide-y divide-white/5 custom-scrollbar">
+                          <div className="text-[9px] font-black text-gray-500 uppercase tracking-widest p-2">Chọn nhân sự</div>
+                          {chatUsers.map((u: any) => (
+                            <button
+                              key={u.id}
+                              onClick={() => setActiveChatUser(u)}
+                              className="w-full p-3 flex items-center gap-3 rounded-xl hover:bg-white/5 transition-all text-left group"
+                            >
+                              <div className="relative">
+                                <div className="h-8 w-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-xs text-gold font-black group-hover:scale-105 transition-all">
+                                  {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover rounded-lg" /> : u.name.charAt(0)}
+                                </div>
+                                <div className={`absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-[#161616] ${u.isOnline ? "bg-green-500" : "bg-red-500"}`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-black text-white truncate group-hover:text-gold transition-colors">{u.name}</p>
+                                <p className="text-[8px] font-bold text-gray-500 uppercase mt-0.5">@{u.username}</p>
+                              </div>
+                              {getUnreadCountForUser(u.username) > 0 && (
+                                <span className="bg-red-500 text-white font-mono text-[9px] font-black h-5 w-5 rounded-full flex items-center justify-center shadow-lg shrink-0 animate-pulse">
+                                  {getUnreadCountForUser(u.username)}
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex-1 flex flex-col overflow-hidden">
+                          {/* Active private partner header */}
+                          <div className="p-3 border-b border-white/5 bg-[#0e0e0e] flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="h-6 w-6 rounded bg-gold/10 flex items-center justify-center text-[10px] font-black text-gold">
+                                {activeChatUser.name.charAt(0)}
+                              </div>
+                              <span className="text-[10px] font-black text-white uppercase truncate max-w-[120px]">{activeChatUser.name}</span>
+                            </div>
+                            <button 
+                              onClick={() => setActiveChatUser(null)}
+                              className="text-[9px] font-black text-gold uppercase tracking-wider hover:text-white"
+                            >
+                              Đổi người
+                            </button>
+                          </div>
+
+                          {/* Private Messages Area */}
+                          <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar flex flex-col">
+                            {privateMessages
+                              .filter((msg: any) => 
+                                (msg.sender === user?.username && msg.receiver === activeChatUser.username) ||
+                                (msg.sender === activeChatUser.username && msg.receiver === user?.username)
+                              )
+                              .map((msg: any) => {
+                                const isMe = msg.sender === user?.username;
+                                return (
+                                  <div key={msg.id} className={`flex flex-col max-w-[80%] ${isMe ? "self-end items-end" : "self-start items-start"}`}>
+                                    <div className={`p-3 rounded-2xl text-xs font-medium leading-relaxed break-all ${isMe ? "bg-gold text-sidebar rounded-tr-none" : "bg-white/5 text-white rounded-tl-none border border-white/5"}`}>
+                                      {msg.text}
+                                    </div>
+                                    <span className="text-[8px] font-bold text-gray-600 font-mono mt-1 px-1">{msg.time}</span>
+                                  </div>
+                                );
+                              })}
+                          </div>
+
+                          {/* Input box */}
+                          <form onSubmit={handleSendPrivateMessage} className="p-3 border-t border-white/5 bg-[#0e0e0e] flex gap-2 items-center">
+                            <input
+                              type="text"
+                              placeholder={`Chat với ${activeChatUser.name}...`}
+                              value={chatMessage}
+                              onChange={(e) => setChatMessage(e.target.value)}
+                              className="flex-1 h-10 bg-white/5 border border-white/5 focus:border-gold/50 rounded-xl px-4 text-xs text-white focus:outline-none transition-all placeholder:text-gray-600"
+                            />
+                            <button type="submit" className="h-10 w-10 bg-gold text-sidebar rounded-xl flex items-center justify-center hover:bg-white hover:text-sidebar transition-colors shadow-lg shadow-gold/10">
+                              <Send size={14} />
+                            </button>
+                          </form>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Toggle Button */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsChatOpen(!isChatOpen)}
+            className="h-14 w-14 bg-sidebar border border-gold/20 hover:border-gold text-gold rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:bg-gold hover:text-sidebar transition-all duration-300 relative group"
+          >
+            <MessageCircle size={24} />
+            {unreadCount > 0 ? (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white font-mono text-[10px] font-black h-6 w-6 rounded-full flex items-center justify-center border-2 border-sidebar shadow-lg animate-pulse">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            ) : (
+              <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-green-500 border-2 border-sidebar" />
+            )}
+          </motion.button>
+        </div>
+      )}
     </div>
   );
 }

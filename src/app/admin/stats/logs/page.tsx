@@ -175,7 +175,7 @@ export default function SystemLogsPage() {
   });
 
   return (
-    <div className="h-full flex flex-col space-y-6 pb-6 relative">
+    <div className="h-[calc(100vh-100px)] flex flex-col space-y-6 pb-6 relative overflow-hidden">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMsg && (
@@ -321,7 +321,7 @@ export default function SystemLogsPage() {
           <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest flex items-center gap-1.5"><RefreshCw size={12} className="animate-spin text-gold/50" /> Đang theo dõi...</span>
         </div>
 
-        <div className="flex-1 overflow-x-auto custom-scrollbar">
+        <div className="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
           <table className="w-full text-left text-sm whitespace-nowrap min-w-[1000px]">
             <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5 sticky top-0 z-10">
               <tr>

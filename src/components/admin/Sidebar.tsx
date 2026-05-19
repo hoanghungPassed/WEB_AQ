@@ -20,7 +20,8 @@ import {
   Gauge,
   Blocks,
   Inbox,
-  Layers
+  Layers,
+  MessageSquare
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
@@ -54,6 +55,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
 
   const dynamicMenuItems: any[] = [
     { title: "Dashboard", icon: <Gauge size={24} />, href: "/admin" },
+    { title: "Bảng Tin", icon: <MessageSquare size={24} />, href: "/admin/newsfeed" },
     {
       title: "Ứng dụng",
       icon: <Blocks size={24} />,

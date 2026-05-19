@@ -466,8 +466,11 @@ export default function TaskManagementPage() {
     // For each batch name, find the range in allSatellites
     return batchNames.map(bName => {
       const batchMails = theirSatellites.filter((m: any) => m.batchName === bName);
-      if (batchMails.length === 0) return { name: bName, range: "---", mailIds: [] };
+      if (batchMails.length === 0) return null;
       
+      const hasChuaLam = batchMails.some((m: any) => m.workStatus === "Chưa làm");
+      if (!hasChuaLam) return null;
+
       const firstIdx = allSatellites.findIndex((m: any) => m.id === batchMails[0].id) + 1;
       const lastIdx = allSatellites.findIndex((m: any) => m.id === batchMails[batchMails.length - 1].id) + 1;
       return {
@@ -475,7 +478,7 @@ export default function TaskManagementPage() {
         range: `${firstIdx}-${lastIdx}`,
         mailIds: batchMails.map((m: any) => m.id)
       };
-    });
+    }).filter(Boolean) as any[];
   }, [targetStaffId, mails]);
 
   const targetStaffBatches = useMemo(() => {
@@ -499,7 +502,12 @@ export default function TaskManagementPage() {
       // 1. Must be ONLINE
       if (!s.isOnline) return false;
 
-      // 2. Role hierarchy restrictions
+      // 2. Templates restriction rules
+      if (selectedTemplate === "Check, xóa, tạo" || selectedTemplate === "Kênh bật kiếm tiền") {
+        return s.role === "02";
+      }
+
+      // 3. General role hierarchy restrictions
       if (is01) {
         return s.role === "02" || s.role === "03" || s.role === "04";
       }
@@ -508,7 +516,7 @@ export default function TaskManagementPage() {
       }
       return false;
     });
-  }, [staffList, user]);
+  }, [staffList, user, selectedTemplate]);
 
   const filteredStaff = useMemo(() => {
     return staffList.filter(staff => {
@@ -1094,7 +1102,7 @@ export default function TaskManagementPage() {
                             className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 cursor-pointer transition-all"
                           >
                             <option value="" className="bg-sidebar text-white">-- Chọn Mail Gốc trong DB --</option>
-                            {mails.filter((m: any) => m.type === "ROOT" && !m.assigneeId).map((m: any) => (
+                            {mails.filter((m: any) => m.type === "ROOT" && m.verificationStatus === "Đã xanh" && !m.assigneeId).map((m: any) => (
                               <option key={m.id} value={m.id} className="bg-sidebar text-white">
                                 {m.email}
                               </option>

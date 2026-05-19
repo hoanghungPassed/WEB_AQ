@@ -39,6 +39,12 @@ export default function BatchesManagementPage() {
   // Cascade Delete states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [batchToDelete, setBatchToDelete] = useState<BatchItem | null>(null);
+  
+  // Batch detail popup states
+  const [selectedBatchForDetail, setSelectedBatchForDetail] = useState<BatchItem | null>(null);
+  const [detailSearchTerm, setDetailSearchTerm] = useState("");
+  const [detailMails, setDetailMails] = useState<any[]>([]);
+  const [detailCopyToast, setDetailCopyToast] = useState("");
 
   useEffect(() => {
     // Authenticate Roles
@@ -96,6 +102,34 @@ export default function BatchesManagementPage() {
     window.addEventListener("storage", loadBatches);
     return () => window.removeEventListener("storage", loadBatches);
   }, []);
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "---";
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return dateStr;
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    } catch {
+      return dateStr;
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedBatchForDetail) return;
+    const loadDetailMails = () => {
+      const savedMails = localStorage.getItem("global_mails_data");
+      const mails = savedMails ? JSON.parse(savedMails) : [];
+      const filtered = mails.filter((m: any) => m.batchId === selectedBatchForDetail.id || m.batchName === selectedBatchForDetail.name);
+      setDetailMails(filtered);
+    };
+    loadDetailMails();
+    window.addEventListener("storage", loadDetailMails);
+    return () => window.removeEventListener("storage", loadDetailMails);
+  }, [selectedBatchForDetail]);
 
   const triggerToast = (msg: string) => {
     setToastMsg(msg);
@@ -341,7 +375,8 @@ export default function BatchesManagementPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
-                  className={`bg-sidebar border border-white/5 border-t-4 ${getCardBorder(batch.type)} rounded-[24px] p-6 shadow-xl hover:shadow-2xl flex flex-col justify-between relative group transition-all`}
+                  onClick={() => setSelectedBatchForDetail(batch)}
+                  className={`bg-sidebar border border-white/5 border-t-4 ${getCardBorder(batch.type)} rounded-[24px] p-6 shadow-xl hover:shadow-2xl flex flex-col justify-between relative group transition-all cursor-pointer hover:bg-white/[0.01] hover:scale-[1.01]`}
                 >
                   <div>
                     {/* Top row */}
@@ -350,7 +385,8 @@ export default function BatchesManagementPage() {
                         {getTypeName(batch.type)}
                       </span>
                       <button 
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setBatchToDelete(batch);
                           setShowDeleteConfirm(true);
                         }}
@@ -380,7 +416,7 @@ export default function BatchesManagementPage() {
                         <Calendar size={12} className="text-gray-500" />
                         Ngày import:
                       </span>
-                      <span className="text-gray-300 font-mono">{batch.importedAt}</span>
+                      <span className="text-gray-300 font-mono">{formatDate(batch.importedAt)}</span>
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-gray-400 font-bold">
@@ -403,6 +439,149 @@ export default function BatchesManagementPage() {
           </div>
         )}
       </div>
+      {/* Detail Batch Mails Modal */}
+      <AnimatePresence>
+        {selectedBatchForDetail && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[160] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#121212] border border-gold/25 rounded-[36px] p-6 w-full max-w-5xl h-[85vh] shadow-2xl flex flex-col justify-between"
+            >
+              {/* Toast for copy inside Modal */}
+              <AnimatePresence>
+                {detailCopyToast && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -20 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    exit={{ opacity: 0, y: -20 }}
+                    className="absolute top-6 left-1/2 -translate-x-1/2 z-[200] bg-gold px-4 py-2 rounded-full text-sidebar font-black text-xs shadow-lg"
+                  >
+                    {detailCopyToast}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-gold/15 text-gold border border-gold/20 rounded-xl flex items-center justify-center">
+                    <Layers size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-white uppercase tracking-tight">Chi Tiết Lô: {selectedBatchForDetail.name}</h3>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">
+                      Phân loại: <span className="text-gold">{getTypeName(selectedBatchForDetail.type)}</span> | Tổng: {selectedBatchForDetail.mailCount} Mail
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <div className="relative group">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={14} />
+                    <input 
+                      placeholder="Tìm Email trong lô..."
+                      className="bg-black/20 border border-white/10 rounded-xl pl-9 pr-4 h-9 text-xs text-white outline-none focus:border-gold/50 transition-all w-48"
+                      type="text" 
+                      value={detailSearchTerm}
+                      onChange={(e) => setDetailSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setSelectedBatchForDetail(null);
+                      setDetailSearchTerm("");
+                    }}
+                    className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-white/5 text-gray-500 hover:text-white transition-all"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Table wrapper with overflow */}
+              <div className="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar border border-white/5 bg-black/10 rounded-2xl mb-4">
+                <table className="w-full text-left text-xs min-w-[900px]">
+                  <thead className="sticky top-0 bg-[#0c0c0c] text-gray-500 border-b border-white/5 z-10">
+                    <tr>
+                      <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px]">STT</th>
+                      <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px]">Email</th>
+                      <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px]">Recovery (KP)</th>
+                      <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px]">Pass</th>
+                      <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px]">2FA</th>
+                      <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px]">SĐT</th>
+                      <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px]">Link OTP</th>
+                      <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px] text-center">Hệ thống</th>
+                      <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px] text-center">Công việc</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 text-gray-300">
+                    {detailMails
+                      .filter((m: any) => !detailSearchTerm || m.email.toLowerCase().includes(detailSearchTerm.toLowerCase()))
+                      .map((mail: any, idx: number) => {
+                        const copyToClipboard = (text: string, title: string) => {
+                          if (!text) return;
+                          navigator.clipboard.writeText(text);
+                          setDetailCopyToast(`Đã sao chép ${title}!`);
+                          setTimeout(() => setDetailCopyToast(""), 2000);
+                        };
+                        return (
+                          <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="py-3 px-4 text-gray-500 font-bold">{idx + 1}</td>
+                            <td className="py-3 px-4 font-bold text-white cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
+                            <td className="py-3 px-4 text-gray-400 cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.recovery || "", "Mail KP")}>{mail.recovery || "---"}</td>
+                            <td className="py-3 px-4 font-mono text-gray-500 cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.pass || "", "Mật khẩu")}>{mail.pass || "---"}</td>
+                            <td className="py-3 px-4 font-mono text-gray-500 cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.twoFA || "", "2FA Secret")}>{mail.twoFA || "---"}</td>
+                            <td className="py-3 px-4 text-gray-400 font-bold cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
+                            <td className="py-3 px-4">
+                              {mail.otpLink ? (
+                                <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Link OTP</a>
+                              ) : <span className="text-gray-700">---</span>}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${mail.status === "LIVE" ? "bg-green-500/10 text-green-500 border border-green-500/20" : "bg-red-500/10 text-red-500 border border-red-500/20"}`}>
+                                {mail.status || "LIVE"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${mail.workStatus === "Đã làm" || mail.workStatus === "Đã bán" ? "bg-green-500/10 text-green-500" : mail.workStatus === "Đang xử lí" ? "bg-yellow-500/10 text-yellow-500" : mail.workStatus === "Lỗi" ? "bg-red-500/10 text-red-500" : "bg-gray-500/10 text-gray-400"}`}>
+                                {mail.workStatus || "Chưa làm"}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    {detailMails.length === 0 && (
+                      <tr>
+                        <td colSpan={9} className="py-10 text-center text-gray-600 font-bold uppercase tracking-widest">Không có mail nào trong lô này</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Close Button footer */}
+              <div className="flex justify-end pt-2 border-t border-white/5">
+                <button
+                  onClick={() => {
+                    setSelectedBatchForDetail(null);
+                    setDetailSearchTerm("");
+                  }}
+                  className="h-10 px-6 bg-white/5 border border-white/10 text-white hover:border-gold/50 text-xs font-black uppercase tracking-widest rounded-xl transition-all"
+                >
+                  Đóng
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

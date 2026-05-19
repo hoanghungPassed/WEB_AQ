@@ -27,7 +27,11 @@ import {
   XCircle,
   Play,
   ShieldAlert,
-  Check
+  Check,
+  Heart,
+  MessageSquare,
+  Send,
+  Image
 } from "lucide-react";
 import { MOCK_DASHBOARD_STATS, MOCK_KPI_DATA, MOCK_MAILS, MOCK_STAFF, MOCK_TASK_ASSIGNMENTS } from "@/data/mockData";
 
@@ -70,6 +74,132 @@ export default function AdminDashboard() {
   const [checkOutTime, setCheckOutTime] = useState<string | null>(null);
   const [timekeepingModal, setTimekeepingModal] = useState<{ type: "in" | "out"; time: string; warning?: string } | null>(null);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+
+  // Newsfeed States
+  const [posts, setPosts] = useState<any[]>([]);
+  const [newPostText, setNewPostText] = useState("");
+  const [selectedMockImage, setSelectedMockImage] = useState<string | null>(null);
+  const [showImagePresets, setShowImagePresets] = useState(false);
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+
+  const loadPosts = () => {
+    const saved = localStorage.getItem("global_newsfeed_posts");
+    if (saved) {
+      setPosts(JSON.parse(saved));
+    } else {
+      const initialPosts = [
+        {
+          id: "post-1",
+          authorName: "Nguyễn Admin",
+          authorRole: "ADMIN",
+          text: "Chào mừng toàn thể anh chị em đến với hệ thống quản trị AQ MEDIA phiên bản nâng cấp hoàn hảo! Chúc cả nhà một tuần làm việc hiệu suất bùng nổ, vượt chỉ tiêu KPI đã đề ra! 🚀🔥",
+          imageUrl: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&auto=format&fit=crop&q=60",
+          likes: 12,
+          likedBy: [],
+          comments: [
+            {
+              id: "cmt-1",
+              authorName: "Trần Quản Lý CV",
+              authorRole: "QL CÔNG VIỆC",
+              text: "Phiên bản mới đẹp xuất sắc sếp ơi! Hệ thống mượt mà quá! 😍",
+              timestamp: "10 phút trước"
+            }
+          ],
+          timestamp: "1 giờ trước"
+        },
+        {
+          id: "post-2",
+          authorName: "Trần Quản Lý CV",
+          authorRole: "QL CÔNG VIỆC",
+          text: "Mọi người chú ý hoàn thành phân công mail trong ngày nhé! Ai thiếu link nhớ cập nhật ngay trước 17:00 nha. Cảm ơn cả nhà!",
+          likes: 8,
+          likedBy: [],
+          comments: [],
+          timestamp: "3 giờ trước"
+        }
+      ];
+      localStorage.setItem("global_newsfeed_posts", JSON.stringify(initialPosts));
+      setPosts(initialPosts);
+    }
+  };
+
+  const handleCreatePost = () => {
+    if (!newPostText.trim() && !selectedMockImage) return;
+    
+    const newPost = {
+      id: `post_${Date.now()}`,
+      authorName: user?.name || "Anonymous",
+      authorRole: user?.role === "01" ? "ADMIN" : user?.role === "02" ? "QL CÔNG VIỆC" : user?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
+      text: newPostText,
+      imageUrl: selectedMockImage,
+      likes: 0,
+      likedBy: [],
+      comments: [],
+      timestamp: "Vừa xong"
+    };
+
+    const updated = [newPost, ...posts];
+    setPosts(updated);
+    localStorage.setItem("global_newsfeed_posts", JSON.stringify(updated));
+    localStorage.setItem("newsfeed_trigger", Date.now().toString());
+    
+    setNewPostText("");
+    setSelectedMockImage(null);
+    setShowImagePresets(false);
+  };
+
+  const handleLikePost = (postId: string) => {
+    const updated = posts.map(p => {
+      if (p.id === postId) {
+        const likedBy = Array.isArray(p.likedBy) ? p.likedBy : [];
+        const userId = user?.id || "anon";
+        const hasLiked = likedBy.includes(userId);
+        
+        let newLikedBy;
+        let newLikes = p.likes || 0;
+        if (hasLiked) {
+          newLikedBy = likedBy.filter((id: string) => id !== userId);
+          newLikes = Math.max(0, newLikes - 1);
+        } else {
+          newLikedBy = [...likedBy, userId];
+          newLikes += 1;
+        }
+
+        return { ...p, likes: newLikes, likedBy: newLikedBy };
+      }
+      return p;
+    });
+
+    setPosts(updated);
+    localStorage.setItem("global_newsfeed_posts", JSON.stringify(updated));
+    localStorage.setItem("newsfeed_trigger", Date.now().toString());
+  };
+
+  const handleAddComment = (postId: string) => {
+    const text = commentInputs[postId] || "";
+    if (!text.trim()) return;
+
+    const updated = posts.map(p => {
+      if (p.id === postId) {
+        const comments = Array.isArray(p.comments) ? p.comments : [];
+        const newCmt = {
+          id: `cmt_${Date.now()}`,
+          authorName: user?.name || "Anonymous",
+          authorRole: user?.role === "01" ? "ADMIN" : user?.role === "02" ? "QL CÔNG VIỆC" : user?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
+          text: text,
+          timestamp: "Vừa xong"
+        };
+        return { ...p, comments: [...comments, newCmt] };
+      }
+      return p;
+    });
+
+    setPosts(updated);
+    localStorage.setItem("global_newsfeed_posts", JSON.stringify(updated));
+    localStorage.setItem("newsfeed_trigger", Date.now().toString());
+    
+    setCommentInputs(prev => ({ ...prev, [postId]: "" }));
+  };
 
   const loadRequests = () => {
     const saved = localStorage.getItem("pending_access_requests");
@@ -226,9 +356,12 @@ export default function AdminDashboard() {
     refreshStats();
     loadStaff();
     loadRequests();
+    loadPosts();
     const staffInterval = setInterval(() => {
       loadStaff();
       loadRequests();
+      const saved = localStorage.getItem("global_newsfeed_posts");
+      if (saved) setPosts(JSON.parse(saved));
     }, 2000);
 
     const handleStorage = (e: StorageEvent) => {
@@ -243,6 +376,10 @@ export default function AdminDashboard() {
       }
       if (e.key === "global_users") {
         loadStaff();
+      }
+      if (e.key === "global_newsfeed_posts" || e.key === "newsfeed_trigger") {
+        const saved = localStorage.getItem("global_newsfeed_posts");
+        if (saved) setPosts(JSON.parse(saved));
       }
       if (e.key === "pending_access_requests" || e.key === "request_trigger") {
         loadRequests();
@@ -1261,7 +1398,7 @@ export default function AdminDashboard() {
         </motion.div>
       </div>
 
-      {user?.role === "03" || user?.role === "04" ? (
+      {user?.role === "02" || user?.role === "03" || user?.role === "04" ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard 
@@ -1601,6 +1738,15 @@ export default function AdminDashboard() {
               />
             )}
 
+            <StatCard 
+              title="Bảng Tin Nội Bộ" 
+              value={posts.length || 2} 
+              icon={<MessageSquare size={32} />} 
+              color="indigo" 
+              subtitle="Chia sẻ, bình luận & tương tác" 
+              onClick={() => router.push("/admin/newsfeed")} 
+            />
+
             <div className="rounded-[32px] border border-white/5 bg-white/[0.02] p-6 flex items-center justify-between shadow-inner col-span-1">
                <div 
                  onClick={() => setSelectedViewType("LIVE")}
@@ -1731,6 +1877,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+
         </>
       )}
 
