@@ -913,15 +913,15 @@ export default function AdminDashboard() {
           <table className="w-full text-left text-sm whitespace-nowrap min-w-[1000px]">
             <thead className="sticky top-0 bg-[#0a0a0a] text-gray-500 border-b border-white/5 z-10">
               <tr>
-                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
-                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">Email</th>
-                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">Pass</th>
-                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">2FA</th>
-                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">SĐT</th>
-                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">Mail KP</th>
-                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px]">Link OTP</th>
-                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] text-center">Trạng thái</th>
-                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] text-center">Thao tác</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Email</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">KP</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Pass</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">2FA</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">SĐT</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Link OTP</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] text-center whitespace-nowrap">Trạng thái</th>
+                <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] text-center whitespace-nowrap">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-gray-300">
@@ -929,20 +929,20 @@ export default function AdminDashboard() {
                 <tr><td colSpan={9} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Không có mail nào</td></tr>
               ) : taskMails.map((mail: any, idx: number) => (
                 <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
-                  <td className="py-3 px-6 text-[10px] font-black text-gray-500">{idx + 1}</td>
-                  <td className="py-3 px-6 font-bold text-white text-xs cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
-                  <td className="py-3 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.pass, "Pass")}>{mail.pass || "---"}</td>
-                  <td className="py-3 px-6 text-xs text-gray-500 font-mono">
+                  <td className="py-3 px-6 text-[10px] font-black text-gray-500 whitespace-nowrap">{idx + 1}</td>
+                  <td className="py-3 px-6 font-bold text-white text-xs cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
+                  <td className="py-3 px-6 text-xs text-gray-400 cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.recovery || "", "KP")}>{mail.recovery || "---"}</td>
+                  <td className="py-3 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.pass, "Pass")}>{mail.pass || "---"}</td>
+                  <td className="py-3 px-6 text-xs text-gray-500 font-mono whitespace-nowrap">
                     <TOTPDisplay secret={mail.twoFA || ""} compact onCopy={copyToClipboard} />
                   </td>
-                  <td className="py-3 px-6 text-xs text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
-                  <td className="py-3 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.recovery || "", "Mail KP")}>{mail.recovery || "---"}</td>
-                  <td className="py-3 px-6">
+                  <td className="py-3 px-6 text-xs text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
+                  <td className="py-3 px-6 whitespace-nowrap">
                     {mail.otpLink ? (
                       <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-white transition-all flex items-center gap-1 font-bold text-xs cursor-pointer">Link OTP <ExternalLink size={12} /></a>
                     ) : <span className="text-gray-700">---</span>}
                   </td>
-                  <td className="py-3 px-6 text-center">
+                  <td className="py-3 px-6 text-center whitespace-nowrap">
                     <select
                       value={mail.workStatus || "Chưa làm"}
                       onChange={(e) => handleStaffMailStatusChange(mail.id, e.target.value)}
@@ -954,7 +954,7 @@ export default function AdminDashboard() {
                       <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
                     </select>
                   </td>
-                  <td className="py-3 px-6 text-center">
+                  <td className="py-3 px-6 text-center whitespace-nowrap">
                     <button
                       onClick={() => setSelectedMailForModal(mail)}
                       className="px-4 py-1 rounded-xl bg-gold/10 hover:bg-gold hover:text-sidebar text-gold border border-gold/30 text-[10px] font-black uppercase tracking-widest transition-all"
@@ -1433,10 +1433,11 @@ export default function AdminDashboard() {
                           <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT</th>
                           <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT Gốc</th>
                           <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Email</th>
-                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Mail KP</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">KP</th>
                           <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Pass</th>
                           <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">2FA</th>
                           <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">SĐT</th>
+                          <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Link OTP</th>
                           <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center whitespace-nowrap">Trạng thái công việc</th>
                         </tr>
                       </thead>
@@ -1450,18 +1451,25 @@ export default function AdminDashboard() {
                           )
                           .map((mail: any, index: number) => (
                             <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
-                              <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
-                              <td className="py-4 px-6 text-[10px] font-black text-gold/80">
+                              <td className="py-4 px-6 text-[10px] font-black text-gray-500 whitespace-nowrap">{index + 1}</td>
+                              <td className="py-4 px-6 text-[10px] font-black text-gold/80 whitespace-nowrap">
                                 {mail.type === "ROOT" ? mail.id 
                                   : mail.type === "SATELLITE" ? mail.id - 1000 
                                   : mail.id - 2000}
                               </td>
-                              <td className="py-4 px-6 font-bold text-white cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
-                              <td className="py-4 px-6 text-xs text-gray-400 cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.recovery, "Mail KP")}>{mail.recovery}</td>
-                              <td className="py-4 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.pass, "Mật khẩu")}>{mail.pass}</td>
-                              <td className="py-4 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.twoFA || "", "2FA")}>{mail.twoFA || "---"}</td>
-                              <td className="py-4 px-6 text-xs text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
-                              <td className="py-4 px-6 text-center">
+                              <td className="py-4 px-6 font-bold text-white cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
+                              <td className="py-4 px-6 text-xs text-gray-400 cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.recovery, "KP")}>{mail.recovery}</td>
+                              <td className="py-4 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.pass, "Mật khẩu")}>{mail.pass}</td>
+                              <td className="py-4 px-6 text-xs text-gray-500 font-mono whitespace-nowrap">
+                                <TOTPDisplay secret={mail.twoFA || ""} compact onCopy={copyToClipboard} />
+                              </td>
+                              <td className="py-4 px-6 text-xs text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
+                              <td className="py-4 px-6 text-xs text-gray-500 whitespace-nowrap">
+                                {mail.otpLink ? (
+                                  <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-white transition-all flex items-center gap-1 font-bold text-xs cursor-pointer">Link OTP <ExternalLink size={12} /></a>
+                                ) : <span className="text-gray-700">---</span>}
+                              </td>
+                              <td className="py-4 px-6 text-center whitespace-nowrap">
                                  <div className="flex items-center justify-center gap-2">
                                   {mail.workStatus === "Đang xử lí" && (
                                     <span className="px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase border border-amber-500/30 bg-amber-500/10 text-amber-500">
@@ -1505,7 +1513,7 @@ export default function AdminDashboard() {
                             </tr>
                           ))}
                         {mails.filter((m: any) => String(m.assigneeId) === String(user?.id)).length === 0 && (
-                          <tr><td colSpan={8} className="py-10 text-center text-gray-600 font-bold uppercase tracking-widest">Bạn chưa được gán tài khoản mail nào</td></tr>
+                          <tr><td colSpan={9} className="py-10 text-center text-gray-600 font-bold uppercase tracking-widest">Bạn chưa được gán tài khoản mail nào</td></tr>
                         )}
                       </tbody>
                     </table>

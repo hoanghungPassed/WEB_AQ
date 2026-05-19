@@ -1,350 +1,408 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Users, Database, ArrowLeft, PlusCircle, CheckCircle, X, Search } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { 
+  Database, 
+  Trash2, 
+  X, 
+  ArrowLeft, 
+  Layers, 
+  AlertCircle, 
+  User, 
+  Calendar, 
+  Mail, 
+  Search,
+  CheckCircle2,
+  FolderOpen,
+  Info
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+
+interface BatchItem {
+  id: string;
+  name: string;
+  type: "ROOT" | "SATELLITE" | "MONETIZED";
+  importedAt: string;
+  mailCount: number;
+  importedBy: string;
+}
 
 export default function BatchesManagementPage() {
+  const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [staffList, setStaffList] = useState<any[]>([]);
-  const [selectedStaff, setSelectedStaff] = useState<any>(null);
-  const [staffBatches, setStaffBatches] = useState<string[]>([]);
-  const [newBatchName, setNewBatchName] = useState("");
-  
-  const [showAllocateModal, setShowAllocateModal] = useState(false);
-  const [selectedBatchForAlloc, setSelectedBatchForAlloc] = useState("");
-  const [selectedSugIndex, setSelectedSugIndex] = useState(0);
-
+  const [batches, setBatches] = useState<BatchItem[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("ALL");
   const [toastMsg, setToastMsg] = useState("");
-  const [mails, setMails] = useState<any[]>([]);
+  
+  // Cascade Delete states
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [batchToDelete, setBatchToDelete] = useState<BatchItem | null>(null);
 
   useEffect(() => {
+    // Authenticate Roles
     const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
-      if (parsedUser.role !== "01" && parsedUser.role !== "02" && parsedUser.role !== "ADMIN" && parsedUser.role !== "QUẢN LÝ CÔNG VIỆC") {
+      const role = String(parsedUser.role || "").toUpperCase();
+      if (role !== "01" && role !== "02" && role !== "ADMIN" && role !== "QUẢN LÝ CÔNG VIỆC" && role !== "QL CÔNG VIỆC") {
         window.location.href = "/admin";
       }
+    } else {
+      window.location.href = "/login";
     }
 
-    const loadStaff = () => {
-      const savedStaff = localStorage.getItem("global_users");
-      if (savedStaff) {
-        const parsed = JSON.parse(savedStaff);
-        const eligible = parsed.filter((s: any) => 
-          s.isOnline === true && 
-          (s.role === "03" || s.role === "04" || s.role === "NHÂN VIÊN" || s.role === "QL NHÂN SỰ")
-        );
-        setStaffList(eligible);
-      }
-    };
-
-    loadStaff();
-    window.addEventListener("storage", loadStaff);
-    return () => window.removeEventListener("storage", loadStaff);
-  }, []);
-
-  useEffect(() => {
-    const loadMails = () => {
+    const loadBatches = () => {
+      const savedBatches = localStorage.getItem("global_batches");
       const savedMails = localStorage.getItem("global_mails_data");
-      if (savedMails) {
-        setMails(JSON.parse(savedMails));
+      const mails = savedMails ? JSON.parse(savedMails) : [];
+
+      if (!savedBatches || JSON.parse(savedBatches).length === 0) {
+        // Dynamic Fallback Seeding
+        const batchesMap: Record<string, BatchItem> = {};
+        mails.forEach((m: any) => {
+          if (m.batchName) {
+            const key = `${m.type}-${m.batchName}`;
+            if (!batchesMap[key]) {
+              batchesMap[key] = {
+                id: m.batchId || `batch-seed-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                name: m.batchName,
+                type: m.type as any,
+                importedAt: m.createdAt || new Date().toISOString().split("T")[0],
+                mailCount: 0,
+                importedBy: m.updatedBy || "Admin"
+              };
+            }
+            batchesMap[key].mailCount++;
+          }
+        });
+        const seeded = Object.values(batchesMap);
+        localStorage.setItem("global_batches", JSON.stringify(seeded));
+        setBatches(seeded);
+      } else {
+        const parsedBatches = JSON.parse(savedBatches);
+        // Sync counting to ensure accurate display
+        const updated = parsedBatches.map((b: BatchItem) => {
+          const count = mails.filter((m: any) => m.batchId === b.id || m.batchName === b.name).length;
+          return { ...b, mailCount: count };
+        });
+        setBatches(updated);
       }
     };
-    loadMails();
-    window.addEventListener("storage", loadMails);
-    return () => window.removeEventListener("storage", loadMails);
+
+    loadBatches();
+    window.addEventListener("storage", loadBatches);
+    return () => window.removeEventListener("storage", loadBatches);
   }, []);
-
-  useEffect(() => {
-    if (selectedStaff) {
-      const defaultBatches = ["Lô 1", "Lô 2", "Lô 3", "Lô 4", "Lô 5", "Lô 6"];
-      const savedCustom = localStorage.getItem(`custom_batches_${selectedStaff.id}`);
-      if (savedCustom) {
-        const custom = JSON.parse(savedCustom);
-        setStaffBatches(Array.from(new Set([...defaultBatches, ...custom])));
-      } else {
-        setStaffBatches(defaultBatches);
-      }
-    }
-  }, [selectedStaff]);
-
-  useEffect(() => {
-    if (showAllocateModal) {
-      setSelectedSugIndex(0);
-    }
-  }, [showAllocateModal]);
 
   const triggerToast = (msg: string) => {
     setToastMsg(msg);
-    setTimeout(() => setToastMsg(""), 2500);
+    setTimeout(() => setToastMsg(""), 3000);
   };
 
-  const handleAddCustomBatch = () => {
-    if (!newBatchName.trim()) return;
-    const finalName = newBatchName.trim();
-    if (!staffBatches.includes(finalName)) {
-      const newBatches = [...staffBatches, finalName];
-      setStaffBatches(newBatches);
-      localStorage.setItem(`custom_batches_${selectedStaff.id}`, JSON.stringify(newBatches));
-      triggerToast(`Đã thêm ${finalName} thành công!`);
-    }
-    setNewBatchName("");
-  };
+  const handleConfirmDelete = async () => {
+    if (!batchToDelete) return;
 
-  // Generate range suggestions dynamically based on unassigned satellite mails
-  const allSatellites = mails.filter((m: any) => m.type === "SATELLITE");
-  const emptySatellites = allSatellites.filter((m: any) => !m.assigneeId);
+    // Filter out deleted batch from local state and storage
+    const updatedBatches = batches.filter(b => b.id !== batchToDelete.id);
+    setBatches(updatedBatches);
+    localStorage.setItem("global_batches", JSON.stringify(updatedBatches));
 
-  const suggestions: { label: string; mailIds: number[] }[] = [];
-  const chunkSize = 17;
-  for (let i = 0; i < emptySatellites.length; i += chunkSize) {
-    const chunk = emptySatellites.slice(i, i + chunkSize);
-    if (chunk.length === chunkSize) {
-      const firstIdx = allSatellites.findIndex((m: any) => m.id === chunk[0].id) + 1;
-      const lastIdx = allSatellites.findIndex((m: any) => m.id === chunk[chunkSize - 1].id) + 1;
-      suggestions.push({
-        label: `Chọn mail: 17 mail (${firstIdx} - ${lastIdx})`,
-        mailIds: chunk.map((m: any) => m.id)
-      });
-    }
-  }
+    // Cascade delete mails matching this batchId or batchName
+    const savedMails = localStorage.getItem("global_mails_data");
+    const allMails = savedMails ? JSON.parse(savedMails) : [];
+    const remainingMails = allMails.filter((m: any) => 
+      m.batchId !== batchToDelete.id && m.batchName !== batchToDelete.name
+    );
 
-  // Calculate already assigned range for this batch
-  const assignedToThisBatch = allSatellites.filter((m: any) => m.assigneeId === selectedStaff?.id && m.batchName === selectedBatchForAlloc);
-  let assignedRangeStr = "";
-  if (assignedToThisBatch.length > 0) {
-    const firstAssigned = assignedToThisBatch[0];
-    const lastAssigned = assignedToThisBatch[assignedToThisBatch.length - 1];
-    const firstIdx = allSatellites.findIndex((m: any) => m.id === firstAssigned.id) + 1;
-    const lastIdx = allSatellites.findIndex((m: any) => m.id === lastAssigned.id) + 1;
-    assignedRangeStr = `${selectedBatchForAlloc} đã gán ${assignedToThisBatch.length} Mail (${firstIdx} - ${lastIdx})`;
-  }
+    localStorage.setItem("global_mails_data", JSON.stringify(remainingMails));
+    window.dispatchEvent(new Event("storage"));
 
-  const handleAllocate = async () => {
-    if (suggestions.length === 0) {
-      alert("Không còn dải 17 mail nào trống để gán!");
-      return;
-    }
-    const currentSug = suggestions[selectedSugIndex];
-    if (!currentSug) return;
-
-    let allMails = [...mails];
-    const mailsToAssign = currentSug.mailIds;
-
-    allMails = allMails.map((m: any) => {
-      if (mailsToAssign.includes(m.id)) {
-        return {
-          ...m,
-          assigneeId: selectedStaff.id,
-          assignedTo: selectedStaff.name,
-          batchName: selectedBatchForAlloc,
-          batchLabel: selectedBatchForAlloc
-        };
-      }
-      return m;
-    });
-
-    localStorage.setItem("global_mails_data", JSON.stringify(allMails));
-    setMails(allMails);
-
-    // Sync to server database
+    // Sync state
     try {
       await fetch("/api/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          global_mails_data: JSON.stringify(allMails)
+          global_batches: JSON.stringify(updatedBatches),
+          global_mails_data: JSON.stringify(remainingMails)
         })
       });
-    } catch (err) {
-      console.error("Sync error:", err);
+    } catch (e) {
+      console.error("Sync error:", e);
     }
 
-    window.dispatchEvent(new Event("storage"));
-    setShowAllocateModal(false);
-    triggerToast(`Đã gán thành công 17 mail vào ${selectedBatchForAlloc}!`);
+    // Add activity log
+    const existingLogs = localStorage.getItem("global_system_logs");
+    const logsList = existingLogs ? JSON.parse(existingLogs) : [];
+    const newLog = {
+      id: `log-${Date.now()}`,
+      user: user?.name || "Admin",
+      role: user?.role === "01" ? "ADMIN" : "QL CÔNG VIỆC",
+      action: `Xóa Lô Mail "${batchToDelete.name}" và toàn bộ ${batchToDelete.mailCount} tài khoản thuộc lô này`,
+      type: "WARNING",
+      timestamp: new Date().toLocaleString("vi-VN")
+    };
+    localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
+
+    setBatchToDelete(null);
+    setShowDeleteConfirm(false);
+    triggerToast(`Đã xóa Lô "${batchToDelete.name}" và toàn bộ ${batchToDelete.mailCount} mail thuộc lô thành công!`);
   };
+
+  const filteredBatches = batches.filter(b => {
+    const matchesSearch = b.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          b.importedBy.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = typeFilter === "ALL" || b.type === typeFilter;
+    return matchesSearch && matchesType;
+  });
+
+  const getTypeName = (t: string) => {
+    if (t === "ROOT") return "Mail Gốc";
+    if (t === "SATELLITE") return "Mail Vệ Tinh";
+    if (t === "MONETIZED") return "Mail BKT";
+    return t;
+  };
+
+  const getTypeStyle = (t: string) => {
+    if (t === "ROOT") return "bg-indigo-500/10 text-indigo-400 border-indigo-500/20";
+    if (t === "SATELLITE") return "bg-sky-500/10 text-sky-400 border-sky-500/20";
+    return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+  };
+
+  const getCardBorder = (t: string) => {
+    if (t === "ROOT") return "border-t-indigo-500/80 hover:border-indigo-500/40";
+    if (t === "SATELLITE") return "border-t-sky-500/80 hover:border-sky-500/40";
+    return "border-t-emerald-500/80 hover:border-emerald-500/40";
+  };
+
+  // High-level statistics counts
+  const stats = useMemo(() => {
+    const total = batches.length;
+    const rootCount = batches.filter(b => b.type === "ROOT").length;
+    const satelliteCount = batches.filter(b => b.type === "SATELLITE").length;
+    const monetizedCount = batches.filter(b => b.type === "MONETIZED").length;
+    const totalMails = batches.reduce((sum, b) => sum + b.mailCount, 0);
+
+    return { total, rootCount, satelliteCount, monetizedCount, totalMails };
+  }, [batches]);
 
   return (
     <div className="h-full flex flex-col space-y-6 pb-6 relative">
+      {/* Toast Announcement */}
       <AnimatePresence>
         {toastMsg && (
-          <motion.div initial={{ opacity: 0, y: -20, x: "-50%" }} animate={{ opacity: 1, y: 30, x: "-50%" }} exit={{ opacity: 0, y: -20, x: "-50%" }}
-            className="fixed top-0 left-1/2 z-[200] bg-gold px-6 py-2 rounded-full text-sidebar font-black text-sm shadow-2xl flex items-center gap-2"
+          <motion.div 
+            initial={{ opacity: 0, y: -20, x: "-50%" }} 
+            animate={{ opacity: 1, y: 30, x: "-50%" }} 
+            exit={{ opacity: 0, y: -20, x: "-50%" }}
+            className="fixed top-0 left-1/2 z-[200] bg-gold px-6 py-3 rounded-full text-sidebar font-black text-sm shadow-2xl flex items-center gap-2"
           >
-            <CheckCircle size={18} /> {toastMsg}
+            <CheckCircle2 size={18} /> {toastMsg}
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Red Cascade Delete Warning Modal */}
       <AnimatePresence>
-        {showAllocateModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-sidebar border border-white/10 rounded-[40px] p-10 w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
-              <div className="flex items-center justify-between mb-8 flex-shrink-0">
-                <h3 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-4">
-                  <Database className="text-gold" size={32} /> Gán Lô Vệ Tinh
-                </h3>
-                <button onClick={() => setShowAllocateModal(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-white transition-colors"><X /></button>
-              </div>
-              
-              <div className="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                <div className="p-4 rounded-2xl bg-gold/5 border border-gold/20 flex flex-col items-center justify-center text-center">
-                  <span className="text-gold font-black uppercase text-xl">{selectedBatchForAlloc}</span>
-                  <span className="text-xs text-gray-400 mt-1 font-bold">Nhân viên: {selectedStaff?.name}</span>
+        {showDeleteConfirm && batchToDelete && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#121212] border border-red-500/30 rounded-[32px] p-8 w-full max-w-md shadow-2xl flex flex-col"
+            >
+              <div className="flex items-center gap-4 mb-6 flex-shrink-0">
+                <div className="h-12 w-12 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-500">
+                  <AlertCircle size={28} />
                 </div>
-
-                {assignedRangeStr && (
-                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-400 text-xs font-bold text-center select-none opacity-60">
-                    {assignedRangeStr}
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Gợi ý dải mail trống</label>
-                  {suggestions.length > 0 ? (
-                    <select
-                      value={selectedSugIndex}
-                      onChange={(e) => setSelectedSugIndex(parseInt(e.target.value))}
-                      className="w-full h-14 bg-black/40 border border-white/10 rounded-2xl px-6 text-white text-xs outline-none focus:border-gold transition-all font-bold text-center cursor-pointer uppercase tracking-wider"
-                    >
-                      {suggestions.map((sug, idx) => (
-                        <option key={idx} value={idx} className="bg-sidebar text-white text-left font-semibold">
-                          {sug.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-2xl text-center font-bold">
-                      Không còn dải 17 mail trống nào trong kho tổng!
-                    </div>
-                  )}
-                  <p className="text-[10px] text-gray-500 mt-2 ml-1">Hệ thống gợi ý các dải 17 mail vệ tinh trống liên tục cuốn chiếu.</p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
-                  <span className="text-xs text-gray-400 font-bold">Tổng cộng:</span>
-                  <span className="text-gold font-black text-sm uppercase tracking-widest">Tổng 17 mail</span>
+                <div>
+                  <h3 className="text-xl font-black text-white uppercase tracking-tighter">Xóa Lô Mail</h3>
+                  <p className="text-[10px] text-red-500/70 font-black uppercase tracking-widest mt-0.5">Cảnh báo Cascade Delete</p>
                 </div>
               </div>
 
-              <div className="flex gap-4 mt-8 flex-shrink-0">
-                <button onClick={() => setShowAllocateModal(false)} className="flex-1 h-14 rounded-2xl border border-white/10 text-white font-bold uppercase text-xs tracking-widest hover:bg-white/5 transition-all">Hủy bỏ</button>
-                <button onClick={handleAllocate} disabled={suggestions.length === 0} className="flex-1 h-14 rounded-2xl bg-gold text-sidebar font-black uppercase text-xs tracking-widest hover:bg-gold/80 transition-all shadow-xl shadow-gold/20 disabled:opacity-30 disabled:pointer-events-none">Xác nhận Gán</button>
+              <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-5 mb-6 text-xs text-gray-300 font-bold leading-relaxed">
+                Bạn có chắc chắn muốn xóa Lô <span className="text-red-400 font-black">"{batchToDelete.name}"</span> và toàn bộ <span className="text-red-400 font-black">{batchToDelete.mailCount} mail</span> thuộc lô này không? Hành động này không thể hoàn tác.
+              </div>
+
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => {
+                    setBatchToDelete(null);
+                    setShowDeleteConfirm(false);
+                  }} 
+                  className="flex-1 h-12 rounded-xl border border-white/10 text-white font-bold uppercase text-xs tracking-widest hover:bg-white/5 transition-all"
+                >
+                  Hủy bỏ
+                </button>
+                <button 
+                  onClick={handleConfirmDelete} 
+                  className="flex-1 h-12 rounded-xl bg-red-500 text-white font-black uppercase text-xs tracking-widest hover:bg-red-600 transition-all shadow-xl shadow-red-500/10"
+                >
+                  Xác nhận xóa
+                </button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
-          <Database className="text-gold" size={28} />
-          Quản Lý Lô Mail Vệ Tinh
-        </h2>
+      {/* Header section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => router.push("/admin")}
+            className="p-2 rounded-xl bg-sidebar border border-border-custom text-gray-400 hover:text-white transition-all shadow-md"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+              <Database className="text-gold" size={28} />
+              Quản Lý Lô Mail (Batches)
+            </h2>
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mt-1">
+              Hệ thống lô import tài khoản phân bố theo ô lưới trực quan
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative group">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={16} />
+            <input 
+              placeholder="Tìm kiếm Lô, Người Import..."
+              className="bg-black/20 border border-white/10 rounded-xl pl-10 pr-4 h-10 text-xs text-white outline-none focus:border-gold/50 transition-all w-60"
+              type="text" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
+          >
+            <option value="ALL" className="bg-sidebar text-white">Tất cả phân loại</option>
+            <option value="ROOT" className="bg-sidebar text-white">Mail Gốc</option>
+            <option value="SATELLITE" className="bg-sidebar text-white">Mail Vệ Tinh</option>
+            <option value="MONETIZED" className="bg-sidebar text-white">Mail BKT</option>
+          </select>
+        </div>
       </div>
 
-      {!selectedStaff ? (
-        <div className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl p-8">
-          <div className="mb-8">
-            <h3 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
-              <Users size={20} className="text-gold" /> Chọn Nhân Viên
-            </h3>
-            <p className="text-xs text-gray-500 mt-2 font-medium">Danh sách hiển thị các nhân viên đang <span className="text-green-500 font-black">ONLINE</span>.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {staffList.length > 0 ? staffList.map(staff => (
-              <button
-                key={staff.id}
-                onClick={() => setSelectedStaff(staff)}
-                className="bg-white/5 border border-white/10 hover:border-gold/50 rounded-3xl p-6 text-left transition-all group shadow-xl relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[50px] rounded-full -mr-16 -mt-16 group-hover:bg-gold/10 transition-colors" />
-                <div className="flex items-center gap-4 mb-4 relative z-10">
-                  <div className="relative">
-                    <div className="h-14 w-14 rounded-2xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 overflow-hidden shadow-lg">
-                      {staff.avatar ? <img src={staff.avatar} className="h-full w-full object-cover" /> : <Users size={24} />}
-                    </div>
-                    <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-green-500 border-2 border-sidebar rounded-full shadow-lg" />
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-black text-white">{staff.name}</h4>
-                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{staff.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN"}</span>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-400 relative z-10">Bấm vào để cấu hình các lô mail vệ tinh cho nhân viên này.</p>
-              </button>
-            )) : (
-              <div className="col-span-full py-12 text-center border border-dashed border-white/10 rounded-3xl bg-white/[0.02]">
-                <Users size={48} className="text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400 font-bold uppercase tracking-widest">Không có nhân viên nào đang Online</p>
-              </div>
-            )}
-          </div>
+      {/* Premium Dashboard Metrics Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="bg-sidebar/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between">
+          <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Tổng số Lô</span>
+          <span className="text-2xl font-black text-white mt-1">{stats.total} <span className="text-xs text-gray-500">Lô</span></span>
         </div>
-      ) : (
-        <div className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex flex-col">
-          <div className="p-8 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <button onClick={() => setSelectedStaff(null)} className="h-12 w-12 rounded-2xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-all">
-                <ArrowLeft size={20} />
-              </button>
-              <div>
-                <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Cấu hình Lô: {selectedStaff.name}</h3>
-                <p className="text-xs text-gray-500 mt-1 font-bold uppercase tracking-widest">Chọn Lô để gán mail vệ tinh mới</p>
-              </div>
-            </div>
-          </div>
+        <div className="bg-sidebar/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between">
+          <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Lô Mail Gốc</span>
+          <span className="text-2xl font-black text-indigo-400 mt-1">{stats.rootCount} <span className="text-xs text-gray-500">Lô</span></span>
+        </div>
+        <div className="bg-sidebar/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between">
+          <span className="text-[9px] font-black text-sky-400 uppercase tracking-widest">Lô Vệ Tinh</span>
+          <span className="text-2xl font-black text-sky-400 mt-1">{stats.satelliteCount} <span className="text-xs text-gray-500">Lô</span></span>
+        </div>
+        <div className="bg-sidebar/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between">
+          <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Lô Mail BKT</span>
+          <span className="text-2xl font-black text-emerald-400 mt-1">{stats.monetizedCount} <span className="text-xs text-gray-500">Lô</span></span>
+        </div>
+        <div className="bg-sidebar/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between col-span-2 lg:col-span-1">
+          <span className="text-[9px] font-black text-gold uppercase tracking-widest">Tổng số Mail</span>
+          <span className="text-2xl font-black text-gold mt-1">{stats.totalMails} <span className="text-xs text-gray-500">Mail</span></span>
+        </div>
+      </div>
 
-          <div className="p-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {staffBatches.map(batchName => (
-                <button
-                  key={batchName}
-                  onClick={() => {
-                    setSelectedBatchForAlloc(batchName);
-                    setShowAllocateModal(true);
-                  }}
-                  className="bg-white/5 border border-white/10 hover:border-gold/50 p-6 rounded-3xl text-left transition-all group shadow-xl hover:shadow-gold/10 flex flex-col"
+      {/* Grid view of Batch Cards ("Dạng ô") */}
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1">
+        {filteredBatches.length > 0 ? (
+          <motion.div 
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6"
+          >
+            <AnimatePresence>
+              {filteredBatches.map((batch, index) => (
+                <motion.div
+                  key={batch.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className={`bg-sidebar border border-white/5 border-t-4 ${getCardBorder(batch.type)} rounded-[24px] p-6 shadow-xl hover:shadow-2xl flex flex-col justify-between relative group transition-all`}
                 >
-                  <div className="h-14 w-14 rounded-2xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 group-hover:scale-110 transition-transform mb-6">
-                    <Database size={24} />
-                  </div>
-                  <h4 className="text-xl font-black text-white uppercase tracking-tighter mb-2 group-hover:text-gold transition-colors">{batchName}</h4>
-                  <p className="text-xs text-gray-500 font-medium">Cắt mail từ kho vệ tinh gán vào lô này</p>
-                </button>
-              ))}
+                  <div>
+                    {/* Top row */}
+                    <div className="flex items-start justify-between gap-2">
+                      <span className={`px-2.5 py-1 rounded-xl text-[9px] font-black tracking-widest uppercase border ${getTypeStyle(batch.type)}`}>
+                        {getTypeName(batch.type)}
+                      </span>
+                      <button 
+                        onClick={() => {
+                          setBatchToDelete(batch);
+                          setShowDeleteConfirm(true);
+                        }}
+                        className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-all opacity-40 group-hover:opacity-100"
+                        title="Xóa Lô Mail"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
 
-              <div className="bg-white/[0.02] border border-dashed border-white/10 p-6 rounded-3xl flex flex-col justify-between">
-                <div className="h-14 w-14 rounded-2xl bg-white/5 text-gray-500 flex items-center justify-center border border-white/10 mb-6">
-                  <PlusCircle size={24} />
-                </div>
-                <div className="space-y-3">
-                  <h4 className="text-sm font-black text-white uppercase tracking-tighter">Tạo thêm Lô</h4>
-                  <div className="flex flex-col gap-2">
-                    <input 
-                      type="text" 
-                      placeholder="Tên lô mới..." 
-                      value={newBatchName}
-                      onChange={(e) => setNewBatchName(e.target.value)}
-                      className="w-full h-10 bg-white/5 border border-white/10 rounded-xl px-3 text-xs text-white outline-none focus:border-gold/50 transition-all min-w-0"
-                    />
-                    <button 
-                      onClick={handleAddCustomBatch}
-                      className="w-full h-10 bg-gold/10 text-gold hover:bg-gold hover:text-sidebar border border-gold/30 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
-                    >
-                      Thêm
-                    </button>
+                    {/* Batch Name */}
+                    <h3 className="text-md font-black text-white mt-4 uppercase tracking-tight group-hover:text-gold transition-colors leading-tight">
+                      {batch.name}
+                    </h3>
+
+                    {/* Dynamic Graphic Counter */}
+                    <div className="flex items-baseline gap-1.5 my-3 bg-black/10 rounded-xl p-3 border border-white/[0.02]">
+                      <span className="text-3xl font-black text-gold tracking-tighter leading-none">{batch.mailCount}</span>
+                      <span className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Tài khoản Mail</span>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </div>
+
+                  {/* Footer details */}
+                  <div className="mt-4 pt-3 border-t border-white/5 space-y-2">
+                    <div className="flex items-center justify-between text-[11px] text-gray-400 font-bold">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Calendar size={12} className="text-gray-500" />
+                        Ngày import:
+                      </span>
+                      <span className="text-gray-300 font-mono">{batch.importedAt}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-gray-400 font-bold">
+                      <span className="inline-flex items-center gap-1.5">
+                        <User size={12} className="text-gray-500" />
+                        Người import:
+                      </span>
+                      <span className="text-gray-300">{batch.importedBy}</span>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        ) : (
+          <div className="h-60 rounded-3xl border border-white/5 bg-sidebar/20 flex flex-col items-center justify-center text-center p-6">
+            <FolderOpen size={48} className="text-gray-600 mb-3" />
+            <h4 className="text-white font-black uppercase tracking-tight">Không tìm thấy lô mail nào</h4>
+            <p className="text-xs text-gray-500 mt-1 max-w-xs">Thử đổi từ khóa tìm kiếm hoặc phân loại để tìm kiếm lô tương ứng</p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

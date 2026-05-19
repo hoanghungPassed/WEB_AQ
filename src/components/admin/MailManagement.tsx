@@ -72,6 +72,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const [dateFilter, setDateFilter] = useState<"ALL" | "1_WEEK" | "1_MONTH" | "2_MONTH">("ALL");
   const [assignmentFilter, setAssignmentFilter] = useState<"ALL" | "ASSIGNED" | "UNASSIGNED">("ALL");
   const [selectedBatch, setSelectedBatch] = useState<string | null>(null);
+  const [selectedBatchFilter, setSelectedBatchFilter] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
@@ -83,6 +84,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const [selectedMailForConfig, setSelectedMailForConfig] = useState<any>(null);
 
   const [manualData, setManualData] = useState("");
+  const [pendingMails, setPendingMails] = useState<MailData[] | null>(null);
+  const [importBatchName, setImportBatchName] = useState("");
+  const [showBatchNameModal, setShowBatchNameModal] = useState(false);
   const itemsPerPage = 20;
 
   const roleUpper = String(user?.role || "").toUpperCase();
@@ -126,7 +130,26 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, assignmentFilter, dateFilter, selectedBatch, type]);
+  }, [searchTerm, statusFilter, assignmentFilter, dateFilter, selectedBatch, selectedBatchFilter, type]);
+
+  useEffect(() => {
+    setSelectedBatchFilter("ALL");
+  }, [type]);
+
+  const availableBatches = useMemo(() => {
+    const saved = localStorage.getItem("global_batches");
+    const list = saved ? JSON.parse(saved) : [];
+    const filtered = list.filter((b: any) => type === "ALL" || b.type === type);
+
+    if (filtered.length === 0) {
+      const scannedNames = new Set(
+        mails.filter(m => (type === "ALL" || m.type === type) && m.batchName).map(m => m.batchName)
+      );
+      return Array.from(scannedNames).map(name => ({ id: name as string, name: name as string }));
+    }
+
+    return filtered;
+  }, [mails, type]);
 
   const saveMails = async (newMails: MailData[]) => {
     setMails(newMails);
@@ -386,12 +409,12 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           return;
         }
 
-        saveMails([...mails, ...importedMails]);
         if (duplicateCount > 0) {
-          triggerToast(`Nạp thành công ${importedMails.length} mail mới, bỏ qua ${duplicateCount} mail trùng!`);
-        } else {
-          triggerToast(`Import thành công ${importedMails.length} mail!`);
+          triggerToast(`Đã bỏ qua ${duplicateCount} mail bị trùng!`);
         }
+        setPendingMails(importedMails);
+        setImportBatchName("");
+        setShowBatchNameModal(true);
       } catch (err) {
         console.error("Import Error:", err);
         triggerToast("Lỗi xử lý dữ liệu file Excel!");
@@ -463,14 +486,59 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       return;
     }
 
-    saveMails([...mails, ...newItems]);
+    if (duplicateCount > 0) {
+      triggerToast(`Đã bỏ qua ${duplicateCount} mail bị trùng!`);
+    }
+    setPendingMails(newItems);
+    setImportBatchName("");
+    setShowBatchNameModal(true);
     setManualData("");
     setShowManualImport(false);
-    
-    if (duplicateCount > 0) {
-      triggerToast(`Thêm thành công ${newItems.length} mail mới, bỏ qua ${duplicateCount} mail trùng!`);
-    } else {
-      triggerToast(`Thêm thành công ${newItems.length} mail!`);
+  };
+
+  const handleConfirmBatchImport = async () => {
+    if (!pendingMails || pendingMails.length === 0) return;
+    const batchNameInput = importBatchName.trim() || `Lô ngày ${new Date().toLocaleDateString("vi-VN")}`;
+    const batchId = `batch-${Date.now()}`;
+    const targetType = (type === "ALL" ? "SATELLITE" : type) as "ROOT" | "SATELLITE" | "MONETIZED";
+
+    const mappedMails = pendingMails.map(m => ({
+      ...m,
+      batchId,
+      batchName: batchNameInput
+    }));
+
+    const newBatch = {
+      id: batchId,
+      name: batchNameInput,
+      type: targetType,
+      importedAt: new Date().toISOString().split("T")[0],
+      mailCount: pendingMails.length,
+      importedBy: user?.name || user?.username || "Admin"
+    };
+
+    const savedBatches = localStorage.getItem("global_batches");
+    const currentBatches = savedBatches ? JSON.parse(savedBatches) : [];
+    const updatedBatches = [...currentBatches, newBatch];
+    localStorage.setItem("global_batches", JSON.stringify(updatedBatches));
+
+    await saveMails([...mails, ...mappedMails]);
+
+    setPendingMails(null);
+    setImportBatchName("");
+    setShowBatchNameModal(false);
+    triggerToast(`Đã import thành công ${mappedMails.length} mail vào Lô "${batchNameInput}"!`);
+
+    try {
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          global_batches: JSON.stringify(updatedBatches)
+        })
+      });
+    } catch (err) {
+      console.error("Sync batches error:", err);
     }
   };
 
@@ -502,6 +570,13 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         if (isStaff && type === "SATELLITE") {
           if (String(m.assigneeId) !== String(user?.id)) return false;
           if (selectedBatch && m.batchName !== selectedBatch) return false;
+        }
+
+        // Lọc theo Lô
+        if (selectedBatchFilter !== "ALL") {
+          if (m.batchId !== selectedBatchFilter && m.batchName !== selectedBatchFilter) {
+            return false;
+          }
         }
 
         const term = searchTerm.toLowerCase().trim();
@@ -565,7 +640,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
         return matchesSearch && matchesStatus && matchesDate && matchesAssignment;
       });
-  }, [mails, type, searchTerm, user, statusFilter, dateFilter, assignmentFilter, selectedBatch, isStaff, isAdminOrManager]);
+  }, [mails, type, searchTerm, user, statusFilter, dateFilter, assignmentFilter, selectedBatch, selectedBatchFilter, isStaff, isAdminOrManager]);
 
   const staffStats = useMemo(() => {
     const myMails = mails.filter(m => String(m.assigneeId) === String(user?.id) && m.type === "SATELLITE");
@@ -821,6 +896,20 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                   <option value="UNASSIGNED" className="bg-sidebar text-white">Chưa gán</option>
                 </select>
               )}
+              {(type === "SATELLITE" || type === "ROOT" || type === "MONETIZED") && (
+                <select
+                  value={selectedBatchFilter}
+                  onChange={(e) => setSelectedBatchFilter(e.target.value)}
+                  className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all animate-fade-in"
+                >
+                  <option value="ALL" className="bg-sidebar text-white">Lọc theo Lô</option>
+                  {availableBatches.map((b: any) => (
+                    <option key={b.id} value={b.id} className="bg-sidebar text-white">
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              )}
               <select
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value as any)}
@@ -1001,6 +1090,70 @@ export default function MailManagement({ type, user }: MailManagementProps) {
             onClose={() => setSelectedMailForConfig(null)}
             onSave={(updatedFields) => handleSaveUnifiedDetails(selectedMailForConfig.id, updatedFields)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Modal Nhập Tên Lô Import */}
+      <AnimatePresence>
+        {showBatchNameModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-[#121212] border border-border-custom rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+            >
+              <div className="p-6 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                <h3 className="text-lg font-black text-white uppercase tracking-tighter">Đặt Tên Lô Cho Dữ Liệu Import</h3>
+                <button
+                  onClick={() => {
+                    setPendingMails(null);
+                    setShowBatchNameModal(false);
+                  }}
+                  className="p-1.5 rounded-lg bg-white/5 text-gray-500 hover:text-white transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-xs text-gray-400 font-medium leading-relaxed">
+                  Lô mail mới nhập sẽ được nhóm lại để thuận tiện quản lý công việc, theo dõi tiến độ và phân bổ cho nhân viên.
+                </p>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">Tên Lô Import</label>
+                  <input
+                    type="text"
+                    placeholder="VD: Lô 1 ngày 15/10"
+                    value={importBatchName}
+                    onChange={(e) => setImportBatchName(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-gold transition-all"
+                  />
+                </div>
+              </div>
+              <div className="p-6 border-t border-white/5 bg-white/[0.02] flex items-center justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setPendingMails(null);
+                    setShowBatchNameModal(false);
+                  }}
+                  className="px-5 py-2.5 rounded-xl border border-white/10 text-xs font-bold text-gray-400 hover:text-white transition-colors"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={handleConfirmBatchImport}
+                  className="px-5 py-2.5 rounded-xl bg-gold hover:bg-gold-hover text-[#0a0a0a] text-xs font-black uppercase tracking-wider transition-all"
+                >
+                  Xác nhận nạp
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

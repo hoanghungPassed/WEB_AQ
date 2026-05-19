@@ -94,6 +94,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
         { title: "Mail gốc", href: "/admin/mail/root" },
         { title: "Mail vệ tinh", href: "/admin/mail/satellite" },
         { title: "Mail bật kiếm tiền", href: "/admin/mail/monetized" },
+        { title: "Quản lý Lô (Batches)", href: "/admin/mail/batches" },
       ],
     });
     dynamicMenuItems.push({
