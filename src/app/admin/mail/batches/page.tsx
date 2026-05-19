@@ -46,6 +46,12 @@ export default function BatchesManagementPage() {
   const [detailMails, setDetailMails] = useState<any[]>([]);
   const [detailCopyToast, setDetailCopyToast] = useState("");
 
+  // Roll-over assignment states
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedStaffForAssign, setSelectedStaffForAssign] = useState("");
+  const [selectedBatchNameForAssign, setSelectedBatchNameForAssign] = useState("Lô 1");
+  const [staffList, setStaffList] = useState<any[]>([]);
+
   useEffect(() => {
     // Authenticate Roles
     const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
@@ -96,12 +102,156 @@ export default function BatchesManagementPage() {
         });
         setBatches(updated);
       }
+
+      // Load Staff
+      const savedUsers = localStorage.getItem("global_users");
+      const list = savedUsers ? JSON.parse(savedUsers) : [];
+      const filtered = list.filter((u: any) => u.role === "04" || u.role === "03" || u.role === "NHÂN VIÊN" || u.role === "QUẢN LÝ NHÂN SỰ");
+      setStaffList(filtered);
     };
 
     loadBatches();
     window.addEventListener("storage", loadBatches);
     return () => window.removeEventListener("storage", loadBatches);
   }, []);
+
+  const assignmentPreview = useMemo(() => {
+    if (!showAssignModal) return null;
+    const savedMails = localStorage.getItem("global_mails_data");
+    const allMails = savedMails ? JSON.parse(savedMails) : [];
+    // Filter satellite mails only
+    const satelliteMails = allMails.filter((m: any) => m.type === "SATELLITE");
+    
+    // Find first block of 17 unassigned mails
+    const unassigned = satelliteMails.filter((m: any) => !m.assigneeId);
+    
+    // Take first 17
+    const range = unassigned.slice(0, 17);
+    if (range.length === 0) {
+      return {
+        mailsToAssign: [],
+        displayText: "Kho mail vệ tinh không còn mail nào trống!",
+        count: 0
+      };
+    }
+    
+    const firstSTT = range[0].id - 1000;
+    const lastSTT = range[range.length - 1].id - 1000;
+    
+    return {
+      mailsToAssign: range,
+      displayText: `Chọn mail: ${range.length} mail (${firstSTT} đến ${lastSTT})`,
+      count: range.length
+    };
+  }, [showAssignModal, batches]);
+
+  const handleAssignBatch = async () => {
+    if (!selectedStaffForAssign) {
+      triggerToast("Vui lòng chọn nhân viên nhận việc trước!");
+      return;
+    }
+    if (!assignmentPreview || assignmentPreview.count === 0) {
+      triggerToast("Không có dải mail trống nào để gán!");
+      return;
+    }
+    
+    const staff = staffList.find(s => String(s.id) === String(selectedStaffForAssign) || s.username === selectedStaffForAssign);
+    if (!staff) {
+      triggerToast("Nhân viên không tồn tại!");
+      return;
+    }
+    
+    const savedMails = localStorage.getItem("global_mails_data");
+    const allMails = savedMails ? JSON.parse(savedMails) : [];
+    
+    const targetIds = new Set(assignmentPreview.mailsToAssign.map((m: any) => m.id));
+    const now = new Date().toISOString();
+    
+    const updatedMails = allMails.map((m: any) => {
+      if (targetIds.has(m.id)) {
+        return {
+          ...m,
+          assigneeId: staff.id || staff.username,
+          assignedTo: staff.name,
+          batchName: selectedBatchNameForAssign,
+          batchId: `batch-${selectedBatchNameForAssign.replace(/\s+/g, '-').toLowerCase()}`,
+          lastUpdated: now,
+          updatedAt: now,
+          updatedBy: user?.name || "Admin"
+        };
+      }
+      return m;
+    });
+    
+    localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
+    
+    // Make sure the batch object is in global_batches
+    const savedBatches = localStorage.getItem("global_batches");
+    const existingBatches = savedBatches ? JSON.parse(savedBatches) : [];
+    const batchId = `batch-${selectedBatchNameForAssign.replace(/\s+/g, '-').toLowerCase()}`;
+    const hasBatch = existingBatches.some((b: any) => b.name === selectedBatchNameForAssign && b.type === "SATELLITE");
+    
+    let updatedBatches = [...existingBatches];
+    if (!hasBatch) {
+      updatedBatches.push({
+        id: batchId,
+        name: selectedBatchNameForAssign,
+        type: "SATELLITE",
+        importedAt: new Date().toISOString().split("T")[0],
+        mailCount: assignmentPreview.count,
+        importedBy: user?.name || "Admin"
+      });
+      localStorage.setItem("global_batches", JSON.stringify(updatedBatches));
+    }
+    
+    // Dispatch storage event
+    window.dispatchEvent(new Event("storage"));
+    
+    // Sync to backend if needed
+    try {
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          global_mails_data: JSON.stringify(updatedMails),
+          global_batches: JSON.stringify(updatedBatches)
+        })
+      });
+    } catch (e) {
+      // safe fallback
+    }
+    
+    // Log system activity
+    const existingLogs = localStorage.getItem("global_system_logs");
+    const logsList = existingLogs ? JSON.parse(existingLogs) : [];
+    const newLog = {
+      id: `log-${Date.now()}`,
+      user: user?.name || "Admin",
+      role: "ADMIN",
+      action: `Gán dải lô cuốn chiếu ${selectedBatchNameForAssign} cho ${staff.name} (${assignmentPreview.displayText})`,
+      type: "SUCCESS",
+      timestamp: new Date().toLocaleString("vi-VN")
+    };
+    localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
+
+    // Push real-time notification for target staff member
+    const existingNotifs = localStorage.getItem("admin_notifications");
+    const notifList = existingNotifs ? JSON.parse(existingNotifs) : [];
+    const newNotif = {
+      id: `notif-${Date.now()}`,
+      title: "Giao việc Cuốn Chiếu",
+      message: `Bạn được giao ${assignmentPreview.count} mail vệ tinh mới thuộc Lô "${selectedBatchNameForAssign}" (${assignmentPreview.displayText}).`,
+      time: new Date().toLocaleTimeString("vi-VN") + " - " + new Date().toLocaleDateString("vi-VN"),
+      type: "ASSIGNMENT",
+      read: false,
+      targetUsername: staff.username
+    };
+    localStorage.setItem("admin_notifications", JSON.stringify([newNotif, ...notifList]));
+    window.dispatchEvent(new Event("storage"));
+    
+    setShowAssignModal(false);
+    triggerToast(`Gán thành công ${assignmentPreview.count} mail cho ${staff.name}!`);
+  };
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "---";
@@ -332,6 +482,14 @@ export default function BatchesManagementPage() {
             <option value="SATELLITE" className="bg-sidebar text-white">Mail Vệ Tinh</option>
             <option value="MONETIZED" className="bg-sidebar text-white">Mail BKT</option>
           </select>
+
+          <button
+            onClick={() => setShowAssignModal(true)}
+            className="bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-xs tracking-widest px-5 h-10 rounded-xl transition-all shadow-lg shadow-gold/20 flex items-center gap-2"
+          >
+            <Layers size={16} />
+            Gán Lô Cuốn Chiếu
+          </button>
         </div>
       </div>
 
@@ -576,6 +734,115 @@ export default function BatchesManagementPage() {
                   className="h-10 px-6 bg-white/5 border border-white/10 text-white hover:border-gold/50 text-xs font-black uppercase tracking-widest rounded-xl transition-all"
                 >
                   Đóng
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Roll-over Assignment Modal */}
+      <AnimatePresence>
+        {showAssignModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[170] bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#121212] border border-gold/30 rounded-[36px] p-8 w-full max-w-xl shadow-2xl flex flex-col justify-between animate-fade-in"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-gold/15 text-gold border border-gold/20 rounded-xl flex items-center justify-center">
+                    <Layers size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-white uppercase tracking-tight">Gán Lô Mail Cuốn Chiếu</h3>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">
+                      Tự động chọn dải mail trống từ Kho tổng
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAssignModal(false)}
+                  className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-white/5 text-gray-500 hover:text-white transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Form Content */}
+              <div className="space-y-6 flex-1">
+                {/* Select Employee */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">Chọn nhân viên nhận việc</label>
+                  <select
+                    value={selectedStaffForAssign}
+                    onChange={(e) => setSelectedStaffForAssign(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 h-12 text-xs text-gold font-bold uppercase tracking-wider focus:border-gold/50 outline-none transition-all cursor-pointer"
+                  >
+                    <option value="" className="bg-sidebar text-white">-- Click chọn nhân viên --</option>
+                    {staffList.map((s) => (
+                      <option key={s.id} value={s.id} className="bg-sidebar text-white">
+                        {s.name} ({s.username})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Batch Name Input/Select */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">Tên Lô Mail Gán</label>
+                  <select
+                    value={selectedBatchNameForAssign}
+                    onChange={(e) => setSelectedBatchNameForAssign(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 h-12 text-xs text-gold font-bold uppercase tracking-wider focus:border-gold/50 outline-none transition-all cursor-pointer"
+                  >
+                    {["Lô 1", "Lô 2", "Lô 3", "Lô 4", "Lô 5", "Lô 6", "Lô 7", "Lô 8", "Lô 9", "Lô 10"].map((l) => (
+                      <option key={l} value={l} className="bg-sidebar text-white">{l}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Automatic Range Preview Box */}
+                {assignmentPreview && (
+                  <div className="bg-gold/10 border border-gold/20 rounded-2xl p-5 space-y-3">
+                    <span className="text-[9px] font-black text-gold uppercase tracking-widest block">Dải mail trống cuốn chiếu được tính toán</span>
+                    
+                    <p className="text-sm font-black text-white leading-none">
+                      {assignmentPreview.displayText}
+                    </p>
+
+                    <div className="h-px bg-white/5 my-2" />
+
+                    <div className="flex items-center justify-between text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                      <span>Tổng số mail gán:</span>
+                      <span className="text-gold font-black font-mono">{assignmentPreview.count} Mail</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-4 mt-8 pt-4 border-t border-white/5">
+                <button
+                  onClick={() => setShowAssignModal(false)}
+                  className="flex-1 h-12 bg-white/5 border border-white/10 text-white font-black uppercase text-xs tracking-widest rounded-xl hover:bg-white/10 transition-all"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={handleAssignBatch}
+                  disabled={!selectedStaffForAssign || !assignmentPreview || assignmentPreview.count === 0}
+                  className="flex-1 h-12 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-xs tracking-widest rounded-xl transition-all shadow-xl shadow-gold/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Xác nhận gán
                 </button>
               </div>
             </motion.div>

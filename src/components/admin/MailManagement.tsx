@@ -1037,10 +1037,20 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                               onChange={(e) => handleWorkStatusChange(mail.id, e.target.value)}
                               className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus || "Chưa làm")}`}
                             >
-                              <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
-                              <option value="Đang xử lí" className="bg-sidebar text-white">Đang xử lí</option>
-                              <option value="Đã làm" className="bg-sidebar text-white">Đã làm</option>
-                              <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
+                              {isStaff && type === "SATELLITE" ? (
+                                <>
+                                  <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
+                                  <option value="Đã làm" className="bg-sidebar text-white">Đã làm</option>
+                                  <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
+                                </>
+                              ) : (
+                                <>
+                                  <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
+                                  <option value="Đang xử lí" className="bg-sidebar text-white">Đang xử lí</option>
+                                  <option value="Đã làm" className="bg-sidebar text-white">Đã làm</option>
+                                  <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
+                                </>
+                              )}
                             </select>
                           )}
                         </td>

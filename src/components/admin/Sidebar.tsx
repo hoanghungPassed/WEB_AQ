@@ -103,7 +103,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
       title: "Quản lý mail",
       icon: <Layers size={24} />,
       subItems: [
-        { title: "Lô mail vệ tinh", href: "/admin/mail/batches" },
+        { title: "Lô mail vệ tinh", href: "/admin/mail/satellite-batches" },
       ],
     });
   }

@@ -103,7 +103,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
       return n;
     });
     setNotifications(updated);
-    const persistable = updated.filter(n => !n.id.startsWith("access-"));
+    const persistable = updated.filter(n => !String(n.id).startsWith("access-"));
     localStorage.setItem("admin_notifications", JSON.stringify(persistable));
     window.dispatchEvent(new Event("storage"));
   };
@@ -116,7 +116,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
       return n;
     });
     setNotifications(updated);
-    const persistable = updated.filter(n => !n.id.startsWith("access-"));
+    const persistable = updated.filter(n => !String(n.id).startsWith("access-"));
     localStorage.setItem("admin_notifications", JSON.stringify(persistable));
     window.dispatchEvent(new Event("storage"));
   };

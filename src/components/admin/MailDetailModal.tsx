@@ -100,6 +100,37 @@ export default function MailDetailModal({
     if (type === "ROOT") {
       onSave({ cccdDate, verificationStatus });
     } else if (type === "SATELLITE") {
+      // Calculate newly eligible channels to add to global_eligible_channels
+      const savedEligible = localStorage.getItem("global_eligible_channels");
+      const currentList = savedEligible ? JSON.parse(savedEligible) : [];
+      let listUpdated = false;
+
+      links.forEach((link, idx) => {
+        if (link && link.trim() !== "" && eligibleChannels[idx]) {
+          const exists = currentList.some((c: any) => c.link === link);
+          if (!exists) {
+            currentList.push({
+              id: `channel-${Date.now()}-${idx}`,
+              link,
+              name: names[idx] || `Kênh ${idx + 1} của ${mail.email}`,
+              status: "Chưa mời"
+            });
+            listUpdated = true;
+          }
+        } else if (link && !eligibleChannels[idx]) {
+          const index = currentList.findIndex((c: any) => c.link === link);
+          if (index !== -1) {
+            currentList.splice(index, 1);
+            listUpdated = true;
+          }
+        }
+      });
+
+      if (listUpdated) {
+        localStorage.setItem("global_eligible_channels", JSON.stringify(currentList));
+        window.dispatchEvent(new Event("storage"));
+      }
+
       onSave({ links, channelNames: names, eligibleChannels });
     } else if (type === "MONETIZED") {
       onSave({ reClickDate, step2PendingDate, channelStatusDetail });
@@ -338,8 +369,8 @@ export default function MailDetailModal({
         {/* Update History Footer */}
         <div className="flex items-center justify-center mt-4 relative z-10">
           <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-gold/30 bg-gold/10">
-            <span className="text-[10px] font-black text-gold/60 uppercase tracking-widest">
-              Cập nhật gần đây lúc: <span className="text-gold font-mono">{updatedAtStr || "---"}</span> - Người thực hiện: <span className="text-white">{mail.updatedBy || "---"}</span>
+            <span className="text-[10px] font-black text-gold/80 uppercase tracking-widest">
+              Cập nhật lần cuối ngày: <span className="text-white font-mono">{updatedAtStr || "---"}</span> {mail.updatedBy && <>- Người sửa: <span className="text-white">{mail.updatedBy}</span></>}
             </span>
           </div>
         </div>
