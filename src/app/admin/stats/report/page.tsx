@@ -11,7 +11,11 @@ import {
   Clock, 
   UserCheck, 
   Zap,
-  Activity
+  Activity,
+  Save,
+  Calculator,
+  Banknote,
+  CalendarDays
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -33,6 +37,13 @@ export default function ReportsPage() {
   const [mails, setMails] = useState<any[]>([]);
   const [staffList, setStaffList] = useState<any[]>([]);
   const [toastMsg, setToastMsg] = useState("");
+  const [activeTab, setActiveTab] = useState<"STATS" | "PAYROLL">("STATS");
+
+  // Payroll States
+  const [selectedStaffId, setSelectedStaffId] = useState("");
+  const [baseSalary, setBaseSalary] = useState("5000000");
+  const [allowance, setAllowance] = useState("500000");
+  const [payrollRecords, setPayrollRecords] = useState<any[]>([]);
 
   useEffect(() => {
     // Authenticate Roles
@@ -54,6 +65,11 @@ export default function ReportsPage() {
       
       setMails(savedMails ? JSON.parse(savedMails) : []);
       setStaffList(savedUsers ? JSON.parse(savedUsers) : []);
+      
+      const savedPayroll = localStorage.getItem("payroll_records");
+      if (savedPayroll) {
+        setPayrollRecords(JSON.parse(savedPayroll));
+      }
     };
 
     loadData();
@@ -144,6 +160,75 @@ export default function ReportsPage() {
     return sorted.map((s, idx) => ({ ...s, rank: idx + 1, efficiency: idx === 0 ? "A+" : idx === 1 ? "A" : s.efficiency }));
   }, [staffList, mails]);
 
+  // 3. PAYROLL LOGIC
+  const getAttendanceDays = (username: string) => {
+    let present = 0;
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+
+    for (let i = 1; i <= 26; i++) {
+      const dayStr = String(i).padStart(2, '0');
+      const dateKey = `${year}-${month}-${dayStr}`;
+      const checkinTime = localStorage.getItem(`checkin_time_${username}_${dateKey}`) || localStorage.getItem(`checkin_time_${username}`);
+      
+      if (checkinTime) {
+        present++;
+      } else {
+        // Fallback simulate from mock hash for old days
+        let hash = 0;
+        const combined = username + dateKey;
+        for (let charIdx = 0; charIdx < combined.length; charIdx++) {
+          hash = combined.charCodeAt(charIdx) + ((hash << 5) - hash);
+        }
+        if (Math.abs(hash % 100) < 85) {
+          present++;
+        }
+      }
+    }
+    // Cap at 26 days
+    return Math.min(present, 26);
+  };
+
+  const handleSavePayroll = () => {
+    if (!selectedStaffId) {
+      triggerToast("Vui lòng chọn nhân viên!");
+      return;
+    }
+    
+    const staff = staffList.find(s => s.id === selectedStaffId);
+    if (!staff) return;
+
+    const days = getAttendanceDays(staff.username);
+    const base = Number(baseSalary) || 0;
+    const allow = Number(allowance) || 0;
+    
+    const total = Math.round((base / 26) * days + allow);
+
+    const recordId = `PR_${staff.id}_${new Date().getMonth() + 1}_${new Date().getFullYear()}`;
+    const newRecord = {
+      id: recordId,
+      staffId: staff.id,
+      name: staff.name,
+      role: staff.role,
+      username: staff.username,
+      baseSalary: base,
+      allowance: allow,
+      attendanceDays: days,
+      totalReceived: total,
+      timestamp: new Date().toISOString()
+    };
+
+    const updated = [...payrollRecords.filter(r => r.id !== recordId), newRecord];
+    setPayrollRecords(updated);
+    localStorage.setItem("payroll_records", JSON.stringify(updated));
+    triggerToast("Đã lưu bảng lương thành công!");
+  };
+
+  const formatVND = (amount: number) => {
+    return amount.toLocaleString("vi-VN") + " ₫";
+  };
+
   return (
     <div className="h-full flex flex-col space-y-6 pb-6 relative">
       {/* Toast Notification */}
@@ -172,23 +257,46 @@ export default function ReportsPage() {
           <div>
             <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
               <BarChart3 className="text-gold" size={28} />
-              Thống Kê & Báo Cáo (Reports)
+              Thống Kê & Nhân Sự (Reports & Payroll)
             </h2>
             <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mt-1">
-              Phân tích hiệu suất làm việc toàn diện và sản lượng kênh
+              Phân tích hiệu suất làm việc và quản lý bảng lương tự động
             </p>
           </div>
         </div>
 
-        <button 
-          onClick={handleExportReport}
-          className="h-10 px-6 rounded-xl bg-gold text-sidebar font-black uppercase text-xs tracking-widest hover:bg-yellow-500 transition-all flex items-center gap-2 shadow-lg shadow-gold/5"
-        >
-          <Download size={14} /> Xuất Báo Cáo Excel
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex bg-sidebar border border-white/5 p-1 rounded-2xl shadow-inner">
+            <button
+              onClick={() => setActiveTab("STATS")}
+              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "STATS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-white"}`}
+            >
+              Hiệu Suất KPI
+            </button>
+            {(user?.role === "01" || user?.role === "02" || user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC") && (
+              <button
+                onClick={() => setActiveTab("PAYROLL")}
+                className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "PAYROLL" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-white"}`}
+              >
+                Bảng Lương
+              </button>
+            )}
+          </div>
+          
+          {activeTab === "STATS" && (
+            <button 
+              onClick={handleExportReport}
+              className="h-10 px-6 rounded-xl bg-gold text-sidebar font-black uppercase text-xs tracking-widest hover:bg-yellow-500 transition-all flex items-center gap-2 shadow-lg shadow-gold/5"
+            >
+              <Download size={14} /> Xuất Báo Cáo
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* 4 Premium Stats Widgets */}
+      {activeTab === "STATS" ? (
+        <>
+          {/* 4 Premium Stats Widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-sidebar border border-white/5 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-gold/30 transition-all">
           <div className="space-y-1">
@@ -416,6 +524,126 @@ export default function ReportsPage() {
           </table>
         </div>
       </div>
+      </>
+      ) : (
+        <div className="flex-1 flex flex-col gap-6">
+          <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl">
+            <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-4">
+              <Calculator size={18} className="text-gold" />
+              <h3 className="text-lg font-black text-white uppercase tracking-tighter">Cấu hình Bảng lương</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Chọn nhân viên</label>
+                <select 
+                  className="h-12 px-4 rounded-xl bg-black/20 border border-white/5 text-sm text-white focus:outline-none focus:border-gold/50 cursor-pointer"
+                  value={selectedStaffId}
+                  onChange={(e) => setSelectedStaffId(e.target.value)}
+                >
+                  <option value="" className="bg-sidebar text-gray-400">-- Nhấp để chọn --</option>
+                  {staffList.map(s => (
+                    <option key={s.id} value={s.id} className="bg-sidebar">{s.name} (@{s.username})</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Chức vụ (Tự động)</label>
+                <input 
+                  type="text" 
+                  disabled 
+                  value={
+                    selectedStaffId 
+                      ? (staffList.find(s => s.id === selectedStaffId)?.role === "01" ? "ADMIN" : 
+                         staffList.find(s => s.id === selectedStaffId)?.role === "02" ? "QL CÔNG VIỆC" : 
+                         staffList.find(s => s.id === selectedStaffId)?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN")
+                      : ""
+                  }
+                  className="h-12 px-4 rounded-xl bg-white/5 border border-white/5 text-sm text-gray-400 font-bold" 
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Lương tháng cơ bản (VNĐ)</label>
+                <input 
+                  type="text" 
+                  value={baseSalary ? Number(baseSalary).toLocaleString("vi-VN") : ""}
+                  onChange={(e) => setBaseSalary(e.target.value.replace(/\D/g, ""))}
+                  className="h-12 px-4 rounded-xl bg-black/20 border border-white/5 text-sm text-white focus:outline-none focus:border-gold/50 font-bold" 
+                  placeholder="Ví dụ: 5.000.000"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Trợ cấp (VNĐ)</label>
+                <input 
+                  type="text" 
+                  value={allowance ? Number(allowance).toLocaleString("vi-VN") : ""}
+                  onChange={(e) => setAllowance(e.target.value.replace(/\D/g, ""))}
+                  className="h-12 px-4 rounded-xl bg-black/20 border border-white/5 text-sm text-white focus:outline-none focus:border-gold/50 font-bold" 
+                  placeholder="Ví dụ: 500.000"
+                />
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-end">
+              <button 
+                onClick={handleSavePayroll}
+                className="h-12 px-8 rounded-xl bg-gold text-sidebar font-black uppercase text-[10px] tracking-widest hover:bg-yellow-500 transition-all flex items-center gap-2 shadow-xl shadow-gold/10"
+              >
+                <Save size={16} /> Lưu bảng lương
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex-1 flex flex-col min-h-0">
+            <div className="p-6 border-b border-white/5 bg-white/[0.02] flex items-center gap-2">
+              <Banknote size={18} className="text-green-400" />
+              <h3 className="text-lg font-black text-white uppercase tracking-tighter">Bảng Tổng Hợp Lương (Payroll Table)</h3>
+            </div>
+            <div className="flex-1 overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left text-sm whitespace-nowrap min-w-[1000px]">
+                <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5 sticky top-0 z-10">
+                  <tr>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Nhân viên</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Chức vụ</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-right">Lương cơ bản</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Ngày công (Tích xanh)</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-right">Trợ cấp</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-right">Tổng nhận cuối tháng</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-right">Thời gian lưu</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-gray-300">
+                  {payrollRecords.length > 0 ? (
+                    payrollRecords.map((record) => (
+                      <tr key={record.id} className="hover:bg-white/[0.02] transition-colors group">
+                        <td className="py-4.5 px-6 font-black text-white text-xs">{record.name}</td>
+                        <td className="py-4.5 px-6 text-xs text-gray-400 font-bold">
+                          {record.role === "01" ? "ADMIN" : record.role === "02" ? "QL CÔNG VIỆC" : record.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN"}
+                        </td>
+                        <td className="py-4.5 px-6 text-right font-mono text-gray-400">{formatVND(record.baseSalary)}</td>
+                        <td className="py-4.5 px-6 text-center">
+                          <span className="inline-flex items-center gap-1 bg-green-500/10 text-green-400 border border-green-500/20 px-3 py-1 rounded-lg font-black text-[10px]">
+                            <CalendarDays size={12} /> {record.attendanceDays} / 26
+                          </span>
+                        </td>
+                        <td className="py-4.5 px-6 text-right font-mono text-gray-400">{formatVND(record.allowance)}</td>
+                        <td className="py-4.5 px-6 text-right font-mono font-black text-gold text-sm">{formatVND(record.totalReceived)}</td>
+                        <td className="py-4.5 px-6 text-right text-[10px] text-gray-500 font-bold">{new Date(record.timestamp).toLocaleString("vi-VN")}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="py-10 text-center text-gray-600 font-bold uppercase tracking-widest">
+                        Chưa có dữ liệu bảng lương
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

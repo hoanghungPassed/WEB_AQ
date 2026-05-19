@@ -12,7 +12,8 @@ import {
   ShieldCheck, 
   HardDrive,
   RefreshCw,
-  Info
+  Info,
+  AlertCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -37,26 +38,23 @@ export default function SettingsPage() {
   const [chunkSize, setChunkSize] = useState(17);
   const [apiSyncEndpoint, setApiSyncEndpoint] = useState("/api/sync");
 
-  // Password States
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [passError, setPassError] = useState("");
+  const [passErrors, setPassErrors] = useState({ old: "", new: "", confirm: "" });
+
+  const [activeTab, setActiveTab] = useState<"PROFILE" | "PASSWORD" | "2FA" | "SYSTEM">("PROFILE");
 
   // DB Reset Safety Modal States
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [safetyPhrase, setSafetyPhrase] = useState("");
 
   useEffect(() => {
-    // Authenticate Roles (Roles 01 and 02 can access Settings)
+    // Everyone can access settings
     const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
-      const role = String(parsedUser.role || "").toUpperCase();
-      if (role !== "01" && role !== "02" && role !== "ADMIN" && role !== "QUẢN LÝ CÔNG VIỆC" && role !== "QL CÔNG VIỆC") {
-        window.location.href = "/admin";
-      }
     } else {
       window.location.href = "/login";
     }
@@ -152,18 +150,92 @@ export default function SettingsPage() {
     triggerToast("Đã lưu và đồng bộ cài đặt hệ thống thành công!");
   };
 
+  const handleOldPasswordChange = (val: string) => {
+    setOldPassword(val);
+    if (!val) {
+      setPassErrors(prev => ({ ...prev, old: "" }));
+      return;
+    }
+    const savedUsers = localStorage.getItem("global_users");
+    const allUsers = savedUsers ? JSON.parse(savedUsers) : [];
+    const currentUser = allUsers.find((u: any) => String(u.id) === String(user?.id) || u.username === user?.username);
+    
+    if (currentUser && currentUser.password !== val) {
+      setPassErrors(prev => ({ ...prev, old: "Mật khẩu hiện tại không đúng" }));
+    } else {
+      setPassErrors(prev => ({ ...prev, old: "" }));
+    }
+  };
+
+  const getPasswordStrength = (pwd: string) => {
+    let score = 0;
+    if (pwd.length > 6) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    return score;
+  };
+
+  const validateNewPassword = (pwd: string) => {
+    if (!pwd) return "";
+    if (pwd.length <= 6) return "Mật khẩu phải dài hơn 6 kí tự";
+    if (!/[A-Z]/.test(pwd)) return "Phải có ít nhất 1 chữ viết hoa";
+    if (!/[0-9]/.test(pwd)) return "Phải có ít nhất 1 chữ số";
+    if (!/[^A-Za-z0-9]/.test(pwd)) return "Phải có ít nhất 1 kí tự đặc biệt";
+    return "";
+  };
+
+  const handleNewPasswordChange = (val: string) => {
+    setNewPassword(val);
+    setPassErrors(prev => ({ ...prev, new: validateNewPassword(val) }));
+    if (confirmPassword && confirmPassword !== val) {
+      setPassErrors(prev => ({ ...prev, confirm: "Mật khẩu xác nhận không khớp." }));
+    } else {
+      setPassErrors(prev => ({ ...prev, confirm: "" }));
+    }
+  };
+
+  const handleConfirmPasswordChange = (val: string) => {
+    setConfirmPassword(val);
+    if (val && val !== newPassword) {
+      setPassErrors(prev => ({ ...prev, confirm: "Mật khẩu xác nhận không khớp." }));
+    } else {
+      setPassErrors(prev => ({ ...prev, confirm: "" }));
+    }
+  };
+
   // CHANGE PASSWORD SUBMISSION
   const handleChangePassword = (e: React.FormEvent) => {
     e.preventDefault();
-    setPassError("");
 
-    if (!oldPassword || !newPassword || !confirmPassword) {
-      setPassError("Vui lòng điền đầy đủ tất cả các trường mật khẩu.");
+    let hasEmpty = false;
+    const newErrors = { old: passErrors.old, new: passErrors.new, confirm: passErrors.confirm };
+
+    if (!oldPassword) {
+      newErrors.old = "Vui lòng nhập mật khẩu hiện tại.";
+      hasEmpty = true;
+    }
+    if (!newPassword) {
+      newErrors.new = "Vui lòng nhập mật khẩu mới.";
+      hasEmpty = true;
+    }
+    if (!confirmPassword) {
+      newErrors.confirm = "Vui lòng xác nhận mật khẩu mới.";
+      hasEmpty = true;
+    }
+
+    if (hasEmpty) {
+      setPassErrors(newErrors);
+      return;
+    }
+
+    if (passErrors.old || passErrors.new || passErrors.confirm) {
+      triggerToast("Vui lòng sửa các lỗi hiển thị trước khi lưu.");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPassError("Mật khẩu mới và mật khẩu xác nhận không khớp.");
+      setPassErrors(prev => ({ ...prev, confirm: "Mật khẩu xác nhận không khớp." }));
       return;
     }
 
@@ -171,27 +243,22 @@ export default function SettingsPage() {
     const savedUsers = localStorage.getItem("global_users");
     const allUsers = savedUsers ? JSON.parse(savedUsers) : [];
     
-    // Match current profile user
-    const updatedUsers = allUsers.map((u: any) => {
-      if (String(u.id) === String(user?.id) || u.username === user?.username) {
-        if (u.password !== oldPassword) {
-          setPassError("Mật khẩu hiện tại không chính xác.");
-          return u;
-        }
-        return { ...u, password: newPassword };
-      }
-      return u;
-    });
-
-    if (passError) return;
-
-    // Check if matching failed (no change done due to wrong old pass)
-    const isSuccess = updatedUsers.some((u: any) => u.password === newPassword && (String(u.id) === String(user?.id) || u.username === user?.username));
+    // Find current user
+    const currentUserIndex = allUsers.findIndex((u: any) => String(u.id) === String(user?.id) || u.username === user?.username);
     
-    if (!isSuccess && !passError) {
-      setPassError("Mật khẩu hiện tại không chính xác.");
+    if (currentUserIndex === -1) {
+      setPassErrors(prev => ({ ...prev, old: "Không tìm thấy thông tin tài khoản." }));
       return;
     }
+
+    if (allUsers[currentUserIndex].password !== oldPassword) {
+      setPassErrors(prev => ({ ...prev, old: "Mật khẩu hiện tại không chính xác." }));
+      return;
+    }
+
+    // Update password
+    const updatedUsers = [...allUsers];
+    updatedUsers[currentUserIndex] = { ...updatedUsers[currentUserIndex], password: newPassword };
 
     localStorage.setItem("global_users", JSON.stringify(updatedUsers));
     
@@ -332,191 +399,288 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Left Side: General System Settings & Storage */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl">
+      <div className="flex flex-col md:flex-row gap-4 mb-6 pb-4 border-b border-white/5">
+        <button 
+          onClick={() => setActiveTab("PROFILE")}
+          className={`h-10 px-6 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+            activeTab === "PROFILE" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-white/5 text-gray-500 hover:bg-white/10"
+          }`}
+        >
+          Thông tin cá nhân
+        </button>
+        <button 
+          onClick={() => setActiveTab("PASSWORD")}
+          className={`h-10 px-6 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+            activeTab === "PASSWORD" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-white/5 text-gray-500 hover:bg-white/10"
+          }`}
+        >
+          Tài khoản (Đổi MK)
+        </button>
+        {(user?.role === "01" || user?.role === "02" || user?.role === "ADMIN" || user?.role === "QL CÔNG VIỆC") && (
+          <>
+            <button 
+              onClick={() => setActiveTab("2FA")}
+              className={`h-10 px-6 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                activeTab === "2FA" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-white/5 text-gray-500 hover:bg-white/10"
+              }`}
+            >
+              Bảo mật 2FA
+            </button>
+            <button 
+              onClick={() => setActiveTab("SYSTEM")}
+              className={`h-10 px-6 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                activeTab === "SYSTEM" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-white/5 text-gray-500 hover:bg-white/10"
+              }`}
+            >
+              API & Cấu hình
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className="animate-fade-in">
+        {activeTab === "PROFILE" && (
+          <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl max-w-2xl">
             <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-6">
-              <Database className="text-gold" size={18} />
-              <h3 className="text-md font-black text-white uppercase tracking-tight">Cấu hình thông số Hệ thống</h3>
+              <Info className="text-gold" size={18} />
+              <h3 className="text-md font-black text-white uppercase tracking-tight">Thông tin cá nhân</h3>
             </div>
-
-            <form onSubmit={handleSaveSettings} className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Tên Agency / Trang Web</label>
-                  <input 
-                    type="text" 
-                    value={agencyName}
-                    onChange={(e) => setAgencyName(e.target.value)}
-                    className="bg-black/20 border border-white/10 rounded-xl px-4 h-11 text-xs text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Số lượng gán Mail mỗi đợt (Chunk Size)</label>
-                  <input 
-                    type="number" 
-                    value={chunkSize}
-                    onChange={(e) => setChunkSize(Math.max(1, Number(e.target.value)))}
-                    className="bg-black/20 border border-white/10 rounded-xl px-4 h-11 text-xs text-gold outline-none focus:border-gold/50 transition-all w-full font-black tracking-wider"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest">KPI Target (Mail BKT Hàng tháng)</label>
-                  <input 
-                    type="number" 
-                    value={kpiTargetMails}
-                    onChange={(e) => setKpiTargetMails(Math.max(1, Number(e.target.value)))}
-                    className="bg-black/20 border border-white/10 rounded-xl px-4 h-11 text-xs text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest">KPI Target (Watch Hours tích lũy)</label>
-                  <input 
-                    type="number" 
-                    value={kpiTargetWatchHours}
-                    onChange={(e) => setKpiTargetWatchHours(Math.max(1, Number(e.target.value)))}
-                    className="bg-black/20 border border-white/10 rounded-xl px-4 h-11 text-xs text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
-                    required
-                  />
-                </div>
+            <div className="space-y-4 text-sm text-gray-300">
+              <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                <span className="font-bold text-gray-500 uppercase text-[10px] tracking-widest">Họ và tên</span>
+                <span className="font-black text-white">{user?.name}</span>
               </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest">API Server Sync Endpoint</label>
-                <input 
-                  type="text" 
-                  value={apiSyncEndpoint}
-                  onChange={(e) => setApiSyncEndpoint(e.target.value)}
-                  className="bg-black/20 border border-white/10 rounded-xl px-4 h-11 text-xs text-gray-400 font-mono outline-none focus:border-gold/50 transition-all w-full"
-                  required
-                />
+              <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                <span className="font-bold text-gray-500 uppercase text-[10px] tracking-widest">Tên đăng nhập</span>
+                <span className="font-black text-gold">@{user?.username}</span>
               </div>
-
-              <div className="pt-2">
-                <button 
-                  type="submit"
-                  className="h-11 px-6 rounded-xl bg-gold text-sidebar font-black uppercase text-xs tracking-widest hover:bg-yellow-500 transition-all flex items-center gap-2 shadow-lg shadow-gold/5"
-                >
-                  <Save size={14} /> Lưu Cấu Hình
-                </button>
+              <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                <span className="font-bold text-gray-500 uppercase text-[10px] tracking-widest">Phân quyền</span>
+                <span className="px-3 py-1 bg-gold/10 text-gold border border-gold/20 rounded-lg text-[10px] font-black uppercase">
+                  {user?.role === "01" ? "ADMIN" : user?.role === "02" ? "QL CÔNG VIỆC" : user?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN"}
+                </span>
               </div>
-            </form>
-          </div>
-
-          {/* Database Space Allocation Stats Widget */}
-          <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl">
-            <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-4">
-              <HardDrive className="text-gold" size={18} />
-              <h3 className="text-md font-black text-white uppercase tracking-tight">Dung lượng Cơ sở Dữ liệu (LocalStorage)</h3>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex justify-between text-xs font-bold text-gray-400">
-                <span>Dung lượng đã sử dụng:</span>
-                <span className="text-white font-mono">{storageUsage.text}</span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
-                <div 
-                  className={`h-full rounded-full ${
-                    storageUsage.percentage > 80 ? "bg-red-500" :
-                    storageUsage.percentage > 50 ? "bg-gold" : "bg-indigo-500"
-                  }`}
-                  style={{ width: `${storageUsage.percentage}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-gray-500 leading-relaxed font-medium">
-                Mọi dữ liệu hệ thống được đồng bộ hóa hoàn hảo trong LocalStorage và tự động đồng bộ hóa lên API Server Database khi máy chủ hoạt động.
-              </p>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Right Side: Password Manager & Danger Hard Reset */}
-        <div className="space-y-6">
-          {/* Security & Password section */}
-          <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl">
+        {activeTab === "PASSWORD" && (
+          <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl max-w-2xl">
             <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-6">
               <Lock className="text-gold" size={18} />
-              <h3 className="text-md font-black text-white uppercase tracking-tight">Bảo mật & Đổi mật khẩu</h3>
+              <h3 className="text-md font-black text-white uppercase tracking-tight">Đổi mật khẩu tài khoản</h3>
             </div>
-
             <form onSubmit={handleChangePassword} className="space-y-4">
-              {passError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl font-bold">
-                  {passError}
-                </div>
-              )}
-
               <div className="space-y-1.5">
                 <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Mật khẩu hiện tại</label>
                 <input 
                   type="password" 
                   value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
-                  className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-white outline-none focus:border-gold/50 transition-all w-full"
-                  required
+                  onChange={(e) => handleOldPasswordChange(e.target.value)}
+                  className={`bg-black/20 border rounded-xl px-4 h-11 text-xs text-white outline-none focus:border-gold/50 transition-all w-full ${passErrors.old ? "border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]" : "border-white/10"}`}
                 />
+                <AnimatePresence>
+                  {passErrors.old && (
+                    <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-1.5 mt-2 text-red-400 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20">
+                      <AlertCircle size={14} className="shrink-0" />
+                      <p className="text-[10.5px] font-bold tracking-wide">{passErrors.old}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-
               <div className="space-y-1.5">
                 <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Mật khẩu mới</label>
                 <input 
                   type="password" 
                   value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-white outline-none focus:border-gold/50 transition-all w-full"
-                  required
+                  onChange={(e) => handleNewPasswordChange(e.target.value)}
+                  className={`bg-black/20 border rounded-xl px-4 h-11 text-xs text-white outline-none focus:border-gold/50 transition-all w-full ${passErrors.new ? "border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]" : "border-white/10"}`}
+                  placeholder="Trên 6 kí tự, có chữ hoa, số và kí tự đặc biệt..."
                 />
+                {newPassword && (
+                  <div className="flex gap-1.5 mt-2">
+                    {[1, 2, 3, 4].map(level => (
+                      <div 
+                        key={level} 
+                        className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                          getPasswordStrength(newPassword) >= level 
+                            ? (getPasswordStrength(newPassword) <= 2 ? 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]' : getPasswordStrength(newPassword) === 3 ? 'bg-yellow-500 shadow-[0_0_5px_rgba(234,179,8,0.5)]' : 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]') 
+                            : 'bg-white/10'
+                        }`} 
+                      />
+                    ))}
+                  </div>
+                )}
+                <AnimatePresence>
+                  {passErrors.new && (
+                    <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-1.5 mt-2 text-red-400 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20">
+                      <AlertCircle size={14} className="shrink-0" />
+                      <p className="text-[10.5px] font-bold tracking-wide">{passErrors.new}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-
               <div className="space-y-1.5">
                 <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Xác nhận mật khẩu mới</label>
                 <input 
                   type="password" 
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-white outline-none focus:border-gold/50 transition-all w-full"
-                  required
+                  onChange={(e) => handleConfirmPasswordChange(e.target.value)}
+                  className={`bg-black/20 border rounded-xl px-4 h-11 text-xs text-white outline-none focus:border-gold/50 transition-all w-full ${passErrors.confirm ? "border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]" : "border-white/10"}`}
                 />
+                <AnimatePresence>
+                  {passErrors.confirm && (
+                    <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-1.5 mt-2 text-red-400 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20">
+                      <AlertCircle size={14} className="shrink-0" />
+                      <p className="text-[10.5px] font-bold tracking-wide">{passErrors.confirm}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-
-              <div className="pt-2">
+              <div className="pt-4">
                 <button 
                   type="submit"
-                  className="h-10 px-5 rounded-xl bg-indigo-500 text-white font-black uppercase text-xs tracking-widest hover:bg-indigo-600 transition-all flex items-center gap-2 w-full justify-center shadow-lg shadow-indigo-500/10"
+                  className="h-11 px-6 rounded-xl bg-gold text-sidebar font-black uppercase text-xs tracking-widest hover:bg-yellow-500 transition-all flex items-center gap-2 shadow-lg shadow-gold/20"
                 >
-                  <ShieldCheck size={14} /> Đổi Mật Khẩu
+                  <ShieldCheck size={16} /> Lưu Thay Đổi
                 </button>
               </div>
             </form>
           </div>
+        )}
 
-          {/* Hard Wipe Danger Zone */}
-          <div className="bg-red-500/5 border border-red-500/20 rounded-[32px] p-6 shadow-2xl space-y-4">
-            <div className="flex items-center gap-2 border-b border-red-500/10 pb-4">
-              <AlertTriangle className="text-red-500" size={18} />
-              <h3 className="text-md font-black text-red-500 uppercase tracking-tight">Khu vực nguy hiểm</h3>
+        {activeTab === "2FA" && (
+          <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl max-w-2xl">
+            <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-6">
+              <ShieldCheck className="text-gold" size={18} />
+              <h3 className="text-md font-black text-white uppercase tracking-tight">Cấu hình bảo mật 2FA</h3>
             </div>
-            
-            <p className="text-[11px] text-gray-400 leading-relaxed font-bold">
-              Tính năng khôi phục toàn bộ cơ sở dữ liệu về trạng thái ban đầu của nhà phát triển. Mọi thay đổi hiện hữu sẽ biến mất vĩnh viễn.
-            </p>
-
-            <button 
-              onClick={() => setShowResetConfirm(true)}
-              className="h-11 rounded-xl bg-red-500 text-white font-black uppercase text-xs tracking-widest hover:bg-red-600 transition-all flex items-center gap-2 w-full justify-center shadow-lg shadow-red-500/15"
-            >
-              <RefreshCw size={14} /> Reset Database gốc
-            </button>
+            <div className="text-center p-10 bg-white/[0.02] border border-white/5 rounded-2xl">
+              <ShieldCheck size={48} className="text-gray-600 mx-auto mb-4 opacity-50" />
+              <h4 className="text-sm font-black text-white uppercase mb-2">Tính năng đang phát triển</h4>
+              <p className="text-xs text-gray-500 font-bold">Bảo mật 2FA qua TOTP Authenticator sẽ sớm được ra mắt trong bản cập nhật tới.</p>
+            </div>
           </div>
-        </div>
+        )}
+
+        {activeTab === "SYSTEM" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            {/* Left Side: General System Settings & Storage */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl">
+                <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-6">
+                  <Database className="text-gold" size={18} />
+                  <h3 className="text-md font-black text-white uppercase tracking-tight">Cấu hình thông số Hệ thống</h3>
+                </div>
+                <form onSubmit={handleSaveSettings} className="space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Tên Agency / Trang Web</label>
+                      <input 
+                        type="text" 
+                        value={agencyName}
+                        onChange={(e) => setAgencyName(e.target.value)}
+                        className="bg-black/20 border border-white/10 rounded-xl px-4 h-11 text-xs text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Số lượng gán Mail mỗi đợt (Chunk Size)</label>
+                      <input 
+                        type="number" 
+                        value={chunkSize}
+                        onChange={(e) => setChunkSize(Math.max(1, Number(e.target.value)))}
+                        className="bg-black/20 border border-white/10 rounded-xl px-4 h-11 text-xs text-gold outline-none focus:border-gold/50 transition-all w-full font-black tracking-wider"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest">KPI Target (Mail BKT Hàng tháng)</label>
+                      <input 
+                        type="number" 
+                        value={kpiTargetMails}
+                        onChange={(e) => setKpiTargetMails(Math.max(1, Number(e.target.value)))}
+                        className="bg-black/20 border border-white/10 rounded-xl px-4 h-11 text-xs text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest">KPI Target (Watch Hours tích lũy)</label>
+                      <input 
+                        type="number" 
+                        value={kpiTargetWatchHours}
+                        onChange={(e) => setKpiTargetWatchHours(Math.max(1, Number(e.target.value)))}
+                        className="bg-black/20 border border-white/10 rounded-xl px-4 h-11 text-xs text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest">API Server Sync Endpoint</label>
+                    <input 
+                      type="text" 
+                      value={apiSyncEndpoint}
+                      onChange={(e) => setApiSyncEndpoint(e.target.value)}
+                      className="bg-black/20 border border-white/10 rounded-xl px-4 h-11 text-xs text-gray-400 font-mono outline-none focus:border-gold/50 transition-all w-full"
+                      required
+                    />
+                  </div>
+                  <div className="pt-2">
+                    <button 
+                      type="submit"
+                      className="h-11 px-6 rounded-xl bg-gold text-sidebar font-black uppercase text-xs tracking-widest hover:bg-yellow-500 transition-all flex items-center gap-2 shadow-lg shadow-gold/5"
+                    >
+                      <Save size={14} /> Lưu Cấu Hình
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            {/* Right Side: Storage Stats & Danger Hard Reset */}
+            <div className="space-y-6">
+              {/* Database Space Allocation Stats Widget */}
+              <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl">
+                <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-4">
+                  <HardDrive className="text-gold" size={18} />
+                  <h3 className="text-md font-black text-white uppercase tracking-tight">Dung lượng DB Local</h3>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between text-xs font-bold text-gray-400">
+                    <span>Đã sử dụng:</span>
+                    <span className="text-white font-mono">{storageUsage.text}</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full ${
+                        storageUsage.percentage > 80 ? "bg-red-500" :
+                        storageUsage.percentage > 50 ? "bg-gold" : "bg-indigo-500"
+                      }`}
+                      style={{ width: `${storageUsage.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Hard Wipe Danger Zone */}
+              <div className="bg-red-500/5 border border-red-500/20 rounded-[32px] p-6 shadow-2xl space-y-4">
+                <div className="flex items-center gap-2 border-b border-red-500/10 pb-4">
+                  <AlertTriangle className="text-red-500" size={18} />
+                  <h3 className="text-md font-black text-red-500 uppercase tracking-tight">Khu vực nguy hiểm</h3>
+                </div>
+                <p className="text-[11px] text-gray-400 leading-relaxed font-bold">
+                  Khôi phục toàn bộ cơ sở dữ liệu về trạng thái ban đầu của nhà phát triển. Mọi thay đổi sẽ mất.
+                </p>
+                <button 
+                  onClick={() => setShowResetConfirm(true)}
+                  className="h-11 rounded-xl bg-red-500 text-white font-black uppercase text-xs tracking-widest hover:bg-red-600 transition-all flex items-center gap-2 w-full justify-center shadow-lg shadow-red-500/15"
+                >
+                  <RefreshCw size={14} /> Reset Database gốc
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

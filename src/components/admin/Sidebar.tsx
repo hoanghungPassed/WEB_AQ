@@ -131,12 +131,13 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
         { title: "Thống kê", href: "/admin/stats/report" },
       ],
     });
-    dynamicMenuItems.push({
-      title: "Hệ thống",
-      icon: <Settings size={24} />,
-      href: "/admin/settings",
-    });
   }
+
+  dynamicMenuItems.push({
+    title: "Hệ thống",
+    icon: <Settings size={24} />,
+    href: "/admin/settings",
+  });
 
   const toggleMenu = (title: string) => {
     if (isCollapsed) return;

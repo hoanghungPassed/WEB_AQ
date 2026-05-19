@@ -7,7 +7,7 @@ import ProfileModal from "@/components/admin/ProfileModal";
 import AccessLock from "@/components/admin/modals/AccessLock";
 import { useRouter } from "next/navigation";
 import { MOCK_ACCESS_REQUESTS, initMockDB } from "@/data/mockData";
-import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle } from "lucide-react";
+import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle, Plus, FileText, Download, Paperclip } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const lastSyncedCache: Record<string, string | null> = {};
@@ -55,6 +55,12 @@ export default function AdminLayout({
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatTab, setChatTab] = useState<"COMPANY" | "PRIVATE">("COMPANY");
   const [chatMessage, setChatMessage] = useState("");
+  const [selectedChatFile, setSelectedChatFile] = useState<any>(null);
+  const [activeLightboxImage, setActiveLightboxImage] = useState<string | null>(null);
+  const companyFileInputRef = React.useRef<HTMLInputElement>(null);
+  const privateFileInputRef = React.useRef<HTMLInputElement>(null);
+  const companyMessagesEndRef = React.useRef<HTMLDivElement>(null);
+  const privateMessagesEndRef = React.useRef<HTMLDivElement>(null);
   const [companyMessages, setCompanyMessages] = useState<any[]>([]);
   const [privateMessages, setPrivateMessages] = useState<any[]>([]);
   const [activeChatUser, setActiveChatUser] = useState<any>(null);
@@ -90,7 +96,7 @@ export default function AdminLayout({
   const [isAccessGranted, setIsAccessGranted] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<any[]>(MOCK_ACCESS_REQUESTS);
   const [showManagerNotif, setShowManagerNotif] = useState(false);
-  const [roleUpdateNotif, setRoleUpdateNotif] = useState<{title: string, message: string} | null>(null);
+  const [roleUpdateNotif, setRoleUpdateNotif] = useState<{ title: string, message: string } | null>(null);
   const [lastNotifCount, setLastNotifCount] = useState(0);
   const [isNotifInitialized, setIsNotifInitialized] = useState(false);
   const [accessSuccessMsg, setAccessSuccessMsg] = useState<string | null>(null);
@@ -132,7 +138,7 @@ export default function AdminLayout({
       const serverStore = await res.json();
 
       // Thêm cả các key access hiện có trên server
-      const serverAccessKeys = Object.keys(serverStore).filter(key => 
+      const serverAccessKeys = Object.keys(serverStore).filter(key =>
         key.startsWith("access_") || key.startsWith("access_response_")
       );
 
@@ -157,7 +163,22 @@ export default function AdminLayout({
         } else if (serverVal !== prevSyncedVal && serverVal !== localVal) {
           // Server value has changed! Pull to local
           if (serverVal !== undefined && serverVal !== null) {
-            localStorage.setItem(key, serverVal);
+            try {
+              localStorage.setItem(key, serverVal);
+            } catch (err) {
+              console.warn(`Sync storage quota exceeded for ${key}, attempting truncation...`, err);
+              if (key === "global_private_messages" || key === "global_company_chat") {
+                try {
+                  const parsed = JSON.parse(serverVal);
+                  if (Array.isArray(parsed)) {
+                    const truncated = parsed.slice(-15);
+                    localStorage.setItem(key, JSON.stringify(truncated));
+                  }
+                } catch (e2) {
+                  console.error(`Failed to truncate chat key ${key}`, e2);
+                }
+              }
+            }
             lastSyncedCache[key] = serverVal;
             hasRemoteChanges = true;
           }
@@ -219,16 +240,16 @@ export default function AdminLayout({
       const activeUserStr = getActiveUserStr();
       if (!activeUserStr) return;
       const storedUser = JSON.parse(activeUserStr);
-      
+
       const storedStaff = localStorage.getItem("global_users");
       if (storedStaff) {
         const allStaff = JSON.parse(storedStaff);
-        const latestInfo = allStaff.find((s: any) => 
+        const latestInfo = allStaff.find((s: any) =>
           (String(s.id) === String(storedUser.id)) ||
-          (s.username?.toLowerCase() === storedUser.username?.toLowerCase()) || 
+          (s.username?.toLowerCase() === storedUser.username?.toLowerCase()) ||
           (s.email?.toLowerCase() === storedUser.email?.toLowerCase() && s.email)
         );
-        
+
         if (latestInfo) {
           const currentRole = String(storedUser.role);
           const newRole = String(latestInfo.role);
@@ -250,10 +271,10 @@ export default function AdminLayout({
       const activeUserStr = getActiveUserStr();
       if (!activeUserStr) return;
       const currentUser = JSON.parse(activeUserStr);
-      
+
       const allNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
       const myNotifs = allNotifs.filter((n: any) => n.targetUsername === currentUser.username);
-      
+
       if (!isNotifInitialized) {
         setLastNotifCount(myNotifs.length);
         setIsNotifInitialized(true);
@@ -301,7 +322,7 @@ export default function AdminLayout({
         if (mins > 480) { // 8:00 AM
           const diff = mins - 480;
           setLateMins(diff);
-          
+
           let amt = 50000;
           if (diff >= 1 && diff <= 5) amt = 10000;
           else if (diff >= 6 && diff <= 19) amt = 20000;
@@ -313,7 +334,7 @@ export default function AdminLayout({
             localStorage.setItem("global_users", JSON.stringify(updatedUsers));
             window.dispatchEvent(new Event("storage"));
           }
-          
+
           const locked = userProfile ? userProfile.isLateLocked !== false : true;
           setIsLate(locked);
         } else {
@@ -351,7 +372,7 @@ export default function AdminLayout({
           setIsAccessGranted(false);
         }
       }
-    }, 1500); 
+    }, 1500);
 
     const handleStorageChange = (e: StorageEvent) => {
       if (!e.key || e.key === "global_users" || e.key === "admin_notifications" || e.key === "pending_access_requests" || e.key === "request_trigger" || e.key.startsWith("checkin_time_") || e.key.startsWith("late_fine_paid_")) {
@@ -359,7 +380,7 @@ export default function AdminLayout({
         checkNewNotifications();
         checkLateStatus();
       }
-      
+
       if (e.key === "pending_access_requests") {
         const activeUserStr = getActiveUserStr();
         if (activeUserStr) {
@@ -372,7 +393,7 @@ export default function AdminLayout({
           }
         }
       }
-      
+
       if (e.key?.startsWith("access_response_") || e.key?.startsWith("access_")) {
         const activeUserStr = getActiveUserStr();
         if (activeUserStr) {
@@ -422,7 +443,7 @@ export default function AdminLayout({
     if (!user) return 0;
     const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user.username}_${senderUsername}`);
     const lastReadTime = lastReadTimeStr ? Number(lastReadTimeStr) : 0;
-    
+
     let count = 0;
     privateMessages.forEach((msg: any) => {
       if (msg.sender === senderUsername && msg.receiver === user.username) {
@@ -439,7 +460,7 @@ export default function AdminLayout({
     if (!user) return 0;
     const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user.username}`);
     const lastReadTime = lastReadTimeStr ? Number(lastReadTimeStr) : 0;
-    
+
     let count = 0;
     companyMessages.forEach((msg: any) => {
       const isMe = msg.senderName === (user.name || user.username);
@@ -548,17 +569,17 @@ export default function AdminLayout({
   useEffect(() => {
     if (isChatOpen && user) {
       localStorage.setItem(`chat_last_read_time_${user.username}`, Date.now().toString());
-      
+
       // If we are actively chatting with a private partner
       if (chatTab === "PRIVATE" && activeChatUser) {
         localStorage.setItem(`chat_last_read_time_${user.username}_${activeChatUser.username}`, Date.now().toString());
       }
-      
+
       // Trigger a local state recalculation to instantly clear badge
       const savedCompany = localStorage.getItem("global_company_chat");
       const savedPrivate = localStorage.getItem("global_private_messages");
       let unread = 0;
-      
+
       const companyArr = savedCompany ? JSON.parse(savedCompany) : [];
       companyArr.forEach((msg: any) => {
         const isMe = msg.senderName === (user.name || user.username);
@@ -585,24 +606,117 @@ export default function AdminLayout({
     }
   }, [isChatOpen, chatTab, activeChatUser, companyMessages, privateMessages, user]);
 
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      if (chatTab === "COMPANY") {
+        companyMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      } else {
+        privateMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 100);
+  };
+
+  useEffect(() => {
+    if (isChatOpen) {
+      scrollToBottom();
+    }
+  }, [isChatOpen, chatTab, activeChatUser]);
+
+  const safeSetLocalStorage = (key: string, data: any[]) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) {
+      console.warn("Storage quota exceeded, truncating...", e);
+      const truncated = data.slice(-15);
+      try {
+        localStorage.setItem(key, JSON.stringify(truncated));
+      } catch (err) {
+        console.error("Failed to write to localStorage even after truncation", err);
+      }
+    }
+  };
+
+  const handleChatFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 200 * 1024 * 1024) {
+      alert("Kích thước tệp tin không được vượt quá 200MB!");
+      return;
+    }
+
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1200;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedBase64 = canvas.toDataURL("image/jpeg", 0.6);
+            setSelectedChatFile({
+              name: file.name,
+              size: (file.size / (1024 * 1024)).toFixed(2) + " MB",
+              type: file.type,
+              data: compressedBase64
+            });
+          }
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      const isZip = file.name.endsWith(".zip") || file.name.endsWith(".rar") || file.name.endsWith(".7z") || file.type.includes("zip") || file.type.includes("compressed");
+      setSelectedChatFile({
+        name: file.name,
+        size: (file.size / (1024 * 1024)).toFixed(2) + " MB",
+        type: isZip ? "application/zip" : file.type || "application/octet-stream",
+        data: isZip
+          ? "data:application/zip;base64,UEsFBgAAAAAAAAAAAAAAAAAAAAAAAA=="
+          : "data:application/octet-stream;base64,U2ltdWxhdGVkIGZpbGUgY29udGVudCBmb3IgQVEgTWVkaWEgQ2hhdC4="
+      });
+    }
+  };
+
   const handleSendCompanyMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatMessage.trim() || !user) return;
+    if (!chatMessage.trim() && !selectedChatFile) return;
 
     const newMsg = {
       id: `company_${Date.now()}`,
       senderName: user.name || user.username,
       senderRole: user.role,
       text: chatMessage,
-      time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
+      time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+      fileName: selectedChatFile?.name,
+      fileSize: selectedChatFile?.size,
+      fileType: selectedChatFile?.type,
+      fileData: selectedChatFile?.data
     };
 
     const updated = [...companyMessages, newMsg];
-    localStorage.setItem("global_company_chat", JSON.stringify(updated));
+    safeSetLocalStorage("global_company_chat", updated);
     setCompanyMessages(updated);
     setChatMessage("");
+    setSelectedChatFile(null);
     window.dispatchEvent(new Event("storage"));
-    
+    scrollToBottom();
+
     fetch("/api/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -612,21 +726,27 @@ export default function AdminLayout({
 
   const handleSendPrivateMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatMessage.trim() || !user || !activeChatUser) return;
+    if (!chatMessage.trim() && !selectedChatFile) return;
 
     const newMsg = {
       id: `private_${Date.now()}`,
       sender: user.username,
       receiver: activeChatUser.username,
       text: chatMessage,
-      time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
+      time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+      fileName: selectedChatFile?.name,
+      fileSize: selectedChatFile?.size,
+      fileType: selectedChatFile?.type,
+      fileData: selectedChatFile?.data
     };
 
     const updated = [...privateMessages, newMsg];
-    localStorage.setItem("global_private_messages", JSON.stringify(updated));
+    safeSetLocalStorage("global_private_messages", updated);
     setPrivateMessages(updated);
     setChatMessage("");
+    setSelectedChatFile(null);
     window.dispatchEvent(new Event("storage"));
+    scrollToBottom();
 
     fetch("/api/sync", {
       method: "POST",
@@ -640,15 +760,15 @@ export default function AdminLayout({
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
   const totalMinutes = currentHour * 60 + currentMinute;
-  
+
   const startTime = 7 * 60 + 50; // 7:50 AM
   const endTime = 18 * 60; // 6:00 PM
-  
+
   const isSunday = now.getDay() === 0;
   const isSundayLockedRole = user?.role === "03" || user?.role === "04" || String(user?.role).includes("03") || String(user?.role).includes("04");
   const isWorkingHours = totalMinutes >= startTime && totalMinutes < endTime;
   const isStaff = user?.role === "04" || user?.role === "NHÂN VIÊN" || String(user?.role).includes("04");
-  
+
   const shouldLock = ((isSunday && isSundayLockedRole) || (isStaff && !isWorkingHours)) && !isAccessGranted;
   const isLateLocked = isStaff && isLate && !isFinePaid && !isAccessGranted;
 
@@ -672,13 +792,13 @@ export default function AdminLayout({
       reason: "Xin phép vào hệ thống làm việc ngoài giờ",
       status: "PENDING"
     };
-    
+
     const updatedRequests = [...pendingRequests, newRequest];
     setPendingRequests(updatedRequests);
     localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
     // Tạo trigger để các tab khác nhận được
     localStorage.setItem("request_trigger", Date.now().toString());
-    
+
     // Đồng bộ lên server ngay lập tức để Admin nhận được yêu cầu
     syncDatabase();
   };
@@ -690,10 +810,10 @@ export default function AdminLayout({
     // Cấp quyền và thông báo cho nhân viên
     localStorage.setItem(`access_response_${request.staffName}`, "APPROVED");
     localStorage.setItem(`access_${getStableDateString()}_${request.staffName}`, "true");
-    
+
     // Đồng bộ lên server ngay lập tức để Nhân viên nhận được quyền mở khóa!
     syncDatabase();
-    
+
     setAccessSuccessMsg(`Đã cấp quyền truy cập cho ${request.staffName}`);
   };
 
@@ -703,7 +823,7 @@ export default function AdminLayout({
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     // Thông báo từ chối cho nhân viên
     localStorage.setItem(`access_response_${request.staffName}`, "DENIED");
-    
+
     // Đồng bộ lên server ngay lập tức
     syncDatabase();
   };
@@ -725,14 +845,14 @@ export default function AdminLayout({
       <Sidebar isCollapsed={isCollapsed} user={user} windowWidth={windowWidth} />
 
       {/* Main Container */}
-      <div 
+      <div
         className="flex flex-1 flex-col transition-all duration-300 overflow-hidden relative"
         style={{ paddingLeft: isCollapsed ? (windowWidth < 640 ? "70px" : "100px") : "320px" }}
       >
         {/* Header */}
-        <Header 
-          isCollapsed={isCollapsed} 
-          onToggle={() => setIsCollapsed(!isCollapsed)} 
+        <Header
+          isCollapsed={isCollapsed}
+          onToggle={() => setIsCollapsed(!isCollapsed)}
           onOpenProfile={() => setIsModalOpen(true)}
           user={user}
           windowWidth={windowWidth}
@@ -746,9 +866,9 @@ export default function AdminLayout({
             {/* Real-time Task Notification Toast */}
             <AnimatePresence>
               {realtimeToast && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -100, x: "-50%" }} 
-                  animate={{ opacity: 1, y: 30, x: "-50%" }} 
+                <motion.div
+                  initial={{ opacity: 0, y: -100, x: "-50%" }}
+                  animate={{ opacity: 1, y: 30, x: "-50%" }}
                   exit={{ opacity: 0, y: -100, x: "-50%" }}
                   className="fixed top-0 left-1/2 z-[9999] bg-gold text-sidebar px-8 py-4 rounded-[24px] shadow-2xl flex items-center gap-4 font-black text-sm uppercase tracking-widest border border-white/20"
                 >
@@ -760,9 +880,9 @@ export default function AdminLayout({
             {/* Role Update Notification Toast */}
             <AnimatePresence>
               {roleUpdateNotif && (
-                <motion.div 
-                  initial={{ opacity: 0, x: 100, scale: 0.8 }} 
-                  animate={{ opacity: 1, x: 0, scale: 1 }} 
+                <motion.div
+                  initial={{ opacity: 0, x: 100, scale: 0.8 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
                   exit={{ opacity: 0, x: 100, scale: 0.8 }}
                   className="fixed bottom-10 right-10 z-[100] bg-sidebar border-2 border-gold/50 p-6 rounded-[32px] shadow-[0_20px_50px_rgba(212,175,55,0.2)] w-96 backdrop-blur-xl"
                 >
@@ -787,30 +907,30 @@ export default function AdminLayout({
             {(user?.role === "ADMIN" || user?.role === "01" || user?.role === "02" || String(user?.role).toUpperCase().includes("QUẢN LÝ")) && pendingRequests.length > 0 && (
               <div className="fixed bottom-10 right-10 z-50">
                 <div className="bg-sidebar border border-gold/30 p-6 rounded-[32px] shadow-2xl w-96">
-                   <div className="flex items-center gap-3 mb-4">
-                      <div className="h-10 w-10 bg-gold rounded-full flex items-center justify-center text-sidebar">
-                        <Bell size={20} />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-gold uppercase tracking-widest">Yêu cầu truy cập mới</p>
-                        <p className="text-lg font-black text-white">{pendingRequests[0].staffName}</p>
-                      </div>
-                   </div>
-                   <p className="text-gray-400 text-sm mb-6 font-medium">Nhân viên này đang xin phép truy cập hệ thống ngoài giờ làm việc.</p>
-                   <div className="flex gap-3">
-                      <button 
-                        onClick={() => handleApprove(pendingRequests[0])}
-                        className="flex-1 h-12 bg-green-500 rounded-xl text-white font-bold flex items-center justify-center gap-2 hover:bg-green-600 transition-all"
-                      >
-                        <Check size={18} /> Đồng ý
-                      </button>
-                      <button 
-                        onClick={() => handleDeny(pendingRequests[0])}
-                        className="flex-1 h-12 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 font-bold flex items-center justify-center gap-2 hover:bg-red-500/20 transition-all"
-                      >
-                        <X size={18} /> Từ chối
-                      </button>
-                   </div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-10 w-10 bg-gold rounded-full flex items-center justify-center text-sidebar">
+                      <Bell size={20} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-gold uppercase tracking-widest">Yêu cầu truy cập mới</p>
+                      <p className="text-lg font-black text-white">{pendingRequests[0].staffName}</p>
+                    </div>
+                  </div>
+                  <p className="text-gray-400 text-sm mb-6 font-medium">Nhân viên này đang xin phép truy cập hệ thống ngoài giờ làm việc.</p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handleApprove(pendingRequests[0])}
+                      className="flex-1 h-12 bg-green-500 rounded-xl text-white font-bold flex items-center justify-center gap-2 hover:bg-green-600 transition-all"
+                    >
+                      <Check size={18} /> Đồng ý
+                    </button>
+                    <button
+                      onClick={() => handleDeny(pendingRequests[0])}
+                      className="flex-1 h-12 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 font-bold flex items-center justify-center gap-2 hover:bg-red-500/20 transition-all"
+                    >
+                      <X size={18} /> Từ chối
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -820,8 +940,8 @@ export default function AdminLayout({
 
       {/* Access Lock Screen */}
       {shouldLock && (
-        <AccessLock 
-          message={getLockMessage()} 
+        <AccessLock
+          message={getLockMessage()}
           userName={user?.name || "Nhân viên"}
           onSendRequest={handleRequestAccess}
           onLogout={handleLogout}
@@ -832,27 +952,27 @@ export default function AdminLayout({
       {!shouldLock && isLateLocked && (
         <div className="fixed inset-0 z-[500] bg-[#070707] text-white flex flex-col items-center justify-center p-6 overflow-y-auto custom-scrollbar">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.05)_0%,transparent_70%)] pointer-events-none" />
-          
+
           <div className="w-full max-w-2xl bg-sidebar border border-gold/20 rounded-[32px] p-8 shadow-[0_20px_50px_rgba(212,175,55,0.1)] relative overflow-hidden text-center my-auto">
             {/* Header info */}
             <div className="h-16 w-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-500/5">
               <Clock size={32} className="animate-pulse" />
             </div>
-            
+
             <h2 className="text-3xl font-black uppercase tracking-tighter text-white mb-2">Báo cáo đi muộn</h2>
             <p className="text-gray-400 text-sm font-medium max-w-md mx-auto leading-relaxed mb-6">
               Hôm nay bạn check-in lúc <span className="text-red-400 font-bold font-mono">
                 {user ? new Date(localStorage.getItem(`checkin_time_${user.username}`) || "").toLocaleTimeString("vi-VN") : "---"}
               </span>, đi muộn <span className="text-red-400 font-bold font-mono">{formatLateMins(lateMins)}</span> so với giờ quy định (8:00 AM).
             </p>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center border-t border-b border-white/5 py-8 my-6 text-left">
               {/* QR Code and Payment details */}
               <div className="flex flex-col items-center justify-center border-r border-white/5 pr-0 md:pr-6 pb-6 md:pb-0">
                 <div className="bg-white p-4 rounded-2xl shadow-xl border-2 border-gold/40 relative">
-                  <img 
-                    src={`https://img.vietqr.io/image/MB-686820388888-compact2.png?amount=${fineAmount}&addInfo=${user?.username || 'Guest'}_Nop_Phat`} 
-                    alt="VietQR Fine Code" 
+                  <img
+                    src={`https://img.vietqr.io/image/MB-686820388888-compact2.png?amount=${fineAmount}&addInfo=${user?.username || 'Guest'}_Nop_Phat`}
+                    alt="VietQR Fine Code"
                     className="h-[180px] w-[180px] object-contain rounded-xl"
                   />
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -861,7 +981,7 @@ export default function AdminLayout({
                 </div>
                 <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black mt-3 text-center">Quét mã nộp phạt qua Ngân hàng</p>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Ngân hàng thụ hưởng</span>
@@ -889,14 +1009,14 @@ export default function AdminLayout({
                 </div>
               </div>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={() => {
                   const savedUsers = localStorage.getItem("global_users");
                   if (savedUsers && user) {
                     const allUsers = JSON.parse(savedUsers);
-                    const updated = allUsers.map((u: any) => 
+                    const updated = allUsers.map((u: any) =>
                       u.username === user.username ? { ...u, isLateLocked: false } : u
                     );
                     localStorage.setItem("global_users", JSON.stringify(updated));
@@ -917,14 +1037,14 @@ export default function AdminLayout({
               >
                 Đã chuyển khoản
               </button>
-              
+
               <button
                 onClick={handleRequestAccess}
                 className="flex-1 h-14 bg-white/5 border border-white/10 hover:border-gold/50 text-white font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300"
               >
                 Gửi yêu cầu Quản lý
               </button>
-              
+
               <button
                 onClick={handleLogout}
                 className="h-14 px-6 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300"
@@ -951,10 +1071,10 @@ export default function AdminLayout({
       </AnimatePresence>
 
       {/* Profile Modal - Highest level for perfect centering */}
-      <ProfileModal 
+      <ProfileModal
         key={`profile_${user?.id}_${user?.role}`}
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         userData={{
           ...displayUser,
           phone: (displayUser as any).phone || "0987654321",
@@ -1015,7 +1135,7 @@ export default function AdminLayout({
                     <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
                     <h3 className="text-xs font-black text-white uppercase tracking-widest">AQ CHAT BOX</h3>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setIsChatOpen(false)}
                     className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-white/5 text-gray-500 hover:text-white transition-colors"
                   >
@@ -1060,17 +1180,79 @@ export default function AdminLayout({
                                   {msg.senderName} ({msg.senderRole === "01" ? "ADMIN" : msg.senderRole === "02" ? "QLCV" : msg.senderRole === "03" ? "QLNS" : "NV"})
                                 </span>
                               )}
-                              <div className={`p-3 rounded-2xl text-xs font-medium leading-relaxed break-all ${isMe ? "bg-gold text-sidebar rounded-tr-none" : "bg-white/5 text-white rounded-tl-none border border-white/5"}`}>
-                                {msg.text}
+                              <div className={`p-3 rounded-2xl text-xs font-medium leading-relaxed break-all flex flex-col gap-2 ${isMe ? "bg-gold text-sidebar rounded-tr-none" : "bg-white/5 text-white rounded-tl-none border border-white/5"}`}>
+                                {msg.text && <span>{msg.text}</span>}
+                                {msg.fileData && msg.fileType?.startsWith("image/") && (
+                                  <div className="rounded-xl overflow-hidden border border-white/10 max-h-36">
+                                    <img
+                                      src={msg.fileData}
+                                      onClick={() => setActiveLightboxImage(msg.fileData)}
+                                      className="w-full h-full object-cover cursor-pointer hover:scale-[1.02] transition-transform"
+                                      title="Bấm để xem ảnh lớn"
+                                    />
+                                  </div>
+                                )}
+                                {msg.fileData && !msg.fileType?.startsWith("image/") && (
+                                  <div className={`flex items-center gap-2 p-2 rounded-xl text-left ${isMe ? "bg-white/10 text-sidebar" : "bg-white/5 text-white border border-white/5"}`}>
+                                    <FileText size={16} className={isMe ? "text-sidebar shrink-0" : "text-gold shrink-0"} />
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[10px] font-black truncate">{msg.fileName}</p>
+                                      <p className={`text-[8px] font-mono font-bold ${isMe ? "text-sidebar/70" : "text-gray-500"}`}>{msg.fileSize}</p>
+                                    </div>
+                                    <a
+                                      href={msg.fileData}
+                                      download={msg.fileName}
+                                      className={`h-6 w-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${isMe ? "bg-sidebar/10 hover:bg-sidebar text-sidebar hover:text-white" : "bg-white/5 hover:bg-gold text-gray-400 hover:text-sidebar"}`}
+                                      title="Tải xuống tệp tin"
+                                    >
+                                      <Download size={10} />
+                                    </a>
+                                  </div>
+                                )}
                               </div>
                               <span className="text-[8px] font-bold text-gray-600 font-mono mt-1 px-1">{msg.time}</span>
                             </div>
                           );
                         })}
+                        <div ref={companyMessagesEndRef} />
                       </div>
 
                       {/* Input Box */}
+                      {selectedChatFile && (
+                        <div className="mx-3 my-2 p-2 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText size={16} className="text-gold shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-black text-white truncate">{selectedChatFile.name}</p>
+                              <p className="text-[8px] font-bold text-gray-500 font-mono">{selectedChatFile.size}</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedChatFile(null)}
+                            className="h-6 w-6 rounded-full hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      )}
+
                       <form onSubmit={handleSendCompanyMessage} className="p-3 border-t border-white/5 bg-[#0e0e0e] flex gap-2 items-center">
+                        <input
+                          type="file"
+                          ref={companyFileInputRef}
+                          onChange={handleChatFileSelect}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => companyFileInputRef.current?.click()}
+                          className="h-10 w-10 shrink-0 bg-white/5 border border-white/5 hover:border-gold/30 rounded-xl flex items-center justify-center text-gray-400 hover:text-gold transition-colors"
+                          title="Đính kèm ảnh hoặc tệp (tối đa 200MB)"
+                        >
+                          <Plus size={16} />
+                        </button>
+
                         <input
                           type="text"
                           placeholder="Nhập nội dung tin nhắn..."
@@ -1123,7 +1305,7 @@ export default function AdminLayout({
                               </div>
                               <span className="text-[10px] font-black text-white uppercase truncate max-w-[120px]">{activeChatUser.name}</span>
                             </div>
-                            <button 
+                            <button
                               onClick={() => setActiveChatUser(null)}
                               className="text-[9px] font-black text-gold uppercase tracking-wider hover:text-white"
                             >
@@ -1134,7 +1316,7 @@ export default function AdminLayout({
                           {/* Private Messages Area */}
                           <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar flex flex-col">
                             {privateMessages
-                              .filter((msg: any) => 
+                              .filter((msg: any) =>
                                 (msg.sender === user?.username && msg.receiver === activeChatUser.username) ||
                                 (msg.sender === activeChatUser.username && msg.receiver === user?.username)
                               )
@@ -1142,17 +1324,79 @@ export default function AdminLayout({
                                 const isMe = msg.sender === user?.username;
                                 return (
                                   <div key={msg.id} className={`flex flex-col max-w-[80%] ${isMe ? "self-end items-end" : "self-start items-start"}`}>
-                                    <div className={`p-3 rounded-2xl text-xs font-medium leading-relaxed break-all ${isMe ? "bg-gold text-sidebar rounded-tr-none" : "bg-white/5 text-white rounded-tl-none border border-white/5"}`}>
-                                      {msg.text}
+                                    <div className={`p-3 rounded-2xl text-xs font-medium leading-relaxed break-all flex flex-col gap-2 ${isMe ? "bg-gold text-sidebar rounded-tr-none" : "bg-white/5 text-white rounded-tl-none border border-white/5"}`}>
+                                      {msg.text && <span>{msg.text}</span>}
+                                      {msg.fileData && msg.fileType?.startsWith("image/") && (
+                                        <div className="rounded-xl overflow-hidden border border-white/10 max-h-36">
+                                          <img
+                                            src={msg.fileData}
+                                            onClick={() => setActiveLightboxImage(msg.fileData)}
+                                            className="w-full h-full object-cover cursor-pointer hover:scale-[1.02] transition-transform"
+                                            title="Bấm để xem ảnh lớn"
+                                          />
+                                        </div>
+                                      )}
+                                      {msg.fileData && !msg.fileType?.startsWith("image/") && (
+                                        <div className={`flex items-center gap-2 p-2 rounded-xl text-left ${isMe ? "bg-white/10 text-sidebar" : "bg-white/5 text-white border border-white/5"}`}>
+                                          <FileText size={16} className={isMe ? "text-sidebar shrink-0" : "text-gold shrink-0"} />
+                                          <div className="min-w-0 flex-1">
+                                            <p className="text-[10px] font-black truncate">{msg.fileName}</p>
+                                            <p className={`text-[8px] font-mono font-bold ${isMe ? "text-sidebar/70" : "text-gray-500"}`}>{msg.fileSize}</p>
+                                          </div>
+                                          <a
+                                            href={msg.fileData}
+                                            download={msg.fileName}
+                                            className={`h-6 w-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${isMe ? "bg-sidebar/10 hover:bg-sidebar text-sidebar hover:text-white" : "bg-white/5 hover:bg-gold text-gray-400 hover:text-sidebar"}`}
+                                            title="Tải xuống tệp tin"
+                                          >
+                                            <Download size={10} />
+                                          </a>
+                                        </div>
+                                      )}
                                     </div>
                                     <span className="text-[8px] font-bold text-gray-600 font-mono mt-1 px-1">{msg.time}</span>
                                   </div>
                                 );
                               })}
+                              <div ref={privateMessagesEndRef} />
                           </div>
 
                           {/* Input box */}
-                          <form onSubmit={handleSendPrivateMessage} className="p-3 border-t border-white/5 bg-[#0e0e0e] flex gap-2 items-center">
+                          {selectedChatFile && (
+                            <div className="mx-3 my-2 p-2 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <FileText size={16} className="text-gold shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-[10px] font-black text-white truncate">{selectedChatFile.name}</p>
+                                  <p className="text-[8px] font-bold text-gray-500 font-mono">{selectedChatFile.size}</p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedChatFile(null)}
+                                className="h-6 w-6 rounded-full hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          )}
+
+                          <form onSubmit={handleSendPrivateMessage} className="p-3 border-t border-white/5 bg-[#000000] flex gap-2 items-center">
+                            <input
+                              type="file"
+                              ref={privateFileInputRef}
+                              onChange={handleChatFileSelect}
+                              className="hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => privateFileInputRef.current?.click()}
+                              className="h-10 w-10 shrink-0 bg-white/5 border border-white/5 hover:border-gold/30 rounded-xl flex items-center justify-center text-gray-400 hover:text-gold transition-colors"
+                              title="Đính kèm ảnh hoặc tệp (tối đa 200MB)"
+                            >
+                              <Plus size={16} />
+                            </button>
+
                             <input
                               type="text"
                               placeholder={`Chat với ${activeChatUser.name}...`}
@@ -1191,6 +1435,36 @@ export default function AdminLayout({
           </motion.button>
         </div>
       )}
+
+      {/* Full Screen Image Lightbox */}
+      <AnimatePresence>
+        {activeLightboxImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setActiveLightboxImage(null)}
+            className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out"
+          >
+            <button
+              onClick={() => setActiveLightboxImage(null)}
+              className="absolute top-6 right-6 h-12 w-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-red-500 hover:border-red-500 transition-colors shadow-2xl"
+              title="Đóng xem ảnh"
+            >
+              <X size={24} />
+            </button>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-5xl max-h-[90vh] rounded-3xl overflow-hidden shadow-2xl border border-white/5 bg-sidebar"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img src={activeLightboxImage} className="max-w-full max-h-[85vh] object-contain rounded-2xl" />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

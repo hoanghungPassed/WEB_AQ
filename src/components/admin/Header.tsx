@@ -122,8 +122,18 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
   };
 
   const handleNotificationClick = (notif: any) => {
+    // Mark as read
+    markSingleAsRead(notif.id);
+    
     if (notif.type === "REGISTRATION") {
       router.push("/admin/staff?tab=pending");
+    } else if (notif.type === "NEWSFEED") {
+      if (notif.postId) {
+        localStorage.setItem("highlighted_post_id", notif.postId);
+      }
+      router.push("/admin/newsfeed");
+    } else if (notif.type === "TASK" || notif.type === "SATELLITE_ASSIGNMENT") {
+      router.push("/admin/mail/satellite-batches");
     }
     setIsNotifOpen(false);
   };

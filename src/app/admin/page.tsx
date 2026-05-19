@@ -75,6 +75,9 @@ export default function AdminDashboard() {
   const [timekeepingModal, setTimekeepingModal] = useState<{ type: "in" | "out"; time: string; warning?: string } | null>(null);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 
+  // Duty Roster
+  const [dutyRosterData, setDutyRosterData] = useState<any>(null);
+
   // Newsfeed States
   const [posts, setPosts] = useState<any[]>([]);
   const [newPostText, setNewPostText] = useState("");
@@ -207,6 +210,11 @@ export default function AdminDashboard() {
     else setPendingRequests([]);
   };
 
+  const loadDutyRoster = () => {
+    const saved = localStorage.getItem("duty_roster");
+    if (saved) setDutyRosterData(JSON.parse(saved));
+  };
+
   const handleApproveRequest = (request: any) => {
     const saved = localStorage.getItem("pending_access_requests") || "[]";
     const reqs = JSON.parse(saved);
@@ -284,6 +292,38 @@ export default function AdminDashboard() {
     return "GUEST";
   };
 
+  const todayDutyTask = useMemo(() => {
+    if (!dutyRosterData || !dutyRosterData.roster) return null;
+    const date = new Date();
+    let dayIdx = date.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+    if (dayIdx === 0) return null; // Sunday no duty
+    
+    let dayName = ["", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"][dayIdx];
+    const assignedItem = dutyRosterData.roster.find((r: any) => r.day === dayName);
+    
+    if (dayIdx === 6) {
+      return {
+        id: "duty_weekend",
+        isForAll: true,
+        title: "Tổng vệ sinh toàn công ty",
+        note: dutyRosterData.taskWeekend || "Tổng vệ sinh, lau kính, giặt rèm...",
+        status: "IN_PROGRESS"
+      };
+    } else {
+      if (!assignedItem) return null;
+      if (user && String(assignedItem.staffId) === String(user.id)) {
+        return {
+          id: "duty_weekday",
+          isForAll: false,
+          title: "Trực nhật văn phòng",
+          note: dutyRosterData.taskWeek || "Dọn vệ sinh hàng ngày, đổ rác...",
+          status: "IN_PROGRESS"
+        };
+      }
+      return null;
+    }
+  }, [dutyRosterData, user]);
+
   const refreshStats = () => {
     const savedMails = localStorage.getItem("global_mails_data");
     const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
@@ -357,9 +397,11 @@ export default function AdminDashboard() {
     loadStaff();
     loadRequests();
     loadPosts();
+    loadDutyRoster();
     const staffInterval = setInterval(() => {
       loadStaff();
       loadRequests();
+      loadDutyRoster();
       const saved = localStorage.getItem("global_newsfeed_posts");
       if (saved) setPosts(JSON.parse(saved));
     }, 2000);
@@ -383,6 +425,9 @@ export default function AdminDashboard() {
       }
       if (e.key === "pending_access_requests" || e.key === "request_trigger") {
         loadRequests();
+      }
+      if (e.key === "duty_roster") {
+        loadDutyRoster();
       }
       if (e.key === "user" && e.newValue) {
         const newUserObj = JSON.parse(e.newValue);
@@ -1484,6 +1529,32 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {todayDutyTask && (
+                      <div
+                        className="p-6 rounded-2xl border transition-all relative overflow-hidden group bg-blue-500/5 border-blue-500/20"
+                      >
+                        <div className="absolute top-0 right-0 h-24 w-24 bg-blue-500/10 blur-[40px] -mr-12 -mt-12 transition-all" />
+                        <div className="relative z-10">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-lg font-black text-white uppercase tracking-tighter flex items-center gap-2">
+                              <Calendar className="text-blue-400" size={18} /> {todayDutyTask.title}
+                            </h3>
+                            <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border tracking-widest bg-blue-500/10 text-blue-400 border-blue-500/20">
+                              Lịch trực nhật
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-400 mb-4 font-medium leading-relaxed">
+                            <div className="pt-1">
+                              <b>Nhiệm vụ:</b> {todayDutyTask.note}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between pt-4 border-t border-blue-500/20 text-[10px] font-black uppercase tracking-widest text-blue-400">
+                            <span>{todayDutyTask.isForAll ? "Toàn bộ nhân viên" : "Dành riêng cho bạn"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {tasksList.filter(t => String(t.assigneeId) === String(user?.id)).length > 0 ? (
                       tasksList.filter(t => String(t.assigneeId) === String(user?.id)).map((task: any) => (
                         <div

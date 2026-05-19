@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Users, UserPlus, Search, Filter, MoreHorizontal, 
   CheckCircle2, XCircle, Shield, Activity, 
-  Clock, Plus, Mail, Phone, Calendar, MapPin, 
-  ClipboardList, AlertCircle, Trash2, UserCheck, User, Save, X
+  ClipboardList, AlertCircle, Trash2, UserCheck, User, Save, X, CalendarDays, CheckSquare, Clock,
+  Mail, Phone, Calendar, MapPin, Plus
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { StaffData } from "@/types/admin";
@@ -30,8 +30,14 @@ export default function StaffManagementPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selectedStaff, setSelectedStaff] = useState<StaffData | null>(null);
   const [activeDetailDay, setActiveDetailDay] = useState<any | null>(null);
-  const [activeTab, setActiveTab] = useState<"ACTIVE" | "PENDING">("ACTIVE");
+  const [activeTab, setActiveTab] = useState<"ACTIVE" | "PENDING" | "DUTY">("ACTIVE");
   const [pendingSubTab, setPendingSubTab] = useState<"ACCOUNTS" | "ACCESS">("ACCOUNTS");
+
+  // Duty Roster States
+  const [dutyTaskWeek, setDutyTaskWeek] = useState("");
+  const [dutyTaskWeekend, setDutyTaskWeekend] = useState("");
+  const [dutySelectedStaff, setDutySelectedStaff] = useState<string[]>([]);
+  const [dutyRoster, setDutyRoster] = useState<any[]>([]);
   const [accessRequests, setAccessRequests] = useState<any[]>([]);
   const itemsPerPage = 10;
 
@@ -56,6 +62,15 @@ export default function StaffManagementPage() {
            curRoleUpper === "02" || 
            curRoleUpper === "QL CÔNG VIỆC" || 
            curRoleUpper === "QUẢN LÝ CÔNG VIỆC";
+  }, [currentUser]);
+
+  const canManageDuty = useMemo(() => {
+    const curRoleUpper = String(currentUser?.role || "").toUpperCase();
+    return curRoleUpper === "01" || 
+           curRoleUpper === "ADMIN" || 
+           curRoleUpper === "03" || 
+           curRoleUpper === "QL NHÂN SỰ" || 
+           curRoleUpper === "QUẢN LÝ NHÂN SỰ";
   }, [currentUser]);
 
   // Handle tab from URL
@@ -107,13 +122,25 @@ export default function StaffManagementPage() {
       if (saved) setAccessRequests(JSON.parse(saved));
     };
 
+    const loadDutyRoster = () => {
+      const saved = localStorage.getItem("duty_roster");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setDutyRoster(parsed.roster || []);
+        setDutyTaskWeek(parsed.taskWeek || "");
+        setDutyTaskWeekend(parsed.taskWeekend || "");
+      }
+    };
+
     loadAccessRequests();
+    loadDutyRoster();
 
     // Listen for updates from layout (sync từ server)
     const handleStorage = () => {
       syncUser();
       reloadStaffList();
       loadAccessRequests();
+      loadDutyRoster();
     };
 
     window.addEventListener("storage", handleStorage);
@@ -346,6 +373,48 @@ export default function StaffManagementPage() {
     }
   }, [selectedStaff]);
 
+  const handleToggleDutyStaff = (id: string) => {
+    setDutySelectedStaff(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleGenerateRoster = () => {
+    if (dutySelectedStaff.length === 0) {
+      showAlert("Lỗi", "Vui lòng chọn ít nhất 1 nhân viên để phân lịch!");
+      return;
+    }
+    
+    // Rotate logic: assign one staff per day from Mon to Sat
+    const days = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+    const roster = days.map((dayName, idx) => {
+      const staffId = dutySelectedStaff[idx % dutySelectedStaff.length];
+      const staff = staffList.find(s => s.id === staffId);
+      return {
+        day: dayName,
+        staffId: staffId,
+        staffName: staff?.name || "Unknown",
+        username: staff?.username || "unknown"
+      };
+    });
+    
+    setDutyRoster(roster);
+    
+    const config = {
+      roster,
+      taskWeek: dutyTaskWeek,
+      taskWeekend: dutyTaskWeekend,
+      updatedAt: new Date().toISOString()
+    };
+    
+    localStorage.setItem("duty_roster", JSON.stringify(config));
+    pushToServer({ duty_roster: JSON.stringify(config) });
+    
+    setToastMsg("Đã phân lịch trực nhật thành công!");
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
   const attendanceData = useMemo(() => {
     if (!selectedStaff) return { list: [], present: 0, absent: 0 };
     const list = [];
@@ -447,14 +516,22 @@ export default function StaffManagementPage() {
             <p className="text-gray-500 font-medium mt-1">Hệ thống phê duyệt và quản lý đặc quyền nhân sự.</p>
           </div>
           <div className="flex gap-4">
-            <button 
-              onClick={() => setActiveTab("ACTIVE")}
-              className={`h-12 px-6 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2 transition-all ${activeTab === "ACTIVE" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-white/5 text-gray-500 hover:bg-white/10"}`}
-            >
-              <Users size={18} /> Nhân viên ({stats.total})
-            </button>
-            {!isRestricted && (
-              <div className="flex items-center gap-2 p-1 bg-white/5 rounded-[24px] border border-white/5 shadow-inner">
+              <button 
+                onClick={() => setActiveTab("ACTIVE")}
+                className={`h-12 px-6 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2 transition-all ${activeTab === "ACTIVE" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-white/5 text-gray-500 hover:bg-white/10"}`}
+              >
+                <Users size={18} /> Nhân viên ({stats.total})
+              </button>
+              {canManageDuty && (
+                <button 
+                  onClick={() => setActiveTab("DUTY")}
+                  className={`h-12 px-6 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2 transition-all ${activeTab === "DUTY" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-white/5 text-gray-500 hover:bg-white/10"}`}
+                >
+                  <CalendarDays size={18} /> Lịch Trực Nhật
+                </button>
+              )}
+              {!isRestricted && (
+                <div className="flex items-center gap-2 p-1 bg-white/5 rounded-[24px] border border-white/5 shadow-inner">
                 <button 
                   onClick={() => { setActiveTab("PENDING"); setPendingSubTab("ACCOUNTS"); }}
                   className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab === "PENDING" && pendingSubTab === "ACCOUNTS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-white"}`}
@@ -482,8 +559,112 @@ export default function StaffManagementPage() {
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-sidebar/50 border border-white/5 p-4 rounded-[32px] backdrop-blur-xl">
+      {activeTab === "DUTY" && canManageDuty ? (
+        <div className="flex flex-col gap-6 animate-fade-in">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 bg-sidebar border border-white/5 p-8 rounded-[32px] shadow-2xl flex flex-col gap-6">
+              <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                <CalendarDays className="text-gold" size={24} />
+                <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Cấu hình Lịch Trực Nhật</h2>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Nhiệm vụ trực nhật (T2 - T6)</label>
+                  <textarea 
+                    rows={2}
+                    value={dutyTaskWeek}
+                    onChange={(e) => setDutyTaskWeek(e.target.value)}
+                    placeholder="Vd: Dọn vệ sinh văn phòng hàng ngày, đổ rác, pha trà..."
+                    className="w-full bg-black/20 border border-white/5 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-gold/50 transition-all custom-scrollbar resize-none"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Nhiệm vụ tổng vệ sinh (Thứ 7)</label>
+                  <textarea 
+                    rows={2}
+                    value={dutyTaskWeekend}
+                    onChange={(e) => setDutyTaskWeekend(e.target.value)}
+                    placeholder="Vd: Tổng vệ sinh toàn công ty, lau kính, giặt rèm..."
+                    className="w-full bg-black/20 border border-white/5 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-gold/50 transition-all custom-scrollbar resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex-1 mt-4">
+                <div className="flex items-center justify-between mb-4">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                    Nhân viên tham gia xoay vòng ({dutySelectedStaff.length})
+                  </label>
+                  <button 
+                    onClick={() => setDutySelectedStaff(staffList.filter(s => s.status === "ACTIVE").map(s => s.id))}
+                    className="text-[10px] text-gold hover:text-yellow-400 font-bold uppercase tracking-widest"
+                  >
+                    Chọn tất cả
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-60 overflow-y-auto custom-scrollbar p-2 bg-black/20 rounded-2xl border border-white/5">
+                  {staffList.filter(s => s.status === "ACTIVE").map(staff => (
+                    <div 
+                      key={staff.id} 
+                      onClick={() => handleToggleDutyStaff(staff.id)}
+                      className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3 ${
+                        dutySelectedStaff.includes(staff.id) ? "bg-gold/10 border-gold/30" : "bg-white/5 border-transparent hover:bg-white/10"
+                      }`}
+                    >
+                      <div className={`h-4 w-4 rounded-[4px] border flex items-center justify-center transition-colors ${
+                        dutySelectedStaff.includes(staff.id) ? "bg-gold border-gold" : "border-gray-500"
+                      }`}>
+                        {dutySelectedStaff.includes(staff.id) && <CheckSquare size={12} className="text-sidebar" />}
+                      </div>
+                      <span className="text-xs font-bold text-white truncate">{staff.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4 border-t border-white/5">
+                <button 
+                  onClick={handleGenerateRoster}
+                  className="h-12 px-8 rounded-2xl bg-gold text-sidebar font-black uppercase text-[10px] tracking-widest hover:bg-yellow-500 transition-all shadow-xl shadow-gold/20 flex items-center gap-2"
+                >
+                  <CheckCircle2 size={16} /> Xác nhận phân lịch
+                </button>
+              </div>
+            </div>
+
+            <div className="md:col-span-1 bg-sidebar border border-white/5 p-8 rounded-[32px] shadow-2xl flex flex-col h-full">
+              <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-6">
+                <ClipboardList className="text-blue-400" size={24} />
+                <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Lịch Tuần Này</h2>
+              </div>
+              
+              <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-2">
+                {dutyRoster.length > 0 ? dutyRoster.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                    <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex flex-col items-center justify-center text-blue-400 border border-blue-500/20 flex-shrink-0">
+                      <span className="text-[10px] font-black uppercase tracking-tighter">Thứ</span>
+                      <span className="text-lg font-black">{item.day.split(' ')[1]}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-black text-white truncate">{item.staffName}</p>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest truncate">@{item.username}</p>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="h-full flex flex-col items-center justify-center opacity-30 text-center space-y-4">
+                    <CalendarDays size={48} />
+                    <p className="text-xs font-black uppercase tracking-widest">Chưa có lịch trực nhật</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Toolbar */}
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-sidebar/50 border border-white/5 p-4 rounded-[32px] backdrop-blur-xl">
         <div className="flex flex-1 gap-4 w-full">
           <div className="relative flex-1 group">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={20} />
@@ -753,6 +934,8 @@ export default function StaffManagementPage() {
           </div>
         )}
       </div>
+      </>
+      )}
 
       {/* Staff Detail Modal */}
       <AnimatePresence>
