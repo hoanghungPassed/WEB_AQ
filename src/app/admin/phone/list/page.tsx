@@ -16,17 +16,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-
-interface PhoneItem {
-  id: string;
-  number: string;
-  status: "Chưa verify" | "XM lần 1" | "XM lần 2" | "Lỗi";
-  assigneeId: string;
-  assignedTo: string;
-  assignedAt: string;
-  importBatch: string;
-  importedAt: string;
-}
+import type { PhoneItem, PhoneStatus } from "@/data/mockData";
 
 export default function EmployeePhoneListPage() {
   const router = useRouter();
@@ -66,7 +56,7 @@ export default function EmployeePhoneListPage() {
     setTimeout(() => setToastMsg(""), 3000);
   };
 
-  const handleUpdateStatus = (phoneId: string, newStatus: "Chưa verify" | "XM lần 1" | "XM lần 2" | "Lỗi") => {
+  const handleUpdateStatus = (phoneId: string, newStatus: PhoneStatus) => {
     const savedPhones = localStorage.getItem("global_phones_data");
     const phonesList: PhoneItem[] = savedPhones ? JSON.parse(savedPhones) : [];
     
@@ -110,7 +100,7 @@ export default function EmployeePhoneListPage() {
   // Compute stats for current employee's assigned phones
   const stats = useMemo(() => {
     const total = myPhones.length;
-    const pending = myPhones.filter(p => p.status === "Chưa verify").length;
+    const pending = myPhones.filter(p => p.status === "Chưa làm" || p.status === ("Chưa verify" as any)).length;
     const xm1 = myPhones.filter(p => p.status === "XM lần 1").length;
     const xm2 = myPhones.filter(p => p.status === "XM lần 2").length;
     const errorCount = myPhones.filter(p => p.status === "Lỗi").length;
@@ -119,7 +109,7 @@ export default function EmployeePhoneListPage() {
   }, [myPhones]);
 
   const filteredPhones = myPhones.filter(p => {
-    const matchesSearch = p.number.includes(searchTerm) || p.importBatch.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = p.number.includes(searchTerm) || p.importBatch?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "ALL" || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -237,7 +227,7 @@ export default function EmployeePhoneListPage() {
               className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
             >
               <option value="ALL" className="bg-sidebar text-white">Tất cả</option>
-              <option value="Chưa verify" className="bg-sidebar text-white">Chưa verify</option>
+              <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
               <option value="XM lần 1" className="bg-sidebar text-white">XM lần 1</option>
               <option value="XM lần 2" className="bg-sidebar text-white">XM lần 2</option>
               <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
@@ -252,7 +242,7 @@ export default function EmployeePhoneListPage() {
               <tr>
                 <th className="py-3.5 px-6">STT</th>
                 <th className="py-3.5 px-6">Số điện thoại</th>
-                <th className="py-3.5 px-6">Lô SĐT</th>
+                <th className="py-3.5 px-6">Link OTP</th>
                 <th className="py-3.5 px-6">Ngày bàn giao</th>
                 <th className="py-3.5 px-6 text-center">Trạng thái hiện tại</th>
                 <th className="py-3.5 px-6 text-center">Thao tác cập nhật</th>
@@ -263,7 +253,15 @@ export default function EmployeePhoneListPage() {
                 <tr key={p.id} className="hover:bg-white/[0.01] transition-colors">
                   <td className="py-4 px-6 text-gray-500 font-bold">{idx + 1}</td>
                   <td className="py-4 px-6 font-bold text-white font-mono text-sm tracking-wide">{p.number}</td>
-                  <td className="py-4 px-6 text-gray-400 font-medium">{p.importBatch}</td>
+                  <td className="py-4 px-6 text-gray-400 font-mono text-[10px] max-w-[240px] truncate">
+                    {(p as any).otpLink ? (
+                      <a href={(p as any).otpLink} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 hover:underline transition-colors">
+                        {(p as any).otpLink}
+                      </a>
+                    ) : (
+                      <span className="text-gray-600 italic">—</span>
+                    )}
+                  </td>
                   <td className="py-4 px-6 text-gray-500 font-bold font-mono">{p.assignedAt}</td>
                   <td className="py-4 px-6 text-center">
                     <span className={`px-2.5 py-1 rounded text-[8px] font-black uppercase border ${

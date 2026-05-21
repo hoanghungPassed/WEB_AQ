@@ -3,6 +3,21 @@ import { ROOT_MAILS } from "./rootData";
 import { SATELLITE_MAILS } from "./satelliteData";
 import { MONETIZED_MAILS } from "./monetizedData";
 
+// === PHONE DATA INTERFACE ===
+export type PhoneStatus = "Chưa làm" | "XM lần 1" | "XM lần 2" | "Lỗi";
+
+export interface PhoneItem {
+  id: string;
+  number: string;
+  otpLink: string;
+  status: PhoneStatus;
+  assigneeId: string | null;
+  assignedTo: string | null;
+  assignedAt: string | null;
+  importedAt: string;
+  importBatch?: string;
+}
+
 // 1. CẤU HÌNH NGƯỜI DÙNG HỆ THỐNG
 export const MOCK_USERS = [
   { username: "01", password: "123", role: "ADMIN", name: "Nguyễn Admin", email: "admin@aqmedia.vn" },
@@ -112,6 +127,87 @@ export const MOCK_KPI_DATA = {
   endDate: "2024-06-30"
 };
 
+// 7. BÁOO CÁO ĐI MUỘN (FINE REPORTS)
+import { FineReport } from "@/types/admin";
+
+export const MOCK_FINE_REPORTS: FineReport[] = [
+  {
+    id: "fine-1",
+    staffId: "4",
+    staffName: "Nhân Viên 1",
+    reason: "Đi muộn 30 phút",
+    amount: 50000,
+    date: "2024-05-20",
+    status: "PAID",
+    paymentMethod: "TRANSFER",
+    paymentDate: "2024-05-20",
+    notes: "Đi muộn do kẹt xe"
+  },
+  {
+    id: "fine-2",
+    staffId: "5",
+    staffName: "Nhân Viên 2",
+    reason: "Vắng ngày không phép",
+    amount: 200000,
+    date: "2024-05-19",
+    status: "PENDING",
+    notes: "Chưa nộp phạt"
+  },
+  {
+    id: "fine-3",
+    staffId: "6",
+    staffName: "Nhân Viên 3",
+    reason: "Đi muộn 1 giờ",
+    amount: 100000,
+    date: "2024-05-18",
+    status: "PAID",
+    paymentMethod: "CASH",
+    paymentDate: "2024-05-18"
+  },
+  {
+    id: "fine-4",
+    staffId: "7",
+    staffName: "Nhân Viên 4",
+    reason: "Vắng nửa ngày không phép",
+    amount: 100000,
+    date: "2024-05-17",
+    status: "OVERDUE",
+    notes: "Quá hạn thanh toán 2 ngày"
+  },
+  {
+    id: "fine-5",
+    staffId: "8",
+    staffName: "Nhân Viên 5",
+    reason: "Đi muộn 15 phút",
+    amount: 25000,
+    date: "2024-05-16",
+    status: "PAID",
+    paymentMethod: "TRANSFER",
+    paymentDate: "2024-05-16"
+  },
+  {
+    id: "fine-6",
+    staffId: "9",
+    staffName: "Nhân Viên 6",
+    reason: "Đi muộn 45 phút",
+    amount: 75000,
+    date: "2024-05-15",
+    status: "PENDING",
+    notes: "Chờ thanh toán"
+  },
+  {
+    id: "fine-7",
+    staffId: "4",
+    staffName: "Nhân Viên 1",
+    reason: "Vắng ngày không phép",
+    amount: 200000,
+    date: "2024-05-14",
+    status: "PAID",
+    paymentMethod: "TRANSFER",
+    paymentDate: "2024-05-14"
+  }
+];
+
 export const initMockDB = () => {
   if (typeof window !== "undefined") {
     const storedMails = localStorage.getItem("global_mails_data");
@@ -168,6 +264,13 @@ export const initMockDB = () => {
       localStorage.setItem("global_mails_data", JSON.stringify(freshMails));
       localStorage.setItem("global_tasks_data", JSON.stringify(MOCK_TASK_ASSIGNMENTS));
       localStorage.setItem("global_kpi_data", JSON.stringify(MOCK_KPI_DATA));
+      localStorage.setItem("global_fine_reports", JSON.stringify(MOCK_FINE_REPORTS));
+    } else {
+      // Đảm bảo luôn có fine reports data
+      const storedFines = localStorage.getItem("global_fine_reports");
+      if (!storedFines) {
+        localStorage.setItem("global_fine_reports", JSON.stringify(MOCK_FINE_REPORTS));
+      }
     }
   }
 };

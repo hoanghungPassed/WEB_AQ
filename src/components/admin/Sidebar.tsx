@@ -21,7 +21,8 @@ import {
   Blocks,
   Inbox,
   Layers,
-  MessageSquare
+  MessageSquare,
+  FileText
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
@@ -97,17 +98,17 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
       icon: <Inbox size={24} />,
       subItems: [
         { title: "Mail gốc", href: "/admin/mail/root" },
-        { title: "Mail vệ tinh", href: "/admin/mail/satellite" },
         { title: "Mail bật kiếm tiền", href: "/admin/mail/monetized" },
         { title: "Quản lý Lô (Batches)", href: "/admin/mail/batches" },
+        { title: "Quản lý lô SĐT", href: "/admin/phone/batches" },
       ],
     });
     dynamicMenuItems.push({
       title: "Quản lý lô Mail",
       icon: <Layers size={24} />,
       subItems: [
+        { title: "Mail vệ tinh", href: "/admin/mail/satellite" },
         { title: "Lô mail vệ tinh", href: "/admin/mail/satellite-batches" },
-        { title: "Quản lý lô SĐT", href: "/admin/phone/batches" }
       ],
     });
   }
@@ -125,6 +126,14 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
     icon: <Users size={24} />,
     href: "/admin/staff",
   });
+
+  if (isAdminOrManager) {
+    dynamicMenuItems.push({
+      title: "Báo cáo đi muộn",
+      icon: <FileText size={24} />,
+      href: "/admin/fines-report",
+    });
+  }
 
   if (isAdminOrManager) {
     dynamicMenuItems.push({

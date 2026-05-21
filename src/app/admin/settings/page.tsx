@@ -13,10 +13,13 @@ import {
   HardDrive,
   RefreshCw,
   Info,
-  AlertCircle
+  AlertCircle,
+  DollarSign,
+  Zap
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import QRCodeDisplay from "@/components/admin/QRCodeDisplay";
 
 interface SystemSettings {
   agencyName: string;
@@ -43,7 +46,14 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passErrors, setPassErrors] = useState({ old: "", new: "", confirm: "" });
 
-  const [activeTab, setActiveTab] = useState<"PROFILE" | "PASSWORD" | "2FA" | "SYSTEM">("PROFILE");
+  // Bank Config States
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [bankName, setBankName] = useState("MB");
+  const [bankAccountHolder, setBankAccountHolder] = useState("");
+  const [bankQRCode, setBankQRCode] = useState("");
+  const [bankQrImageUrl, setBankQrImageUrl] = useState("");
+
+  const [activeTab, setActiveTab] = useState<"PROFILE" | "PASSWORD" | "2FA" | "SYSTEM" | "BANK_CONFIG">("PROFILE");
 
   // DB Reset Safety Modal States
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -68,6 +78,17 @@ export default function SettingsPage() {
         setKpiTargetWatchHours(parsed.kpiTargetWatchHours || 2000);
         setChunkSize(parsed.chunkSize || 17);
         setApiSyncEndpoint(parsed.apiSyncEndpoint || "/api/sync");
+      }
+
+      // Load Bank Config
+      const savedBankConfig = localStorage.getItem("global_bank_config");
+      if (savedBankConfig) {
+        const bankConfig = JSON.parse(savedBankConfig);
+        setBankAccountNumber(bankConfig.accountNumber || "");
+        setBankName(bankConfig.bankName || "MB");
+        setBankAccountHolder(bankConfig.accountHolder || "");
+        setBankQRCode(bankConfig.qrCode || "");
+        setBankQrImageUrl(bankConfig.qrImageUrl || "");
       }
     };
 
@@ -303,6 +324,79 @@ export default function SettingsPage() {
     }, 1500);
   };
 
+  // GENERATE QR CODE FOR BANK TRANSFER
+  const generateQRCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!bankAccountNumber || !bankAccountHolder) {
+      triggerToast("Vui lòng nhập STK và tên chủ tài khoản");
+      return;
+    }
+
+    const formatLength = (value: string) => value.length.toString().padStart(2, "0");
+    const formatTag = (id: string, value: string) => `${id}${formatLength(value)}${value}`;
+
+    const crc16 = (input: string) => {
+      let crc = 0xFFFF;
+      for (let i = 0; i < input.length; i++) {
+        crc ^= input.charCodeAt(i) << 8;
+        for (let j = 0; j < 8; j++) {
+          crc = (crc & 0x8000) !== 0 ? ((crc << 1) ^ 0x1021) : (crc << 1);
+          crc &= 0xFFFF;
+        }
+      }
+      return crc.toString(16).toUpperCase().padStart(4, "0");
+    };
+
+    const accountNumber = bankAccountNumber.replace(/\s+/g, "");
+    const accountHolder = bankAccountHolder.trim().toUpperCase().slice(0, 25);
+
+    const merchantAccountInfo = `${formatTag("00", "A000000727010111")}${formatTag("01", accountNumber)}`;
+    const additionalData = formatTag("01", bankName);
+
+    const qrPayload = [
+      formatTag("00", "01"),
+      formatTag("01", "12"),
+      formatTag("26", merchantAccountInfo),
+      formatTag("52", "0000"),
+      formatTag("53", "704"),
+      formatTag("58", "VN"),
+      formatTag("59", accountHolder || "KHONG XAC DINH"),
+      formatTag("60", "HO CHI MINH"),
+      formatTag("62", additionalData),
+      "6304"
+    ].join("");
+
+    const crc = crc16(qrPayload);
+    const qrData = `${qrPayload}${crc}`;
+    setBankQRCode(qrData);
+
+    const bankConfig = {
+      accountNumber,
+      bankName,
+      accountHolder,
+      qrCode: qrData,
+      createdAt: new Date().toLocaleString("vi-VN")
+    };
+
+    localStorage.setItem("global_bank_config", JSON.stringify(bankConfig));
+
+    triggerToast("Cấu hình ngân hàng đã được lưu thành công!");
+
+    // Add activity log
+    const existingLogs = localStorage.getItem("global_system_logs");
+    const logsList = existingLogs ? JSON.parse(existingLogs) : [];
+    const newLog = {
+      id: `log-${Date.now()}`,
+      user: user?.name || "Admin",
+      role: user?.role === "01" ? "ADMIN" : "QL CÔNG VIỆC",
+      action: `Cập nhật cấu hình tài khoản ngân hàng ${bankName}`,
+      type: "SUCCESS",
+      timestamp: new Date().toLocaleString("vi-VN")
+    };
+    localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
+  };
+
   return (
     <div className="h-full flex flex-col space-y-6 pb-6 relative">
       {/* Toast Notification */}
@@ -433,6 +527,14 @@ export default function SettingsPage() {
               }`}
             >
               API & Cấu hình
+            </button>
+            <button 
+              onClick={() => setActiveTab("BANK_CONFIG")}
+              className={`h-10 px-6 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                activeTab === "BANK_CONFIG" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-white/5 text-gray-500 hover:bg-white/10"
+              }`}
+            >
+              Ngân Hàng & QR
             </button>
           </>
         )}
@@ -677,6 +779,134 @@ export default function SettingsPage() {
                 >
                   <RefreshCw size={14} /> Reset Database gốc
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "BANK_CONFIG" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Bank Configuration Form */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl">
+                <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-6">
+                  <DollarSign className="text-gold" size={18} />
+                  <h3 className="text-md font-black text-white uppercase tracking-tight">Cấu Hình Tài Khoản Ngân Hàng MB</h3>
+                </div>
+                
+                <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-4 mb-6">
+                  <p className="text-xs text-indigo-300 font-bold leading-relaxed">
+                    ℹ️ Nhập thông tin tài khoản ngân hàng MB để hệ thống tự động tạo QR Code thanh toán. Dữ liệu được mã hóa và lưu trữ an toàn.
+                  </p>
+                </div>
+
+                <form onSubmit={generateQRCode} className="space-y-5">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Số Tài Khoản (STK)</label>
+                    <input 
+                      type="text" 
+                      value={bankAccountNumber}
+                      onChange={(e) => setBankAccountNumber(e.target.value)}
+                      placeholder="Ví dụ: 0123456789"
+                      className="bg-black/20 border border-white/10 rounded-xl px-4 h-11 text-xs text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
+                      required
+                    />
+                    <p className="text-[9px] text-gray-500">Nhập số tài khoản MB Bank của bạn</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Ngân Hàng</label>
+                    <select 
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      className="bg-black/20 border border-white/10 rounded-xl px-4 h-11 text-xs text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
+                    >
+                      <option value="MB">MB Bank (Ngân hàng Quân đội)</option>
+                      <option value="VCB">Vietcombank</option>
+                      <option value="TCB">Techcombank</option>
+                    </select>
+                    <p className="text-[9px] text-gray-500">Hiện hỗ trợ MB Bank</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Tên Chủ Tài Khoản</label>
+                    <input 
+                      type="text" 
+                      value={bankAccountHolder}
+                      onChange={(e) => setBankAccountHolder(e.target.value.toUpperCase())}
+                      placeholder="Ví dụ: NGUYEN VAN A"
+                      className="bg-black/20 border border-white/10 rounded-xl px-4 h-11 text-xs text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
+                      required
+                    />
+                    <p className="text-[9px] text-gray-500">Tên đầy đủ (IN HOA) - Tối đa 25 ký tự</p>
+                  </div>
+
+                  <div className="pt-4 space-y-3">
+                    <button 
+                      type="submit"
+                      className="h-11 w-full px-6 rounded-xl bg-gold text-sidebar font-black uppercase text-xs tracking-widest hover:bg-yellow-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-gold/20"
+                    >
+                      <Save size={16} /> Tạo QR Code & Lưu
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            {/* QR Code Display */}
+            <div className="space-y-6">
+              <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl">
+                <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-6">
+                  <Zap className="text-gold" size={18} />
+                  <h3 className="text-md font-black text-white uppercase tracking-tight">QR Code Thanh Toán</h3>
+                </div>
+
+                {bankQRCode ? (
+                  <div className="flex flex-col items-center gap-4">
+                    <QRCodeDisplay
+                      value={bankQRCode}
+                      accountNumber={bankAccountNumber}
+                      accountHolder={bankAccountHolder}
+                      bankName={bankName}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Zap size={40} className="text-gray-600 opacity-30 mb-3" />
+                    <p className="text-gray-500 font-bold text-sm text-center">Cấu hình STK để tạo QR Code</p>
+                    <p className="text-gray-600 font-medium text-[10px] text-center mt-2">Nhập thông tin tài khoản ở bên trái</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Bank Info Display */}
+              <div className="bg-sidebar border border-gold/20 rounded-[32px] p-6 shadow-2xl">
+                <div className="flex items-center gap-2 border-b border-gold/10 pb-4 mb-4">
+                  <CheckCircle2 className="text-gold" size={18} />
+                  <h3 className="text-md font-black text-white uppercase tracking-tight">Thông Tin Đã Lưu</h3>
+                </div>
+                
+                {bankAccountNumber ? (
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500 font-bold">Ngân Hàng:</span>
+                      <span className="text-white font-black">{bankName}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500 font-bold">STK:</span>
+                      <span className="text-gold font-black">{bankAccountNumber}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500 font-bold">Chủ TK:</span>
+                      <span className="text-white font-black">{bankAccountHolder}</span>
+                    </div>
+                    <div className="pt-2 border-t border-white/10">
+                      <p className="text-[9px] text-green-400 font-black">✓ Đã được cấu hình</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-xs text-center py-4 font-medium">Chưa có thông tin</p>
+                )}
               </div>
             </div>
           </div>

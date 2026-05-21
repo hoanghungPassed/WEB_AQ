@@ -14,6 +14,7 @@ export interface StaffData {
   phone?: string;
   address?: string;
   password?: string;
+  checkInTime?: string;
 }
 
 export interface TaskAssignment {
@@ -35,4 +36,17 @@ export interface TaskMail {
   email: string;
   type: string;
   status: "LIVE" | "DIE";
+}
+
+export interface FineReport {
+  id: string;
+  staffId: string;
+  staffName: string;
+  reason: string;
+  amount: number;
+  date: string;
+  status: "PENDING" | "PAID" | "OVERDUE";
+  notes?: string;
+  paymentMethod?: "TRANSFER" | "CASH";
+  paymentDate?: string;
 }
