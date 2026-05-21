@@ -1028,7 +1028,8 @@ export default function AdminLayout({
         {/* Content Area */}
         <main className="flex-1 mt-16 p-4 md:p-6 overflow-y-auto custom-scrollbar">
           <div className="min-h-full mx-auto max-w-[1600px] relative">
-            {children}
+            {/* CHẶN TUYỆT ĐỐI: Không render children khi bị khóa */}
+            {shouldLock || isLateLocked ? null : children}
 
             {/* Real-time Task Notification Toast */}
             <AnimatePresence>
@@ -1709,7 +1710,7 @@ export default function AdminLayout({
 
       {/* Floating Phone Widget */}
       {user && (user.role === "03" || user.role === "04" || String(user.role).includes("03") || String(user.role).includes("04") || user.role === "NHÂN VIÊN" || String(user.role).includes("NHÂN VIÊN")) && (
-        <div className="fixed bottom-6 right-[88px] z-50 flex flex-col items-end">
+        <div className="fixed bottom-4 right-20 z-50 flex flex-col items-end">
           <AnimatePresence>
             {isPhonePanelOpen && (
               <motion.div
