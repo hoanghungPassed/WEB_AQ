@@ -26,6 +26,7 @@ interface BatchItem {
   importedAt: string;
   mailCount: number;
   importedBy: string;
+  assignedTo?: string;
 }
 
 export default function BatchesManagementPage() {
@@ -84,10 +85,14 @@ export default function BatchesManagementPage() {
                 type: m.type as any,
                 importedAt: m.createdAt || new Date().toISOString().split("T")[0],
                 mailCount: 0,
-                importedBy: m.updatedBy || "Admin"
+                importedBy: m.importedBy || m.updatedBy || "Admin",
+                assignedTo: m.assignedTo || "Chưa phân công"
               };
             }
             batchesMap[key].mailCount++;
+            if (m.assignedTo && batchesMap[key].assignedTo === "Chưa phân công") {
+              batchesMap[key].assignedTo = m.assignedTo;
+            }
           }
         });
         const seeded = Object.values(batchesMap);
@@ -97,8 +102,11 @@ export default function BatchesManagementPage() {
         const parsedBatches = JSON.parse(savedBatches);
         // Sync counting to ensure accurate display
         const updated = parsedBatches.map((b: BatchItem) => {
-          const count = mails.filter((m: any) => m.batchId === b.id || m.batchName === b.name).length;
-          return { ...b, mailCount: count };
+          const batchMails = mails.filter((m: any) => m.batchId === b.id || m.batchName === b.name);
+          const count = batchMails.length;
+          const assignedUsernames = Array.from(new Set(batchMails.map((m: any) => m.assignedTo).filter(Boolean)));
+          const assignedTo = assignedUsernames.length > 0 ? assignedUsernames.join(", ") : "Chưa phân công";
+          return { ...b, mailCount: count, assignedTo };
         });
         setBatches(updated);
       }
@@ -338,7 +346,8 @@ export default function BatchesManagementPage() {
 
   const filteredBatches = batches.filter(b => {
     const matchesSearch = b.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          b.importedBy.toLowerCase().includes(searchTerm.toLowerCase());
+                          (b.importedBy || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (b.assignedTo || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === "ALL" || b.type === typeFilter;
     return matchesSearch && matchesType;
   });
@@ -464,7 +473,7 @@ export default function BatchesManagementPage() {
           <div className="relative group">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={16} />
             <input 
-              placeholder="Tìm kiếm Lô, Người Import..."
+              placeholder="Tìm kiếm Lô, Người quản lý, Người import..."
               className="bg-black/20 border border-white/10 rounded-xl pl-10 pr-4 h-10 text-xs text-white outline-none focus:border-gold/50 transition-all w-60"
               type="text" 
               value={searchTerm}
@@ -580,9 +589,17 @@ export default function BatchesManagementPage() {
                     <div className="flex items-center justify-between text-[11px] text-gray-400 font-bold">
                       <span className="inline-flex items-center gap-1.5">
                         <User size={12} className="text-gray-500" />
+                        Người quản lý:
+                      </span>
+                      <span className="text-gray-300 font-black text-indigo-400">{batch.assignedTo || "Chưa phân công"}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-gray-400 font-bold">
+                      <span className="inline-flex items-center gap-1.5">
+                        <User size={12} className="text-gray-500" />
                         Người import:
                       </span>
-                      <span className="text-gray-300">{batch.importedBy}</span>
+                      <span className="text-gray-300">{batch.importedBy || "Admin"}</span>
                     </div>
                   </div>
                 </motion.div>

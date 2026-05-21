@@ -39,7 +39,7 @@ interface SidebarProps {
 
 const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
   const pathname = usePathname();
-  const [openMenus, setOpenMenus] = useState<string[]>(["Kho mail", "Quản lý mail"]);
+  const [openMenus, setOpenMenus] = useState<string[]>(["Kho mail", "Kho mail và SĐT", "Quản lý mail", "Quản lý lô Mail"]);
 
   const roleUpper = String(user?.role || "").toUpperCase();
   const isAdminOrManager = roleUpper === "01" || 
@@ -86,11 +86,14 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
     dynamicMenuItems.push({
       title: "Quản lý mail",
       icon: <Mail size={24} />,
-      href: "/admin/mail/satellite",
+      subItems: [
+        { title: "Danh sách Mail Vệ Tinh", href: "/admin/mail/satellite" },
+        { title: "Danh sách SĐT", href: "/admin/phone/list" }
+      ]
     });
   } else {
     dynamicMenuItems.push({
-      title: "Kho mail",
+      title: "Kho mail và SĐT",
       icon: <Inbox size={24} />,
       subItems: [
         { title: "Mail gốc", href: "/admin/mail/root" },
@@ -100,10 +103,11 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
       ],
     });
     dynamicMenuItems.push({
-      title: "Quản lý mail",
+      title: "Quản lý lô Mail",
       icon: <Layers size={24} />,
       subItems: [
         { title: "Lô mail vệ tinh", href: "/admin/mail/satellite-batches" },
+        { title: "Quản lý lô SĐT", href: "/admin/phone/batches" }
       ],
     });
   }

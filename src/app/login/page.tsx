@@ -117,10 +117,31 @@ function LoginForm() {
         return;
       }
 
+      // Tự động Check-in ngay khi đăng nhập thành công
+      let checkInISO = localStorage.getItem(`checkin_time_${user.username}`);
+      let isCheckedInToday = false;
+      if (checkInISO) {
+        const d = new Date(checkInISO);
+        const today = new Date();
+        isCheckedInToday = d.getDate() === today.getDate() &&
+                           d.getMonth() === today.getMonth() &&
+                           d.getFullYear() === today.getFullYear();
+      }
+      const timeStr = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      if (!isCheckedInToday) {
+        checkInISO = new Date().toISOString();
+        localStorage.setItem(`checkin_time_${user.username}`, checkInISO);
+      }
+
       // Cập nhật trạng thái isOnline trong global_users
       const updatedUsers = allUsers.map((u) => {
         if (u.id === user.id) {
-          return { ...u, isOnline: true, lastActive: "Vừa xong" };
+          return { 
+            ...u, 
+            isOnline: true, 
+            lastActive: "Vừa xong",
+            checkInTime: u.checkInTime || timeStr
+          };
         }
         return u;
       });

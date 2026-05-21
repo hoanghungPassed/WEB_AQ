@@ -6,7 +6,8 @@ import {
   CheckCircle,
   Database,
   ExternalLink,
-  Mail
+  Mail,
+  AlertCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -47,6 +48,9 @@ export default function MailDetailModal({
   const [scanning, setScanning] = useState<boolean[]>([false, false, false]);
   const [eligibleChannels, setEligibleChannels] = useState<boolean[]>(
     mail.eligibleChannels || [false, false, false]
+  );
+  const [linkErrors, setLinkErrors] = useState<boolean[]>(
+    mail.linkErrors || [false, false, false]
   );
 
   // State for MONETIZED
@@ -131,7 +135,7 @@ export default function MailDetailModal({
         window.dispatchEvent(new Event("storage"));
       }
 
-      onSave({ links, channelNames: names, eligibleChannels });
+      onSave({ links, channelNames: names, eligibleChannels, linkErrors });
     } else if (type === "MONETIZED") {
       onSave({ reClickDate, step2PendingDate, channelStatusDetail });
     }
@@ -261,6 +265,31 @@ export default function MailDetailModal({
                       placeholder="Dán link channel YouTube..."
                       className="flex-1 h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all"
                     />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!links[idx] || links[idx].trim() === "") return;
+                        const newErrors = [...linkErrors];
+                        newErrors[idx] = !newErrors[idx];
+                        setLinkErrors(newErrors);
+                      }}
+                      disabled={!links[idx] || links[idx].trim() === ""}
+                      title={
+                        !links[idx] || links[idx].trim() === ""
+                          ? "Cần điền link YouTube trước"
+                          : ""
+                      }
+                      className={`h-14 px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border flex items-center gap-2 flex-shrink-0 ${
+                        !links[idx] || links[idx].trim() === ""
+                          ? "bg-white/[0.02] text-gray-600 border-white/5 cursor-not-allowed opacity-40"
+                          : linkErrors[idx]
+                          ? "bg-red-600 text-white border-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20"
+                          : "bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40"
+                      }`}
+                    >
+                      <AlertCircle size={16} />
+                      {linkErrors[idx] ? "Lỗi" : "Báo Lỗi"}
+                    </button>
                     {isAdminOrManager && (
                       <button
                         onClick={() => {

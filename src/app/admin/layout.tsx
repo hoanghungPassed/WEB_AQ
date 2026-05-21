@@ -97,8 +97,8 @@ export default function AdminLayout({
   const [pendingRequests, setPendingRequests] = useState<any[]>(MOCK_ACCESS_REQUESTS);
   const [showManagerNotif, setShowManagerNotif] = useState(false);
   const [roleUpdateNotif, setRoleUpdateNotif] = useState<{ title: string, message: string } | null>(null);
-  const [lastNotifCount, setLastNotifCount] = useState(0);
-  const [isNotifInitialized, setIsNotifInitialized] = useState(false);
+  const lastNotifCountRef = React.useRef(0);
+  const isNotifInitializedRef = React.useRef(false);
   const [accessSuccessMsg, setAccessSuccessMsg] = useState<string | null>(null);
   const [isLate, setIsLate] = useState(false);
   const [lateMins, setLateMins] = useState(0);
@@ -106,6 +106,8 @@ export default function AdminLayout({
   const [isFinePaid, setIsFinePaid] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [fineSuccessToast, setFineSuccessToast] = useState<string | null>(null);
+  const [excuseReason, setExcuseReason] = useState("");
+  const [finePaymentPending, setFinePaymentPending] = useState(false);
 
   const syncDatabase = React.useCallback(async () => {
     try {
@@ -260,7 +262,13 @@ export default function AdminLayout({
             sessionStorage.setItem("user", JSON.stringify(newUser));
             setUser(newUser);
             window.dispatchEvent(new Event("storage"));
-          } else if (JSON.stringify(storedUser) !== JSON.stringify(user)) {
+          } else if (
+            !user ||
+            storedUser?.id !== user?.id ||
+            storedUser?.role !== user?.role ||
+            storedUser?.username !== user?.username ||
+            storedUser?.name !== user?.name
+          ) {
             setUser(storedUser);
           }
         }
@@ -275,18 +283,18 @@ export default function AdminLayout({
       const allNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
       const myNotifs = allNotifs.filter((n: any) => n.targetUsername === currentUser.username);
 
-      if (!isNotifInitialized) {
-        setLastNotifCount(myNotifs.length);
-        setIsNotifInitialized(true);
+      if (!isNotifInitializedRef.current) {
+        lastNotifCountRef.current = myNotifs.length;
+        isNotifInitializedRef.current = true;
         return;
       }
 
-      if (myNotifs.length > lastNotifCount) {
+      if (myNotifs.length > lastNotifCountRef.current) {
         const latest = myNotifs[0];
         setRoleUpdateNotif({ title: latest.title, message: latest.message });
         setTimeout(() => setRoleUpdateNotif(null), 5000);
       }
-      setLastNotifCount(myNotifs.length);
+      lastNotifCountRef.current = myNotifs.length;
 
       const isAuthorized = currentUser.role === "ADMIN" || currentUser.role === "01" || currentUser.role === "02";
       if (isAuthorized) {
@@ -313,7 +321,28 @@ export default function AdminLayout({
       const allUsers = savedUsersStr ? JSON.parse(savedUsersStr) : [];
       const userProfile = allUsers.find((u: any) => u.username === currentUser.username);
 
-      const checkInISO = localStorage.getItem(`checkin_time_${currentUser.username}`);
+      let checkInISO = localStorage.getItem(`checkin_time_${currentUser.username}`);
+      let isCheckedInToday = false;
+      if (checkInISO) {
+        const d = new Date(checkInISO);
+        const today = new Date();
+        isCheckedInToday = d.getDate() === today.getDate() &&
+                           d.getMonth() === today.getMonth() &&
+                           d.getFullYear() === today.getFullYear();
+      }
+
+      if (!isCheckedInToday) {
+        const fullISO = new Date().toISOString();
+        localStorage.setItem(`checkin_time_${currentUser.username}`, fullISO);
+        const timeStr = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        const updatedUsers = allUsers.map((u: any) =>
+          u.username === currentUser.username ? { ...u, checkInTime: timeStr, isOnline: true } : u
+        );
+        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+        window.dispatchEvent(new Event("storage"));
+        checkInISO = fullISO;
+      }
+
       if (checkInISO) {
         const dIn = new Date(checkInISO);
         const H = dIn.getHours();
@@ -346,6 +375,11 @@ export default function AdminLayout({
 
       const isLocked = userProfile ? userProfile.isLateLocked !== false : false;
       setIsFinePaid(!isLocked);
+      if (userProfile && userProfile.finePaymentStatus === "PENDING_APPROVAL") {
+        setFinePaymentPending(true);
+      } else {
+        setFinePaymentPending(false);
+      }
     };
 
     syncDatabase();
@@ -414,7 +448,7 @@ export default function AdminLayout({
       clearInterval(interval);
       window.removeEventListener("storage", handleStorageChange);
     };
-  }, [user?.role, isNotifInitialized, lastNotifCount]); // Re-run if role changes locally to keep listeners fresh
+  }, [user?.role]); // Re-run if role changes locally to keep listeners fresh
 
   // 2s auto-reload polling for locked tab
   useEffect(() => {
@@ -811,10 +845,24 @@ export default function AdminLayout({
     localStorage.setItem(`access_response_${request.staffName}`, "APPROVED");
     localStorage.setItem(`access_${getStableDateString()}_${request.staffName}`, "true");
 
+    // Nếu đây là yêu cầu nộp phạt đi muộn
+    if (request.type === "FINE_PAYMENT") {
+      const savedUsers = localStorage.getItem("global_users");
+      if (savedUsers) {
+        const allUsers = JSON.parse(savedUsers);
+        const updatedUsers = allUsers.map((u: any) =>
+          u.username === request.username || u.name === request.staffName
+            ? { ...u, isLateLocked: false, finePaymentStatus: "APPROVED" }
+            : u
+        );
+        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+      }
+    }
+
     // Đồng bộ lên server ngay lập tức để Nhân viên nhận được quyền mở khóa!
     syncDatabase();
 
-    setAccessSuccessMsg(`Đã cấp quyền truy cập cho ${request.staffName}`);
+    setAccessSuccessMsg(`Đã duyệt yêu cầu cho ${request.staffName}`);
   };
 
   const handleDeny = (request: any) => {
@@ -823,6 +871,20 @@ export default function AdminLayout({
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     // Thông báo từ chối cho nhân viên
     localStorage.setItem(`access_response_${request.staffName}`, "DENIED");
+
+    // Nếu đây là yêu cầu nộp phạt đi muộn
+    if (request.type === "FINE_PAYMENT") {
+      const savedUsers = localStorage.getItem("global_users");
+      if (savedUsers) {
+        const allUsers = JSON.parse(savedUsers);
+        const updatedUsers = allUsers.map((u: any) =>
+          u.username === request.username || u.name === request.staffName
+            ? { ...u, finePaymentStatus: "DENIED" }
+            : u
+        );
+        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+      }
+    }
 
     // Đồng bộ lên server ngay lập tức
     syncDatabase();
@@ -1010,39 +1072,94 @@ export default function AdminLayout({
               </div>
             </div>
 
+            {/* excuse reason textarea */}
+            <div className="border-t border-white/5 pt-6 my-6 text-left">
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Hoặc gửi lý do giải trình đi muộn (Mở khóa lập tức)</label>
+              <textarea
+                value={excuseReason}
+                onChange={(e) => setExcuseReason(e.target.value)}
+                placeholder="Nhập lý do đi muộn của bạn tại đây (ví dụ: tắc đường, hỏng xe, việc gia đình đột xuất...)"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/5 transition-all resize-none"
+                rows={3}
+              />
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
+                disabled={finePaymentPending}
                 onClick={() => {
-                  const savedUsers = localStorage.getItem("global_users");
-                  if (savedUsers && user) {
-                    const allUsers = JSON.parse(savedUsers);
-                    const updated = allUsers.map((u: any) =>
-                      u.username === user.username ? { ...u, isLateLocked: false } : u
-                    );
-                    localStorage.setItem("global_users", JSON.stringify(updated));
-                    // Push sync request
-                    fetch("/api/sync", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ global_users: JSON.stringify(updated) })
-                    }).catch(err => console.error("Sync pay error:", err));
+                  if (user) {
+                    const newRequest = {
+                      id: Date.now(),
+                      staffName: user.name,
+                      username: user.username,
+                      time: new Date().toLocaleTimeString(),
+                      reason: `Nộp phạt đi muộn: ${formatLateMins(lateMins)} (${fineAmount.toLocaleString("vi-VN")} VND)`,
+                      status: "PENDING",
+                      type: "FINE_PAYMENT"
+                    };
+                    const savedRequests = localStorage.getItem("pending_access_requests");
+                    const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+                    const updatedRequests = [...currentRequests, newRequest];
+                    localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
+
+                    const savedUsers = localStorage.getItem("global_users");
+                    if (savedUsers) {
+                      const allUsers = JSON.parse(savedUsers);
+                      const updated = allUsers.map((u: any) =>
+                        u.username === user.username ? { ...u, finePaymentStatus: "PENDING_APPROVAL" } : u
+                      );
+                      localStorage.setItem("global_users", JSON.stringify(updated));
+                    }
+                    window.dispatchEvent(new Event("storage"));
+                    syncDatabase();
+                    setFineSuccessToast("Đã gửi thông tin chuyển khoản! Vui lòng chờ Admin phê duyệt.");
+                    setTimeout(() => setFineSuccessToast(null), 5000);
                   }
-                  setIsFinePaid(true);
-                  setIsLate(false);
-                  setFineSuccessToast("Thanh toán thành công! Chào mừng bạn đến ngày làm việc mới.");
-                  setTimeout(() => setFineSuccessToast(null), 5000);
-                  window.dispatchEvent(new Event("storage"));
                 }}
-                className="flex-1 h-14 bg-gold text-sidebar font-black text-sm uppercase tracking-widest rounded-2xl hover:bg-white hover:text-sidebar transition-all duration-300 shadow-lg shadow-gold/25"
+                className={`flex-1 h-14 font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-lg ${finePaymentPending ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 cursor-not-allowed" : "bg-gold text-sidebar hover:bg-white hover:text-sidebar shadow-gold/25"}`}
               >
-                Đã chuyển khoản
+                {finePaymentPending ? "Chờ duyệt..." : "Đã chuyển khoản"}
               </button>
 
               <button
-                onClick={handleRequestAccess}
+                onClick={() => {
+                  if (!excuseReason.trim()) {
+                    alert("Vui lòng nhập lý do giải trình trước khi gửi!");
+                    return;
+                  }
+                  if (user) {
+                    const newRequest = {
+                      id: Date.now(),
+                      staffName: user.name,
+                      username: user.username,
+                      time: new Date().toLocaleTimeString(),
+                      reason: `Giải trình đi muộn: ${excuseReason}`,
+                      status: "PENDING",
+                      type: "LATE_EXCUSE"
+                    };
+                    const savedRequests = localStorage.getItem("pending_access_requests");
+                    const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+                    const updatedRequests = [...currentRequests, newRequest];
+                    localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
+
+                    const savedUsers = localStorage.getItem("global_users");
+                    if (savedUsers) {
+                      const allUsers = JSON.parse(savedUsers);
+                      const updated = allUsers.map((u: any) =>
+                        u.username === user.username ? { ...u, isLateLocked: false, lateExcuseStatus: "SENT" } : u
+                      );
+                      localStorage.setItem("global_users", JSON.stringify(updated));
+                    }
+                    window.dispatchEvent(new Event("storage"));
+                    syncDatabase();
+                    setFineSuccessToast("Đã gửi giải trình! Hệ thống đã được mở khóa.");
+                    setTimeout(() => setFineSuccessToast(null), 5000);
+                  }
+                }}
                 className="flex-1 h-14 bg-white/5 border border-white/10 hover:border-gold/50 text-white font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300"
               >
-                Gửi yêu cầu Quản lý
+                Gửi yêu cầu
               </button>
 
               <button

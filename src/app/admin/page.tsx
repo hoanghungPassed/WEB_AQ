@@ -85,6 +85,49 @@ export default function AdminDashboard() {
   const [showImagePresets, setShowImagePresets] = useState(false);
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
 
+  const getEligibleChannelsBreakdown = () => {
+    if (!user) return { total: 0, list: [] };
+    
+    // Filter satellite mails assigned to this employee
+    const myMails = mails.filter((m: any) => 
+      m.type === "SATELLITE" && String(m.assigneeId) === String(user.id)
+    );
+
+    let total = 0;
+    const batchCounts: Record<string, number> = {};
+
+    myMails.forEach((m: any) => {
+      const eligibleCount = Array.isArray(m.eligibleChannels) 
+        ? m.eligibleChannels.filter(Boolean).length 
+        : 0;
+      
+      if (eligibleCount > 0) {
+        total += eligibleCount;
+        const batchName = m.batchName || "Chưa phân lô";
+        batchCounts[batchName] = (batchCounts[batchName] || 0) + eligibleCount;
+      }
+    });
+
+    // Also populate batches from tasks to make sure we show 0 for assigned batches with no eligible channels
+    const myTasks = tasksList.filter((t: any) => 
+      String(t.assigneeId) === String(user.id) && t.batch
+    );
+    myTasks.forEach((t: any) => {
+      if (!batchCounts[t.batch]) {
+        batchCounts[t.batch] = 0;
+      }
+    });
+
+    const list = Object.entries(batchCounts).map(([name, count]) => ({
+      name,
+      count
+    }));
+
+    return { total, list };
+  };
+
+  const eligibleBreakdown = getEligibleChannelsBreakdown();
+
   const loadPosts = () => {
     const saved = localStorage.getItem("global_newsfeed_posts");
     if (saved) {
@@ -327,9 +370,18 @@ export default function AdminDashboard() {
   const refreshStats = () => {
     const savedMails = localStorage.getItem("global_mails_data");
     const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
+    if (!savedMails) {
+      localStorage.setItem("global_mails_data", JSON.stringify(MOCK_MAILS));
+    }
     
     const savedTasks = localStorage.getItem("global_tasks_data");
-    const currentTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
+    let currentTasks = [];
+    if (savedTasks) {
+      currentTasks = JSON.parse(savedTasks);
+    } else {
+      currentTasks = MOCK_TASK_ASSIGNMENTS;
+      localStorage.setItem("global_tasks_data", JSON.stringify(MOCK_TASK_ASSIGNMENTS));
+    }
 
     // Check current user role dynamically
     const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
@@ -938,7 +990,7 @@ export default function AdminDashboard() {
     return () => { mainEl.style.overflow = ""; };
   }, [selectedStaffTask, user?.role]);
 
-  if (selectedStaffTask && (user?.role === "03" || user?.role === "04")) {
+  if (false && selectedStaffTask && (user?.role === "03" || user?.role === "04")) {
     const taskMails = mails.filter((m: any) => {
       const belongsToUser = String(m.assigneeId) === String(user?.id);
       if (!belongsToUser) return false;
@@ -1427,25 +1479,18 @@ export default function AdminDashboard() {
 
               <button
                 onClick={() => setTimekeepingModal(null)}
-                className="w-full h-14 bg-gold text-sidebar font-black text-sm uppercase tracking-widest rounded-2xl hover:bg-white hover:text-sidebar transition-all duration-300 shadow-lg shadow-gold/25"
+                className="w-full h-12 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-xs tracking-widest rounded-xl transition-all shadow-xl shadow-gold/20 mt-4"
               >
-                Đồng ý & Đóng
+                Xác nhận
               </button>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="flex items-center justify-between">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Bảng điều khiển</h1>
-          <p className="text-lg text-gray-500 mt-1 font-medium italic">Chào mừng trở lại! Đây là tình hình AQ MEDIA hôm nay.</p>
-        </motion.div>
-      </div>
-
-      {user?.role === "02" || user?.role === "03" || user?.role === "04" ? (
+      {user?.role === "04" ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className={`grid grid-cols-1 md:grid-cols-${(user?.role === "03" || user?.role === "04") ? 4 : 3} gap-6`}>
             <StatCard 
               title="Tổng mail được giao" 
               value={stats.totalMail} 
@@ -1490,7 +1535,7 @@ export default function AdminDashboard() {
               </div>
               <div className="flex gap-3 mt-6 relative z-10">
                 <button
-                  onClick={handleCheckIn}
+                   onClick={handleCheckIn}
                   disabled={!!checkInTime}
                   className={`flex-1 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                     !checkInTime 
@@ -1513,6 +1558,40 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </div>
+
+            {/* Kênh vệ tinh đủ giờ card */}
+            {(user?.role === "03" || user?.role === "04") && (
+              <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl relative overflow-hidden group flex flex-col justify-between min-h-[160px]">
+                <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[50px] -mr-16 -mt-16 transition-all group-hover:bg-gold/10" />
+                <div className="relative z-10 flex-1 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Kênh vệ tinh</p>
+                      <h3 className="text-xl font-black text-white uppercase tracking-tighter mt-1">Đủ Giờ Theo Lô</h3>
+                    </div>
+                    <div className="h-12 w-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold shadow-lg shadow-gold/5">
+                      <CheckCircle2 size={24} />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 flex-1 flex flex-col justify-center">
+                    <div className="text-2xl font-black text-white">{eligibleBreakdown.total} <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">kênh đạt</span></div>
+                    {eligibleBreakdown.list.length > 0 ? (
+                      <div className="mt-2 grid grid-cols-2 gap-2 max-h-[80px] overflow-y-auto custom-scrollbar">
+                        {eligibleBreakdown.list.map((b) => (
+                          <div key={b.name} className="flex items-center gap-1.5 bg-white/5 border border-white/5 px-2 py-1 rounded-xl text-[10px] font-black text-gray-300 uppercase tracking-wide">
+                            <span className="text-gold font-mono">{b.name}:</span>
+                            <span>{b.count} kênh</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1.5">Chưa có lô nào được gán</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <AnimatePresence>
@@ -1559,8 +1638,7 @@ export default function AdminDashboard() {
                       tasksList.filter(t => String(t.assigneeId) === String(user?.id)).map((task: any) => (
                         <div
                           key={task.id}
-                          onClick={() => setSelectedStaffTask(task)}
-                          className="p-6 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group bg-white/[0.02] border-white/5 hover:border-gold/30"
+                          className="p-6 rounded-2xl border transition-all relative overflow-hidden group bg-white/[0.02] border-white/5 hover:border-white/10"
                         >
                           <div className="flex items-center justify-between mb-2">
                             <h3 className="text-lg font-black text-white uppercase tracking-tighter">{task.title}</h3>
@@ -1568,7 +1646,7 @@ export default function AdminDashboard() {
                               task.status === "COMPLETED" 
                                 ? "bg-green-500/10 text-green-500 border-green-500/20" 
                                 : task.status === "IN_PROGRESS"
-                                ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                                ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
                                 : "bg-gray-500/10 text-gray-400 border-gray-500/20"
                             }`}>
                               {task.status === "COMPLETED" ? "Hoàn thành" : task.status === "IN_PROGRESS" ? "Đang xử lý" : "Chưa bắt đầu"}
@@ -1596,7 +1674,38 @@ export default function AdminDashboard() {
                           </div>
                           <div className="flex items-center justify-between pt-4 border-t border-white/5 text-[10px] font-black uppercase tracking-widest text-gray-500">
                             <span>{task.mailCount || 0} Mail</span>
-                            <span className="text-gold">Xem chi tiết & danh sách mail</span>
+                            <div className="flex items-center gap-2 relative z-20">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleTaskStatusChange(task.id, "IN_PROGRESS");
+                                }}
+                                className={`h-8 px-3.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${
+                                  task.status === "IN_PROGRESS"
+                                    ? "bg-yellow-500 text-sidebar border-yellow-500 shadow-md shadow-yellow-500/10"
+                                    : "bg-white/5 text-gray-400 border-white/10 hover:border-yellow-500/40 hover:text-yellow-500"
+                                }`}
+                              >
+                                Đang xử lí
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleTaskStatusChange(task.id, "COMPLETED");
+                                }}
+                                className={`h-8 px-3.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${
+                                  task.status === "COMPLETED"
+                                    ? "bg-green-500 text-sidebar border-green-500 shadow-md shadow-green-500/10"
+                                    : "bg-white/5 text-gray-400 border-white/10 hover:border-green-500/40 hover:text-green-500"
+                                }`}
+                              >
+                                Hoàn thành
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))
