@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import type { PhoneItem, PhoneStatus } from "@/data/mockData";
+import type { PhoneItem, PhoneStatus } from "@/types/admin";
 
 // ─── Constants ──────────────────────────────────────────────
 const STANDARD_QUOTA = 25;

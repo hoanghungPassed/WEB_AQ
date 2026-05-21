@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import type { PhoneItem, PhoneStatus } from "@/data/mockData";
+import type { PhoneItem, PhoneStatus } from "@/types/admin";
 
 export default function EmployeePhoneListPage() {
   const router = useRouter();
@@ -298,11 +298,7 @@ export default function EmployeePhoneListPage() {
                       {p.status === "XM lần 1" && (
                         <button
                           onClick={() => handleUpdateStatus(p.id, "XM lần 2")}
-                          className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
-                            p.status === "XM lần 2" 
-                              ? "bg-green-500 text-sidebar border-green-600 shadow-md shadow-green-500/20" 
-                              : "bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20"
-                          }`}
+                          className="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20"
                         >
                           XM Lần 2
                         </button>

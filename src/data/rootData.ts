@@ -1,4 +1,4 @@
-import { MailData } from "./mockData";
+import { MailData } from "@/types/admin";;
 
 // Auto-generated from C:\Users\Admin\Desktop\Test Goc.xlsx
 export const ROOT_MAILS: MailData[] = [

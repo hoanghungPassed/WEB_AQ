@@ -1,22 +1,7 @@
-import { StaffData, TaskAssignment } from "@/types/admin";
+import { StaffData, TaskAssignment, MailData } from "@/types/admin";
 import { ROOT_MAILS } from "./rootData";
 import { SATELLITE_MAILS } from "./satelliteData";
 import { MONETIZED_MAILS } from "./monetizedData";
-
-// === PHONE DATA INTERFACE ===
-export type PhoneStatus = "Chưa làm" | "XM lần 1" | "XM lần 2" | "Lỗi";
-
-export interface PhoneItem {
-  id: string;
-  number: string;
-  otpLink: string;
-  status: PhoneStatus;
-  assigneeId: string | null;
-  assignedTo: string | null;
-  assignedAt: string | null;
-  importedAt: string;
-  importBatch?: string;
-}
 
 // 1. CẤU HÌNH NGƯỜI DÙNG HỆ THỐNG
 export const MOCK_USERS = [
@@ -68,35 +53,6 @@ export const MOCK_TASK_ASSIGNMENTS: TaskAssignment[] = [
 ];
 
 // 4. KHO DỮ LIỆU MAIL TỔNG (ĐÚNG 300 CÁI)
-export interface MailData {
-  id: number;
-  email: string;
-  pass: string;
-  recovery: string;
-  type: "ROOT" | "SATELLITE" | "MONETIZED";
-  status: "LIVE" | "DIE";
-  workStatus: string; // Dynamic status based on type
-  updatedBy?: string;
-  updatedAt?: string;
-  channelStatus?: string;
-  assignedTo?: string; 
-  assigneeId?: string; // ID của nhân viên được giao
-  twoFA?: string;
-  phone?: string;
-  otpLink?: string;
-  createdAt?: string;
-  links?: string[]; // Cột chứa tối đa 3 link channel YouTube
-  channelNames?: string[]; // Channel names scanned
-  batchName?: string; // Lô 1 -> Lô 6
-  cccdDate?: string;
-  verificationStatus?: string;
-  isEligible?: boolean;
-  inviteStatus?: "Đã mời" | "Chưa mời";
-  reClickDate?: string;
-  step2PendingDate?: string;
-  channelStatusDetail?: string;
-  lastUpdated?: string;
-}
 
 export const MOCK_MAILS: MailData[] = [
   ...ROOT_MAILS,

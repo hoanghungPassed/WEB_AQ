@@ -1,4 +1,4 @@
-import { MailData } from "./mockData";
+import { MailData } from "@/types/admin";;
 
 // Auto-generated from C:\Users\Admin\Desktop\TEST VT.xlsx
 export const SATELLITE_MAILS: MailData[] = [

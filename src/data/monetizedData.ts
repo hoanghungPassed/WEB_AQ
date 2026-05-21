@@ -1,4 +1,4 @@
-import { MailData } from "./mockData";
+import { MailData } from "@/types/admin";;
 
 // Auto-generated from C:\Users\Admin\Desktop\TEST BKT.xlsx
 export const MONETIZED_MAILS: MailData[] = [

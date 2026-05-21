@@ -100,7 +100,7 @@ export default function SettingsPage() {
           throw new Error("Invalid API structure");
         }
       } catch (err) {
-        console.warn("Failed to fetch banks list, using fallback:", err);
+        
         const fallbacks = [
           { code: "MB", bin: "970422", shortName: "MBBank", name: "Ngân hàng Quân đội", logo: "https://api.vietqr.io/img/MB.png" },
           { code: "VCB", bin: "970436", shortName: "Vietcombank", name: "Ngân hàng Ngoại thương Việt Nam", logo: "https://api.vietqr.io/img/VCB.png" },

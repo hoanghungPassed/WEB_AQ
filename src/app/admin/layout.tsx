@@ -238,7 +238,6 @@ export default function AdminLayout({
             try {
               localStorage.setItem(key, serverVal);
             } catch (err) {
-              console.warn(`Sync storage quota exceeded for ${key}, attempting truncation...`, err);
               if (key === "global_private_messages" || key === "global_company_chat") {
                 try {
                   const parsed = JSON.parse(serverVal);
@@ -327,7 +326,6 @@ export default function AdminLayout({
           const newRole = String(latestInfo.role);
 
           if (newRole !== currentRole) {
-            console.log(`[SYNC] Role change detected for ${storedUser.username}: ${currentRole} -> ${newRole}`);
             const newUser = { ...storedUser, role: latestInfo.role };
             sessionStorage.setItem("user", JSON.stringify(newUser));
             setUser(newUser);
@@ -747,7 +745,7 @@ export default function AdminLayout({
     try {
       localStorage.setItem(key, JSON.stringify(data));
     } catch (e) {
-      console.warn("Storage quota exceeded, truncating...", e);
+      
       const truncated = data.slice(-15);
       try {
         localStorage.setItem(key, JSON.stringify(truncated));
@@ -1242,7 +1240,6 @@ export default function AdminLayout({
                           localStorage.setItem("global_users", JSON.stringify(updated));
                         }
                         window.dispatchEvent(new Event("storage"));
-                        checkLateStatus();
                         syncDatabase();
                         setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
                         setTimeout(() => setFineSuccessToast(null), 5000);
@@ -1289,7 +1286,6 @@ export default function AdminLayout({
                           localStorage.setItem("global_users", JSON.stringify(updated));
                         }
                         window.dispatchEvent(new Event("storage"));
-                        checkLateStatus();
                         syncDatabase();
                         setExcuseReason("");
                         setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
@@ -1720,17 +1716,17 @@ export default function AdminLayout({
                 initial={{ opacity: 0, y: 50, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 50, scale: 0.95 }}
-                className="w-96 h-[500px] bg-[#161616]/95 border border-white/10 rounded-[32px] shadow-2xl flex flex-col overflow-hidden mb-4 backdrop-blur-xl"
+                className="w-96 h-[500px] bg-zinc-900/90 border border-zinc-800 rounded-xl shadow-2xl flex flex-col overflow-hidden mb-4 backdrop-blur-md"
               >
                 {/* Header */}
-                <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                <div className="p-4 border-b border-zinc-800/50 bg-white/[0.02] flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Phone size={16} className="text-gold animate-pulse shrink-0" />
+                    <Phone size={16} className="text-amber-500 animate-pulse shrink-0" />
                     <h3 className="text-xs font-black text-white uppercase tracking-widest">Danh sách SĐT ({myAssignedPhones.length})</h3>
                   </div>
                   <button
                     onClick={() => setIsPhonePanelOpen(false)}
-                    className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-white/5 text-gray-500 hover:text-white transition-colors"
+                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-white/5 text-gray-500 hover:text-white transition-colors"
                   >
                     <Minus size={16} />
                   </button>
@@ -1740,15 +1736,15 @@ export default function AdminLayout({
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                   {myAssignedPhones.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6">
-                      <Phone size={48} className="text-gray-600 mb-4 stroke-1" />
-                      <p className="text-sm font-black text-white uppercase tracking-wider">Không có SĐT</p>
-                      <p className="text-xs text-gray-500 mt-1 max-w-[200px]">Hiện không có số điện thoại nào hoạt động được gán cho bạn.</p>
+                      <Phone size={48} className="text-zinc-700 mb-4 stroke-1" />
+                      <p className="text-sm font-black text-zinc-300 uppercase tracking-wider">Không có SĐT</p>
+                      <p className="text-xs text-zinc-500 mt-1 max-w-[200px]">Hiện không có số điện thoại nào hoạt động được gán cho bạn.</p>
                     </div>
                   ) : (
                     myAssignedPhones.map((p: any) => (
                       <div
                         key={p.id}
-                        className="p-4 bg-white/[0.02] border border-white/5 hover:border-gold/30 rounded-2xl transition-all duration-300 flex flex-col gap-3 group relative overflow-hidden"
+                        className="p-4 bg-zinc-800/30 border border-zinc-800/50 hover:border-amber-500/30 rounded-xl transition-all duration-300 flex flex-col gap-3 group relative overflow-hidden"
                       >
                         <div className="flex items-center justify-between">
                           <button
@@ -1756,10 +1752,10 @@ export default function AdminLayout({
                             className="flex items-center gap-2 group/num text-left active:scale-[0.98] transition-transform"
                             title="Bấm để copy số điện thoại"
                           >
-                            <span className="text-lg font-black text-white group-hover/num:text-gold transition-colors font-mono tracking-wide">
+                            <span className="text-lg font-black text-white group-hover/num:text-amber-500 transition-colors font-mono tracking-wide">
                               {p.number}
                             </span>
-                            <Copy size={14} className="text-gray-600 group-hover/num:text-gold transition-colors" />
+                            <Copy size={14} className="text-zinc-500 group-hover/num:text-amber-500 transition-colors" />
                           </button>
 
                           {p.otpLink ? (
@@ -1767,28 +1763,28 @@ export default function AdminLayout({
                               href={p.otpLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[10px] font-black text-gold hover:text-white transition-colors bg-gold/10 hover:bg-gold/20 border border-gold/20 px-3 py-1.5 rounded-xl flex items-center gap-1 shrink-0"
+                              className="text-[10px] font-black text-amber-500 hover:text-zinc-900 transition-colors bg-amber-500/10 hover:bg-amber-500 border border-amber-500/20 px-3 py-1.5 rounded-lg flex items-center gap-1 shrink-0"
                             >
                               <span>Mở OTP</span>
                               <ExternalLink size={10} />
                             </a>
                           ) : (
-                            <span className="text-[10px] text-gray-500 font-bold px-3 py-1.5 bg-white/5 rounded-xl shrink-0">Không có OTP</span>
+                            <span className="text-[10px] text-zinc-500 font-bold px-3 py-1.5 bg-zinc-800/50 rounded-lg shrink-0">Không có OTP</span>
                           )}
                         </div>
 
                         {/* Status buttons */}
-                        <div className={`grid ${p.status === "XM lần 1" ? "grid-cols-3" : "grid-cols-2"} gap-2 border-t border-white/5 pt-3`}>
+                        <div className={`grid ${p.status === "XM lần 1" ? "grid-cols-3" : "grid-cols-2"} gap-2 border-t border-zinc-800/50 pt-3`}>
                           <button
                             onClick={() => handleUpdatePhoneStatus(p.id, "XM lần 1")}
-                            className={`py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 ${p.status === "XM lần 1" ? "bg-yellow-500 text-sidebar shadow-lg shadow-yellow-500/20" : "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-sidebar"}`}
+                            className={`py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 ${p.status === "XM lần 1" ? "bg-amber-500 text-zinc-900 shadow-lg shadow-amber-500/20" : "bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-zinc-900"}`}
                           >
                             XM Lần 1
                           </button>
                           {p.status === "XM lần 1" && (
                             <button
                               onClick={() => handleUpdatePhoneStatus(p.id, "XM lần 2")}
-                              className="py-1.5 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-[#0f0f0f] rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300"
+                              className="py-1.5 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-zinc-900 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300"
                             >
                               XM Lần 2
                             </button>
@@ -1816,11 +1812,11 @@ export default function AdminLayout({
               setIsPhonePanelOpen(!isPhonePanelOpen);
               setIsChatOpen(false);
             }}
-            className="h-14 w-14 bg-sidebar border border-gold/20 hover:border-gold text-gold rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:bg-gold hover:text-sidebar transition-all duration-300 relative group"
+            className="h-14 w-14 bg-zinc-900 border border-amber-500/20 hover:border-amber-500 text-amber-500 rounded-xl flex items-center justify-center shadow-[0_4px_20px_rgba(245,158,11,0.15)] hover:bg-amber-500 hover:text-zinc-900 transition-all duration-300 relative group backdrop-blur-md"
           >
             <Phone size={24} />
             {myAssignedPhones.length > 0 && (
-              <span className="absolute -top-2 -right-2 bg-gold text-sidebar font-mono text-[10px] font-black h-6 w-6 rounded-full flex items-center justify-center border-2 border-sidebar shadow-lg animate-pulse">
+              <span className="absolute -top-2 -right-2 bg-amber-500 text-zinc-900 font-mono text-[10px] font-black h-6 w-6 rounded-full flex items-center justify-center border-2 border-zinc-900 shadow-lg animate-pulse">
                 {myAssignedPhones.length}
               </span>
             )}

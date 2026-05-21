@@ -1928,58 +1928,61 @@ export default function AdminDashboard() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard title="Tổng mail" value={stats.totalMail} icon={<Mail size={32} />} color="blue" subtitle="Toàn hệ thống" onClick={() => router.push("/admin/mail/all")} />
-            <StatCard title="Mail Gốc" value={stats.mailRoot} icon={<Database size={32} />} color="indigo" subtitle="Tồn kho mail gốc" onClick={() => router.push("/admin/mail/root")} />
-            <StatCard title="Mail Vệ Tinh" value={stats.mailSatellite} icon={<Zap size={32} />} color="purple" subtitle="Tồn kho mail vệ tinh" onClick={() => router.push("/admin/mail/satellite")} />
-            {!(user?.role === "03" || user?.role === "04") && (
-              <StatCard title="Bật kiếm tiền" value={stats.mailMonetized} icon={<DollarSign size={32} />} color="gold" subtitle="Kênh đã bật QC" onClick={() => router.push("/admin/mail/monetized")} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            {isAdminOrManager ? (
+              <>
+                <StatCard title="Tổng kho Mail" value={stats.totalMail} icon={<Mail size={32} />} color="blue" subtitle="Tất cả kho dữ liệu" onClick={() => router.push("/admin/mail/all")} />
+                <StatCard title="Kênh đã BKT" value={stats.mailMonetized} icon={<DollarSign size={32} />} color="gold" subtitle="Mail kiếm tiền" onClick={() => router.push("/admin/mail/monetized")} />
+                <StatCard title="Quỹ tiền phạt" value={"2,500,000đ"} icon={<AlertTriangle size={32} />} color="red" subtitle="Quỹ đi muộn" onClick={() => {}} />
+                <StatCard title="Nhân sự Online" value={stats.staffOnline} icon={<Users size={32} />} color="green" subtitle="Đang làm việc" onClick={() => setSelectedViewType("STAFF")} />
+              </>
+            ) : (
+              <>
+                <StatCard title="Số Task hôm nay" value={stats.tasksToday} icon={<ClipboardList size={32} />} color="blue" subtitle="Nhiệm vụ cần xử lý" onClick={() => setSelectedViewType("TASKS")} />
+                <StatCard title="Lô đang làm" value={selectedStaffTask?.mailRange || "---"} icon={<Database size={32} />} color="indigo" subtitle="Lô mail phân công" onClick={() => setSelectedViewType("TASKS")} />
+                <StatCard title="Số kênh đủ giờ" value={stats.mailWatchHours || 0} icon={<Target size={32} />} color="gold" subtitle="Đã đủ điều kiện" onClick={() => setIsEligibleChannelsModalOpen(true)} />
+                <StatCard title="Bảng Tin Nội Bộ" value={posts.length || 0} icon={<MessageSquare size={32} />} color="purple" subtitle="Cập nhật tin tức" onClick={() => router.push("/admin/newsfeed")} />
+              </>
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <StatCard title="Task hôm nay" value={stats.tasksToday} icon={<ClipboardList size={32} />} color="green" subtitle="Công việc đang chạy" onClick={() => setSelectedViewType("TASKS")} />
-            
-            {user?.role !== "04" && (
-              <StatCard title="Nhân viên Online" value={stats.staffOnline} icon={<Users size={32} />} color="blue" subtitle="Đang làm việc" onClick={() => setSelectedViewType("STAFF")} />
-            )}
-
-            {isAdminOrManager && (
-              <StatCard 
-                title="Kênh đủ giờ" 
-                value={stats.mailWatchHours || 0} 
-                icon={<Target size={32} />} 
-                color="gold" 
-                subtitle="Đạt điều kiện & thư mời" 
-                onClick={() => setIsEligibleChannelsModalOpen(true)} 
-              />
-            )}
-
-            <StatCard 
-              title="Bảng Tin Nội Bộ" 
-              value={posts.length || 2} 
-              icon={<MessageSquare size={32} />} 
-              color="indigo" 
-              subtitle="Chia sẻ, bình luận & tương tác" 
-              onClick={() => router.push("/admin/newsfeed")} 
-            />
-
-            <div className="rounded-[32px] border border-white/5 bg-white/[0.02] p-6 flex items-center justify-between shadow-inner col-span-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Live/Die Stats - Grid Style */}
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 flex items-center justify-around shadow-lg backdrop-blur-md">
                <div 
                  onClick={() => setSelectedViewType("LIVE")}
-                 className="flex items-center gap-4 cursor-pointer group hover:opacity-80 transition-all"
+                 className="flex flex-col items-center gap-2 cursor-pointer group transition-all"
                >
-                  <div className="h-12 w-12 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500 border border-green-500/20 group-hover:bg-green-500/20"><CheckCircle2 size={24} /></div>
-                  <div><p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Hệ thống</p><h4 className="text-sm font-black text-white uppercase tracking-tighter">Live: {stats.mailLive}</h4></div>
+                  <div className="h-14 w-14 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 border border-green-500/20 group-hover:bg-green-500 group-hover:text-zinc-900 transition-colors shadow-lg"><CheckCircle2 size={28} /></div>
+                  <div className="text-center"><p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Mail Hoạt Động</p><h4 className="text-xl font-black text-green-400 uppercase tracking-tighter">{stats.mailLive}</h4></div>
                </div>
-               <div className="h-10 w-px bg-white/5" />
+               <div className="h-20 w-px bg-zinc-800" />
                <div 
                  onClick={() => setSelectedViewType("DIE")}
-                 className="flex items-center gap-4 cursor-pointer group hover:opacity-80 transition-all"
+                 className="flex flex-col items-center gap-2 cursor-pointer group transition-all"
                >
-                  <div className="h-12 w-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 border border-red-500/20 group-hover:bg-red-500/20"><XCircle size={24} /></div>
-                  <div><p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Lỗi</p><h4 className="text-sm font-black text-white uppercase tracking-tighter">Die: {stats.mailDie}</h4></div>
+                  <div className="h-14 w-14 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 border border-red-500/20 group-hover:bg-red-500 group-hover:text-zinc-900 transition-colors shadow-lg"><XCircle size={28} /></div>
+                  <div className="text-center"><p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Mail Bị Lỗi</p><h4 className="text-xl font-black text-red-400 uppercase tracking-tighter">{stats.mailDie}</h4></div>
                </div>
+            </div>
+            
+            {/* Progress Bar Style - Hiệu suất làm kênh */}
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 shadow-lg backdrop-blur-md flex flex-col justify-center">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Hiệu suất xử lý</span>
+                <span className="text-sm font-black text-amber-500">
+                  {stats.totalMail > 0 ? Math.round((stats.mailLive / stats.totalMail) * 100) : 0}%
+                </span>
+              </div>
+              <div className="w-full h-3 bg-zinc-800 rounded-full overflow-hidden border border-zinc-700">
+                <motion.div 
+                  initial={{ width: 0 }} 
+                  animate={{ width: `${stats.totalMail > 0 ? Math.round((stats.mailLive / stats.totalMail) * 100) : 0}%` }} 
+                  transition={{ duration: 1, ease: "easeOut" }} 
+                  className="h-full bg-gradient-to-r from-amber-600 to-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.5)]" 
+                />
+              </div>
+              <p className="text-[10px] text-zinc-500 mt-3 text-right">Tỷ lệ thành công dựa trên tổng số mail</p>
             </div>
           </div>
 
@@ -2225,29 +2228,29 @@ export default function AdminDashboard() {
 
 function StatCard({ title, value, icon, color, subtitle, onClick }: any) {
   const colors: any = {
-    blue: "text-blue-400 bg-blue-500/10 border-blue-500/20 group-hover:border-blue-500",
-    green: "text-green-400 bg-green-500/10 border-green-500/20 group-hover:border-green-500",
-    red: "text-red-400 bg-red-500/10 border-red-500/20 group-hover:border-red-500",
-    gold: "text-gold bg-gold/10 border-gold/20 group-hover:border-gold",
-    purple: "text-purple-400 bg-purple-500/10 border-purple-500/20 group-hover:border-purple-500",
-    indigo: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20 group-hover:border-indigo-500",
+    blue: "text-blue-400 bg-blue-500/10 border-blue-500/20 group-hover:border-blue-500/50",
+    green: "text-green-400 bg-green-500/10 border-green-500/20 group-hover:border-green-500/50",
+    red: "text-red-400 bg-red-500/10 border-red-500/20 group-hover:border-red-500/50",
+    gold: "text-amber-500 bg-amber-500/10 border-amber-500/20 group-hover:border-amber-500/50",
+    purple: "text-purple-400 bg-purple-500/10 border-purple-500/20 group-hover:border-purple-500/50",
+    indigo: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20 group-hover:border-indigo-500/50",
   };
   return (
     <motion.div 
-      whileHover={{ y: -5 }} 
+      whileHover={{ y: -4 }} 
       onClick={onClick} 
-      className={`group rounded-[32px] border border-border-custom bg-sidebar p-6 transition-all hover:shadow-2xl ${onClick ? 'cursor-pointer hover:bg-white/5' : ''}`}
+      className={`group rounded-2xl border border-zinc-800 bg-zinc-900/80 backdrop-blur-md p-6 transition-all hover:shadow-2xl hover:border-zinc-700/80 ${onClick ? 'cursor-pointer hover:bg-zinc-800/60' : ''}`}
     >
       <div className="flex items-center justify-between mb-4">
-        <div className={`p-4 rounded-2xl transition-all ${colors[color]}`}>{icon}</div>
+        <div className={`p-4 rounded-xl border transition-all ${colors[color] || colors.blue}`}>{icon}</div>
         <div className="text-right">
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">{title}</p>
-          <h3 className="text-2xl font-black text-white tracking-tighter">{value?.toLocaleString() || 0}</h3>
+          <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">{title}</p>
+          <h3 className="text-3xl font-black text-zinc-50 tracking-tighter">{value?.toLocaleString() || 0}</h3>
         </div>
       </div>
-      <div className="flex items-center justify-between pt-4 border-t border-border-custom">
-        <span className="text-xs font-medium text-gray-500 italic">{subtitle}</span>
-        <div className="h-1.5 w-1.5 rounded-full bg-gold shadow-[0_0_8px_#d4af37]" />
+      <div className="flex items-center justify-between pt-4 border-t border-zinc-800/50 mt-4">
+        <span className="text-xs font-medium text-zinc-500 group-hover:text-zinc-400 transition-colors">{subtitle}</span>
+        <div className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)] group-hover:scale-125 transition-transform" />
       </div>
     </motion.div>
   );

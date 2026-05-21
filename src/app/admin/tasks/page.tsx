@@ -24,7 +24,8 @@ import {
   Search
 } from "lucide-react";
 
-import { MOCK_STAFF, MOCK_TASK_ASSIGNMENTS, MOCK_MAILS, MailData } from "@/data/mockData";
+import { MailData } from "@/types/admin";
+import { MOCK_STAFF, MOCK_TASK_ASSIGNMENTS, MOCK_MAILS } from "@/data/mockData";;
 import { StaffData, TaskAssignment } from "@/types/admin";
 import { useRouter } from "next/navigation";
 

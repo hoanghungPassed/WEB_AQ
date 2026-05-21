@@ -50,3 +50,47 @@ export interface FineReport {
   paymentMethod?: "TRANSFER" | "CASH";
   paymentDate?: string;
 }
+
+export type PhoneStatus = "Chưa làm" | "XM lần 1" | "XM lần 2" | "Lỗi";
+
+export interface PhoneItem {
+  id: string;
+  number: string;
+  otpLink: string;
+  status: PhoneStatus;
+  assigneeId: string | null;
+  assignedTo: string | null;
+  assignedAt: string | null;
+  importedAt: string;
+  importBatch?: string;
+}
+
+export interface MailData {
+  id: number;
+  email: string;
+  pass: string;
+  recovery: string;
+  type: "ROOT" | "SATELLITE" | "MONETIZED";
+  status: "LIVE" | "DIE";
+  workStatus: string; // Dynamic status based on type
+  updatedBy?: string;
+  updatedAt?: string;
+  channelStatus?: string;
+  assignedTo?: string; 
+  assigneeId?: string; // ID của nhân viên được giao
+  twoFA?: string;
+  phone?: string;
+  otpLink?: string;
+  createdAt?: string;
+  links?: string[]; // Cột chứa tối đa 3 link channel YouTube
+  channelNames?: string[]; // Channel names scanned
+  batchName?: string; // Lô 1 -> Lô 6
+  cccdDate?: string;
+  verificationStatus?: string;
+  isEligible?: boolean;
+  inviteStatus?: "Đã mời" | "Chưa mời";
+  reClickDate?: string;
+  step2PendingDate?: string;
+  channelStatusDetail?: string;
+  lastUpdated?: string;
+}

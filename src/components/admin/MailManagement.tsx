@@ -26,7 +26,8 @@ import {
 import TOTPDisplay from "./TOTPDisplay";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
-import { MOCK_MAILS, MailData } from "@/data/mockData";
+import { MailData } from "@/types/admin";
+import { MOCK_MAILS } from "@/data/mockData";;
 import { useRouter } from "next/navigation";
 import MailDetailModal from "@/components/admin/MailDetailModal";
 
