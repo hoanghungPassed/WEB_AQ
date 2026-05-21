@@ -18,6 +18,9 @@ import {
   FileText,
   Trash2,
   Zap,
+  X,
+  Calendar,
+  User as UserIcon
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -81,6 +84,60 @@ function StatusBadge({ status }: { status: PhoneStatus }) {
 export default function PhoneBatchesPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [importHistory, setImportHistory] = useState<any[]>([]);
+  const [historyTab, setHistoryTab] = useState<"ALL" | "MAIL" | "SĐT">("ALL");
+
+  useEffect(() => {
+    const loadHistory = () => {
+      const saved = localStorage.getItem("global_import_history");
+      setImportHistory(saved ? JSON.parse(saved) : []);
+    };
+    loadHistory();
+    window.addEventListener("storage", loadHistory);
+    return () => window.removeEventListener("storage", loadHistory);
+  }, []);
+
+  const filteredHistory = useMemo(() => {
+    if (historyTab === "ALL") return importHistory;
+    return importHistory.filter((item) => item.type === historyTab);
+  }, [importHistory, historyTab]);
+
+  const handleDeleteHistoryRow = async (id: string) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa dòng lịch sử import này? (Không ảnh hưởng đến dữ liệu đã import)")) return;
+    const updated = importHistory.filter((item) => item.id !== id);
+    setImportHistory(updated);
+    localStorage.setItem("global_import_history", JSON.stringify(updated));
+    window.dispatchEvent(new Event("storage"));
+
+    try {
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ global_import_history: JSON.stringify(updated) })
+      });
+    } catch (err) {
+      console.error("Sync history deletion error:", err);
+    }
+  };
+
+  const handleClearAllHistory = async () => {
+    if (!confirm("Xác nhận xóa TOÀN BỘ lịch sử import? Hành động này không thể hoàn tác.")) return;
+    setImportHistory([]);
+    localStorage.setItem("global_import_history", JSON.stringify([]));
+    window.dispatchEvent(new Event("storage"));
+
+    try {
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ global_import_history: JSON.stringify([]) })
+      });
+    } catch (err) {
+      console.error("Sync history clear error:", err);
+    }
+  };
 
   // ─── Auth ─────────────────────────────────────────────────
   const [user, setUser] = useState<any>(null);
@@ -174,12 +231,23 @@ export default function PhoneBatchesPage() {
       const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "");
       const now = new Date().toISOString().split("T")[0];
       const newItems: PhoneItem[] = [];
+      let duplicateCount = 0;
 
       for (const line of lines) {
         const parts = line.split("|");
         const phoneNumber = (parts[0] || "").trim();
         const otpLink = (parts[1] || "").trim();
         if (!phoneNumber) continue; // skip blank lines
+
+        // Check if duplicate in newItems or existing phones
+        const isDuplicate = newItems.some(ni => ni.number === phoneNumber) ||
+                            phones.some(p => p.number === phoneNumber);
+
+        if (isDuplicate) {
+          duplicateCount++;
+          continue;
+        }
+
         newItems.push({
           id: `phone-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           number: phoneNumber,
@@ -193,15 +261,47 @@ export default function PhoneBatchesPage() {
       }
 
       if (newItems.length === 0) {
-        triggerToast("Không tìm được SĐT hợp lệ nào trong file!");
+        if (duplicateCount > 0) {
+          triggerToast(`Bỏ qua tất cả ${duplicateCount} SĐT do bị trùng lặp!`);
+        } else {
+          triggerToast("Không tìm được SĐT hợp lệ nào trong file!");
+        }
         return;
+      }
+
+      if (duplicateCount > 0) {
+        triggerToast(`Đã bỏ qua ${duplicateCount} SĐT bị trùng!`);
       }
 
       const updated = [...phones, ...newItems];
       savePhones(updated);
       setPhones(updated);
+
+      // Save import history
+      const historyEntry = {
+        id: `import-${Date.now()}`,
+        type: "SĐT" as const,
+        fileName: file.name,
+        quantity: newItems.length,
+        importedAt: new Date().toLocaleString("vi-VN"),
+        importedBy: user?.name || user?.username || "Admin"
+      };
+
+      const savedHistory = localStorage.getItem("global_import_history");
+      const currentHistory = savedHistory ? JSON.parse(savedHistory) : [];
+      const updatedHistory = [historyEntry, ...currentHistory];
+      localStorage.setItem("global_import_history", JSON.stringify(updatedHistory));
+
       pushLog(user, `Import thành công ${newItems.length} SĐT từ file ${file.name}`);
       triggerToast(`Đã import ${newItems.length} SĐT mới vào Tổng kho!`);
+      window.dispatchEvent(new Event("storage"));
+
+      // Push history update to server
+      fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ "global_import_history": JSON.stringify(updatedHistory) }),
+      }).catch((err) => console.error("Sync history error:", err));
     };
     reader.readAsText(file, "UTF-8");
 
@@ -210,12 +310,20 @@ export default function PhoneBatchesPage() {
   };
 
   // ─── Employee detail view ─────────────────────────────────
-  const selectedEmp = employees.find((e) => e.username === selectedEmpUsername) || null;
+  const selectedEmp = useMemo(() => {
+    if (!selectedEmpUsername) return null;
+    return employees.find((e) => e.username?.toLowerCase() === selectedEmpUsername.toLowerCase()) || null;
+  }, [employees, selectedEmpUsername]);
 
   const empPhones = useMemo(() => {
     if (!selectedEmpUsername) return [];
-    return phones.filter((p) => p.assigneeId === selectedEmpUsername);
-  }, [phones, selectedEmpUsername]);
+    return phones.filter((p) => 
+      p.assigneeId && (
+        p.assigneeId.toLowerCase() === selectedEmpUsername.toLowerCase() ||
+        (selectedEmp?.id && String(p.assigneeId) === String(selectedEmp.id))
+      )
+    );
+  }, [phones, selectedEmpUsername, selectedEmp]);
 
   const empStats = useMemo(() => {
     const total = empPhones.length;
@@ -267,60 +375,59 @@ export default function PhoneBatchesPage() {
   const handleScanAndRefill = () => {
     if (!selectedEmpUsername || !selectedEmp) return;
 
-    // Step 1 & 2: Find phones with status "Lỗi" or "XM lần 2"
-    const toRemoveIds = new Set(
-      empPhones
-        .filter((p) => p.status === "Lỗi" || p.status === "XM lần 2")
-        .map((p) => p.id)
+    // Step 1: Find phones with status "Lỗi" or "XM lần 2" for this employee
+    const toRemovePhones = empPhones.filter(
+      (p) => p.status === "Lỗi" || p.status === "XM lần 2"
     );
+    const toRemoveIds = new Set(toRemovePhones.map((p) => p.id));
 
     if (toRemoveIds.size === 0) {
       triggerToast("Không có SĐT nào cần thay thế (Lỗi hoặc XM lần 2)!");
       return;
     }
 
-    // Step 2: Unassign removed phones (remove from employee, mark as archived/deleted)
-    // We'll completely remove them from the employee — set assigneeId to null and mark them out
-    let working = phones.map((p) =>
-      toRemoveIds.has(p.id)
-        ? { ...p, assigneeId: null, assignedTo: null, assignedAt: null }
-        : p
-    );
+    // Step 2: Clean up (completely delete) these phones from the global list
+    let working = phones.filter((p) => !toRemoveIds.has(p.id));
 
-    // Step 3: Calculate deficit
+    // Step 3: Count how many active phones the employee has remaining (Chưa làm or XM lần 1)
     const currentActiveCount = empPhones.length - toRemoveIds.size;
     const deficit = STANDARD_QUOTA - currentActiveCount;
 
     if (deficit <= 0) {
-      // Already at or above quota, just save the removal
       savePhones(working);
       setPhones(working);
-      pushLog(user, `Quét và gỡ ${toRemoveIds.size} SĐT (Lỗi/Done) khỏi ${selectedEmp.name}. Không cần bơm thêm.`);
-      triggerToast(`Đã gỡ ${toRemoveIds.size} SĐT. Nhân viên đủ ${STANDARD_QUOTA} số, không cần bơm thêm.`);
+      pushLog(user, `Quét và dọn dẹp ${toRemoveIds.size} SĐT (Lỗi/Done) của ${selectedEmp.name}. Không cần bơm thêm.`);
+      triggerToast(`Đã dọn dẹp ${toRemoveIds.size} SĐT. Nhân viên đã đủ ${STANDARD_QUOTA} số.`);
       return;
     }
 
-    // Step 4: Take `deficit` phones from unassigned stock
-    const unassigned = working.filter(
-      (p) => !p.assigneeId && !toRemoveIds.has(p.id)
+    // Step 4: Extract brand new phone numbers (status "Chưa làm" and unassigned) from warehouse
+    const unassignedNewStock = working.filter(
+      (p) => !p.assigneeId && p.status === "Chưa làm"
     );
 
-    const canFill = Math.min(deficit, unassigned.length);
+    const canFill = Math.min(deficit, unassignedNewStock.length);
     if (canFill === 0) {
       savePhones(working);
       setPhones(working);
-      pushLog(user, `Quét và gỡ ${toRemoveIds.size} SĐT khỏi ${selectedEmp.name}. Kho trống không đủ để bơm lại.`, "WARNING");
-      triggerToast(`Đã gỡ ${toRemoveIds.size} SĐT nhưng Kho trống hết! Cần import thêm.`);
+      pushLog(user, `Quét và dọn dẹp ${toRemoveIds.size} SĐT của ${selectedEmp.name}. Kho trống không đủ SĐT mới để bơm lại.`, "WARNING");
+      triggerToast(`Đã dọn dẹp ${toRemoveIds.size} SĐT nhưng Tổng kho đã hết số mới!`);
       return;
     }
 
-    const refillSlice = unassigned.slice(0, canFill);
+    const refillSlice = unassignedNewStock.slice(0, canFill);
     const refillIds = new Set(refillSlice.map((p) => p.id));
     const now = new Date().toISOString().split("T")[0];
 
     working = working.map((p) =>
       refillIds.has(p.id)
-        ? { ...p, assigneeId: selectedEmp.username, assignedTo: selectedEmp.name, assignedAt: now, status: "Chưa làm" as PhoneStatus }
+        ? {
+            ...p,
+            assigneeId: selectedEmp.username,
+            assignedTo: selectedEmp.name,
+            assignedAt: now,
+            status: "Chưa làm" as PhoneStatus
+          }
         : p
     );
 
@@ -329,14 +436,19 @@ export default function PhoneBatchesPage() {
 
     const remainingDeficit = deficit - canFill;
     const suffix = remainingDeficit > 0 ? ` (còn thiếu ${remainingDeficit} SĐT do kho không đủ)` : "";
-    pushLog(user, `Quét ${toRemoveIds.size} SĐT → Bơm ${canFill} SĐT mới cho ${selectedEmp.name}${suffix}`);
-    triggerToast(`Đã gỡ ${toRemoveIds.size}, bơm lại ${canFill} SĐT cho ${selectedEmp.name}!${suffix}`);
+    pushLog(user, `Quét dọn dẹp ${toRemoveIds.size} SĐT → Bơm ${canFill} SĐT mới cho ${selectedEmp.name}${suffix}`);
+    triggerToast(`Đã dọn dẹp ${toRemoveIds.size}, bơm lại ${canFill} SĐT mới cho ${selectedEmp.name}!${suffix}`);
   };
 
   // ─── Employee list stats ──────────────────────────────────
   const employeeBreakdown = useMemo(() => {
     return employees.map((emp) => {
-      const ep = phones.filter((p) => p.assigneeId === emp.username);
+      const ep = phones.filter((p) => 
+        p.assigneeId && emp.username && (
+          p.assigneeId.toLowerCase() === emp.username.toLowerCase() ||
+          (emp.id && String(p.assigneeId) === String(emp.id))
+        )
+      );
       return {
         ...emp,
         total: ep.length,
@@ -463,6 +575,13 @@ export default function PhoneBatchesPage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+              <button
+                onClick={() => setShowHistoryModal(true)}
+                className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-gold/50 text-white font-black uppercase text-[10px] tracking-widest px-4 h-9 rounded-xl transition-all flex items-center gap-2"
+              >
+                <FileText size={14} className="text-gold" />
+                Lịch sử Import
+              </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-[10px] tracking-widest px-4 h-9 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-gold/20"
@@ -762,6 +881,134 @@ export default function PhoneBatchesPage() {
           </div>
         </motion.div>
       )}
+
+      {/* Import History Modal */}
+      <AnimatePresence>
+        {showHistoryModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 text-left"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-sidebar border border-white/10 rounded-[32px] p-8 w-full max-w-3xl shadow-2xl flex flex-col max-h-[85vh]"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/20">
+                    <FileText className="text-gold" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-white uppercase tracking-tight">LỊCH SỬ IMPORT HỆ THỐNG</h3>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">Nhật ký danh sách nhập dữ liệu</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {importHistory.length > 0 && (
+                    <button
+                      onClick={handleClearAllHistory}
+                      className="h-9 px-3.5 bg-red-500/10 border border-red-500/25 hover:bg-red-500/25 rounded-xl text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all"
+                    >
+                      <Trash2 size={13} /> Xóa tất cả
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowHistoryModal(false)}
+                    className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-400 hover:text-white transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Filters */}
+              <div className="flex items-center gap-2 mb-6 bg-white/5 p-1 rounded-xl w-fit">
+                {["ALL", "MAIL", "SĐT"].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setHistoryTab(tab as any)}
+                    className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                      historyTab === tab
+                        ? "bg-gold text-sidebar shadow-md"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    {tab === "ALL" ? "Tất cả" : tab}
+                  </button>
+                ))}
+              </div>
+
+              {/* List Content */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1 scrollbar-hide">
+                {filteredHistory.length === 0 ? (
+                  <div className="py-16 text-center">
+                    <div className="h-16 w-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
+                      <FileText className="text-gray-600" size={28} />
+                    </div>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Không có lịch sử nhập dữ liệu</p>
+                    <p className="text-[10px] text-gray-600 mt-1">Các lượt import mới sẽ tự động được ghi nhận tại đây.</p>
+                  </div>
+                ) : (
+                  filteredHistory.map((item: any) => (
+                    <div
+                      key={item.id}
+                      className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between hover:border-white/10 transition-all group"
+                    >
+                      <div className="flex items-center gap-4">
+                        {/* Icon / Badge */}
+                        <div
+                          className={`h-11 w-11 rounded-xl flex items-center justify-center border font-mono text-[10px] font-black tracking-widest ${
+                            item.type === "MAIL"
+                              ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                              : "bg-gold/10 text-gold border-gold/20"
+                          }`}
+                        >
+                          {item.type}
+                        </div>
+                        
+                        {/* Details */}
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-black text-white font-mono break-all">{item.fileName}</span>
+                            <span className="text-[10px] bg-green-500/15 text-green-400 border border-green-500/25 px-2 py-0.5 rounded-md font-black">
+                              +{item.quantity} {item.type === "MAIL" ? "mail" : "số"}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-4 text-[10px] text-gray-500 font-medium">
+                            <span className="flex items-center gap-1">
+                              <Calendar size={12} className="text-gray-600" />
+                              {item.importedAt}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <UserIcon size={12} className="text-gray-600" />
+                              Người nhập: <strong className="text-gray-400">{item.importedBy}</strong>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Delete Individual Row */}
+                      <button
+                        onClick={() => handleDeleteHistoryRow(item.id)}
+                        className="h-8 w-8 rounded-lg bg-red-500/5 hover:bg-red-500/10 text-red-500/60 hover:text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all border border-red-500/0 hover:border-red-500/20"
+                        title="Xóa dòng lịch sử này"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -266,6 +266,25 @@ export default function AdminDashboard() {
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     localStorage.setItem(`access_response_${request.staffName}`, "APPROVED");
     localStorage.setItem(`access_${getStableDateString()}_${request.staffName}`, "true");
+
+    // Nếu đây là yêu cầu nộp phạt hoặc giải trình đi muộn
+    if (request.type === "FINE_PAYMENT" || request.type === "LATE_EXCUSE") {
+      const savedUsers = localStorage.getItem("global_users");
+      if (savedUsers) {
+        const allUsers = JSON.parse(savedUsers);
+        const updatedUsers = allUsers.map((u: any) =>
+          u.username === request.username || u.name === request.staffName
+            ? { 
+                ...u, 
+                isLateLocked: false, 
+                finePaymentStatus: request.type === "FINE_PAYMENT" ? "APPROVED" : u.finePaymentStatus,
+                lateExcuseStatus: request.type === "LATE_EXCUSE" ? "APPROVED" : u.lateExcuseStatus
+              }
+            : u
+        );
+        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+      }
+    }
     
     localStorage.setItem("request_trigger", Date.now().toString());
     setCopyToast(`Đã cấp quyền truy cập cho ${request.staffName}`);
@@ -279,6 +298,24 @@ export default function AdminDashboard() {
     setPendingRequests(updated);
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     localStorage.setItem(`access_response_${request.staffName}`, "DENIED");
+
+    // Nếu đây là yêu cầu nộp phạt hoặc giải trình đi muộn
+    if (request.type === "FINE_PAYMENT" || request.type === "LATE_EXCUSE") {
+      const savedUsers = localStorage.getItem("global_users");
+      if (savedUsers) {
+        const allUsers = JSON.parse(savedUsers);
+        const updatedUsers = allUsers.map((u: any) =>
+          u.username === request.username || u.name === request.staffName
+            ? { 
+                ...u, 
+                finePaymentStatus: request.type === "FINE_PAYMENT" ? "DENIED" : u.finePaymentStatus,
+                lateExcuseStatus: request.type === "LATE_EXCUSE" ? "DENIED" : u.lateExcuseStatus
+              }
+            : u
+        );
+        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+      }
+    }
     
     localStorage.setItem("request_trigger", Date.now().toString());
     setCopyToast(`Đã từ chối quyền truy cập cho ${request.staffName}`);

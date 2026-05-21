@@ -7,7 +7,7 @@ import ProfileModal from "@/components/admin/ProfileModal";
 import AccessLock from "@/components/admin/modals/AccessLock";
 import { useRouter } from "next/navigation";
 import { MOCK_ACCESS_REQUESTS, initMockDB } from "@/data/mockData";
-import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle, Plus, FileText, Download, Paperclip } from "lucide-react";
+import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle, Plus, FileText, Download, Paperclip, Phone, Minus, Copy, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const lastSyncedCache: Record<string, string | null> = {};
@@ -51,6 +51,28 @@ export default function AdminLayout({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [bankConfig, setBankConfig] = useState<any>(null);
+
+  useEffect(() => {
+    const loadBankConfig = () => {
+      const savedBankConfig = localStorage.getItem("global_bank_config");
+      if (savedBankConfig) {
+        setBankConfig(JSON.parse(savedBankConfig));
+      } else {
+        setBankConfig({
+          bankName: "MB",
+          bankBin: "970422",
+          accountNumber: "686820388888",
+          accountHolder: "CÔNG TY TNHH AQ MEDIA"
+        });
+      }
+    };
+
+    loadBankConfig();
+    window.addEventListener("storage", loadBankConfig);
+    return () => window.removeEventListener("storage", loadBankConfig);
+  }, []);
+
   const [realtimeToast, setRealtimeToast] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatTab, setChatTab] = useState<"COMPANY" | "PRIVATE">("COMPANY");
@@ -108,6 +130,52 @@ export default function AdminLayout({
   const [fineSuccessToast, setFineSuccessToast] = useState<string | null>(null);
   const [excuseReason, setExcuseReason] = useState("");
   const [finePaymentPending, setFinePaymentPending] = useState(false);
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
+  const [isPhonePanelOpen, setIsPhonePanelOpen] = useState(false);
+  const [copiedPhoneToast, setCopiedPhoneToast] = useState<string | null>(null);
+  const [phoneList, setPhoneList] = useState<any[]>([]);
+  const isCurrentlyLockedRef = React.useRef(false);
+
+  useEffect(() => {
+    const loadPhones = () => {
+      const raw = localStorage.getItem("global_phones_data");
+      if (raw) {
+        setPhoneList(JSON.parse(raw));
+      }
+    };
+    loadPhones();
+    window.addEventListener("storage", loadPhones);
+    const interval = setInterval(loadPhones, 2000);
+    return () => {
+      window.removeEventListener("storage", loadPhones);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const handleUpdatePhoneStatus = (phoneId: string, newStatus: string) => {
+    const raw = localStorage.getItem("global_phones_data");
+    if (!raw) return;
+    const phones = JSON.parse(raw);
+    const updated = phones.map((p: any) =>
+      p.id === phoneId ? { ...p, status: newStatus } : p
+    );
+    localStorage.setItem("global_phones_data", JSON.stringify(updated));
+    window.dispatchEvent(new Event("storage"));
+    
+    fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ global_phones_data: JSON.stringify(updated) }),
+    }).catch(() => {});
+  };
+
+  const handleCopyPhone = (number: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(number);
+      setCopiedPhoneToast(`Đã copy SĐT: ${number}`);
+      setTimeout(() => setCopiedPhoneToast(null), 2000);
+    }
+  };
 
   const syncDatabase = React.useCallback(async () => {
     try {
@@ -121,7 +189,9 @@ export default function AdminLayout({
         "pending_access_requests",
         "global_company_chat",
         "global_private_messages",
-        "global_newsfeed_posts"
+        "global_newsfeed_posts",
+        "global_phones_data",
+        "global_import_history"
       ];
 
       // Quét các key truy cập ngoài giờ hiện có trong localStorage để đồng bộ
@@ -155,7 +225,7 @@ export default function AdminLayout({
         const serverVal = serverStore[key];
         const prevSyncedVal = lastSyncedCache[key];
 
-        if (localVal !== prevSyncedVal && localVal !== serverVal) {
+        if (localVal !== null && localVal !== prevSyncedVal && localVal !== serverVal) {
           // Local value has changed! Push to server
           if (localVal !== null) {
             localUpdates[key] = localVal;
@@ -380,6 +450,8 @@ export default function AdminLayout({
       } else {
         setFinePaymentPending(false);
       }
+      const isPending = userProfile ? (userProfile.finePaymentStatus === "PENDING_APPROVAL" || userProfile.lateExcuseStatus === "PENDING_APPROVAL") : false;
+      setIsPendingApproval(isPending);
     };
 
     syncDatabase();
@@ -413,6 +485,21 @@ export default function AdminLayout({
         syncUserRole();
         checkNewNotifications();
         checkLateStatus();
+      }
+
+      if ((!e.key || e.key === "global_users" || e.key === "request_trigger") && user) {
+        try {
+          const savedUsersStr = localStorage.getItem("global_users");
+          if (savedUsersStr) {
+            const allUsers = JSON.parse(savedUsersStr);
+            const userProfile = allUsers.find((u: any) => u.username === user.username);
+            if (userProfile && userProfile.isLateLocked === false && isCurrentlyLockedRef.current) {
+              window.location.reload();
+            }
+          }
+        } catch (err) {
+          console.error("Storage reload trigger error:", err);
+        }
       }
 
       if (e.key === "pending_access_requests") {
@@ -805,6 +892,7 @@ export default function AdminLayout({
 
   const shouldLock = ((isSunday && isSundayLockedRole) || (isStaff && !isWorkingHours)) && !isAccessGranted;
   const isLateLocked = isStaff && isLate && !isFinePaid && !isAccessGranted;
+  isCurrentlyLockedRef.current = isLateLocked;
 
   const getLockMessage = () => {
     if (isSunday) return "Hôm nay là Chủ Nhật. Hệ thống tạm khóa đối với nhân sự và quản lý nhân sự.";
@@ -845,14 +933,19 @@ export default function AdminLayout({
     localStorage.setItem(`access_response_${request.staffName}`, "APPROVED");
     localStorage.setItem(`access_${getStableDateString()}_${request.staffName}`, "true");
 
-    // Nếu đây là yêu cầu nộp phạt đi muộn
-    if (request.type === "FINE_PAYMENT") {
+    // Nếu đây là yêu cầu nộp phạt hoặc giải trình đi muộn
+    if (request.type === "FINE_PAYMENT" || request.type === "LATE_EXCUSE") {
       const savedUsers = localStorage.getItem("global_users");
       if (savedUsers) {
         const allUsers = JSON.parse(savedUsers);
         const updatedUsers = allUsers.map((u: any) =>
           u.username === request.username || u.name === request.staffName
-            ? { ...u, isLateLocked: false, finePaymentStatus: "APPROVED" }
+            ? { 
+                ...u, 
+                isLateLocked: false, 
+                finePaymentStatus: request.type === "FINE_PAYMENT" ? "APPROVED" : u.finePaymentStatus,
+                lateExcuseStatus: request.type === "LATE_EXCUSE" ? "APPROVED" : u.lateExcuseStatus
+              }
             : u
         );
         localStorage.setItem("global_users", JSON.stringify(updatedUsers));
@@ -872,14 +965,18 @@ export default function AdminLayout({
     // Thông báo từ chối cho nhân viên
     localStorage.setItem(`access_response_${request.staffName}`, "DENIED");
 
-    // Nếu đây là yêu cầu nộp phạt đi muộn
-    if (request.type === "FINE_PAYMENT") {
+    // Nếu đây là yêu cầu nộp phạt hoặc giải trình đi muộn
+    if (request.type === "FINE_PAYMENT" || request.type === "LATE_EXCUSE") {
       const savedUsers = localStorage.getItem("global_users");
       if (savedUsers) {
         const allUsers = JSON.parse(savedUsers);
         const updatedUsers = allUsers.map((u: any) =>
           u.username === request.username || u.name === request.staffName
-            ? { ...u, finePaymentStatus: "DENIED" }
+            ? { 
+                ...u, 
+                finePaymentStatus: request.type === "FINE_PAYMENT" ? "DENIED" : u.finePaymentStatus,
+                lateExcuseStatus: request.type === "LATE_EXCUSE" ? "DENIED" : u.lateExcuseStatus
+              }
             : u
         );
         localStorage.setItem("global_users", JSON.stringify(updatedUsers));
@@ -900,6 +997,16 @@ export default function AdminLayout({
   };
 
   if (!user) return <div className="min-h-screen bg-[#0a0a0a]" />;
+
+  const myAssignedPhones = phoneList.filter(
+    (p: any) =>
+      p.assigneeId &&
+      user?.username &&
+      (p.assigneeId.toLowerCase() === user.username.toLowerCase() ||
+        (user.id && String(p.assigneeId) === String(user.id))) &&
+      p.status !== "XM lần 2" &&
+      p.status !== "Lỗi"
+  );
 
   return (
     <div className="flex h-screen bg-background text-xl overflow-hidden">
@@ -1016,159 +1123,193 @@ export default function AdminLayout({
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.05)_0%,transparent_70%)] pointer-events-none" />
 
           <div className="w-full max-w-2xl bg-sidebar border border-gold/20 rounded-[32px] p-8 shadow-[0_20px_50px_rgba(212,175,55,0.1)] relative overflow-hidden text-center my-auto">
-            {/* Header info */}
-            <div className="h-16 w-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-500/5">
-              <Clock size={32} className="animate-pulse" />
-            </div>
+            {isPendingApproval ? (
+              <div className="py-12 space-y-6">
+                <div className="h-20 w-20 bg-gold/10 border border-gold/30 text-gold rounded-full flex items-center justify-center mx-auto shadow-lg shadow-gold/5">
+                  <Clock size={40} className="animate-pulse" />
+                </div>
+                <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Đang chờ phê duyệt</h2>
+                <p className="text-gray-300 text-sm font-medium max-w-md mx-auto leading-relaxed">
+                  Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.
+                </p>
+                <div className="pt-6">
+                  <button
+                    onClick={handleLogout}
+                    className="px-8 h-12 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg shadow-red-500/5"
+                  >
+                    Đăng xuất
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Header info */}
+                <div className="h-16 w-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-500/5">
+                  <Clock size={32} className="animate-pulse" />
+                </div>
 
-            <h2 className="text-3xl font-black uppercase tracking-tighter text-white mb-2">Báo cáo đi muộn</h2>
-            <p className="text-gray-400 text-sm font-medium max-w-md mx-auto leading-relaxed mb-6">
-              Hôm nay bạn check-in lúc <span className="text-red-400 font-bold font-mono">
-                {user ? new Date(localStorage.getItem(`checkin_time_${user.username}`) || "").toLocaleTimeString("vi-VN") : "---"}
-              </span>, đi muộn <span className="text-red-400 font-bold font-mono">{formatLateMins(lateMins)}</span> so với giờ quy định (8:00 AM).
-            </p>
+                <h2 className="text-3xl font-black uppercase tracking-tighter text-white mb-2">Báo cáo đi muộn</h2>
+                <p className="text-gray-400 text-sm font-medium max-w-md mx-auto leading-relaxed mb-6">
+                  Hôm nay bạn check-in lúc <span className="text-red-400 font-bold font-mono">
+                    {user ? new Date(localStorage.getItem(`checkin_time_${user.username}`) || "").toLocaleTimeString("vi-VN") : "---"}
+                  </span>, đi muộn <span className="text-red-400 font-bold font-mono">{formatLateMins(lateMins)}</span> so với giờ quy định (8:00 AM).
+                </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center border-t border-b border-white/5 py-8 my-6 text-left">
-              {/* QR Code and Payment details */}
-              <div className="flex flex-col items-center justify-center border-r border-white/5 pr-0 md:pr-6 pb-6 md:pb-0">
-                <div className="bg-white p-4 rounded-2xl shadow-xl border-2 border-gold/40 relative">
-                  <img
-                    src={`https://img.vietqr.io/image/MB-686820388888-compact2.png?amount=${fineAmount}&addInfo=${user?.username || 'Guest'}_Nop_Phat`}
-                    alt="VietQR Fine Code"
-                    className="h-[180px] w-[180px] object-contain rounded-xl"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="bg-gold text-sidebar text-[9px] font-black uppercase px-2 py-0.5 rounded-md border border-white tracking-widest shadow-md">AQ MEDIA</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center border-t border-b border-white/5 py-8 my-6 text-left">
+                  {/* QR Code and Payment details */}
+                  <div className="flex flex-col items-center justify-center border-r border-white/5 pr-0 md:pr-6 pb-6 md:pb-0">
+                    <div className="bg-white p-4 rounded-2xl shadow-xl border-2 border-gold/40 relative">
+                      <img
+                        src={`https://img.vietqr.io/image/${bankConfig?.bankBin || bankConfig?.bankName || "MB"}-${bankConfig?.accountNumber || "686820388888"}-compact2.png?amount=${fineAmount}&addInfo=${user?.username || 'Guest'}_Nop_Phat&accountName=${encodeURIComponent(bankConfig?.accountHolder || "CÔNG TY TNHH AQ MEDIA")}`}
+                        alt="VietQR Fine Code"
+                        className="h-[180px] w-[180px] object-contain rounded-xl"
+                      />
+                    </div>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black mt-3 text-center">Quét mã nộp phạt qua Ngân hàng</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Ngân hàng thụ hưởng</span>
+                      <span className="text-sm font-black text-white">{bankConfig?.bankFullName || `${bankConfig?.bankName || "MB"} Bank`}</span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Số tài khoản</span>
+                      <span className="text-sm font-black text-gold font-mono">{bankConfig?.accountNumber || "686820388888"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Tên người nhận</span>
+                      <span className="text-sm font-black text-white">{bankConfig?.accountHolder || "CÔNG TY TNHH AQ MEDIA"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Số tiền nộp phạt</span>
+                      <span className="text-lg font-black text-red-400 font-mono">
+                        {fineAmount.toLocaleString("vi-VN")} VND
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Nội dung chuyển khoản</span>
+                      <span className="text-xs font-bold text-gray-300 font-mono bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg block overflow-hidden text-ellipsis whitespace-nowrap">
+                        {user?.username.toUpperCase()}_NOP_PHAT
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black mt-3 text-center">Quét mã nộp phạt qua Ngân hàng</p>
-              </div>
 
-              <div className="space-y-4">
-                <div>
-                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Ngân hàng thụ hưởng</span>
-                  <span className="text-sm font-black text-white">MB BANK (Ngân hàng Quân Đội)</span>
+                {/* excuse reason textarea */}
+                <div className="border-t border-white/5 pt-6 my-6 text-left">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Hoặc gửi lý do giải trình đi muộn (Mở khóa lập tức)</label>
+                  <textarea
+                    value={excuseReason}
+                    onChange={(e) => setExcuseReason(e.target.value)}
+                    placeholder="Nhập lý do đi muộn của bạn tại đây (ví dụ: tắc đường, hỏng xe, việc gia đình đột xuất...)"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/5 transition-all resize-none"
+                    rows={3}
+                  />
                 </div>
-                <div>
-                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Số tài khoản</span>
-                  <span className="text-sm font-black text-gold font-mono">686820388888</span>
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button
+                    disabled={finePaymentPending}
+                    onClick={() => {
+                      if (user) {
+                        const newRequest = {
+                          id: Date.now(),
+                          staffName: user.name,
+                          username: user.username,
+                          time: new Date().toLocaleTimeString(),
+                          reason: `Nộp phạt đi muộn: ${formatLateMins(lateMins)} (${fineAmount.toLocaleString("vi-VN")} VND)`,
+                          status: "PENDING",
+                          type: "FINE_PAYMENT"
+                        };
+                        const savedRequests = localStorage.getItem("pending_access_requests");
+                        const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+                        const updatedRequests = [...currentRequests, newRequest];
+                        localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
+
+                        const savedUsers = localStorage.getItem("global_users");
+                        if (savedUsers) {
+                          const allUsers = JSON.parse(savedUsers);
+                          const updated = allUsers.map((u: any) =>
+                            u.username === user.username ? { 
+                              ...u, 
+                              isLateLocked: true, 
+                              finePaymentStatus: "PENDING_APPROVAL",
+                              lateExcuseStatus: "PENDING_APPROVAL",
+                              status: "PENDING_APPROVAL"
+                            } : u
+                          );
+                          localStorage.setItem("global_users", JSON.stringify(updated));
+                        }
+                        window.dispatchEvent(new Event("storage"));
+                        checkLateStatus();
+                        syncDatabase();
+                        setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
+                        setTimeout(() => setFineSuccessToast(null), 5000);
+                      }
+                    }}
+                    className={`flex-1 h-14 font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-lg ${finePaymentPending ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 cursor-not-allowed" : "bg-gold text-sidebar hover:bg-white hover:text-sidebar shadow-gold/25"}`}
+                  >
+                    {finePaymentPending ? "Chờ duyệt..." : "Đã chuyển khoản"}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!excuseReason.trim()) {
+                        alert("Vui lòng nhập lý do giải trình trước khi gửi!");
+                        return;
+                      }
+                      if (user) {
+                        const newRequest = {
+                          id: Date.now(),
+                          staffName: user.name,
+                          username: user.username,
+                          time: new Date().toLocaleTimeString(),
+                          reason: `Giải trình đi muộn: ${excuseReason}`,
+                          status: "PENDING",
+                          type: "LATE_EXCUSE"
+                        };
+                        const savedRequests = localStorage.getItem("pending_access_requests");
+                        const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+                        const updatedRequests = [...currentRequests, newRequest];
+                        localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
+
+                        const savedUsers = localStorage.getItem("global_users");
+                        if (savedUsers) {
+                          const allUsers = JSON.parse(savedUsers);
+                          const updated = allUsers.map((u: any) =>
+                            u.username === user.username ? { 
+                              ...u, 
+                              isLateLocked: true, 
+                              finePaymentStatus: "PENDING_APPROVAL",
+                              lateExcuseStatus: "PENDING_APPROVAL",
+                              status: "PENDING_APPROVAL" 
+                            } : u
+                          );
+                          localStorage.setItem("global_users", JSON.stringify(updated));
+                        }
+                        window.dispatchEvent(new Event("storage"));
+                        checkLateStatus();
+                        syncDatabase();
+                        setExcuseReason("");
+                        setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
+                        setTimeout(() => setFineSuccessToast(null), 5000);
+                      }
+                    }}
+                    className="flex-1 h-14 bg-white/5 border border-white/10 hover:border-gold/50 text-white font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300"
+                  >
+                    Gửi yêu cầu
+                  </button>
+
+                  <button
+                    onClick={handleLogout}
+                    className="h-14 px-6 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300"
+                  >
+                    Đăng xuất
+                  </button>
                 </div>
-                <div>
-                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Tên người nhận</span>
-                  <span className="text-sm font-black text-white">CÔNG TY TNHH AQ MEDIA</span>
-                </div>
-                <div>
-                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Số tiền nộp phạt</span>
-                  <span className="text-lg font-black text-red-400 font-mono">
-                    {fineAmount.toLocaleString("vi-VN")} VND
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Nội dung chuyển khoản</span>
-                  <span className="text-xs font-bold text-gray-300 font-mono bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg block overflow-hidden text-ellipsis whitespace-nowrap">
-                    {user?.username.toUpperCase()}_NOP_PHAT
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* excuse reason textarea */}
-            <div className="border-t border-white/5 pt-6 my-6 text-left">
-              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Hoặc gửi lý do giải trình đi muộn (Mở khóa lập tức)</label>
-              <textarea
-                value={excuseReason}
-                onChange={(e) => setExcuseReason(e.target.value)}
-                placeholder="Nhập lý do đi muộn của bạn tại đây (ví dụ: tắc đường, hỏng xe, việc gia đình đột xuất...)"
-                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/5 transition-all resize-none"
-                rows={3}
-              />
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button
-                disabled={finePaymentPending}
-                onClick={() => {
-                  if (user) {
-                    const newRequest = {
-                      id: Date.now(),
-                      staffName: user.name,
-                      username: user.username,
-                      time: new Date().toLocaleTimeString(),
-                      reason: `Nộp phạt đi muộn: ${formatLateMins(lateMins)} (${fineAmount.toLocaleString("vi-VN")} VND)`,
-                      status: "PENDING",
-                      type: "FINE_PAYMENT"
-                    };
-                    const savedRequests = localStorage.getItem("pending_access_requests");
-                    const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
-                    const updatedRequests = [...currentRequests, newRequest];
-                    localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
-
-                    const savedUsers = localStorage.getItem("global_users");
-                    if (savedUsers) {
-                      const allUsers = JSON.parse(savedUsers);
-                      const updated = allUsers.map((u: any) =>
-                        u.username === user.username ? { ...u, finePaymentStatus: "PENDING_APPROVAL" } : u
-                      );
-                      localStorage.setItem("global_users", JSON.stringify(updated));
-                    }
-                    window.dispatchEvent(new Event("storage"));
-                    syncDatabase();
-                    setFineSuccessToast("Đã gửi thông tin chuyển khoản! Vui lòng chờ Admin phê duyệt.");
-                    setTimeout(() => setFineSuccessToast(null), 5000);
-                  }
-                }}
-                className={`flex-1 h-14 font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-lg ${finePaymentPending ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 cursor-not-allowed" : "bg-gold text-sidebar hover:bg-white hover:text-sidebar shadow-gold/25"}`}
-              >
-                {finePaymentPending ? "Chờ duyệt..." : "Đã chuyển khoản"}
-              </button>
-
-              <button
-                onClick={() => {
-                  if (!excuseReason.trim()) {
-                    alert("Vui lòng nhập lý do giải trình trước khi gửi!");
-                    return;
-                  }
-                  if (user) {
-                    const newRequest = {
-                      id: Date.now(),
-                      staffName: user.name,
-                      username: user.username,
-                      time: new Date().toLocaleTimeString(),
-                      reason: `Giải trình đi muộn: ${excuseReason}`,
-                      status: "PENDING",
-                      type: "LATE_EXCUSE"
-                    };
-                    const savedRequests = localStorage.getItem("pending_access_requests");
-                    const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
-                    const updatedRequests = [...currentRequests, newRequest];
-                    localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
-
-                    const savedUsers = localStorage.getItem("global_users");
-                    if (savedUsers) {
-                      const allUsers = JSON.parse(savedUsers);
-                      const updated = allUsers.map((u: any) =>
-                        u.username === user.username ? { ...u, isLateLocked: false, lateExcuseStatus: "SENT" } : u
-                      );
-                      localStorage.setItem("global_users", JSON.stringify(updated));
-                    }
-                    window.dispatchEvent(new Event("storage"));
-                    syncDatabase();
-                    setFineSuccessToast("Đã gửi giải trình! Hệ thống đã được mở khóa.");
-                    setTimeout(() => setFineSuccessToast(null), 5000);
-                  }
-                }}
-                className="flex-1 h-14 bg-white/5 border border-white/10 hover:border-gold/50 text-white font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300"
-              >
-                Gửi yêu cầu
-              </button>
-
-              <button
-                onClick={handleLogout}
-                className="h-14 px-6 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300"
-              >
-                Đăng xuất
-              </button>
-            </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -1183,6 +1324,20 @@ export default function AdminLayout({
             className="fixed top-0 left-1/2 z-[9999] bg-green-500 text-white px-8 py-4 rounded-[24px] shadow-2xl flex items-center gap-4 font-black text-sm uppercase tracking-widest border border-white/20"
           >
             <CheckCircle2 size={24} className="animate-bounce" /> {fineSuccessToast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Copied Phone Toast */}
+      <AnimatePresence>
+        {copiedPhoneToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -100, x: "-50%" }}
+            animate={{ opacity: 1, y: 30, x: "-50%" }}
+            exit={{ opacity: 0, y: -100, x: "-50%" }}
+            className="fixed top-0 left-1/2 z-[9999] bg-gold text-sidebar px-8 py-4 rounded-[24px] shadow-2xl flex items-center gap-4 font-black text-sm uppercase tracking-widest border border-white/20"
+          >
+            <CheckCircle2 size={24} className="animate-bounce" /> {copiedPhoneToast}
           </motion.div>
         )}
       </AnimatePresence>
@@ -1237,7 +1392,7 @@ export default function AdminLayout({
 
       {/* Floating Chat Widget */}
       {user && (
-        <div className="fixed bottom-6 right-6 z-[450] flex flex-col items-end">
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
           <AnimatePresence>
             {isChatOpen && (
               <motion.div
@@ -1538,7 +1693,10 @@ export default function AdminLayout({
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setIsChatOpen(!isChatOpen)}
+            onClick={() => {
+              setIsChatOpen(!isChatOpen);
+              setIsPhonePanelOpen(false);
+            }}
             className="h-14 w-14 bg-sidebar border border-gold/20 hover:border-gold text-gold rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:bg-gold hover:text-sidebar transition-all duration-300 relative group"
           >
             <MessageCircle size={24} />
@@ -1548,6 +1706,123 @@ export default function AdminLayout({
               </span>
             ) : (
               <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-green-500 border-2 border-sidebar" />
+            )}
+          </motion.button>
+        </div>
+      )}
+
+      {/* Floating Phone Widget */}
+      {user && (user.role === "03" || user.role === "04" || String(user.role).includes("03") || String(user.role).includes("04") || user.role === "NHÂN VIÊN" || String(user.role).includes("NHÂN VIÊN")) && (
+        <div className="fixed bottom-6 right-[88px] z-50 flex flex-col items-end">
+          <AnimatePresence>
+            {isPhonePanelOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 50, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 50, scale: 0.95 }}
+                className="w-96 h-[500px] bg-[#161616]/95 border border-white/10 rounded-[32px] shadow-2xl flex flex-col overflow-hidden mb-4 backdrop-blur-xl"
+              >
+                {/* Header */}
+                <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Phone size={16} className="text-gold animate-pulse shrink-0" />
+                    <h3 className="text-xs font-black text-white uppercase tracking-widest">Danh sách SĐT ({myAssignedPhones.length})</h3>
+                  </div>
+                  <button
+                    onClick={() => setIsPhonePanelOpen(false)}
+                    className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-white/5 text-gray-500 hover:text-white transition-colors"
+                  >
+                    <Minus size={16} />
+                  </button>
+                </div>
+
+                {/* Phone List */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                  {myAssignedPhones.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-6">
+                      <Phone size={48} className="text-gray-600 mb-4 stroke-1" />
+                      <p className="text-sm font-black text-white uppercase tracking-wider">Không có SĐT</p>
+                      <p className="text-xs text-gray-500 mt-1 max-w-[200px]">Hiện không có số điện thoại nào hoạt động được gán cho bạn.</p>
+                    </div>
+                  ) : (
+                    myAssignedPhones.map((p: any) => (
+                      <div
+                        key={p.id}
+                        className="p-4 bg-white/[0.02] border border-white/5 hover:border-gold/30 rounded-2xl transition-all duration-300 flex flex-col gap-3 group relative overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between">
+                          <button
+                            onClick={() => handleCopyPhone(p.number)}
+                            className="flex items-center gap-2 group/num text-left active:scale-[0.98] transition-transform"
+                            title="Bấm để copy số điện thoại"
+                          >
+                            <span className="text-lg font-black text-white group-hover/num:text-gold transition-colors font-mono tracking-wide">
+                              {p.number}
+                            </span>
+                            <Copy size={14} className="text-gray-600 group-hover/num:text-gold transition-colors" />
+                          </button>
+
+                          {p.otpLink ? (
+                            <a
+                              href={p.otpLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] font-black text-gold hover:text-white transition-colors bg-gold/10 hover:bg-gold/20 border border-gold/20 px-3 py-1.5 rounded-xl flex items-center gap-1 shrink-0"
+                            >
+                              <span>Mở OTP</span>
+                              <ExternalLink size={10} />
+                            </a>
+                          ) : (
+                            <span className="text-[10px] text-gray-500 font-bold px-3 py-1.5 bg-white/5 rounded-xl shrink-0">Không có OTP</span>
+                          )}
+                        </div>
+
+                        {/* Status buttons */}
+                        <div className={`grid ${p.status === "XM lần 1" ? "grid-cols-3" : "grid-cols-2"} gap-2 border-t border-white/5 pt-3`}>
+                          <button
+                            onClick={() => handleUpdatePhoneStatus(p.id, "XM lần 1")}
+                            className={`py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 ${p.status === "XM lần 1" ? "bg-yellow-500 text-sidebar shadow-lg shadow-yellow-500/20" : "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-sidebar"}`}
+                          >
+                            XM Lần 1
+                          </button>
+                          {p.status === "XM lần 1" && (
+                            <button
+                              onClick={() => handleUpdatePhoneStatus(p.id, "XM lần 2")}
+                              className="py-1.5 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-[#0f0f0f] rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300"
+                            >
+                              XM Lần 2
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleUpdatePhoneStatus(p.id, "Lỗi")}
+                            className="py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300"
+                          >
+                            Lỗi
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Phone Toggle Button */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              setIsPhonePanelOpen(!isPhonePanelOpen);
+              setIsChatOpen(false);
+            }}
+            className="h-14 w-14 bg-sidebar border border-gold/20 hover:border-gold text-gold rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:bg-gold hover:text-sidebar transition-all duration-300 relative group"
+          >
+            <Phone size={24} />
+            {myAssignedPhones.length > 0 && (
+              <span className="absolute -top-2 -right-2 bg-gold text-sidebar font-mono text-[10px] font-black h-6 w-6 rounded-full flex items-center justify-center border-2 border-sidebar shadow-lg animate-pulse">
+                {myAssignedPhones.length}
+              </span>
             )}
           </motion.button>
         </div>

@@ -41,8 +41,12 @@ export default function EmployeePhoneListPage() {
       const savedPhones = localStorage.getItem("global_phones_data");
       const phonesList: PhoneItem[] = savedPhones ? JSON.parse(savedPhones) : [];
       
-      // Filter only phones assigned to me
-      const assignedToMe = phonesList.filter(p => p.assigneeId === currentUser.username);
+      const assignedToMe = phonesList.filter(p => 
+        p.assigneeId &&
+        currentUser?.username &&
+        (p.assigneeId.toLowerCase() === currentUser.username.toLowerCase() ||
+          (currentUser.id && String(p.assigneeId) === String(currentUser.id)))
+      );
       setMyPhones(assignedToMe);
     };
 
@@ -70,7 +74,12 @@ export default function EmployeePhoneListPage() {
     });
 
     localStorage.setItem("global_phones_data", JSON.stringify(updated));
-    setMyPhones(updated.filter(p => p.assigneeId === user?.username));
+    setMyPhones(updated.filter(p => 
+      p.assigneeId &&
+      user?.username &&
+      (p.assigneeId.toLowerCase() === user.username.toLowerCase() ||
+        (user.id && String(p.assigneeId) === String(user.id)))
+    ));
     window.dispatchEvent(new Event("storage"));
 
     // Sync to API
@@ -286,16 +295,18 @@ export default function EmployeePhoneListPage() {
                         XM Lần 1
                       </button>
 
-                      <button
-                        onClick={() => handleUpdateStatus(p.id, "XM lần 2")}
-                        className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
-                          p.status === "XM lần 2" 
-                            ? "bg-green-500 text-sidebar border-green-600 shadow-md shadow-green-500/20" 
-                            : "bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20"
-                        }`}
-                      >
-                        XM Lần 2
-                      </button>
+                      {p.status === "XM lần 1" && (
+                        <button
+                          onClick={() => handleUpdateStatus(p.id, "XM lần 2")}
+                          className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
+                            p.status === "XM lần 2" 
+                              ? "bg-green-500 text-sidebar border-green-600 shadow-md shadow-green-500/20" 
+                              : "bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20"
+                          }`}
+                        >
+                          XM Lần 2
+                        </button>
+                      )}
 
                       <button
                         onClick={() => handleUpdateStatus(p.id, "Lỗi")}

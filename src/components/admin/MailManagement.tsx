@@ -18,7 +18,10 @@ import {
   Mail,
   RefreshCcw,
   Copy,
-  Phone
+  Phone,
+  FileText,
+  Calendar,
+  User as UserIcon
 } from "lucide-react";
 import TOTPDisplay from "./TOTPDisplay";
 import { motion, AnimatePresence } from "framer-motion";
@@ -66,6 +69,59 @@ interface MailManagementProps {
 
 export default function MailManagement({ type, user }: MailManagementProps) {
   const router = useRouter();
+  const [importHistory, setImportHistory] = useState<any[]>([]);
+  const [historyTab, setHistoryTab] = useState<"ALL" | "MAIL" | "SĐT">("ALL");
+
+  useEffect(() => {
+    const loadHistory = () => {
+      const saved = localStorage.getItem("global_import_history");
+      setImportHistory(saved ? JSON.parse(saved) : []);
+    };
+    loadHistory();
+    window.addEventListener("storage", loadHistory);
+    return () => window.removeEventListener("storage", loadHistory);
+  }, []);
+
+  const filteredHistory = useMemo(() => {
+    if (historyTab === "ALL") return importHistory;
+    return importHistory.filter((item) => item.type === historyTab);
+  }, [importHistory, historyTab]);
+
+  const handleDeleteHistoryRow = async (id: string) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa dòng lịch sử import này? (Không ảnh hưởng đến dữ liệu đã import)")) return;
+    const updated = importHistory.filter((item) => item.id !== id);
+    setImportHistory(updated);
+    localStorage.setItem("global_import_history", JSON.stringify(updated));
+    window.dispatchEvent(new Event("storage"));
+
+    try {
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ global_import_history: JSON.stringify(updated) })
+      });
+    } catch (err) {
+      console.error("Sync history deletion error:", err);
+    }
+  };
+
+  const handleClearAllHistory = async () => {
+    if (!confirm("Xác nhận xóa TOÀN BỘ lịch sử import? Hành động này không thể hoàn tác.")) return;
+    setImportHistory([]);
+    localStorage.setItem("global_import_history", JSON.stringify([]));
+    window.dispatchEvent(new Event("storage"));
+
+    try {
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ global_import_history: JSON.stringify([]) })
+      });
+    } catch (err) {
+      console.error("Sync history clear error:", err);
+    }
+  };
+
   const [mails, setMails] = useState<MailData[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -87,6 +143,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const [pendingMails, setPendingMails] = useState<MailData[] | null>(null);
   const [importBatchName, setImportBatchName] = useState("");
   const [showBatchNameModal, setShowBatchNameModal] = useState(false);
+  const [importFileName, setImportFileName] = useState("");
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const itemsPerPage = 20;
 
   const roleUpper = String(user?.role || "").toUpperCase();
@@ -252,6 +310,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setImportFileName(file.name);
 
     const reader = new FileReader();
     reader.onload = (evt) => {
@@ -490,6 +549,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       triggerToast(`Đã bỏ qua ${duplicateCount} mail bị trùng!`);
     }
     setPendingMails(newItems);
+    setImportFileName("Nhập thủ công");
     setImportBatchName("");
     setShowBatchNameModal(true);
     setManualData("");
@@ -522,19 +582,36 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     const updatedBatches = [...currentBatches, newBatch];
     localStorage.setItem("global_batches", JSON.stringify(updatedBatches));
 
+    // Save to global import history
+    const historyEntry = {
+      id: `import-${Date.now()}`,
+      type: "MAIL" as const,
+      fileName: importFileName || `Lô mail: ${batchNameInput}`,
+      quantity: pendingMails.length,
+      importedAt: new Date().toLocaleString("vi-VN"),
+      importedBy: user?.name || user?.username || "Admin"
+    };
+
+    const savedHistory = localStorage.getItem("global_import_history");
+    const currentHistory = savedHistory ? JSON.parse(savedHistory) : [];
+    const updatedHistory = [historyEntry, ...currentHistory];
+    localStorage.setItem("global_import_history", JSON.stringify(updatedHistory));
+
     await saveMails([...mails, ...mappedMails]);
 
     setPendingMails(null);
     setImportBatchName("");
     setShowBatchNameModal(false);
     triggerToast(`Đã import thành công ${mappedMails.length} mail vào Lô "${batchNameInput}"!`);
+    window.dispatchEvent(new Event("storage"));
 
     try {
       await fetch("/api/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          global_batches: JSON.stringify(updatedBatches)
+          global_batches: JSON.stringify(updatedBatches),
+          global_import_history: JSON.stringify(updatedHistory)
         })
       });
     } catch (err) {
@@ -727,6 +804,133 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {showHistoryModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-sidebar border border-white/10 rounded-[32px] p-8 w-full max-w-3xl shadow-2xl flex flex-col max-h-[85vh]"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/20">
+                    <FileText className="text-gold" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-white uppercase tracking-tight">LỊCH SỬ IMPORT HỆ THỐNG</h3>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">Nhật ký danh sách nhập dữ liệu</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {importHistory.length > 0 && (
+                    <button
+                      onClick={handleClearAllHistory}
+                      className="h-9 px-3.5 bg-red-500/10 border border-red-500/25 hover:bg-red-500/25 rounded-xl text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all"
+                    >
+                      <Trash2 size={13} /> Xóa tất cả
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowHistoryModal(false)}
+                    className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-400 hover:text-white transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Filters */}
+              <div className="flex items-center gap-2 mb-6 bg-white/5 p-1 rounded-xl w-fit">
+                {["ALL", "MAIL", "SĐT"].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setHistoryTab(tab as any)}
+                    className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                      historyTab === tab
+                        ? "bg-gold text-sidebar shadow-md"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    {tab === "ALL" ? "Tất cả" : tab}
+                  </button>
+                ))}
+              </div>
+
+              {/* List Content */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1 scrollbar-hide">
+                {filteredHistory.length === 0 ? (
+                  <div className="py-16 text-center">
+                    <div className="h-16 w-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
+                      <FileText className="text-gray-600" size={28} />
+                    </div>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Không có lịch sử nhập dữ liệu</p>
+                    <p className="text-[10px] text-gray-600 mt-1">Các lượt import mới sẽ tự động được ghi nhận tại đây.</p>
+                  </div>
+                ) : (
+                  filteredHistory.map((item: any) => (
+                    <div
+                      key={item.id}
+                      className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between hover:border-white/10 transition-all group"
+                    >
+                      <div className="flex items-center gap-4">
+                        {/* Icon / Badge */}
+                        <div
+                          className={`h-11 w-11 rounded-xl flex items-center justify-center border font-mono text-[10px] font-black tracking-widest ${
+                            item.type === "MAIL"
+                              ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                              : "bg-gold/10 text-gold border-gold/20"
+                          }`}
+                        >
+                          {item.type}
+                        </div>
+                        
+                        {/* Details */}
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-black text-white font-mono break-all">{item.fileName}</span>
+                            <span className="text-[10px] bg-green-500/15 text-green-400 border border-green-500/25 px-2 py-0.5 rounded-md font-black">
+                              +{item.quantity} {item.type === "MAIL" ? "mail" : "số"}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-4 text-[10px] text-gray-500 font-medium">
+                            <span className="flex items-center gap-1">
+                              <Calendar size={12} className="text-gray-600" />
+                              {item.importedAt}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <UserIcon size={12} className="text-gray-600" />
+                              Người nhập: <strong className="text-gray-400">{item.importedBy}</strong>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Delete Individual Row */}
+                      <button
+                        onClick={() => handleDeleteHistoryRow(item.id)}
+                        className="h-8 w-8 rounded-lg bg-red-500/5 hover:bg-red-500/10 text-red-500/60 hover:text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all border border-red-500/0 hover:border-red-500/20"
+                        title="Xóa dòng lịch sử này"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {(!isStaff || !selectedBatch) && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
@@ -781,6 +985,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
             </button>
             {isAdminOrManager && (
               <>
+                <button onClick={() => setShowHistoryModal(true)} className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><FileText size={14} className="text-gold" /> Lịch sử Import</button>
                 <button onClick={() => setShowManualImport(true)} className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><PlusCircle size={14} className="text-gold" /> Thêm thủ công</button>
                 <label className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all cursor-pointer"><Upload size={14} className="text-gold" /> Import Excel / CSV <input type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={handleImportExcel} /></label>
                 <button onClick={handleExport} className="h-10 px-4 bg-gold/10 border border-gold/30 hover:bg-gold/20 rounded-xl text-gold text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><Download size={14} /> Export</button>

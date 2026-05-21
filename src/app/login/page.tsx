@@ -56,6 +56,12 @@ function LoginForm() {
         if (serverStore.global_tasks_data) {
           localStorage.setItem("global_tasks_data", serverStore.global_tasks_data);
         }
+        if (serverStore.global_phones_data) {
+          localStorage.setItem("global_phones_data", serverStore.global_phones_data);
+        }
+        if (serverStore.global_import_history) {
+          localStorage.setItem("global_import_history", serverStore.global_import_history);
+        }
       }
     } catch (err) {
       console.error("Login page sync error:", err);

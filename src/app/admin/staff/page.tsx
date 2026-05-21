@@ -331,13 +331,44 @@ export default function StaffManagementPage() {
 
   const handleDenyAccess = (id: number, name: string) => {
     const updated = accessRequests.filter(r => r.id !== id);
+    const req = accessRequests.find(r => r.id === id);
     setAccessRequests(updated);
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     localStorage.setItem(`access_response_${name}`, "DENIED");
-    pushToServer({
-      pending_access_requests: JSON.stringify(updated),
-      [`access_response_${name}`]: "DENIED"
-    });
+
+    // Nếu đây là yêu cầu nộp phạt hoặc giải trình đi muộn
+    if (req && (req.type === "FINE_PAYMENT" || req.type === "LATE_EXCUSE")) {
+      const savedUsers = localStorage.getItem("global_users");
+      if (savedUsers) {
+        const allUsers = JSON.parse(savedUsers);
+        const updatedUsers = allUsers.map((u: any) =>
+          u.username === req.username || u.name === req.staffName
+            ? { 
+                ...u, 
+                finePaymentStatus: req.type === "FINE_PAYMENT" ? "DENIED" : u.finePaymentStatus,
+                lateExcuseStatus: req.type === "LATE_EXCUSE" ? "DENIED" : u.lateExcuseStatus
+              }
+            : u
+        );
+        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+        pushToServer({
+          pending_access_requests: JSON.stringify(updated),
+          [`access_response_${name}`]: "DENIED",
+          global_users: JSON.stringify(updatedUsers)
+        });
+      } else {
+        pushToServer({
+          pending_access_requests: JSON.stringify(updated),
+          [`access_response_${name}`]: "DENIED"
+        });
+      }
+    } else {
+      pushToServer({
+        pending_access_requests: JSON.stringify(updated),
+        [`access_response_${name}`]: "DENIED"
+      });
+    }
+
     setToastMsg(`Đã từ chối truy cập cho ${name}`);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
@@ -345,15 +376,49 @@ export default function StaffManagementPage() {
 
   const handleApproveAccess = (id: number, name: string) => {
     const updated = accessRequests.filter(r => r.id !== id);
+    const req = accessRequests.find(r => r.id === id);
     setAccessRequests(updated);
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     localStorage.setItem(`access_response_${name}`, "APPROVED");
     localStorage.setItem(`access_${getStableDateString()}_${name}`, "true");
-    pushToServer({
-      pending_access_requests: JSON.stringify(updated),
-      [`access_response_${name}`]: "APPROVED",
-      [`access_${getStableDateString()}_${name}`]: "true"
-    });
+
+    // Nếu đây là yêu cầu nộp phạt hoặc giải trình đi muộn
+    if (req && (req.type === "FINE_PAYMENT" || req.type === "LATE_EXCUSE")) {
+      const savedUsers = localStorage.getItem("global_users");
+      if (savedUsers) {
+        const allUsers = JSON.parse(savedUsers);
+        const updatedUsers = allUsers.map((u: any) =>
+          u.username === req.username || u.name === req.staffName
+            ? { 
+                ...u, 
+                isLateLocked: false, 
+                finePaymentStatus: req.type === "FINE_PAYMENT" ? "APPROVED" : u.finePaymentStatus,
+                lateExcuseStatus: req.type === "LATE_EXCUSE" ? "APPROVED" : u.lateExcuseStatus
+              }
+            : u
+        );
+        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+        pushToServer({
+          pending_access_requests: JSON.stringify(updated),
+          [`access_response_${name}`]: "APPROVED",
+          [`access_${getStableDateString()}_${name}`]: "true",
+          global_users: JSON.stringify(updatedUsers)
+        });
+      } else {
+        pushToServer({
+          pending_access_requests: JSON.stringify(updated),
+          [`access_response_${name}`]: "APPROVED",
+          [`access_${getStableDateString()}_${name}`]: "true"
+        });
+      }
+    } else {
+      pushToServer({
+        pending_access_requests: JSON.stringify(updated),
+        [`access_response_${name}`]: "APPROVED",
+        [`access_${getStableDateString()}_${name}`]: "true"
+      });
+    }
+
     setToastMsg(`Đã cấp quyền truy cập cho ${name}`);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
