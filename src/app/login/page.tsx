@@ -125,23 +125,21 @@ function LoginForm() {
 
 
       // Tự động Check-in ngay khi đăng nhập thành công
-      let checkInISO = localStorage.getItem(`checkin_time_${user.username}`);
-      let isCheckedInToday = false;
-      if (checkInISO) {
-        const d = new Date(checkInISO);
-        const today = new Date();
-        isCheckedInToday = d.getDate() === today.getDate() &&
-                           d.getMonth() === today.getMonth() &&
-                           d.getFullYear() === today.getFullYear();
+      const today = new Date();
+      const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      let checkInISO = localStorage.getItem(`checkin_time_${user.username}_${dateKey}`);
+      if (!checkInISO) {
+        checkInISO = today.toISOString();
+        localStorage.setItem(`checkin_time_${user.username}_${dateKey}`, checkInISO);
       }
       const timeStr = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-      if (!isCheckedInToday) {
-        checkInISO = new Date().toISOString();
-        localStorage.setItem(`checkin_time_${user.username}`, checkInISO);
-      }
 
       // Cập nhật trạng thái isOnline trong global_users
-      const updatedUsers = allUsers.map((u) => {
+      // Lấy data mới nhất từ server NGAY TRƯỚC KHI cập nhật để giảm thiểu tối đa lỗi Race Condition (ghi đè dữ liệu của nhân viên khác)
+      await syncDatabaseFromServer();
+      const freshUsers: StaffData[] = JSON.parse(localStorage.getItem("global_users") || "[]");
+
+      const updatedUsers = freshUsers.map((u) => {
         if (u.id === user.id) {
           return { 
             ...u, 

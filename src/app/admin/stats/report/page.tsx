@@ -53,10 +53,10 @@ export default function ReportsPage() {
       setUser(parsedUser);
       const role = String(parsedUser.role || "").toUpperCase();
       if (role !== "01" && role !== "02" && role !== "ADMIN" && role !== "QUẢN LÝ CÔNG VIỆC" && role !== "QL CÔNG VIỆC") {
-        window.location.href = "/admin";
+        router.push("/admin");
       }
     } else {
-      window.location.href = "/login";
+      router.push("/login");
     }
 
     const loadData = () => {
@@ -147,10 +147,10 @@ export default function ReportsPage() {
         rank: 0, // Placeholder
         name: staff.name,
         username: staff.username,
-        assigned: myMails.length || 17, // Seeding defaults for demo wows
-        completed: completed || Math.round((myMails.length || 17) * 0.7),
-        errorRate: errorPercent || (idx % 3 === 0 ? 5 : 0),
-        kpiProgress: progress || (idx === 0 ? 95 : idx === 1 ? 82 : 65 - idx * 4),
+        assigned: myMails.length,
+        completed: completed,
+        errorRate: errorPercent,
+        kpiProgress: progress,
         efficiency
       };
     });
@@ -165,29 +165,20 @@ export default function ReportsPage() {
     let present = 0;
     const today = new Date();
     const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const month = today.getMonth() + 1;
+    const monthStr = String(month).padStart(2, '0');
+    const daysInMonth = new Date(year, month, 0).getDate();
 
-    for (let i = 1; i <= 26; i++) {
+    for (let i = 1; i <= daysInMonth; i++) {
       const dayStr = String(i).padStart(2, '0');
-      const dateKey = `${year}-${month}-${dayStr}`;
-      const checkinTime = localStorage.getItem(`checkin_time_${username}_${dateKey}`) || localStorage.getItem(`checkin_time_${username}`);
+      const dateKey = `${year}-${monthStr}-${dayStr}`;
+      const checkinTime = localStorage.getItem(`checkin_time_${username}_${dateKey}`);
       
       if (checkinTime) {
         present++;
-      } else {
-        // Fallback simulate from mock hash for old days
-        let hash = 0;
-        const combined = username + dateKey;
-        for (let charIdx = 0; charIdx < combined.length; charIdx++) {
-          hash = combined.charCodeAt(charIdx) + ((hash << 5) - hash);
-        }
-        if (Math.abs(hash % 100) < 85) {
-          present++;
-        }
       }
     }
-    // Cap at 26 days
-    return Math.min(present, 26);
+    return present;
   };
 
   const handleSavePayroll = () => {
