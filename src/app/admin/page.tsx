@@ -1943,11 +1943,12 @@ export default function AdminDashboard() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdminOrManager ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-6 mb-6`}>
             {isAdminOrManager ? (
               <>
                 <StatCard title="Tổng kho Mail" value={stats.totalMail} icon={<Mail size={32} />} color="blue" subtitle="Tất cả kho dữ liệu" onClick={() => router.push("/admin/mail/all")} />
                 <StatCard title="Kênh đã BKT" value={stats.mailMonetized} icon={<DollarSign size={32} />} color="gold" subtitle="Mail kiếm tiền" onClick={() => router.push("/admin/mail/monetized")} />
+                <StatCard title="Task hôm nay" value={stats.tasksToday} icon={<ClipboardList size={32} />} color="indigo" subtitle="Theo dõi nhiệm vụ" onClick={() => setSelectedViewType("TASKS")} />
                 <StatCard title="Quỹ tiền phạt" value={"2,500,000đ"} icon={<AlertTriangle size={32} />} color="red" subtitle="Quỹ đi muộn" onClick={() => {}} />
                 <StatCard title="Nhân sự Online" value={stats.staffOnline} icon={<Users size={32} />} color="green" subtitle="Đang làm việc" onClick={() => setSelectedViewType("STAFF")} />
               </>
@@ -1961,7 +1962,7 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             {/* Live/Die Stats - Grid Style */}
             <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 flex items-center justify-around shadow-lg backdrop-blur-md">
                <div 
@@ -1979,25 +1980,6 @@ export default function AdminDashboard() {
                   <div className="h-14 w-14 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 border border-red-500/20 group-hover:bg-red-500 group-hover:text-zinc-900 transition-colors shadow-lg"><XCircle size={28} /></div>
                   <div className="text-center"><p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Mail Bị Lỗi</p><h4 className="text-xl font-black text-red-400 uppercase tracking-tighter">{stats.mailDie}</h4></div>
                </div>
-            </div>
-            
-            {/* Progress Bar Style - Hiệu suất làm kênh */}
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 shadow-lg backdrop-blur-md flex flex-col justify-center">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Hiệu suất xử lý</span>
-                <span className="text-sm font-black text-amber-500">
-                  {stats.totalMail > 0 ? Math.round((stats.mailLive / stats.totalMail) * 100) : 0}%
-                </span>
-              </div>
-              <div className="w-full h-3 bg-zinc-800 rounded-full overflow-hidden border border-zinc-700">
-                <motion.div 
-                  initial={{ width: 0 }} 
-                  animate={{ width: `${stats.totalMail > 0 ? Math.round((stats.mailLive / stats.totalMail) * 100) : 0}%` }} 
-                  transition={{ duration: 1, ease: "easeOut" }} 
-                  className="h-full bg-gradient-to-r from-amber-600 to-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.5)]" 
-                />
-              </div>
-              <p className="text-[10px] text-zinc-500 mt-3 text-right">Tỷ lệ thành công dựa trên tổng số mail</p>
             </div>
           </div>
 
@@ -2104,12 +2086,6 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {/* Original Objectives Card */}
-              <div className="rounded-[32px] border border-gold/20 bg-gold/5 p-6 flex flex-col justify-center text-center space-y-4">
-                <div className="mx-auto h-16 w-16 bg-gold rounded-full flex items-center justify-center shadow-2xl shadow-gold/20 text-sidebar"><Target size={28} /></div>
-                <h3 className="text-lg font-black text-white uppercase tracking-tighter">Mục tiêu quý II</h3>
-                <p className="text-gray-400 text-xs leading-relaxed">Tối ưu hóa tỷ lệ <b>Mail Live</b> và tăng tốc các kênh vệ tinh đạt 4000 giờ xem.</p>
-              </div>
             </div>
           </div>
 

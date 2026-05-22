@@ -1502,39 +1502,39 @@ export default function AdminLayout({
                 initial={{ opacity: 0, y: 50, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 50, scale: 0.95 }}
-                className="w-[400px] h-[600px] bg-[#161616]/95 border border-gold/20 rounded-3xl shadow-2xl flex flex-col overflow-hidden mb-6 backdrop-blur-xl"
+                className="w-[400px] h-[600px] bg-white/95 dark:bg-[#161616]/95 border border-gold/20 rounded-3xl shadow-2xl flex flex-col overflow-hidden mb-6 backdrop-blur-xl"
               >
                 {/* Header */}
-                <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                <div className="p-4 border-b border-gray-200 dark:border-white/5 flex items-center justify-between">
                   <div className="flex flex-col">
-                    <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                    <h3 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest flex items-center gap-2">
                       <MessageCircle size={16} className="text-gold" />
-                      Trò chuyện nội bộ
+                      {chatTab === "COMPANY" ? "Nội Bộ Công Ty" : "Tin Nhắn Tự Động"}
                     </h3>
                     <p className="text-[10px] text-gray-500 font-bold uppercase mt-1">AQ MEDIA Workspace</p>
                   </div>
                   <button
                     onClick={() => setIsChatOpen(false)}
-                    className="h-8 w-8 flex items-center justify-center rounded-xl bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-500 transition-colors"
+                    className="h-8 w-8 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-red-500/20 text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors"
                   >
                     <X size={16} />
                   </button>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-white/5 p-2 gap-2 bg-[#0a0a0a]">
+                <div className="flex border-b border-gray-200 dark:border-white/5 p-2 gap-2 bg-gray-50 dark:bg-[#0a0a0a]">
                   <button
                     onClick={() => {
                       setChatTab("COMPANY");
                       setActiveChatUser(null);
                     }}
-                    className={`flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${chatTab === "COMPANY" ? "bg-gold text-sidebar" : "text-gray-500 hover:text-white hover:bg-white/5"}`}
+                    className={`flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${chatTab === "COMPANY" ? "bg-gold text-sidebar" : "text-gray-500 hover:text-gray-800 dark:hover:text-white hover:bg-white/5"}`}
                   >
                     Công ty
                   </button>
                   <button
                     onClick={() => setChatTab("PRIVATE")}
-                    className={`flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${chatTab === "PRIVATE" ? "bg-gold text-sidebar" : "text-gray-500 hover:text-white hover:bg-white/5"}`}
+                    className={`flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${chatTab === "PRIVATE" ? "bg-gold text-sidebar" : "text-gray-500 hover:text-gray-800 dark:hover:text-white hover:bg-white/5"}`}
                   >
                     Nhân sự
                   </button>
@@ -1555,7 +1555,7 @@ export default function AdminLayout({
                                   {msg.senderName} ({msg.senderRole === "01" ? "ADMIN" : msg.senderRole === "02" ? "QLCV" : msg.senderRole === "03" ? "QLNS" : "NV"})
                                 </span>
                               )}
-                              <div className={`p-3 rounded-2xl text-xs font-medium leading-relaxed break-all flex flex-col gap-2 ${isMe ? "bg-gold text-sidebar rounded-tr-none" : "bg-white/5 text-white rounded-tl-none border border-white/5"}`}>
+                              <div className={`p-3 rounded-2xl text-xs font-medium leading-relaxed break-all flex flex-col gap-2 ${isMe ? "bg-gold text-sidebar rounded-tr-none" : "bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white rounded-tl-none border border-gray-200 dark:border-white/5"}`}>
                                 {msg.text && <span>{msg.text}</span>}
                                 {msg.fileData && msg.fileType?.startsWith("image/") && (
                                   <div className="rounded-xl overflow-hidden border border-white/10 max-h-36">
@@ -1568,7 +1568,7 @@ export default function AdminLayout({
                                   </div>
                                 )}
                                 {msg.fileData && !msg.fileType?.startsWith("image/") && (
-                                  <div className={`flex items-center gap-2 p-2 rounded-xl text-left ${isMe ? "bg-white/10 text-sidebar" : "bg-white/5 text-white border border-white/5"}`}>
+                                  <div className={`flex items-center gap-2 p-2 rounded-xl text-left ${isMe ? "bg-white/10 text-sidebar" : "bg-gray-200 dark:bg-white/5 text-gray-900 dark:text-white border border-gray-300 dark:border-white/5"}`}>
                                     <FileText size={16} className={isMe ? "text-sidebar shrink-0" : "text-gold shrink-0"} />
                                     <div className="min-w-0 flex-1">
                                       <p className="text-[10px] font-black truncate">{msg.fileName}</p>
@@ -1577,7 +1577,7 @@ export default function AdminLayout({
                                     <a
                                       href={msg.fileData}
                                       download={msg.fileName}
-                                      className={`h-6 w-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${isMe ? "bg-sidebar/10 hover:bg-sidebar text-sidebar hover:text-white" : "bg-white/5 hover:bg-gold text-gray-400 hover:text-sidebar"}`}
+                                      className={`h-6 w-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${isMe ? "bg-sidebar/10 hover:bg-sidebar text-sidebar hover:text-white" : "bg-gray-300 dark:bg-white/5 hover:bg-gold text-gray-500 dark:text-gray-400 hover:text-sidebar"}`}
                                       title="Tải xuống tệp tin"
                                     >
                                       <Download size={10} />
@@ -1594,25 +1594,25 @@ export default function AdminLayout({
 
                       {/* Input Box */}
                       {selectedChatFile && (
-                        <div className="mx-3 my-2 p-2 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-2">
+                        <div className="mx-3 my-2 p-2 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
                             <FileText size={16} className="text-gold shrink-0" />
                             <div className="min-w-0">
-                              <p className="text-[10px] font-black text-white truncate">{selectedChatFile.name}</p>
+                              <p className="text-[10px] font-black text-gray-900 dark:text-white truncate">{selectedChatFile.name}</p>
                               <p className="text-[8px] font-bold text-gray-500 font-mono">{selectedChatFile.size}</p>
                             </div>
                           </div>
                           <button
                             type="button"
                             onClick={() => setSelectedChatFile(null)}
-                            className="h-6 w-6 rounded-full hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                            className="h-6 w-6 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                           >
                             <X size={12} />
                           </button>
                         </div>
                       )}
 
-                      <form onSubmit={handleSendCompanyMessage} className="p-3 border-t border-white/5 bg-[#0e0e0e] flex gap-2 items-center">
+                      <form onSubmit={handleSendCompanyMessage} className="p-3 border-t border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-[#0e0e0e] flex gap-2 items-center">
                         <input
                           type="file"
                           ref={companyFileInputRef}
@@ -1622,7 +1622,7 @@ export default function AdminLayout({
                         <button
                           type="button"
                           onClick={() => companyFileInputRef.current?.click()}
-                          className="h-10 w-10 shrink-0 bg-white/5 border border-white/5 hover:border-gold/30 rounded-xl flex items-center justify-center text-gray-400 hover:text-gold transition-colors"
+                          className="h-10 w-10 shrink-0 bg-gray-200 dark:bg-white/5 border border-gray-300 dark:border-white/5 hover:border-gold/30 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gold transition-colors"
                           title="Đính kèm ảnh hoặc tệp (tối đa 200MB)"
                         >
                           <Plus size={16} />
@@ -1633,7 +1633,7 @@ export default function AdminLayout({
                           placeholder="Nhập nội dung tin nhắn..."
                           value={chatMessage}
                           onChange={(e) => setChatMessage(e.target.value)}
-                          className="flex-1 h-10 bg-white/5 border border-white/5 focus:border-gold/50 rounded-xl px-4 text-xs text-white focus:outline-none transition-all placeholder:text-gray-600"
+                          className="flex-1 h-10 bg-gray-200 dark:bg-white/5 border border-gray-300 dark:border-white/5 focus:border-gold/50 rounded-xl px-4 text-xs text-gray-900 dark:text-white focus:outline-none transition-all placeholder:text-gray-400"
                         />
                         <button type="submit" className="h-10 w-10 bg-gold text-sidebar rounded-xl flex items-center justify-center hover:bg-white hover:text-sidebar transition-colors shadow-lg shadow-gold/10">
                           <Send size={14} />
@@ -1644,22 +1644,22 @@ export default function AdminLayout({
                     <div className="flex-1 flex overflow-hidden">
                       {/* Left: User Select sidebar */}
                       {!activeChatUser ? (
-                        <div className="flex-1 flex flex-col overflow-y-auto p-2 divide-y divide-white/5 custom-scrollbar">
+                        <div className="flex-1 flex flex-col overflow-y-auto p-2 divide-y divide-gray-200 dark:divide-white/5 custom-scrollbar">
                           <div className="text-[9px] font-black text-gray-500 uppercase tracking-widest p-2">Chọn nhân sự</div>
                           {chatUsers.map((u: any) => (
                             <button
                               key={u.id}
                               onClick={() => setActiveChatUser(u)}
-                              className="w-full p-3 flex items-center gap-3 rounded-xl hover:bg-white/5 transition-all text-left group"
+                              className="w-full p-3 flex items-center gap-3 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-all text-left group"
                             >
                               <div className="relative">
                                 <div className="h-8 w-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-xs text-gold font-black group-hover:scale-105 transition-all">
                                   {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover rounded-lg" /> : u.name.charAt(0)}
                                 </div>
-                                <div className={`absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-[#161616] ${u.isOnline ? "bg-green-500" : "bg-red-500"}`} />
+                                <div className={`absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-[#161616] ${u.isOnline ? "bg-green-500" : "bg-red-500"}`} />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-black text-white truncate group-hover:text-gold transition-colors">{u.name}</p>
+                                <p className="text-xs font-black text-gray-900 dark:text-white truncate group-hover:text-gold transition-colors">{u.name}</p>
                                 <p className="text-[8px] font-bold text-gray-500 uppercase mt-0.5">@{u.username}</p>
                               </div>
                               {getUnreadCountForUser(u.username) > 0 && (
@@ -1673,16 +1673,16 @@ export default function AdminLayout({
                       ) : (
                         <div className="flex-1 flex flex-col overflow-hidden">
                           {/* Active private partner header */}
-                          <div className="p-3 border-b border-white/5 bg-[#0e0e0e] flex items-center justify-between">
+                          <div className="p-3 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-[#0e0e0e] flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <div className="h-6 w-6 rounded bg-gold/10 flex items-center justify-center text-[10px] font-black text-gold">
                                 {activeChatUser.name.charAt(0)}
                               </div>
-                              <span className="text-[10px] font-black text-white uppercase truncate max-w-[120px]">{activeChatUser.name}</span>
+                              <span className="text-[10px] font-black text-gray-900 dark:text-white uppercase truncate max-w-[120px]">{activeChatUser.name}</span>
                             </div>
                             <button
                               onClick={() => setActiveChatUser(null)}
-                              className="text-[9px] font-black text-gold uppercase tracking-wider hover:text-white"
+                              className="text-[9px] font-black text-gold uppercase tracking-wider hover:text-gray-900 dark:hover:text-white"
                             >
                               Đổi người
                             </button>
@@ -1699,7 +1699,7 @@ export default function AdminLayout({
                                 const isMe = msg.sender === user?.username;
                                 return (
                                   <div key={msg.id} className={`flex flex-col max-w-[80%] ${isMe ? "self-end items-end" : "self-start items-start"}`}>
-                                    <div className={`p-3 rounded-2xl text-xs font-medium leading-relaxed break-all flex flex-col gap-2 ${isMe ? "bg-gold text-sidebar rounded-tr-none" : "bg-white/5 text-white rounded-tl-none border border-white/5"}`}>
+                                    <div className={`p-3 rounded-2xl text-xs font-medium leading-relaxed break-all flex flex-col gap-2 ${isMe ? "bg-gold text-sidebar rounded-tr-none" : "bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white rounded-tl-none border border-gray-200 dark:border-white/5"}`}>
                                       {msg.text && <span>{msg.text}</span>}
                                       {msg.fileData && msg.fileType?.startsWith("image/") && (
                                         <div className="rounded-xl overflow-hidden border border-white/10 max-h-36">
@@ -1712,7 +1712,7 @@ export default function AdminLayout({
                                         </div>
                                       )}
                                       {msg.fileData && !msg.fileType?.startsWith("image/") && (
-                                        <div className={`flex items-center gap-2 p-2 rounded-xl text-left ${isMe ? "bg-white/10 text-sidebar" : "bg-white/5 text-white border border-white/5"}`}>
+                                        <div className={`flex items-center gap-2 p-2 rounded-xl text-left ${isMe ? "bg-white/10 text-sidebar" : "bg-gray-200 dark:bg-white/5 text-gray-900 dark:text-white border border-gray-300 dark:border-white/5"}`}>
                                           <FileText size={16} className={isMe ? "text-sidebar shrink-0" : "text-gold shrink-0"} />
                                           <div className="min-w-0 flex-1">
                                             <p className="text-[10px] font-black truncate">{msg.fileName}</p>
@@ -1721,7 +1721,7 @@ export default function AdminLayout({
                                           <a
                                             href={msg.fileData}
                                             download={msg.fileName}
-                                            className={`h-6 w-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${isMe ? "bg-sidebar/10 hover:bg-sidebar text-sidebar hover:text-white" : "bg-white/5 hover:bg-gold text-gray-400 hover:text-sidebar"}`}
+                                            className={`h-6 w-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${isMe ? "bg-sidebar/10 hover:bg-sidebar text-sidebar hover:text-white" : "bg-gray-300 dark:bg-white/5 hover:bg-gold text-gray-500 dark:text-gray-400 hover:text-sidebar"}`}
                                             title="Tải xuống tệp tin"
                                           >
                                             <Download size={10} />
@@ -1738,25 +1738,25 @@ export default function AdminLayout({
 
                           {/* Input box */}
                           {selectedChatFile && (
-                            <div className="mx-3 my-2 p-2 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-2">
+                            <div className="mx-3 my-2 p-2 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2 min-w-0">
                                 <FileText size={16} className="text-gold shrink-0" />
                                 <div className="min-w-0">
-                                  <p className="text-[10px] font-black text-white truncate">{selectedChatFile.name}</p>
+                                  <p className="text-[10px] font-black text-gray-900 dark:text-white truncate">{selectedChatFile.name}</p>
                                   <p className="text-[8px] font-bold text-gray-500 font-mono">{selectedChatFile.size}</p>
                                 </div>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => setSelectedChatFile(null)}
-                                className="h-6 w-6 rounded-full hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                                className="h-6 w-6 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                               >
                                 <X size={12} />
                               </button>
                             </div>
                           )}
 
-                          <form onSubmit={handleSendPrivateMessage} className="p-3 border-t border-white/5 bg-[#000000] flex gap-2 items-center">
+                          <form onSubmit={handleSendPrivateMessage} className="p-3 border-t border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-[#000000] flex gap-2 items-center">
                             <input
                               type="file"
                               ref={privateFileInputRef}
@@ -1766,7 +1766,7 @@ export default function AdminLayout({
                             <button
                               type="button"
                               onClick={() => privateFileInputRef.current?.click()}
-                              className="h-10 w-10 shrink-0 bg-white/5 border border-white/5 hover:border-gold/30 rounded-xl flex items-center justify-center text-gray-400 hover:text-gold transition-colors"
+                              className="h-10 w-10 shrink-0 bg-gray-200 dark:bg-white/5 border border-gray-300 dark:border-white/5 hover:border-gold/30 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gold transition-colors"
                               title="Đính kèm ảnh hoặc tệp (tối đa 200MB)"
                             >
                               <Plus size={16} />
@@ -1777,7 +1777,7 @@ export default function AdminLayout({
                               placeholder={`Chat với ${activeChatUser.name}...`}
                               value={chatMessage}
                               onChange={(e) => setChatMessage(e.target.value)}
-                              className="flex-1 h-10 bg-white/5 border border-white/5 focus:border-gold/50 rounded-xl px-4 text-xs text-white focus:outline-none transition-all placeholder:text-gray-600"
+                              className="flex-1 h-10 bg-gray-200 dark:bg-white/5 border border-gray-300 dark:border-white/5 focus:border-gold/50 rounded-xl px-4 text-xs text-gray-900 dark:text-white focus:outline-none transition-all placeholder:text-gray-400"
                             />
                             <button type="submit" className="h-10 w-10 bg-gold text-sidebar rounded-xl flex items-center justify-center hover:bg-white hover:text-sidebar transition-colors shadow-lg shadow-gold/10">
                               <Send size={14} />
@@ -1804,11 +1804,11 @@ export default function AdminLayout({
           >
             <MessageCircle size={28} className="group-hover:scale-110 transition-transform duration-300" />
             {unreadCount > 0 ? (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white font-mono text-[11px] font-black h-6 w-6 rounded-full flex items-center justify-center border-2 border-[#161616] shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse">
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white font-mono text-[11px] font-black h-6 w-6 rounded-full flex items-center justify-center border-2 border-white dark:border-[#161616] shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse">
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             ) : (
-              <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-green-500 border-2 border-sidebar" />
+              <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-sidebar" />
             )}
           </motion.button>
         </div>
@@ -1823,17 +1823,17 @@ export default function AdminLayout({
                 initial={{ opacity: 0, y: 50, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 50, scale: 0.95 }}
-                className="w-96 h-[500px] bg-[#161616]/95 border border-gold/20 rounded-3xl shadow-2xl flex flex-col overflow-hidden mb-6 backdrop-blur-xl"
+                className="w-96 h-[500px] bg-white/95 dark:bg-[#161616]/95 border border-gold/20 rounded-3xl shadow-2xl flex flex-col overflow-hidden mb-6 backdrop-blur-xl"
               >
                 {/* Header */}
-                <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                <div className="p-4 border-b border-gray-200 dark:border-white/5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Phone size={16} className="text-gold animate-pulse shrink-0" />
-                    <h3 className="text-xs font-black text-white uppercase tracking-widest">Danh sách SĐT ({myAssignedPhones.length})</h3>
+                    <h3 className="text-xs font-black text-gray-800 dark:text-white uppercase tracking-widest">Danh sách SĐT ({myAssignedPhones.length})</h3>
                   </div>
                   <button
                     onClick={() => setIsPhonePanelOpen(false)}
-                    className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-red-500/20 text-gray-400 hover:text-red-500 transition-colors"
+                    className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-red-500/10 dark:hover:bg-red-500/20 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-500 transition-colors"
                   >
                     <X size={16} />
                   </button>
@@ -1844,14 +1844,14 @@ export default function AdminLayout({
                   {myAssignedPhones.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6">
                       <Phone size={48} className="text-gold/20 mb-4 stroke-1" />
-                      <p className="text-sm font-black text-gray-300 uppercase tracking-wider">Không có SĐT</p>
+                      <p className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">Không có SĐT</p>
                       <p className="text-xs text-gray-500 mt-1 max-w-[200px]">Hiện không có số điện thoại nào hoạt động được gán cho bạn.</p>
                     </div>
                   ) : (
                     myAssignedPhones.map((p: any) => (
                       <div
                         key={p.id}
-                        className="p-4 bg-white/[0.02] border border-white/5 hover:border-gold/30 rounded-2xl transition-all duration-300 flex flex-col gap-3 group relative overflow-hidden"
+                        className="p-4 bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 hover:border-gold/30 dark:hover:border-gold/30 rounded-2xl transition-all duration-300 flex flex-col gap-3 group relative overflow-hidden"
                       >
                         <div className="flex items-center justify-between">
                           <button
@@ -1859,10 +1859,8 @@ export default function AdminLayout({
                             className="flex items-center gap-2 group/num text-left active:scale-[0.98] transition-transform"
                             title="Bấm để copy số điện thoại"
                           >
-                            <span className="text-lg font-black text-white group-hover/num:text-gold transition-colors font-mono tracking-wide">
-                              {p.number}
-                            </span>
-                            <Copy size={14} className="text-gray-500 group-hover/num:text-gold transition-colors" />
+                            <span className="text-lg font-black text-blue-600 dark:text-blue-400 group-hover/num:text-blue-500 dark:group-hover/num:text-blue-300 transition-colors font-mono tracking-wide">{p.number}</span>
+                            <Copy size={14} className="text-gray-400 dark:text-gray-500 group-hover/num:text-blue-500 opacity-0 group-hover/num:opacity-100 transition-all" />
                           </button>
 
                           {p.otpLink ? (
@@ -1870,18 +1868,18 @@ export default function AdminLayout({
                               href={p.otpLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[10px] font-black text-gold hover:text-[#0a0a0a] transition-colors bg-gold/10 hover:bg-gold border border-gold/20 px-3 py-1.5 rounded-lg flex items-center gap-1 shrink-0"
+                              className="text-[10px] font-black text-gold hover:text-white transition-colors bg-gold/10 hover:bg-gold border border-gold/20 px-3 py-1.5 rounded-lg flex items-center gap-1 shrink-0"
                             >
                               <span>Mở OTP</span>
                               <ExternalLink size={10} />
                             </a>
                           ) : (
-                            <span className="text-[10px] text-gray-500 font-bold px-3 py-1.5 bg-white/5 rounded-lg shrink-0">Không có OTP</span>
+                            <span className="text-[10px] text-gray-500 font-bold px-3 py-1.5 bg-gray-200 dark:bg-white/5 rounded-lg shrink-0">Không có OTP</span>
                           )}
                         </div>
 
                         {/* Status buttons */}
-                        <div className={`grid ${p.status === "XM lần 1" ? "grid-cols-3" : "grid-cols-2"} gap-2 border-t border-white/5 pt-3`}>
+                        <div className={`grid ${p.status === "XM lần 1" ? "grid-cols-3" : "grid-cols-2"} gap-2 border-t border-gray-200 dark:border-white/5 pt-3`}>
                           <button
                             onClick={() => handleUpdatePhoneStatus(p.id, "XM lần 1")}
                             className={`py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 ${p.status === "XM lần 1" ? "bg-gold text-[#0a0a0a] shadow-lg shadow-gold/20" : "bg-gold/10 text-gold hover:bg-gold hover:text-[#0a0a0a]"}`}

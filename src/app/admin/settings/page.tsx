@@ -651,7 +651,7 @@ export default function SettingsPage() {
       >
         <div className="flex items-center gap-2">
           <Icon className={iconColor} size={18} />
-          <h3 className="text-md font-black text-white uppercase tracking-tight">{title}</h3>
+          <h3 className="text-md font-black text-gray-900 dark:text-white uppercase tracking-tight">{title}</h3>
         </div>
         <motion.div animate={{ rotate: openSections[id] ? 180 : 0 }} transition={{ duration: 0.2 }}>
           <ChevronDown size={18} className="text-gray-500" />
@@ -666,7 +666,7 @@ export default function SettingsPage() {
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="px-6 pb-6 border-t border-white/5">
+            <div className="px-6 pb-6 border-t border-gray-100 dark:border-white/5">
               {children}
             </div>
           </motion.div>
@@ -704,7 +704,7 @@ export default function SettingsPage() {
               initial={{ scale: 0.9, opacity: 0 }} 
               animate={{ scale: 1, opacity: 1 }} 
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#121212] border-2 border-red-500/50 rounded-[32px] p-8 w-full max-w-md shadow-2xl shadow-red-500/10 flex flex-col"
+              className="bg-white dark:bg-[#121212] border-2 border-red-500/50 rounded-[32px] p-8 w-full max-w-md shadow-2xl shadow-red-500/10 flex flex-col"
             >
               <div className="flex items-center gap-4 mb-6 flex-shrink-0">
                 <div className="h-14 w-14 rounded-2xl bg-red-500/20 border-2 border-red-500/40 flex items-center justify-center text-red-500 animate-pulse">
@@ -718,7 +718,7 @@ export default function SettingsPage() {
 
               <div className="bg-red-500/10 border-2 border-red-500/30 rounded-2xl p-5 mb-6 text-xs text-gray-200 font-bold leading-relaxed space-y-3">
                 <p className="text-red-400 font-black text-sm">CẢNH BÁO: Thao tác này sẽ XÓA TOÀN BỘ dữ liệu hệ thống bao gồm Mail, SĐT, Kênh, và Nhân Viên. Hành động này KHÔNG THỂ HOÀN TÁC!</p>
-                <div className="border-t border-red-500/20 pt-3 space-y-1 text-[11px] text-gray-400">
+                <div className="border-t border-red-500/20 pt-3 space-y-1 text-[11px] text-gray-500 dark:text-gray-400">
                   <p>• Danh sách Mail, SĐT, Kênh</p>
                   <p>• Dữ liệu nhân viên & phân công</p>
                   <p>• Lịch sử chat & tin nhắn</p>
@@ -733,7 +733,7 @@ export default function SettingsPage() {
                 placeholder='Nhập XÓA để tiếp tục...'
                 value={safetyPhrase}
                 onChange={(e) => setSafetyPhrase(e.target.value)}
-                className="bg-black/40 border-2 border-red-500/30 rounded-xl px-4 h-14 text-lg text-white font-black text-center mb-6 outline-none focus:border-red-500 transition-all placeholder:text-red-500/30"
+                className="bg-black/40 border-2 border-red-500/30 rounded-xl px-4 h-14 text-lg text-gray-900 dark:text-white font-black text-center mb-6 outline-none focus:border-red-500 transition-all placeholder:text-red-500/30"
               />
 
               <div className="flex gap-4">
@@ -742,14 +742,14 @@ export default function SettingsPage() {
                     setShowResetConfirm(false);
                     setSafetyPhrase("");
                   }} 
-                  className="flex-1 h-12 rounded-xl border border-white/10 text-white font-bold uppercase text-xs tracking-widest hover:bg-white/5 transition-all"
+                  className="flex-1 h-12 rounded-xl border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white font-bold uppercase text-xs tracking-widest hover:bg-white/5 transition-all"
                 >
                   Hủy bỏ
                 </button>
                 <button 
                   disabled={safetyPhrase !== "XÓA"}
                   onClick={handleHardResetDatabase} 
-                  className="flex-1 h-12 rounded-xl bg-red-600 text-white font-black uppercase text-xs tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-500/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 h-12 rounded-xl bg-red-600 text-gray-900 dark:text-white font-black uppercase text-xs tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-500/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   <AlertTriangle size={16} /> Xác nhận XÓA
                 </button>
@@ -763,12 +763,12 @@ export default function SettingsPage() {
       <div className="flex items-center gap-4">
         <button 
           onClick={() => router.push("/admin")}
-          className="p-2 rounded-xl bg-sidebar border border-border-custom text-gray-400 hover:text-white transition-all shadow-md"
+          className="p-2 rounded-xl bg-sidebar border border-border-custom text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white transition-all shadow-md"
         >
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+          <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-3">
             <Settings className="text-gold" size={28} />
             Hệ Thống & Cài Đặt (Settings)
           </h2>
@@ -779,7 +779,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Tab buttons - only PROFILE and HE_THONG */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6 pb-4 border-b border-white/5">
+      <div className="flex flex-col md:flex-row gap-4 mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
         <button 
           onClick={() => setActiveTab("PROFILE")}
           className={`h-10 px-6 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
@@ -811,20 +811,20 @@ export default function SettingsPage() {
       <div className="animate-fade-in">
         {activeTab === "PROFILE" && (
           <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl max-w-2xl">
-            <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-6">
+            <div className="flex items-center gap-2 border-b border-gray-100 dark:border-white/5 pb-4 mb-6">
               <Info className="text-gold" size={18} />
-              <h3 className="text-md font-black text-white uppercase tracking-tight">Thông tin cá nhân</h3>
+              <h3 className="text-md font-black text-gray-900 dark:text-white uppercase tracking-tight">Thông tin cá nhân</h3>
             </div>
-            <div className="space-y-4 text-sm text-gray-300">
-              <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+            <div className="space-y-4 text-sm text-gray-600 dark:text-gray-300">
+              <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl">
                 <span className="font-bold text-gray-500 uppercase text-[10px] tracking-widest">Họ và tên</span>
-                <span className="font-black text-white">{user?.name}</span>
+                <span className="font-black text-gray-900 dark:text-white">{user?.name}</span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+              <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl">
                 <span className="font-bold text-gray-500 uppercase text-[10px] tracking-widest">Tên đăng nhập</span>
                 <span className="font-black text-gold">@{user?.username}</span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+              <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl">
                 <span className="font-bold text-gray-500 uppercase text-[10px] tracking-widest">Phân quyền</span>
                 <span className="px-3 py-1 bg-gold/10 text-gold border border-gold/20 rounded-lg text-[10px] font-black uppercase">
                   {user?.role === "01" ? "ADMIN" : user?.role === "02" ? "QL CÔNG VIỆC" : user?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN"}
@@ -836,15 +836,15 @@ export default function SettingsPage() {
 
         {activeTab === "PASSWORD" && (
           <div className="bg-sidebar border border-border-custom rounded-[32px] p-8 shadow-2xl max-w-2xl">
-            <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-8">
+            <div className="flex items-center gap-2 border-b border-gray-100 dark:border-white/5 pb-4 mb-8">
               <Lock className="text-gold" size={20} />
-              <h3 className="text-lg font-black text-white uppercase tracking-tight">Đổi mật khẩu tài khoản</h3>
+              <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">Đổi mật khẩu tài khoản</h3>
             </div>
             
             <form onSubmit={handleChangePassword} className="space-y-6">
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                  <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-2">
                     Mật khẩu hiện tại
                     {passErrors.old && <span className="text-red-500 flex items-center gap-1 animate-pulse"><AlertCircle size={10} /> {passErrors.old}</span>}
                   </label>
@@ -852,13 +852,13 @@ export default function SettingsPage() {
                     type="password"
                     value={oldPassword}
                     onChange={(e) => handleOldPasswordChange(e.target.value)}
-                    className={`w-full bg-[#0a0a0a] border rounded-2xl px-5 h-14 text-sm text-white outline-none focus:bg-[#161616] transition-all ${passErrors.old ? "border-red-500/50 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-white/20 focus:border-gold/50"}`}
+                    className={`w-full bg-white dark:bg-[#0a0a0a] border rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:bg-gray-50 dark:bg-[#161616] transition-all ${passErrors.old ? "border-red-500/50 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-gray-200 dark:border-white/20 focus:border-gold/50"}`}
                     placeholder="Nhập mật khẩu đang sử dụng"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                  <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-2">
                     Mật khẩu mới
                     {passErrors.new && <span className="text-red-500 flex items-center gap-1 animate-pulse"><AlertCircle size={10} /> {passErrors.new}</span>}
                   </label>
@@ -866,7 +866,7 @@ export default function SettingsPage() {
                     type="password"
                     value={newPassword}
                     onChange={(e) => handleNewPasswordChange(e.target.value)}
-                    className={`w-full bg-[#0a0a0a] border rounded-2xl px-5 h-14 text-sm text-white outline-none focus:bg-[#161616] transition-all ${passErrors.new ? "border-red-500/50 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-white/20 focus:border-gold/50"}`}
+                    className={`w-full bg-white dark:bg-[#0a0a0a] border rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:bg-gray-50 dark:bg-[#161616] transition-all ${passErrors.new ? "border-red-500/50 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-gray-200 dark:border-white/20 focus:border-gold/50"}`}
                     placeholder="Mật khẩu mới (ít nhất 6 ký tự, gồm số và chữ hoa)"
                   />
                   {newPassword && !passErrors.new && (
@@ -879,7 +879,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                  <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-2">
                     Xác nhận mật khẩu mới
                     {passErrors.confirm && <span className="text-red-500 flex items-center gap-1 animate-pulse"><AlertCircle size={10} /> {passErrors.confirm}</span>}
                   </label>
@@ -887,7 +887,7 @@ export default function SettingsPage() {
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => handleConfirmPasswordChange(e.target.value)}
-                    className={`w-full bg-[#0a0a0a] border rounded-2xl px-5 h-14 text-sm text-white outline-none focus:bg-[#161616] transition-all ${passErrors.confirm ? "border-red-500/50 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-white/20 focus:border-gold/50"}`}
+                    className={`w-full bg-white dark:bg-[#0a0a0a] border rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:bg-gray-50 dark:bg-[#161616] transition-all ${passErrors.confirm ? "border-red-500/50 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-gray-200 dark:border-white/20 focus:border-gold/50"}`}
                     placeholder="Nhập lại mật khẩu mới"
                   />
                 </div>
@@ -918,41 +918,41 @@ export default function SettingsPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[11px] text-gray-400 font-bold uppercase tracking-widest block mb-2">Giờ bắt đầu làm việc</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest block mb-2">Giờ bắt đầu làm việc</label>
                     <div className="relative">
                       <input 
                         type="time" 
                         value={workStartTime}
                         onChange={(e) => setWorkStartTime(e.target.value)}
-                        className="bg-[#0a0a0a] border border-white/20 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-gold/50 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+                        className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-lg text-gray-900 dark:text-white outline-none focus:border-gold/50 focus:bg-gray-50 dark:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[11px] text-gray-400 font-bold uppercase tracking-widest block mb-2">Giờ kết thúc làm việc</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest block mb-2">Giờ kết thúc làm việc</label>
                     <div className="relative">
                       <input 
                         type="time" 
                         value={workEndTime}
                         onChange={(e) => setWorkEndTime(e.target.value)}
-                        className="bg-[#0a0a0a] border border-white/20 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-gold/50 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+                        className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-lg text-gray-900 dark:text-white outline-none focus:border-gold/50 focus:bg-gray-50 dark:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[11px] text-gray-400 font-bold uppercase tracking-widest block mb-2">Hệ thống sẽ đóng vào lúc</label>
+                    <label className="text-[11px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest block mb-2">Hệ thống sẽ đóng vào lúc</label>
                     <div className="relative">
                       <input 
                         type="time" 
                         value={systemCloseTime}
                         onChange={(e) => setSystemCloseTime(e.target.value)}
-                        className="bg-[#0a0a0a] border border-white/20 rounded-2xl px-5 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+                        className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
                       />
                     </div>
                   </div>
                 </div>
-                <div className="space-y-3 pt-4 border-t border-white/5">
-                  <label className="text-[12px] text-gray-400 font-bold uppercase tracking-widest mb-4 block">Mức phạt đi muộn (VNĐ)</label>
+                <div className="space-y-3 pt-4 border-t border-gray-100 dark:border-white/5">
+                  <label className="text-[12px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest mb-4 block">Mức phạt đi muộn (VNĐ)</label>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <p className="text-sm text-amber-400 font-black">Muộn 1-5 phút</p>
@@ -961,7 +961,7 @@ export default function SettingsPage() {
                           type="text" 
                           value={Number(fineTier1).toLocaleString("vi-VN")}
                           onChange={(e) => setFineTier1(Math.max(0, Number(e.target.value.replace(/\D/g, ""))))}
-                          className="bg-[#0a0a0a] border border-white/20 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+                          className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:bg-[#161616] transition-all w-full font-black tracking-wider"
                         />
                         <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">VND</span>
                       </div>
@@ -973,7 +973,7 @@ export default function SettingsPage() {
                           type="text" 
                           value={Number(fineTier2).toLocaleString("vi-VN")}
                           onChange={(e) => setFineTier2(Math.max(0, Number(e.target.value.replace(/\D/g, ""))))}
-                          className="bg-[#0a0a0a] border border-white/20 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+                          className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:bg-[#161616] transition-all w-full font-black tracking-wider"
                         />
                         <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">VND</span>
                       </div>
@@ -985,7 +985,7 @@ export default function SettingsPage() {
                           type="text" 
                           value={Number(fineTier3).toLocaleString("vi-VN")}
                           onChange={(e) => setFineTier3(Math.max(0, Number(e.target.value.replace(/\D/g, ""))))}
-                          className="bg-[#0a0a0a] border border-white/20 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+                          className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:bg-[#161616] transition-all w-full font-black tracking-wider"
                         />
                         <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">VND</span>
                       </div>
@@ -1004,9 +1004,9 @@ export default function SettingsPage() {
             {/* Section: 2FA */}
             <CollapsibleSection id="2FA" icon={ShieldCheck} title="Bảo Mật 2FA">
               <div className="pt-5">
-                <div className="text-center p-10 bg-white/[0.02] border border-white/5 rounded-2xl">
+                <div className="text-center p-10 bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl">
                   <ShieldCheck size={48} className="text-gray-600 mx-auto mb-4 opacity-50" />
-                  <h4 className="text-sm font-black text-white uppercase mb-2">Tính năng đang phát triển</h4>
+                  <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase mb-2">Tính năng đang phát triển</h4>
                   <p className="text-xs text-gray-500 font-bold">Bảo mật 2FA qua TOTP Authenticator sẽ sớm được ra mắt trong bản cập nhật tới.</p>
                 </div>
               </div>
@@ -1021,43 +1021,43 @@ export default function SettingsPage() {
                     <form onSubmit={handleSaveSettings} className="space-y-5">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <label className="text-[11px] text-gray-400 font-bold uppercase tracking-widest block mb-2">Số lượng gán Mail mỗi đợt</label>
+                          <label className="text-[11px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest block mb-2">Số lượng gán Mail mỗi đợt</label>
                           <input 
                             type="number" 
                             value={chunkSize}
                             onChange={(e) => setChunkSize(Math.max(1, Number(e.target.value)))}
-                            className="bg-[#0a0a0a] border border-white/20 rounded-2xl px-5 h-14 text-sm text-gold outline-none focus:border-gold/50 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+                            className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-sm text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:bg-[#161616] transition-all w-full font-black tracking-wider"
                             required
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[11px] text-gray-400 font-bold uppercase tracking-widest block mb-2">KPI Target (Mail Hàng tháng)</label>
+                          <label className="text-[11px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest block mb-2">KPI Target (Mail Hàng tháng)</label>
                           <input 
                             type="number" 
                             value={kpiTargetMails}
                             onChange={(e) => setKpiTargetMails(Math.max(1, Number(e.target.value)))}
-                            className="bg-[#0a0a0a] border border-white/20 rounded-2xl px-5 h-14 text-sm text-white outline-none focus:border-gold/50 focus:bg-[#161616] transition-all w-full font-bold"
+                            className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 focus:bg-gray-50 dark:bg-[#161616] transition-all w-full font-bold"
                             required
                           />
                         </div>
                         <div className="space-y-2 md:col-span-2">
-                          <label className="text-[11px] text-gray-400 font-bold uppercase tracking-widest block mb-2">KPI Target (Watch Hours tích lũy)</label>
+                          <label className="text-[11px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest block mb-2">KPI Target (Watch Hours tích lũy)</label>
                           <input 
                             type="number" 
                             value={kpiTargetWatchHours}
                             onChange={(e) => setKpiTargetWatchHours(Math.max(1, Number(e.target.value)))}
-                            className="bg-[#0a0a0a] border border-white/20 rounded-2xl px-5 h-14 text-sm text-white outline-none focus:border-gold/50 focus:bg-[#161616] transition-all w-full font-bold"
+                            className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 focus:bg-gray-50 dark:bg-[#161616] transition-all w-full font-bold"
                             required
                           />
                         </div>
                       </div>
                       <div className="space-y-2 pt-2">
-                        <label className="text-[11px] text-gray-400 font-bold uppercase tracking-widest block mb-2">API Server Sync Endpoint</label>
+                        <label className="text-[11px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest block mb-2">API Server Sync Endpoint</label>
                         <input 
                           type="text" 
                           value={apiSyncEndpoint}
                           onChange={(e) => setApiSyncEndpoint(e.target.value)}
-                          className="bg-[#0a0a0a] border border-white/20 rounded-2xl px-5 h-14 text-sm text-gray-300 font-mono outline-none focus:border-gold/50 focus:bg-[#161616] transition-all w-full"
+                          className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-sm text-gray-600 dark:text-gray-300 font-mono outline-none focus:border-gold/50 focus:bg-gray-50 dark:bg-[#161616] transition-all w-full"
                           required
                         />
                       </div>
@@ -1075,15 +1075,15 @@ export default function SettingsPage() {
                   {/* Right Side: Storage Stats & Danger Hard Reset */}
                   <div className="space-y-6">
                     {/* Database Space Allocation Stats Widget */}
-                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5">
-                      <div className="flex items-center gap-2 border-b border-white/5 pb-3 mb-4">
+                    <div className="bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl p-5">
+                      <div className="flex items-center gap-2 border-b border-gray-100 dark:border-white/5 pb-3 mb-4">
                         <HardDrive className="text-gold" size={16} />
-                        <h4 className="text-xs font-black text-white uppercase tracking-tight">Dung lượng DB Local</h4>
+                        <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">Dung lượng DB Local</h4>
                       </div>
                       <div className="space-y-3">
-                        <div className="flex justify-between text-xs font-bold text-gray-400">
+                        <div className="flex justify-between text-xs font-bold text-gray-500 dark:text-gray-400">
                           <span>Đã sử dụng:</span>
-                          <span className="text-white font-mono">{storageUsage.text}</span>
+                          <span className="text-gray-900 dark:text-white font-mono">{storageUsage.text}</span>
                         </div>
                         <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
                           <div 
@@ -1103,12 +1103,12 @@ export default function SettingsPage() {
                         <AlertTriangle className="text-red-500" size={16} />
                         <h4 className="text-xs font-black text-red-500 uppercase tracking-tight">Khu vực nguy hiểm</h4>
                       </div>
-                      <p className="text-[11px] text-gray-400 leading-relaxed font-bold">
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed font-bold">
                         Khôi phục toàn bộ cơ sở dữ liệu về trạng thái ban đầu của nhà phát triển. Mọi thay đổi sẽ mất.
                       </p>
                       <button 
                         onClick={() => setShowResetConfirm(true)}
-                        className="h-11 rounded-xl bg-red-500 text-white font-black uppercase text-xs tracking-widest hover:bg-red-600 transition-all flex items-center gap-2 w-full justify-center shadow-lg shadow-red-500/15"
+                        className="h-11 rounded-xl bg-red-500 text-gray-900 dark:text-white font-black uppercase text-xs tracking-widest hover:bg-red-600 transition-all flex items-center gap-2 w-full justify-center shadow-lg shadow-red-500/15"
                       >
                         <RefreshCw size={14} /> Reset Database gốc
                       </button>
@@ -1133,10 +1133,10 @@ export default function SettingsPage() {
                     <form onSubmit={generateQRCode} className="space-y-5">
                       {/* Custom search-select dropdown for banks */}
                       <div className="space-y-2 relative">
-                        <label className="text-[11px] text-gray-400 font-bold uppercase tracking-widest block mb-2">Ngân Hàng Thụ Hưởng</label>
+                        <label className="text-[11px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest block mb-2">Ngân Hàng Thụ Hưởng</label>
                         <div 
                           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                          className="bg-[#0a0a0a] border border-white/20 rounded-2xl px-5 h-14 text-sm text-white outline-none focus:border-gold/50 transition-all w-full font-bold flex items-center justify-between cursor-pointer"
+                          className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full font-bold flex items-center justify-between cursor-pointer"
                         >
                           <div className="flex items-center gap-2 overflow-hidden">
                             {activeBank.logo ? (
@@ -1146,19 +1146,19 @@ export default function SettingsPage() {
                             )}
                             <span className="truncate">{activeBank.shortName} - {activeBank.name}</span>
                           </div>
-                          <span className="text-gray-400 text-[10px]">{isDropdownOpen ? "▲" : "▼"}</span>
+                          <span className="text-gray-500 dark:text-gray-400 text-[10px]">{isDropdownOpen ? "▲" : "▼"}</span>
                         </div>
 
                         {isDropdownOpen && (
                           <div className="absolute left-0 right-0 mt-2 bg-sidebar border border-border-custom rounded-2xl shadow-2xl z-[100] max-h-64 flex flex-col overflow-hidden animate-fade-in">
-                            <div className="p-2 border-b border-white/5 flex-shrink-0">
+                            <div className="p-2 border-b border-gray-100 dark:border-white/5 flex-shrink-0">
                               <input 
                                 type="text" 
                                 placeholder="Tìm tên hoặc mã ngân hàng..."
                                 value={bankSearchTerm}
                                 onChange={(e) => setBankSearchTerm(e.target.value)}
                                 onClick={(e) => e.stopPropagation()}
-                                className="bg-black/40 border border-white/10 rounded-xl px-3 h-9 text-xs text-white placeholder:text-gray-600 outline-none focus:border-gold/30 w-full"
+                                className="bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl px-3 h-9 text-xs text-gray-900 dark:text-white placeholder:text-gray-600 outline-none focus:border-gold/30 w-full"
                               />
                             </div>
                             <div className="overflow-y-auto custom-scrollbar flex-1">
@@ -1192,7 +1192,7 @@ export default function SettingsPage() {
                                       <div className="w-10 h-6 bg-gold/10 text-gold flex items-center justify-center rounded text-[10px] shrink-0 font-bold">{b.shortName?.slice(0, 3)}</div>
                                     )}
                                     <div className="text-left">
-                                      <div className="text-xs font-black text-white">{b.shortName}</div>
+                                      <div className="text-xs font-black text-gray-900 dark:text-white">{b.shortName}</div>
                                       <div className="text-[10px] text-gray-500 font-medium truncate max-w-[280px]">{b.name}</div>
                                     </div>
                                   </div>
@@ -1204,7 +1204,7 @@ export default function SettingsPage() {
                       </div>
 
                       <div className="space-y-2 relative pt-2">
-                        <label className="text-[11px] text-gray-400 font-bold uppercase tracking-widest block mb-2">Số Tài Khoản (STK)</label>
+                        <label className="text-[11px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest block mb-2">Số Tài Khoản (STK)</label>
                         <div className="flex gap-2">
                           <div className="relative flex-1">
                             <input 
@@ -1216,7 +1216,7 @@ export default function SettingsPage() {
                                 setLookupSuccess(null);
                               }}
                               placeholder="Ví dụ: 0123456789"
-                              className="bg-[#0a0a0a] border border-white/20 rounded-2xl pl-5 pr-12 h-14 text-sm text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
+                              className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl pl-5 pr-12 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
                               required
                             />
                             {isLookingUp && (
@@ -1245,13 +1245,13 @@ export default function SettingsPage() {
                       </div>
 
                       <div className="space-y-2 pt-2">
-                        <label className="text-[11px] text-gray-400 font-bold uppercase tracking-widest block mb-2">Tên Chủ Tài Khoản</label>
+                        <label className="text-[11px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest block mb-2">Tên Chủ Tài Khoản</label>
                         <input 
                           type="text" 
                           value={bankAccountHolder}
                           onChange={(e) => setBankAccountHolder(e.target.value.toUpperCase())}
                           placeholder="Ví dụ: NGUYEN VAN A"
-                          className="bg-[#0a0a0a] border border-white/20 rounded-2xl px-5 h-14 text-sm text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
+                          className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
                           required
                         />
                         <p className="text-[9px] text-gray-500">Tên viết in hoa không dấu - Hệ thống tự động tra cứu khi nhập đủ STK</p>
@@ -1270,10 +1270,10 @@ export default function SettingsPage() {
 
                   {/* QR Code Display */}
                   <div className="space-y-6">
-                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5">
-                      <div className="flex items-center gap-2 border-b border-white/5 pb-3 mb-4">
+                    <div className="bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl p-5">
+                      <div className="flex items-center gap-2 border-b border-gray-100 dark:border-white/5 pb-3 mb-4">
                         <Zap className="text-gold" size={16} />
-                        <h4 className="text-xs font-black text-white uppercase tracking-tight">QR Code Thanh Toán</h4>
+                        <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">QR Code Thanh Toán</h4>
                       </div>
 
                       {bankAccountNumber ? (
@@ -1300,14 +1300,14 @@ export default function SettingsPage() {
                     <div className="bg-white/[0.02] border border-gold/20 rounded-2xl p-5">
                       <div className="flex items-center gap-2 border-b border-gold/10 pb-3 mb-4">
                         <CheckCircle2 className="text-gold" size={16} />
-                        <h4 className="text-xs font-black text-white uppercase tracking-tight">Thông Tin Đã Lưu</h4>
+                        <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">Thông Tin Đã Lưu</h4>
                       </div>
                       
                       {bankAccountNumber ? (
                         <div className="space-y-3">
                           <div className="flex justify-between text-xs">
                             <span className="text-gray-500 font-bold">Ngân Hàng:</span>
-                            <span className="text-white font-black">{activeBank.shortName || bankName}</span>
+                            <span className="text-gray-900 dark:text-white font-black">{activeBank.shortName || bankName}</span>
                           </div>
                           <div className="flex justify-between text-xs">
                             <span className="text-gray-500 font-bold">STK:</span>
@@ -1315,9 +1315,9 @@ export default function SettingsPage() {
                           </div>
                           <div className="flex justify-between text-xs">
                             <span className="text-gray-500 font-bold">Chủ TK:</span>
-                            <span className="text-white font-black">{bankAccountHolder}</span>
+                            <span className="text-gray-900 dark:text-white font-black">{bankAccountHolder}</span>
                           </div>
-                          <div className="pt-2 border-t border-white/10">
+                          <div className="pt-2 border-t border-gray-200 dark:border-white/10">
                             <p className="text-[9px] text-green-400 font-black">✓ Đã được cấu hình & đồng bộ thành công</p>
                           </div>
                         </div>
