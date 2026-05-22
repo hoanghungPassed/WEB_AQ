@@ -595,7 +595,8 @@ export default function TaskManagementPage() {
       }
     } else if (selectedTask.title === "Làm kênh") {
       if (selectedTask.mailRange) {
-        filtered = filtered.filter(m => m.batchName === selectedTask.mailRange);
+        const cleanBatch = (selectedTask as any).batch || selectedTask.mailRange.split(" (")[0];
+        filtered = filtered.filter(m => m.batchName === cleanBatch);
       }
     } else if (selectedTask.title === "Mời kênh" && selectedTask.mailRange) {
       const parts = selectedTask.mailRange.split("+");
@@ -648,7 +649,8 @@ export default function TaskManagementPage() {
         }
       } else if (selectedTask.title === "Làm kênh") {
         if (selectedTask.mailRange) {
-          filtered = filtered.filter((m: any) => m.batchName === selectedTask.mailRange);
+          const cleanBatch = (selectedTask as any).batch || selectedTask.mailRange.split(" (")[0];
+          filtered = filtered.filter((m: any) => m.batchName === cleanBatch);
         }
       } else if (selectedTask.title === "Mời kênh" && selectedTask.mailRange) {
         const parts = selectedTask.mailRange.split("+");
@@ -872,14 +874,8 @@ export default function TaskManagementPage() {
     if (!selectedTaskId || !selectedTask) return;
 
     if (newStatus === "COMPLETED" && selectedTask?.type === "MAIL_VE_TINH") {
-      const taskMailsValidation = mails.filter((m: any) => 
-        m.type === "SATELLITE" && 
-        m.batchName === selectedTask.mailRange && 
-        String(m.assigneeId) === String(selectedTask.assigneeId)
-      );
-      
       let errorMails: string[] = [];
-      taskMailsValidation.forEach((m: any) => {
+      taskMails.forEach((m: any) => {
         const linksCount = (m.links || []).filter((l: string) => typeof l === 'string' && l.trim() !== "").length;
         if (linksCount < 3) {
           errorMails.push(`- ${m.email} (thiếu ${3 - linksCount} kênh)`);
@@ -911,7 +907,7 @@ export default function TaskManagementPage() {
     setNotification(`Đã chuyển trạng thái nhiệm vụ sang: ${newStatus === "COMPLETED" ? "Hoàn thành" : "Đang xử lý"}`);
     setTimeout(() => setNotification(null), 3000);
     window.dispatchEvent(new Event("storage"));
-  }, [selectedTaskId, selectedTask, mails]);
+  }, [selectedTaskId, selectedTask, taskMails]);
 
   return (
     <div className="h-[calc(100vh-100px)] flex flex-col gap-4 select-none relative overflow-hidden">
@@ -1287,6 +1283,20 @@ export default function TaskManagementPage() {
                               <tr key={`mail-${mail.id}`} className="group hover:bg-white/[0.02] transition-all">
                                 <td className={`${rowPadding} text-[10px] font-black text-gray-700 whitespace-nowrap`}>{i + 1}</td>
                                 <td className={`${rowPadding} whitespace-nowrap`}>
+                                  {mail.type === "SATELLITE" && (() => {
+                                    const linksCount = (mail.links || []).filter((l: string) => typeof l === 'string' && l.trim() !== "").length;
+                                    const missingCount = 3 - linksCount;
+                                    if (missingCount > 0) {
+                                      return (
+                                        <div className="mb-1">
+                                          <span className="text-[10px] font-black uppercase text-red-400 bg-red-500/10 border border-red-500/30 px-2 py-0.5 rounded-lg animate-pulse inline-flex items-center gap-1">
+                                            ⚠️ Thiếu {missingCount} kênh
+                                          </span>
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
                                   <p className={`${textSize} font-bold text-white group-hover:text-gold transition-colors whitespace-nowrap`}>{mail.email}</p>
                                   <p className="text-[10px] text-gray-600 font-bold uppercase whitespace-nowrap">{mail.recovery}</p>
                                 </td>

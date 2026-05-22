@@ -1162,7 +1162,23 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                     return (
                       <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
                         <td className={`${rowPadding} text-[10px] font-black text-gray-500 whitespace-nowrap`}>{mail.originalSTT}</td>
-                        <td className={`${rowPadding} cursor-pointer hover:text-gold transition-colors font-bold ${textSize} whitespace-nowrap`} onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
+                        <td className={`${rowPadding} cursor-pointer hover:text-gold transition-colors font-bold ${textSize} whitespace-nowrap`} onClick={() => copyToClipboard(mail.email, "Email")}>
+                          {mail.type === "SATELLITE" && (() => {
+                            const linksCount = (mail.links || []).filter((l: string) => typeof l === 'string' && l.trim() !== "").length;
+                            const missingCount = 3 - linksCount;
+                            if (missingCount > 0) {
+                              return (
+                                <div className="mb-1">
+                                  <span className="text-[10px] font-black uppercase text-red-400 bg-red-500/10 border border-red-500/30 px-2 py-0.5 rounded-lg animate-pulse inline-flex items-center gap-1">
+                                    ⚠️ Thiếu {missingCount} kênh
+                                  </span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                          {mail.email}
+                        </td>
                         <td className={`${rowPadding} cursor-pointer text-xs text-gray-400 hover:text-gold transition-colors whitespace-nowrap`} onClick={() => copyToClipboard(mail.recovery, "Mail KP")}>{mail.recovery}</td>
                         <td className={`${rowPadding} cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono whitespace-nowrap`} onClick={() => copyToClipboard(mail.pass, "Mật khẩu")}>{mail.pass}</td>
                         {/* 2FA - TOTP real-time */}

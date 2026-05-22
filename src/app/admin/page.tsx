@@ -47,6 +47,44 @@ import { useRouter } from "next/navigation";
 import MailDetailModal from "@/components/admin/MailDetailModal";
 import TOTPDisplay from "@/components/admin/TOTPDisplay";
 
+const getMailsForTask = (t: any, allMails: any[]) => {
+  if (!t) return [];
+  let mailType = "ROOT";
+  if (t.type === "MAIL_VE_TINH") mailType = "SATELLITE";
+  if (t.type === "MAIL_MONETIZED") mailType = "MONETIZED";
+
+  if (t.selectedMailIds && Array.isArray(t.selectedMailIds)) {
+    return allMails.filter((m: any) => t.selectedMailIds.includes(m.id));
+  }
+  
+  let filtered = allMails.filter((m: any) => m.type === mailType && String(m.assigneeId) === String(t.assigneeId));
+  if (t.title === "Check, xóa, tạo" || t.title === "Kênh bật kiếm tiền") {
+    if (t.mailRange) {
+      const parts = t.mailRange.split("-");
+      if (parts.length === 2) {
+        const start = parseInt(parts[0].trim());
+        const end = parseInt(parts[1].trim());
+        const withSTT = allMails.filter((m: any) => m.type === mailType).map((m: any, idx: number) => ({ ...m, currentSTT: idx + 1 }));
+        const idsInRange = withSTT.filter((m: any) => m.currentSTT >= start && m.currentSTT <= end).map((m: any) => m.id);
+        filtered = filtered.filter((m: any) => idsInRange.includes(m.id));
+      }
+    }
+  } else if (t.title === "Làm kênh") {
+    if (t.mailRange) {
+      const cleanBatch = t.batch || t.mailRange.split(" (")[0];
+      filtered = filtered.filter((m: any) => m.batchName === cleanBatch);
+    }
+  } else if (t.title === "Mời kênh" && t.mailRange) {
+    const parts = t.mailRange.split("+");
+    const loPart = parts.pop()?.trim();
+    filtered = allMails.filter((m: any) => 
+      (m.type === "SATELLITE" && m.batchName === loPart && String(m.assigneeId) === String(t.assigneeId)) ||
+      (m.type === "ROOT" && t.note && t.note.includes(m.email))
+    );
+  }
+  return filtered;
+};
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [kpi, setKpi] = useState(MOCK_KPI_DATA);
@@ -338,13 +376,7 @@ export default function AdminDashboard() {
       : task.type === "MAIL_MONETIZED" ? "MONETIZED" : "ROOT";
     if (mailType !== "SATELLITE") return; // chỉ kiểm tra SATELLITE
 
-    const taskMails = allMails.filter((m: any) => {
-      const belongsToUser = String(m.assigneeId) === String(task.assigneeId);
-      if (!belongsToUser) return false;
-      if (task.selectedMailIds && Array.isArray(task.selectedMailIds))
-        return task.selectedMailIds.includes(m.id);
-      return m.type === mailType;
-    });
+    const taskMails = getMailsForTask(task, allMails);
 
     const result: {stt: number; email: string; missing: number}[] = [];
     taskMails.forEach((m: any, idx: number) => {
@@ -615,21 +647,38 @@ export default function AdminDashboard() {
     localStorage.setItem(`checkout_time_${user.username}`, fullISO);
     setCheckOutTime(fullISO);
     
-    // Calculate total hours
+    // Load config
+    const savedWorkConfigStr = localStorage.getItem("global_work_config");
+    let startTimeStr = "08:00";
+    let endTimeStr = "18:00";
+    if (savedWorkConfigStr) {
+      try {
+        const wc = JSON.parse(savedWorkConfigStr);
+        if (wc.startTime) startTimeStr = wc.startTime;
+        if (wc.endTime) endTimeStr = wc.endTime;
+      } catch (e) {}
+    }
+    
     const dIn = new Date(checkInISO);
     const dOut = new Date(fullISO);
     const t_in = dIn.getHours() * 60 + dIn.getMinutes();
     const t_out = dOut.getHours() * 60 + dOut.getMinutes();
     
-    // Overlaps for 8:00 - 12:00 (480 to 720) and 13:30 - 17:30 (810 to 1050)
-    const overlap1 = Math.max(0, Math.min(720, t_out) - Math.max(480, t_in));
-    const overlap2 = Math.max(0, Math.min(1050, t_out) - Math.max(810, t_in));
+    const [startH, startM] = startTimeStr.split(":").map(Number);
+    const [endH, endM] = endTimeStr.split(":").map(Number);
+    const startWorkMins = startH * 60 + startM;
+    const endWorkMins = endH * 60 + endM;
+    
+    const overlap1 = Math.max(0, Math.min(720, t_out) - Math.max(startWorkMins, t_in));
+    const overlap2 = Math.max(0, Math.min(endWorkMins, t_out) - Math.max(810, t_in));
     const totalWorkingMins = overlap1 + overlap2;
     
+    const expectedMins = Math.max(0, 720 - startWorkMins) + Math.max(0, endWorkMins - 810);
+    
     let warning = undefined;
-    if (totalWorkingMins < 480) {
-      const missing = 480 - totalWorkingMins;
-      warning = `Hôm nay bạn chưa làm đủ 8 tiếng, còn thiếu ${missing} phút nữa.`;
+    if (totalWorkingMins < expectedMins) {
+      const missing = expectedMins - totalWorkingMins;
+      warning = `Hôm nay bạn chưa làm đủ thời gian quy định, còn thiếu ${missing} phút nữa.`;
     }
     
     // Trigger real-time modal
@@ -730,7 +779,8 @@ export default function AdminDashboard() {
         }
       } else if (t.title === "Làm kênh") {
         if (t.mailRange) {
-          filtered = filtered.filter((m: any) => m.batchName === t.mailRange);
+          const cleanBatch = t.batch || t.mailRange.split(" (")[0];
+          filtered = filtered.filter((m: any) => m.batchName === cleanBatch);
         }
       } else if (t.title === "Mời kênh" && t.mailRange) {
         const parts = t.mailRange.split("+");
@@ -815,10 +865,30 @@ export default function AdminDashboard() {
     }
   };
 
+
+
   const handleTaskStatusChange = async (taskId: string, newStatus: "IN_PROGRESS" | "COMPLETED") => {
     const savedTasks = localStorage.getItem("global_tasks_data");
     const currentTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
     const targetTask = currentTasks.find((t: any) => t.id === taskId);
+
+    const savedMails = localStorage.getItem("global_mails_data");
+    const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
+
+    if (newStatus === "COMPLETED" && targetTask?.type === "MAIL_VE_TINH") {
+      const taskMails = getMailsForTask(targetTask, currentMails);
+      let errorMails: string[] = [];
+      taskMails.forEach((m: any) => {
+        const linksCount = (m.links || []).filter((l: string) => typeof l === 'string' && l.trim() !== "").length;
+        if (linksCount < 3) {
+          errorMails.push(`- ${m.email} (thiếu ${3 - linksCount} kênh)`);
+        }
+      });
+      if (errorMails.length > 0) {
+        alert("KHÔNG THỂ HOÀN THÀNH!\nCác mail vệ tinh sau chưa nhập đủ 3 kênh:\n" + errorMails.join("\n"));
+        return;
+      }
+    }
 
     const updatedTasks = currentTasks.map((t: any) => {
       if (t.id === taskId) {
@@ -838,42 +908,10 @@ export default function AdminDashboard() {
     });
 
     const now = new Date().toISOString();
-    const savedMails = localStorage.getItem("global_mails_data");
-    const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
 
-    // Xác định mail IDs thuộc task
-    let taskMailIds: number[] = [];
-    if (targetTask) {
-      if (targetTask.selectedMailIds && Array.isArray(targetTask.selectedMailIds)) {
-        taskMailIds = targetTask.selectedMailIds;
-      } else {
-        const mailType = targetTask.type === "MAIL_VE_TINH" ? "SATELLITE"
-          : targetTask.type === "MAIL_MONETIZED" ? "MONETIZED" : "ROOT";
-        let filtered = currentMails.filter((m: any) =>
-          m.type === mailType && String(m.assigneeId) === String(targetTask.assigneeId)
-        );
-        if (targetTask.mailRange) {
-          const parts = targetTask.mailRange.split("-");
-          if (parts.length === 2 && !isNaN(parseInt(parts[0]))) {
-            const start = parseInt(parts[0].trim());
-            const end = parseInt(parts[1].trim());
-            const withSTT = currentMails
-              .filter((m: any) => m.type === mailType)
-              .map((m: any, idx: number) => ({ ...m, _stt: idx + 1 }));
-            const idsInRange = withSTT
-              .filter((m: any) => m._stt >= start && m._stt <= end)
-              .map((m: any) => m.id);
-            filtered = filtered.filter((m: any) => idsInRange.includes(m.id));
-          } else {
-            filtered = filtered.filter((m: any) =>
-              m.batchName === targetTask.mailRange ||
-              (targetTask.mailRange && targetTask.mailRange.includes(m.batchName))
-            );
-          }
-        }
-        taskMailIds = filtered.map((m: any) => m.id);
-      }
-    }
+    // Xác định mail IDs thuộc task bằng helper 100% đồng bộ
+    const taskMails = getMailsForTask(targetTask, currentMails);
+    const taskMailIds = taskMails.map((m: any) => m.id);
 
     // Khi COMPLETED và task SATELLITE: kiểm tra link từng mail
     // Đủ 3 link → "Đã làm"; thiếu bất kỳ link nào → "Lỗi"
@@ -982,7 +1020,7 @@ export default function AdminDashboard() {
       let matchesType = true;
       if (selectedViewType === "LIVE") matchesType = m.status === "LIVE";
       else if (selectedViewType === "DIE") matchesType = m.status === "DIE";
-      else if (selectedViewType === "TASKS") matchesType = m.workStatus === "ĐANG LÀM" || m.workStatus === "CHƯA LÀM";
+      else if (selectedViewType === "TASKS") matchesType = true;
 
       let matchesMailType = true;
       if (filterMailType !== "ALL") {
@@ -1042,7 +1080,7 @@ export default function AdminDashboard() {
     return () => { mainEl.style.overflow = ""; };
   }, [selectedStaffTask, user?.role]);
 
-  if (false && selectedStaffTask && (user?.role === "03" || user?.role === "04")) {
+  if (selectedStaffTask && (user?.role === "03" || user?.role === "04")) {
     const taskMails = mails.filter((m: any) => {
       const belongsToUser = String(m.assigneeId) === String(user?.id);
       if (!belongsToUser) return false;
@@ -1216,7 +1254,21 @@ export default function AdminDashboard() {
               ) : taskMails.map((mail: any, idx: number) => (
                 <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
                   <td className="py-3 px-6 text-[10px] font-black text-gray-500 whitespace-nowrap">{idx + 1}</td>
-                  <td className="py-3 px-6 font-bold text-white text-xs cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
+                  <td className="py-3 px-6 font-bold text-white text-xs cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.email, "Email")}>
+                    <div>{mail.email}</div>
+                    {mail.type === "SATELLITE" && (() => {
+                      const links = mail.links || [];
+                      const filledCount = [0, 1, 2].filter(i => links[i] && links[i].trim() !== "").length;
+                      if (filledCount < 3) {
+                        return (
+                          <div className="text-[10px] text-red-500 font-extrabold uppercase animate-pulse flex items-center gap-1 mt-0.5">
+                            <span className="text-[8px]">⚠️</span> Thiếu {3 - filledCount} kênh
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </td>
                   <td className="py-3 px-6 text-xs text-gray-400 cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.recovery || "", "KP")}>{mail.recovery || "---"}</td>
                   <td className="py-3 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.pass, "Pass")}>{mail.pass || "---"}</td>
                   <td className="py-3 px-6 text-xs text-gray-500 font-mono whitespace-nowrap">
@@ -1425,7 +1477,21 @@ export default function AdminDashboard() {
                     return (
                       <tr key={`mail-${mail.id}`} className="hover:bg-white/[0.02] transition-colors group">
                         <td className="py-4 px-6 text-[10px] font-black text-gray-500">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                        <td className="py-4 px-6 text-sm font-bold text-white">{mail.email}</td>
+                        <td className="py-4 px-6 text-sm font-bold text-white">
+                          <div>{mail.email}</div>
+                          {mail.type === "SATELLITE" && (() => {
+                            const links = mail.links || [];
+                            const filledCount = [0, 1, 2].filter(i => links[i] && links[i].trim() !== "").length;
+                            if (filledCount < 3) {
+                              return (
+                                <div className="text-[10px] text-red-500 font-extrabold uppercase animate-pulse flex items-center gap-1 mt-0.5">
+                                  <span className="text-[8px]">⚠️</span> Thiếu {3 - filledCount} kênh
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </td>
                         <td className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gold">
                           {mail.type === "ROOT" ? "Gốc" : mail.type === "SATELLITE" ? "Vệ Tinh" : "BKT"}
                         </td>
@@ -1690,7 +1756,8 @@ export default function AdminDashboard() {
                       tasksList.filter(t => String(t.assigneeId) === String(user?.id)).map((task: any) => (
                         <div
                           key={task.id}
-                          className="p-6 rounded-2xl border transition-all relative overflow-hidden group bg-white/[0.02] border-white/5 hover:border-white/10"
+                          onClick={() => setSelectedStaffTask(task)}
+                          className="p-6 rounded-2xl border transition-all relative overflow-hidden group bg-white/[0.02] border-white/5 hover:border-white/10 cursor-pointer hover:bg-white/[0.05]"
                         >
                           <div className="flex items-center justify-between mb-2">
                             <h3 className="text-lg font-black text-white uppercase tracking-tighter">{task.title}</h3>

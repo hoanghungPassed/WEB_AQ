@@ -89,6 +89,101 @@ export default function AdminLayout({
   const [chatUsers, setChatUsers] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const [isPartnerTyping, setIsPartnerTyping] = useState(false);
+  const [companyTypingUsers, setCompanyTypingUsers] = useState<string[]>([]);
+  const prevPrivateLengthRef = React.useRef(0);
+  const prevCompanyLengthRef = React.useRef(0);
+  const isInitialLoadRef = React.useRef(true);
+
+  const playChatChime = () => {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(880, ctx.currentTime);
+      osc1.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.1);
+      
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(440, ctx.currentTime);
+      osc2.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
+      
+      gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      
+      osc1.connect(gainNode);
+      osc2.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      osc1.start();
+      osc2.start();
+      osc1.stop(ctx.currentTime + 0.45);
+      osc2.stop(ctx.currentTime + 0.45);
+    } catch (e) {
+      console.error("Audio chime error:", e);
+    }
+  };
+
+  const TypingBubble = ({ senderName }: { senderName?: string }) => {
+    return (
+      <div className="flex flex-col self-start items-start max-w-[80%] animate-pulse">
+        {senderName && (
+          <span className="text-[8px] font-black uppercase tracking-wider text-gray-500 mb-0.5 ml-1">
+            {senderName}
+          </span>
+        )}
+        <div className="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 p-3 rounded-2xl rounded-tl-none flex items-center gap-1">
+          <span className="text-[10px] text-gray-400 font-bold mr-1">Đang soạn</span>
+          <span className="flex items-center gap-0.5 h-3">
+            <span className="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '0.8s' }} />
+            <span className="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" style={{ animationDelay: '200ms', animationDuration: '0.8s' }} />
+            <span className="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" style={{ animationDelay: '400ms', animationDuration: '0.8s' }} />
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  const getMessageStatus = (msg: any) => {
+    const msgTime = Number(msg.id.split("_")[1]) || 0;
+    if (msgTime === 0) return null;
+
+    const receiver = msg.receiver;
+    const sender = msg.sender;
+
+    const readTimeStr = localStorage.getItem(`chat_last_read_time_${receiver}_${sender}`);
+    const readTime = readTimeStr ? Number(readTimeStr) : 0;
+
+    const receivedTimeStr = localStorage.getItem(`chat_last_received_time_${receiver}_${sender}`);
+    const receivedTime = receivedTimeStr ? Number(receivedTimeStr) : 0;
+
+    if (readTime >= msgTime) {
+      return <span className="text-[9px] text-green-500 font-bold ml-1">✓✓ Đã xem</span>;
+    }
+    if (receivedTime >= msgTime) {
+      return <span className="text-[9px] text-gray-400 dark:text-zinc-500 font-bold ml-1">✓✓ Đã nhận</span>;
+    }
+    return <span className="text-[9px] text-gray-400 dark:text-zinc-500 font-bold ml-1">✓ Đã gửi</span>;
+  };
+
+  const handleInputChange = (val: string) => {
+    setChatMessage(val);
+    if (!user) return;
+
+    if (chatTab === "COMPANY") {
+      const key = `chat_typing_company_${user.username}`;
+      localStorage.setItem(key, Date.now().toString());
+    } else if (chatTab === "PRIVATE" && activeChatUser) {
+      const key = `chat_typing_private_${user.username}_${activeChatUser.username}`;
+      localStorage.setItem(key, Date.now().toString());
+    }
+  };
+
   useEffect(() => {
     const checkRealtimeToast = () => {
       const storedUserStr = sessionStorage.getItem("user") || localStorage.getItem("user");
@@ -383,6 +478,21 @@ export default function AdminLayout({
       }
     };
 
+    const calculateWorkedHours = (checkInISO: string, checkOutISO: string, startTimeStr: string, endTimeStr: string) => {
+      const dIn = new Date(checkInISO);
+      const dOut = new Date(checkOutISO);
+      const t_in = dIn.getHours() * 60 + dIn.getMinutes();
+      const t_out = dOut.getHours() * 60 + dOut.getMinutes();
+      const [startH, startM] = (startTimeStr || "08:00").split(":").map(Number);
+      const [endH, endM] = (endTimeStr || "18:00").split(":").map(Number);
+      const startWorkMins = startH * 60 + startM;
+      const endWorkMins = endH * 60 + endM;
+      const overlap1 = Math.max(0, Math.min(720, t_out) - Math.max(startWorkMins, t_in));
+      const overlap2 = Math.max(0, Math.min(endWorkMins, t_out) - Math.max(810, t_in));
+      const totalWorkingMins = overlap1 + overlap2;
+      return (totalWorkingMins / 60).toFixed(2);
+    };
+
     const checkLateStatus = () => {
       const activeUserStr = getActiveUserStr();
       if (!activeUserStr) return;
@@ -459,14 +569,20 @@ export default function AdminLayout({
       const isPending = userProfile ? (userProfile.finePaymentStatus === "PENDING_APPROVAL" || userProfile.lateExcuseStatus === "PENDING_APPROVAL") : false;
       setIsPendingApproval(isPending);
 
-      // Auto check-out based on global_work_config systemCloseTime
+      // Auto check-out based on global_work_config endTime
       const savedWorkConfigStr = localStorage.getItem("global_work_config");
-      let closeTimeMins = 1050; // Default 17:30
+      let startTimeStr = "08:00";
+      let endTimeStr = "18:00";
+      let closeTimeMins = 1080; // Default 18:00 (18 * 60)
       if (savedWorkConfigStr) {
         try {
           const wc = JSON.parse(savedWorkConfigStr);
-          if (wc.systemCloseTime) {
-            const [h, m] = wc.systemCloseTime.split(":");
+          if (wc.startTime) {
+            startTimeStr = wc.startTime;
+          }
+          if (wc.endTime) {
+            endTimeStr = wc.endTime;
+            const [h, m] = wc.endTime.split(":");
             closeTimeMins = parseInt(h) * 60 + parseInt(m);
           }
         } catch (e) { /* ignore */ }
@@ -475,27 +591,80 @@ export default function AdminLayout({
       const currentTotalMinutes = nowTime.getHours() * 60 + nowTime.getMinutes();
       if (currentTotalMinutes >= closeTimeMins) {
         const todayStr = getStableDateString();
-        const checkoutKey = `checkout_time_${currentUser.username}`;
-        const existingCheckout = localStorage.getItem(checkoutKey);
-        let alreadyCheckedOutToday = false;
-        if (existingCheckout) {
-          try {
-            const d = new Date(existingCheckout);
-            const today = new Date();
-            alreadyCheckedOutToday = d.getDate() === today.getDate() &&
-                                     d.getMonth() === today.getMonth() &&
-                                     d.getFullYear() === today.getFullYear();
-          } catch (e) { /* ignore */ }
-        }
-        if (!alreadyCheckedOutToday) {
-          const checkoutISO = new Date().toISOString();
-          localStorage.setItem(checkoutKey, checkoutISO);
-          const checkoutTimeStr = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-          const updatedUsersForCheckout = allUsers.map((u: any) =>
-            u.username === currentUser.username ? { ...u, checkOutTime: checkoutTimeStr } : u
-          );
-          localStorage.setItem("global_users", JSON.stringify(updatedUsersForCheckout));
+        let changed = false;
+        const updatedUsers = allUsers.map((u: any) => {
+          const isStaffUser = u.role === "03" || u.role === "04" || u.role === "NHÂN VIÊN" || String(u.role).includes("03") || String(u.role).includes("04");
+          if (!isStaffUser) return u;
+
+          const uCheckInISO = localStorage.getItem(`checkin_time_${u.username}`);
+          let uCheckedInToday = false;
+          if (uCheckInISO) {
+            try {
+              const d = new Date(uCheckInISO);
+              const today = new Date();
+              uCheckedInToday = d.getDate() === today.getDate() &&
+                                d.getMonth() === today.getMonth() &&
+                                d.getFullYear() === today.getFullYear();
+            } catch (e) {}
+          }
+
+          if (uCheckedInToday) {
+            const uCheckOutISO = localStorage.getItem(`checkout_time_${u.username}`);
+            let uCheckedOutToday = false;
+            if (uCheckOutISO) {
+              try {
+                const d = new Date(uCheckOutISO);
+                const today = new Date();
+                uCheckedOutToday = d.getDate() === today.getDate() &&
+                                   d.getMonth() === today.getMonth() &&
+                                   d.getFullYear() === today.getFullYear();
+              } catch (e) {}
+            }
+
+            if (!uCheckedOutToday || !u.checkOutTime) {
+              const checkoutISO = new Date();
+              const [endH, endM] = endTimeStr.split(":").map(Number);
+              checkoutISO.setHours(endH, endM, 0, 0);
+
+              localStorage.setItem(`checkout_time_${u.username}`, checkoutISO.toISOString());
+              const checkoutTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}:00`;
+              const totalHoursVal = calculateWorkedHours(uCheckInISO || "", checkoutISO.toISOString(), startTimeStr, endTimeStr);
+
+              changed = true;
+              return {
+                ...u,
+                checkOutTime: checkoutTimeStr,
+                totalHours: totalHoursVal,
+                isOnline: false
+              };
+            }
+          }
+          return u;
+        });
+
+        if (changed) {
+          localStorage.setItem("global_users", JSON.stringify(updatedUsers));
           window.dispatchEvent(new Event("storage"));
+        }
+
+        // Also update all tasks that are not completed to PENDING (Chưa hoàn thành)
+        const savedTasks = localStorage.getItem("global_tasks_data");
+        if (savedTasks) {
+          try {
+            const tasksArr = JSON.parse(savedTasks);
+            let tasksChanged = false;
+            const updatedTasks = tasksArr.map((t: any) => {
+              if (t.status !== "COMPLETED" && t.status !== "PENDING") {
+                tasksChanged = true;
+                return { ...t, status: "PENDING" };
+              }
+              return t;
+            });
+            if (tasksChanged) {
+              localStorage.setItem("global_tasks_data", JSON.stringify(updatedTasks));
+              window.dispatchEvent(new Event("storage"));
+            }
+          } catch (e) {}
         }
       }
     };
@@ -675,6 +844,23 @@ export default function AdminLayout({
         setPrivateMessages([]);
       }
 
+      // Track received timestamps for incoming messages
+      if (user && privateArr.length > 0) {
+        const senders = new Set<string>();
+        privateArr.forEach((msg: any) => {
+          if (msg.receiver === user.username) {
+            senders.add(msg.sender);
+          }
+        });
+        senders.forEach((sender) => {
+          const key = `chat_last_received_time_${user.username}_${sender}`;
+          const currentVal = localStorage.getItem(key);
+          if (!currentVal || Number(currentVal) < Date.now() - 5000) {
+            localStorage.setItem(key, Date.now().toString());
+          }
+        });
+      }
+
       const savedUsers = localStorage.getItem("global_users");
       if (savedUsers) {
         const allUsers = JSON.parse(savedUsers);
@@ -731,6 +917,67 @@ export default function AdminLayout({
       clearInterval(interval);
     };
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (isInitialLoadRef.current) {
+      prevCompanyLengthRef.current = companyMessages.length;
+      prevPrivateLengthRef.current = privateMessages.length;
+      isInitialLoadRef.current = false;
+      return;
+    }
+
+    if (companyMessages.length > prevCompanyLengthRef.current) {
+      const last = companyMessages[companyMessages.length - 1];
+      if (last && last.senderName !== (user.name || user.username)) {
+        playChatChime();
+      }
+      prevCompanyLengthRef.current = companyMessages.length;
+    }
+
+    if (privateMessages.length > prevPrivateLengthRef.current) {
+      const last = privateMessages[privateMessages.length - 1];
+      if (last && last.sender !== user.username && last.receiver === user.username) {
+        playChatChime();
+      }
+      prevPrivateLengthRef.current = privateMessages.length;
+    }
+  }, [companyMessages, privateMessages, user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const checkTyping = () => {
+      // Private typing check
+      if (chatTab === "PRIVATE" && activeChatUser) {
+        const key = `chat_typing_private_${activeChatUser.username}_${user.username}`;
+        const val = localStorage.getItem(key);
+        if (val) {
+          const diff = Date.now() - Number(val);
+          setIsPartnerTyping(diff < 3000);
+        } else {
+          setIsPartnerTyping(false);
+        }
+      } else {
+        setIsPartnerTyping(false);
+      }
+
+      // Company typing check
+      const typingList: string[] = [];
+      chatUsers.forEach((u: any) => {
+        if (u.username !== user.username) {
+          const key = `chat_typing_company_${u.username}`;
+          const val = localStorage.getItem(key);
+          if (val && (Date.now() - Number(val)) < 3000) {
+            typingList.push(u.name);
+          }
+        }
+      });
+      setCompanyTypingUsers(typingList);
+    };
+
+    const typingTimer = setInterval(checkTyping, 1000);
+    return () => clearInterval(typingTimer);
+  }, [user, chatTab, activeChatUser, chatUsers]);
 
   // Update last read time when chat is open or when new message is loaded
   useEffect(() => {
@@ -1589,6 +1836,9 @@ export default function AdminLayout({
                             </div>
                           );
                         })}
+                        {companyTypingUsers.length > 0 && (
+                          <TypingBubble senderName={companyTypingUsers.join(", ") + " đang soạn tin..."} />
+                        )}
                         <div ref={companyMessagesEndRef} />
                       </div>
 
@@ -1632,7 +1882,7 @@ export default function AdminLayout({
                           type="text"
                           placeholder="Nhập nội dung tin nhắn..."
                           value={chatMessage}
-                          onChange={(e) => setChatMessage(e.target.value)}
+                          onChange={(e) => handleInputChange(e.target.value)}
                           className="flex-1 h-10 bg-gray-200 dark:bg-white/5 border border-gray-300 dark:border-white/5 focus:border-gold/50 rounded-xl px-4 text-xs text-gray-900 dark:text-white focus:outline-none transition-all placeholder:text-gray-400"
                         />
                         <button type="submit" className="h-10 w-10 bg-gold text-sidebar rounded-xl flex items-center justify-center hover:bg-white hover:text-sidebar transition-colors shadow-lg shadow-gold/10">
@@ -1729,10 +1979,16 @@ export default function AdminLayout({
                                         </div>
                                       )}
                                     </div>
-                                    <span className="text-[8px] font-bold text-gray-600 font-mono mt-1 px-1">{msg.time}</span>
+                                    <div className="flex items-center gap-1 mt-1 px-1">
+                                      <span className="text-[8px] font-bold text-gray-600 font-mono">{msg.time}</span>
+                                      {isMe && getMessageStatus(msg)}
+                                    </div>
                                   </div>
                                 );
                               })}
+                              {isPartnerTyping && (
+                                <TypingBubble senderName={activeChatUser.name} />
+                              )}
                               <div ref={privateMessagesEndRef} />
                           </div>
 
@@ -1776,7 +2032,7 @@ export default function AdminLayout({
                               type="text"
                               placeholder={`Chat với ${activeChatUser.name}...`}
                               value={chatMessage}
-                              onChange={(e) => setChatMessage(e.target.value)}
+                              onChange={(e) => handleInputChange(e.target.value)}
                               className="flex-1 h-10 bg-gray-200 dark:bg-white/5 border border-gray-300 dark:border-white/5 focus:border-gold/50 rounded-xl px-4 text-xs text-gray-900 dark:text-white focus:outline-none transition-all placeholder:text-gray-400"
                             />
                             <button type="submit" className="h-10 w-10 bg-gold text-sidebar rounded-xl flex items-center justify-center hover:bg-white hover:text-sidebar transition-colors shadow-lg shadow-gold/10">
