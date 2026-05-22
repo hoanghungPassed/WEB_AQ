@@ -195,7 +195,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           <button
             onClick={toggleTheme}
             title={theme === "dark" ? "Chuyển Light Mode" : "Chuyển Dark Mode"}
-            className="relative flex h-12 w-12 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-white/5 hover:text-gold border border-transparent hover:border-white/5 overflow-hidden"
+            className="relative flex h-11 w-11 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-white/5 hover:text-gold border border-transparent hover:border-white/5 overflow-hidden"
           >
             <AnimatePresence mode="wait" initial={false}>
               {theme === "dark" ? (
@@ -230,11 +230,11 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
               onClick={() => {
                 setIsNotifOpen(!isNotifOpen);
               }}
-              className="relative flex h-12 w-12 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-white/5 hover:text-gold border border-transparent hover:border-white/5"
+              className="relative flex h-11 w-11 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-white/5 hover:text-gold border border-transparent hover:border-white/5"
             >
-              <Bell size={24} />
+              <Bell size={20} />
               {unreadCount > 0 && (
-                <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-red-500 ring-4 ring-[#0a0a0a] animate-pulse"></span>
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white border-2 border-sidebar shadow-md animate-pulse">{unreadCount > 9 ? '9+' : unreadCount}</span>
               )}
             </button>
 
@@ -314,13 +314,13 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
             
             <div 
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="h-14 w-14 rounded-2xl border border-white/10 bg-white/[0.05] p-1 flex items-center justify-center overflow-hidden cursor-pointer hover:border-gold/50 hover:bg-gold/5 transition-all shadow-xl active:scale-95"
+              className="h-11 w-11 rounded-xl border border-white/10 bg-white/[0.05] p-0.5 flex items-center justify-center overflow-hidden cursor-pointer hover:border-gold/50 hover:bg-gold/5 transition-all shadow-xl active:scale-95"
             >
               {user?.avatar ? (
-                <img src={user.avatar} className="h-full w-full object-cover rounded-xl" />
+                <img src={user.avatar} className="h-full w-full object-cover rounded-lg" />
               ) : (
-                <div className="h-full w-full rounded-xl bg-sidebar flex items-center justify-center text-gold">
-                   <User size={28} />
+                <div className="h-full w-full rounded-lg bg-sidebar flex items-center justify-center text-gold">
+                   <User size={20} />
                 </div>
               )}
             </div>
@@ -382,7 +382,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#121212] border border-white/10 rounded-[32px] p-8 w-full max-w-2xl shadow-2xl relative"
+              className="bg-sidebar border border-white/10 rounded-[32px] p-8 w-full max-w-2xl shadow-2xl relative max-h-[85vh] flex flex-col"
             >
               <div className="flex items-center justify-between mb-8 border-b border-white/5 pb-4">
                 <div className="flex items-center gap-3">
@@ -430,7 +430,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
               </div>
 
               {/* Notifications List */}
-              <div className="space-y-3 max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
+              <div className="space-y-3 overflow-y-auto custom-scrollbar pr-2 flex-1 min-h-0">
                 {(notifTab === "UNREAD"
                   ? uniqueNotifications.filter(n => !n.read)
                   : uniqueNotifications.filter(n => n.read)

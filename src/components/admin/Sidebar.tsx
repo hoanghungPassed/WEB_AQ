@@ -250,14 +250,14 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
       </div>
 
       {/* Menu */}
-      <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-3 custom-scrollbar">
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1.5 custom-scrollbar">
         {dynamicMenuItems.map((item) => {
           const hasSubItems = item.subItems && item.subItems.length > 0;
           const isOpen = openMenus.includes(item.title);
           const isActive = pathname === item.href || (hasSubItems && item.subItems?.some((sub: any) => sub.href === pathname));
 
           return (
-            <div key={item.title} className="space-y-2">
+            <div key={item.title} className="space-y-1">
               {hasSubItems ? (
                 <button
                   onClick={() => toggleMenu(item.title)}
@@ -339,7 +339,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
       </nav>
 
       {/* Reset Mock Data & User Profile at bottom */}
-      <div className="border-t border-white/5 p-6 bg-white/[0.01] space-y-4">
+      <div className="border-t border-white/5 p-4 bg-white/[0.01] space-y-3">
         {/* Reset Database Button */}
         <button
           onClick={handleResetDatabase}

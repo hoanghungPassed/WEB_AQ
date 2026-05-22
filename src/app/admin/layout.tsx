@@ -7,7 +7,7 @@ import ProfileModal from "@/components/admin/ProfileModal";
 import AccessLock from "@/components/admin/modals/AccessLock";
 import { useRouter } from "next/navigation";
 import { MOCK_ACCESS_REQUESTS, initMockDB } from "@/data/mockData";
-import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle, Plus, FileText, Download, Paperclip, Phone, Minus, Copy, ExternalLink } from "lucide-react";
+import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle, Plus, FileText, Download, Paperclip, Phone, Minus, Copy, ExternalLink, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const lastSyncedCache: Record<string, string | null> = {};
@@ -205,7 +205,7 @@ export default function AdminLayout({
         }
       }
 
-      const res = await fetch("/api/sync");
+      const res = await fetch(`/api/sync?t=${Date.now()}`, { cache: "no-store", headers: { 'Cache-Control': 'no-cache' } });
       if (!res.ok) return;
       const serverStore = await res.json();
 
@@ -217,6 +217,7 @@ export default function AdminLayout({
       const keys = Array.from(new Set([...standardKeys, ...localAccessKeys, ...serverAccessKeys]));
 
       const localUpdates: Record<string, string> = {};
+      const pendingCacheUpdates: Record<string, string> = {};
       let hasLocalChanges = false;
       let hasRemoteChanges = false;
 
@@ -229,7 +230,7 @@ export default function AdminLayout({
           // Local value has changed! Push to server
           if (localVal !== null) {
             localUpdates[key] = localVal;
-            lastSyncedCache[key] = localVal;
+            pendingCacheUpdates[key] = localVal; // Prepare for cache update
             hasLocalChanges = true;
           }
         } else if (serverVal !== prevSyncedVal && serverVal !== localVal) {
@@ -258,7 +259,7 @@ export default function AdminLayout({
           if (serverVal) {
             lastSyncedCache[key] = serverVal;
           } else if (localVal) {
-            lastSyncedCache[key] = localVal;
+            pendingCacheUpdates[key] = localVal;
             localUpdates[key] = localVal;
             hasLocalChanges = true;
           }
@@ -266,11 +267,17 @@ export default function AdminLayout({
       });
 
       if (hasLocalChanges) {
-        await fetch("/api/sync", {
+        const postRes = await fetch("/api/sync", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(localUpdates)
         });
+        if (postRes.ok) {
+          // Only update cache if the push was successful to prevent overriding local changes if POST fails
+          Object.keys(pendingCacheUpdates).forEach(k => {
+            lastSyncedCache[k] = pendingCacheUpdates[k];
+          });
+        }
       }
 
       if (hasRemoteChanges) {
@@ -335,7 +342,8 @@ export default function AdminLayout({
             storedUser?.id !== user?.id ||
             storedUser?.role !== user?.role ||
             storedUser?.username !== user?.username ||
-            storedUser?.name !== user?.name
+            storedUser?.name !== user?.name ||
+            storedUser?.avatar !== user?.avatar
           ) {
             setUser(storedUser);
           }
@@ -450,6 +458,46 @@ export default function AdminLayout({
       }
       const isPending = userProfile ? (userProfile.finePaymentStatus === "PENDING_APPROVAL" || userProfile.lateExcuseStatus === "PENDING_APPROVAL") : false;
       setIsPendingApproval(isPending);
+
+      // Auto check-out based on global_work_config systemCloseTime
+      const savedWorkConfigStr = localStorage.getItem("global_work_config");
+      let closeTimeMins = 1050; // Default 17:30
+      if (savedWorkConfigStr) {
+        try {
+          const wc = JSON.parse(savedWorkConfigStr);
+          if (wc.systemCloseTime) {
+            const [h, m] = wc.systemCloseTime.split(":");
+            closeTimeMins = parseInt(h) * 60 + parseInt(m);
+          }
+        } catch (e) { /* ignore */ }
+      }
+      const nowTime = new Date();
+      const currentTotalMinutes = nowTime.getHours() * 60 + nowTime.getMinutes();
+      if (currentTotalMinutes >= closeTimeMins) {
+        const todayStr = getStableDateString();
+        const checkoutKey = `checkout_time_${currentUser.username}`;
+        const existingCheckout = localStorage.getItem(checkoutKey);
+        let alreadyCheckedOutToday = false;
+        if (existingCheckout) {
+          try {
+            const d = new Date(existingCheckout);
+            const today = new Date();
+            alreadyCheckedOutToday = d.getDate() === today.getDate() &&
+                                     d.getMonth() === today.getMonth() &&
+                                     d.getFullYear() === today.getFullYear();
+          } catch (e) { /* ignore */ }
+        }
+        if (!alreadyCheckedOutToday) {
+          const checkoutISO = new Date().toISOString();
+          localStorage.setItem(checkoutKey, checkoutISO);
+          const checkoutTimeStr = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+          const updatedUsersForCheckout = allUsers.map((u: any) =>
+            u.username === currentUser.username ? { ...u, checkOutTime: checkoutTimeStr } : u
+          );
+          localStorage.setItem("global_users", JSON.stringify(updatedUsersForCheckout));
+          window.dispatchEvent(new Event("storage"));
+        }
+      }
     };
 
     syncDatabase();
@@ -884,11 +932,11 @@ export default function AdminLayout({
   const endTime = 18 * 60; // 6:00 PM
 
   const isSunday = now.getDay() === 0;
-  const isSundayLockedRole = user?.role === "03" || user?.role === "04" || String(user?.role).includes("03") || String(user?.role).includes("04");
+  const isRestrictedRole = user?.role === "03" || user?.role === "04" || String(user?.role).includes("03") || String(user?.role).includes("04") || user?.role === "QL NHÂN SỰ" || user?.role === "NHÂN VIÊN";
   const isWorkingHours = totalMinutes >= startTime && totalMinutes < endTime;
   const isStaff = user?.role === "04" || user?.role === "NHÂN VIÊN" || String(user?.role).includes("04");
 
-  const shouldLock = ((isSunday && isSundayLockedRole) || (isStaff && !isWorkingHours)) && !isAccessGranted;
+  const shouldLock = ((isSunday && isRestrictedRole) || (isRestrictedRole && !isWorkingHours)) && !isAccessGranted;
   const isLateLocked = isStaff && isLate && !isFinePaid && !isAccessGranted;
   isCurrentlyLockedRef.current = isLateLocked;
 
@@ -1140,10 +1188,69 @@ export default function AdminLayout({
                   </button>
                 </div>
               </div>
-            ) : (
-              <>
-                {/* Header info */}
-                <div className="h-16 w-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-500/5">
+            ) : (() => {
+              // Calculate isDeniedApproval here
+              let isDeniedApproval = false;
+              if (user) {
+                const savedUsers = localStorage.getItem("global_users");
+                if (savedUsers) {
+                  const allUsers = JSON.parse(savedUsers);
+                  const u = allUsers.find((u: any) => u.username === user.username);
+                  if (u && (u.finePaymentStatus === "DENIED" || u.lateExcuseStatus === "DENIED")) {
+                    isDeniedApproval = true;
+                  }
+                }
+              }
+
+              if (isDeniedApproval) {
+                return (
+                  <div className="py-12 space-y-6">
+                    <div className="h-20 w-20 bg-red-500/10 border border-red-500/30 text-red-500 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-red-500/5">
+                      <ShieldAlert size={40} className="animate-pulse" />
+                    </div>
+                    <h2 className="text-3xl font-black uppercase tracking-tighter text-red-500">Yêu cầu bị từ chối</h2>
+                    <p className="text-gray-300 text-sm font-medium max-w-md mx-auto leading-relaxed">
+                      Yêu cầu giải trình hoặc nộp phạt của bạn đã bị Admin/Quản lý từ chối. Vui lòng kiểm tra lại thông tin và thử gửi lại.
+                    </p>
+                    <div className="pt-6 flex gap-3 justify-center">
+                      <button
+                        onClick={() => {
+                          if (user) {
+                            const savedUsers = localStorage.getItem("global_users");
+                            if (savedUsers) {
+                              const allUsers = JSON.parse(savedUsers);
+                              const updated = allUsers.map((u: any) => 
+                                u.username === user.username ? {
+                                  ...u,
+                                  finePaymentStatus: u.finePaymentStatus === "DENIED" ? null : u.finePaymentStatus,
+                                  lateExcuseStatus: u.lateExcuseStatus === "DENIED" ? null : u.lateExcuseStatus
+                                } : u
+                              );
+                              localStorage.setItem("global_users", JSON.stringify(updated));
+                              window.dispatchEvent(new Event("storage"));
+                              window.location.reload();
+                            }
+                          }
+                        }}
+                        className="px-8 h-12 bg-white/5 border border-white/10 hover:border-gold hover:text-gold text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg"
+                      >
+                        Thử gửi lại
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="px-8 h-12 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg shadow-red-500/5"
+                      >
+                        Đăng xuất
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <>
+                  {/* Header info */}
+                  <div className="h-16 w-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-500/5">
                   <Clock size={32} className="animate-pulse" />
                 </div>
 
@@ -1234,7 +1341,6 @@ export default function AdminLayout({
                               ...u, 
                               isLateLocked: true, 
                               finePaymentStatus: "PENDING_APPROVAL",
-                              lateExcuseStatus: "PENDING_APPROVAL",
                               status: "PENDING_APPROVAL"
                             } : u
                           );
@@ -1279,7 +1385,6 @@ export default function AdminLayout({
                             u.username === user.username ? { 
                               ...u, 
                               isLateLocked: true, 
-                              finePaymentStatus: "PENDING_APPROVAL",
                               lateExcuseStatus: "PENDING_APPROVAL",
                               status: "PENDING_APPROVAL" 
                             } : u
@@ -1306,7 +1411,8 @@ export default function AdminLayout({
                   </button>
                 </div>
               </>
-            )}
+              );
+            })()}
           </div>
         </div>
       )}
@@ -1396,41 +1502,41 @@ export default function AdminLayout({
                 initial={{ opacity: 0, y: 50, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 50, scale: 0.95 }}
-                className="w-96 h-[500px] bg-[#161616]/95 border border-white/10 rounded-[32px] shadow-2xl flex flex-col overflow-hidden mb-4 backdrop-blur-xl"
+                className="w-[400px] h-[600px] bg-[#161616]/95 border border-gold/20 rounded-3xl shadow-2xl flex flex-col overflow-hidden mb-6 backdrop-blur-xl"
               >
                 {/* Header */}
-                <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                    <h3 className="text-xs font-black text-white uppercase tracking-widest">AQ CHAT BOX</h3>
+                <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                      <MessageCircle size={16} className="text-gold" />
+                      Trò chuyện nội bộ
+                    </h3>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase mt-1">AQ MEDIA Workspace</p>
                   </div>
                   <button
                     onClick={() => setIsChatOpen(false)}
-                    className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-white/5 text-gray-500 hover:text-white transition-colors"
+                    className="h-8 w-8 flex items-center justify-center rounded-xl bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-500 transition-colors"
                   >
                     <X size={16} />
                   </button>
                 </div>
 
                 {/* Tabs */}
-                <div className="grid grid-cols-2 border-b border-white/5 text-center">
+                <div className="flex border-b border-white/5 p-2 gap-2 bg-[#0a0a0a]">
                   <button
-                    onClick={() => setChatTab("COMPANY")}
-                    className={`py-3 text-[10px] font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 ${chatTab === "COMPANY" ? "text-gold border-b-2 border-gold bg-white/[0.01]" : "text-gray-500 hover:text-white"}`}
+                    onClick={() => {
+                      setChatTab("COMPANY");
+                      setActiveChatUser(null);
+                    }}
+                    className={`flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${chatTab === "COMPANY" ? "bg-gold text-sidebar" : "text-gray-500 hover:text-white hover:bg-white/5"}`}
                   >
-                    <span>Công ty</span>
-                    {getCompanyUnreadCount() > 0 && (
-                      <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-                    )}
+                    Công ty
                   </button>
                   <button
                     onClick={() => setChatTab("PRIVATE")}
-                    className={`py-3 text-[10px] font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 ${chatTab === "PRIVATE" ? "text-gold border-b-2 border-gold bg-white/[0.01]" : "text-gray-500 hover:text-white"}`}
+                    className={`flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${chatTab === "PRIVATE" ? "bg-gold text-sidebar" : "text-gray-500 hover:text-white hover:bg-white/5"}`}
                   >
-                    <span>Chat với</span>
-                    {getPrivateUnreadCount() > 0 && (
-                      <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-                    )}
+                    Nhân sự
                   </button>
                 </div>
 
@@ -1694,11 +1800,11 @@ export default function AdminLayout({
               setIsChatOpen(!isChatOpen);
               setIsPhonePanelOpen(false);
             }}
-            className="h-14 w-14 bg-sidebar border border-gold/20 hover:border-gold text-gold rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:bg-gold hover:text-sidebar transition-all duration-300 relative group"
+            className="h-16 w-16 bg-gradient-to-br from-[#161616] to-[#0a0a0a] border-2 border-gold/30 hover:border-gold text-gold rounded-full flex items-center justify-center shadow-[0_10px_40px_rgba(212,175,55,0.2)] hover:shadow-[0_10px_50px_rgba(212,175,55,0.4)] transition-all duration-300 relative group backdrop-blur-xl"
           >
-            <MessageCircle size={24} />
+            <MessageCircle size={28} className="group-hover:scale-110 transition-transform duration-300" />
             {unreadCount > 0 ? (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white font-mono text-[10px] font-black h-6 w-6 rounded-full flex items-center justify-center border-2 border-sidebar shadow-lg animate-pulse">
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white font-mono text-[11px] font-black h-6 w-6 rounded-full flex items-center justify-center border-2 border-[#161616] shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse">
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             ) : (
@@ -1710,26 +1816,26 @@ export default function AdminLayout({
 
       {/* Floating Phone Widget */}
       {user && (user.role === "03" || user.role === "04" || String(user.role).includes("03") || String(user.role).includes("04") || user.role === "NHÂN VIÊN" || String(user.role).includes("NHÂN VIÊN")) && (
-        <div className="fixed bottom-4 right-20 z-50 flex flex-col items-end">
+        <div className="fixed bottom-6 right-28 z-50 flex flex-col items-end">
           <AnimatePresence>
             {isPhonePanelOpen && (
               <motion.div
                 initial={{ opacity: 0, y: 50, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 50, scale: 0.95 }}
-                className="w-96 h-[500px] bg-zinc-900/90 border border-zinc-800 rounded-xl shadow-2xl flex flex-col overflow-hidden mb-4 backdrop-blur-md"
+                className="w-96 h-[500px] bg-[#161616]/95 border border-gold/20 rounded-3xl shadow-2xl flex flex-col overflow-hidden mb-6 backdrop-blur-xl"
               >
                 {/* Header */}
-                <div className="p-4 border-b border-zinc-800/50 bg-white/[0.02] flex items-center justify-between">
+                <div className="p-4 border-b border-white/5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Phone size={16} className="text-amber-500 animate-pulse shrink-0" />
+                    <Phone size={16} className="text-gold animate-pulse shrink-0" />
                     <h3 className="text-xs font-black text-white uppercase tracking-widest">Danh sách SĐT ({myAssignedPhones.length})</h3>
                   </div>
                   <button
                     onClick={() => setIsPhonePanelOpen(false)}
-                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-white/5 text-gray-500 hover:text-white transition-colors"
+                    className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-red-500/20 text-gray-400 hover:text-red-500 transition-colors"
                   >
-                    <Minus size={16} />
+                    <X size={16} />
                   </button>
                 </div>
 
@@ -1737,15 +1843,15 @@ export default function AdminLayout({
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                   {myAssignedPhones.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6">
-                      <Phone size={48} className="text-zinc-700 mb-4 stroke-1" />
-                      <p className="text-sm font-black text-zinc-300 uppercase tracking-wider">Không có SĐT</p>
-                      <p className="text-xs text-zinc-500 mt-1 max-w-[200px]">Hiện không có số điện thoại nào hoạt động được gán cho bạn.</p>
+                      <Phone size={48} className="text-gold/20 mb-4 stroke-1" />
+                      <p className="text-sm font-black text-gray-300 uppercase tracking-wider">Không có SĐT</p>
+                      <p className="text-xs text-gray-500 mt-1 max-w-[200px]">Hiện không có số điện thoại nào hoạt động được gán cho bạn.</p>
                     </div>
                   ) : (
                     myAssignedPhones.map((p: any) => (
                       <div
                         key={p.id}
-                        className="p-4 bg-zinc-800/30 border border-zinc-800/50 hover:border-amber-500/30 rounded-xl transition-all duration-300 flex flex-col gap-3 group relative overflow-hidden"
+                        className="p-4 bg-white/[0.02] border border-white/5 hover:border-gold/30 rounded-2xl transition-all duration-300 flex flex-col gap-3 group relative overflow-hidden"
                       >
                         <div className="flex items-center justify-between">
                           <button
@@ -1753,10 +1859,10 @@ export default function AdminLayout({
                             className="flex items-center gap-2 group/num text-left active:scale-[0.98] transition-transform"
                             title="Bấm để copy số điện thoại"
                           >
-                            <span className="text-lg font-black text-white group-hover/num:text-amber-500 transition-colors font-mono tracking-wide">
+                            <span className="text-lg font-black text-white group-hover/num:text-gold transition-colors font-mono tracking-wide">
                               {p.number}
                             </span>
-                            <Copy size={14} className="text-zinc-500 group-hover/num:text-amber-500 transition-colors" />
+                            <Copy size={14} className="text-gray-500 group-hover/num:text-gold transition-colors" />
                           </button>
 
                           {p.otpLink ? (
@@ -1764,28 +1870,28 @@ export default function AdminLayout({
                               href={p.otpLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[10px] font-black text-amber-500 hover:text-zinc-900 transition-colors bg-amber-500/10 hover:bg-amber-500 border border-amber-500/20 px-3 py-1.5 rounded-lg flex items-center gap-1 shrink-0"
+                              className="text-[10px] font-black text-gold hover:text-[#0a0a0a] transition-colors bg-gold/10 hover:bg-gold border border-gold/20 px-3 py-1.5 rounded-lg flex items-center gap-1 shrink-0"
                             >
                               <span>Mở OTP</span>
                               <ExternalLink size={10} />
                             </a>
                           ) : (
-                            <span className="text-[10px] text-zinc-500 font-bold px-3 py-1.5 bg-zinc-800/50 rounded-lg shrink-0">Không có OTP</span>
+                            <span className="text-[10px] text-gray-500 font-bold px-3 py-1.5 bg-white/5 rounded-lg shrink-0">Không có OTP</span>
                           )}
                         </div>
 
                         {/* Status buttons */}
-                        <div className={`grid ${p.status === "XM lần 1" ? "grid-cols-3" : "grid-cols-2"} gap-2 border-t border-zinc-800/50 pt-3`}>
+                        <div className={`grid ${p.status === "XM lần 1" ? "grid-cols-3" : "grid-cols-2"} gap-2 border-t border-white/5 pt-3`}>
                           <button
                             onClick={() => handleUpdatePhoneStatus(p.id, "XM lần 1")}
-                            className={`py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 ${p.status === "XM lần 1" ? "bg-amber-500 text-zinc-900 shadow-lg shadow-amber-500/20" : "bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-zinc-900"}`}
+                            className={`py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 ${p.status === "XM lần 1" ? "bg-gold text-[#0a0a0a] shadow-lg shadow-gold/20" : "bg-gold/10 text-gold hover:bg-gold hover:text-[#0a0a0a]"}`}
                           >
                             XM Lần 1
                           </button>
                           {p.status === "XM lần 1" && (
                             <button
                               onClick={() => handleUpdatePhoneStatus(p.id, "XM lần 2")}
-                              className="py-1.5 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-zinc-900 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300"
+                              className="py-1.5 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300"
                             >
                               XM Lần 2
                             </button>
@@ -1813,11 +1919,11 @@ export default function AdminLayout({
               setIsPhonePanelOpen(!isPhonePanelOpen);
               setIsChatOpen(false);
             }}
-            className="h-14 w-14 bg-zinc-900 border border-amber-500/20 hover:border-amber-500 text-amber-500 rounded-xl flex items-center justify-center shadow-[0_4px_20px_rgba(245,158,11,0.15)] hover:bg-amber-500 hover:text-zinc-900 transition-all duration-300 relative group backdrop-blur-md"
+            className="h-16 w-16 bg-gradient-to-br from-[#161616] to-[#0a0a0a] border-2 border-gold/30 hover:border-gold text-gold rounded-full flex items-center justify-center shadow-[0_10px_40px_rgba(212,175,55,0.2)] hover:shadow-[0_10px_50px_rgba(212,175,55,0.4)] transition-all duration-300 relative group backdrop-blur-xl"
           >
-            <Phone size={24} />
+            <Phone size={28} className="group-hover:scale-110 transition-transform duration-300" />
             {myAssignedPhones.length > 0 && (
-              <span className="absolute -top-2 -right-2 bg-amber-500 text-zinc-900 font-mono text-[10px] font-black h-6 w-6 rounded-full flex items-center justify-center border-2 border-zinc-900 shadow-lg animate-pulse">
+              <span className="absolute -top-1 -right-1 bg-gold text-[#0a0a0a] font-mono text-[11px] font-black h-6 w-6 rounded-full flex items-center justify-center border-2 border-[#161616] shadow-[0_0_15px_rgba(212,175,55,0.5)] animate-bounce">
                 {myAssignedPhones.length}
               </span>
             )}

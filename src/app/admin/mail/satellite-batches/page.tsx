@@ -14,7 +14,8 @@ import {
   Search,
   CheckCircle2,
   FolderOpen,
-  UserCheck
+  UserCheck,
+  RefreshCcw
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -47,6 +48,7 @@ export default function SatelliteBatchesPage() {
   const [selectedStaffToAssign, setSelectedStaffToAssign] = useState("");
   const [selectedChunkId, setSelectedChunkId] = useState("");
   const [batchToDelete, setBatchToDelete] = useState<BatchItem | null>(null);
+  const [batchToReset, setBatchToReset] = useState<BatchItem | null>(null);
 
   // Group unassigned satellite mails in chunks of 17 (cuốn chiếu)
   const unassignedMailChunks = useMemo(() => {
@@ -466,6 +468,42 @@ export default function SatelliteBatchesPage() {
     setBatchToDelete(null);
   };
 
+  // Trigger reset modal
+  const handleResetBatchLinks = (e: React.MouseEvent, batch: BatchItem) => {
+    e.stopPropagation();
+    setBatchToReset(batch);
+  };
+
+  // Perform actual reset
+  const confirmResetBatchLinks = () => {
+    if (!batchToReset) return;
+    const savedMails = localStorage.getItem("global_mails_data");
+    let mails = savedMails ? JSON.parse(savedMails) : [];
+    let updated = false;
+
+    mails = mails.map((m: any) => {
+      if (m.type === "SATELLITE" && m.batchName === batchToReset.name) {
+        updated = true;
+        return {
+          ...m,
+          links: ["", "", ""],
+          channelNames: ["", "", ""],
+          eligibleChannels: [false, false, false],
+          workStatus: "Chưa làm",
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return m;
+    });
+
+    if (updated) {
+      localStorage.setItem("global_mails_data", JSON.stringify(mails));
+      window.dispatchEvent(new Event("storage"));
+      triggerToast(`Đã reset toàn bộ link kênh trong lô "${batchToReset.name}"!`);
+    }
+    setBatchToReset(null);
+  };
+
   // Add selected unassigned mails to this batch
   const handleAddMailsToBatch = () => {
     if (selectedMailsToAdd.length === 0 || !selectedBatch || !selectedStaff) return;
@@ -794,6 +832,13 @@ export default function SatelliteBatchesPage() {
                         <span className="px-2.5 py-1 rounded-xl text-[9px] font-black tracking-widest uppercase border bg-gold/10 text-gold border-gold/20">
                           SATELLITE
                         </span>
+                        <button
+                          onClick={(e) => handleResetBatchLinks(e, batch)}
+                          className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-white transition-all opacity-0 group-hover:opacity-100 border border-blue-500/20"
+                          title="Reset toàn bộ link kênh"
+                        >
+                          <RefreshCcw size={12} />
+                        </button>
                         <button
                           onClick={(e) => handleDeleteBatch(e, batch)}
                           className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white transition-all opacity-0 group-hover:opacity-100 border border-red-500/20"
@@ -1165,6 +1210,60 @@ export default function SatelliteBatchesPage() {
                   className="flex-1 h-12 bg-red-500 hover:bg-red-600 text-white font-black uppercase text-xs tracking-widest rounded-xl transition-all shadow-lg shadow-red-500/25"
                 >
                   Xác nhận xóa
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Custom Confirm Reset Batch Modal */}
+      <AnimatePresence>
+        {batchToReset && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 20 }} 
+              animate={{ scale: 1, y: 0 }} 
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-sidebar border border-blue-500/30 w-full max-w-md rounded-[32px] p-8 shadow-[0_0_50px_rgba(59,130,246,0.15)] relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 h-40 w-40 bg-blue-500/5 blur-[50px] -mr-20 -mt-20" />
+              
+              <div className="flex items-center gap-4 mb-6 relative z-10">
+                <div className="h-12 w-12 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center border border-blue-500/20">
+                  <RefreshCcw size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-white uppercase tracking-tight">Làm Mới Link Kênh</h3>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Hành động không thể hoàn tác</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 mb-8 text-sm text-gray-300 font-medium relative z-10 leading-relaxed">
+                <p>
+                  Bạn có chắc muốn xóa toàn bộ link kênh của các mail vệ tinh trong Lô <span className="text-gold font-black uppercase">"{batchToReset.name}"</span> không?
+                </p>
+                <p className="text-xs text-blue-400 bg-blue-500/5 border border-blue-500/10 rounded-xl p-3">
+                  ℹ️ Tất cả link kênh, tên kênh, trạng thái đủ giờ của mail trong lô này sẽ bị xóa trắng và đưa về trạng thái "Chưa làm".
+                </p>
+              </div>
+
+              <div className="flex gap-4 relative z-10">
+                <button
+                  onClick={() => setBatchToReset(null)}
+                  className="flex-1 h-12 bg-white/5 border border-white/10 text-white font-bold uppercase text-xs tracking-widest rounded-xl hover:bg-white/10 transition-all"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={confirmResetBatchLinks}
+                  className="flex-1 h-12 bg-blue-500 hover:bg-blue-600 text-white font-black uppercase text-xs tracking-widest rounded-xl transition-all shadow-lg shadow-blue-500/25"
+                >
+                  Xác nhận Reset
                 </button>
               </div>
             </motion.div>

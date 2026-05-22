@@ -31,6 +31,12 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(userData.avatar || null);
+  
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -47,7 +53,34 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_SIZE = 200;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height;
+              height = MAX_SIZE;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.8);
+          setAvatarPreview(compressedDataUrl);
+        };
+        img.src = reader.result as string;
       };
       reader.readAsDataURL(file);
     }
@@ -71,20 +104,45 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
     setIsSaving(true);
     // Lưu vào localStorage Mock DB
     const allUsers = JSON.parse(localStorage.getItem("global_users") || "[]");
-    const updatedUsers = allUsers.map((u: any) => 
-      u.id === formData.id ? { ...u, ...formData, avatar: avatarPreview } : u
-    );
+    const updatedUsers = allUsers.map((u: any) => {
+      // Dọn dẹp avatar cũ bị phình to (nếu có) để tránh lỗi API Limit 1MB
+      if (u.avatar && u.avatar.length > 50000) {
+        u.avatar = null;
+      }
+      return String(u.id) === String(formData.id) ? { ...u, ...formData, avatar: avatarPreview } : u;
+    });
     localStorage.setItem("global_users", JSON.stringify(updatedUsers));
     
-    // Cập nhật session
-    const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-    if (currentUser.id === formData.id) {
-      localStorage.setItem("user", JSON.stringify({ ...currentUser, ...formData, avatar: avatarPreview }));
+    // Cập nhật session (cả localStorage và sessionStorage)
+    const updatedUserData = { ...formData, avatar: avatarPreview };
+    const currentUser = JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}");
+    if (String(currentUser.id) === String(formData.id) || currentUser.username === formData.username) {
+      const mergedUser = { ...currentUser, ...updatedUserData };
+      localStorage.setItem("user", JSON.stringify(mergedUser));
+      sessionStorage.setItem("user", JSON.stringify(mergedUser));
     }
 
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // Lưu avatar riêng để dễ truy xuất
+    if (avatarPreview) {
+      localStorage.setItem("avatar", avatarPreview);
+    }
+
+    // Đồng bộ lên server
+    try {
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ global_users: JSON.stringify(updatedUsers) })
+      });
+    } catch (err) {
+      console.error("Profile sync error:", err);
+    }
+
+    window.dispatchEvent(new Event("storage"));
+
+    await new Promise(resolve => setTimeout(resolve, 500));
     setIsSaving(false);
-    alert("Cập nhật thông tin thành công! Vui lòng tải lại trang để thấy thay đổi.");
+    alert("Cập nhật thông tin thành công!");
     onClose();
   };
 
@@ -94,6 +152,52 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
     if (role === "03") return "03 - QUẢN LÝ NHÂN SỰ";
     if (role === "04") return "04 - NHÂN VIÊN";
     return "CHƯA CẤP QUYỀN";
+  };
+
+  const handlePasswordChange = async () => {
+    setPasswordError("");
+    setPasswordSuccess("");
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError("Vui lòng nhập đầy đủ thông tin");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Mật khẩu mới không khớp");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError("Mật khẩu mới phải có ít nhất 6 ký tự");
+      return;
+    }
+
+    const allUsers = JSON.parse(localStorage.getItem("global_users") || "[]");
+    const userIndex = allUsers.findIndex((u: any) => u.id === formData.id);
+    if (userIndex === -1) {
+      setPasswordError("Không tìm thấy người dùng");
+      return;
+    }
+
+    if (allUsers[userIndex].password !== currentPassword) {
+      setPasswordError("Mật khẩu hiện tại không đúng");
+      return;
+    }
+
+    allUsers[userIndex].password = newPassword;
+    localStorage.setItem("global_users", JSON.stringify(allUsers));
+    
+    try {
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ global_users: JSON.stringify(allUsers) })
+      });
+    } catch (err) {}
+
+    window.dispatchEvent(new Event("storage"));
+    setPasswordSuccess("Đổi mật khẩu thành công!");
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
   };
 
   return (
@@ -210,6 +314,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                   </div>
                 </div>
               </div>
+
             </div>
 
             {/* Footer */}

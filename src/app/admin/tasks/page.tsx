@@ -123,7 +123,7 @@ const UnifiedMailDetailModal = ({
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4">
-      <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-sidebar border border-white/10 w-full max-w-xl rounded-[40px] p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col max-h-[90vh]">
+      <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-sidebar border border-white/10 w-full max-w-4xl rounded-[40px] p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col max-h-[90vh]">
         <div className="absolute top-0 right-0 h-96 w-96 bg-gold/5 blur-[120px] -mr-48 -mt-48" />
 
         <div className="flex items-center justify-between mb-8 relative z-10">
@@ -335,6 +335,7 @@ export default function TaskManagementPage() {
   const [selectedMailForConfig, setSelectedMailForConfig] = useState<any>(null);
 
   // New states for template allocation flow
+  const [adminTab, setAdminTab] = useState<"ASSIGN" | "TASKS">("ASSIGN");
   const [selectedTemplate, setSelectedTemplate] = useState<string>("Check, xóa, tạo");
   const [targetStaffId, setTargetStaffId] = useState<string>("");
   const [mailTypeSelection, setMailTypeSelection] = useState<"ROOT" | "SATELLITE" | "MONETIZED">("ROOT");
@@ -466,6 +467,12 @@ export default function TaskManagementPage() {
     
     // For each batch name, find the range in allSatellites
     return batchNames.map(bName => {
+      // Check if this batch is already assigned as a task to this user
+      const isAlreadyTask = tasks.some(
+        (t: any) => t.type === "MAIL_VE_TINH" && t.mailRange === bName && String(t.assigneeId) === String(targetStaffId)
+      );
+      if (isAlreadyTask) return null;
+
       const batchMails = theirSatellites.filter((m: any) => m.batchName === bName);
       if (batchMails.length === 0) return null;
       
@@ -480,7 +487,7 @@ export default function TaskManagementPage() {
         mailIds: batchMails.map((m: any) => m.id)
       };
     }).filter(Boolean) as any[];
-  }, [targetStaffId, mails]);
+  }, [targetStaffId, mails, tasks]);
 
   const targetStaffBatches = useMemo(() => {
     return dynamicStaffBatches.map(b => b.name);
@@ -544,9 +551,15 @@ export default function TaskManagementPage() {
   }, [filteredStaff, currentPage]);
 
   const userTasks = useMemo(() => {
-    if (isAdminOrManager) return tasks;
+    if (isAdminOrManager) {
+      if (adminTab === "TASKS") {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        return tasks.filter(t => t.assignedAt && t.assignedAt.startsWith(todayStr));
+      }
+      return tasks;
+    }
     return tasks.filter(t => String(t.assigneeId) === String(user?.id));
-  }, [tasks, user, isAdminOrManager]);
+  }, [tasks, user, isAdminOrManager, adminTab]);
 
   const filteredTasks = useMemo(() => {
     let result = userTasks;
@@ -856,7 +869,28 @@ export default function TaskManagementPage() {
   }, [targetStaffId, selectedTemplate, selectedLo, selectedMoiKenhLo, selectedRootMailId, monetizedOption, mailRangeStart, mailRangeEnd, assignmentNote, staffList, user]);
 
   const updateTaskStatus = useCallback((newStatus: "IN_PROGRESS" | "COMPLETED") => {
-    if (!selectedTaskId) return;
+    if (!selectedTaskId || !selectedTask) return;
+
+    if (newStatus === "COMPLETED" && selectedTask?.type === "MAIL_VE_TINH") {
+      const taskMailsValidation = mails.filter((m: any) => 
+        m.type === "SATELLITE" && 
+        m.batchName === selectedTask.mailRange && 
+        String(m.assigneeId) === String(selectedTask.assigneeId)
+      );
+      
+      let errorMails: string[] = [];
+      taskMailsValidation.forEach((m: any) => {
+        const linksCount = (m.links || []).filter((l: string) => typeof l === 'string' && l.trim() !== "").length;
+        if (linksCount < 3) {
+          errorMails.push(`- ${m.email} (thiếu ${3 - linksCount} kênh)`);
+        }
+      });
+
+      if (errorMails.length > 0) {
+        alert("KHÔNG THỂ HOÀN THÀNH!\nCác mail vệ tinh sau chưa nhập đủ 3 kênh:\n" + errorMails.join("\n"));
+        return;
+      }
+    }
 
     const savedTasks = localStorage.getItem("global_tasks_data");
     let allTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
@@ -877,7 +911,7 @@ export default function TaskManagementPage() {
     setNotification(`Đã chuyển trạng thái nhiệm vụ sang: ${newStatus === "COMPLETED" ? "Hoàn thành" : "Đang xử lý"}`);
     setTimeout(() => setNotification(null), 3000);
     window.dispatchEvent(new Event("storage"));
-  }, [selectedTaskId]);
+  }, [selectedTaskId, selectedTask, mails]);
 
   return (
     <div className="h-[calc(100vh-100px)] flex flex-col gap-4 select-none relative overflow-hidden">
@@ -890,7 +924,7 @@ export default function TaskManagementPage() {
       </AnimatePresence>
 
       {/* Header Section */}
-      <div className="flex items-center justify-between flex-shrink-0">
+      <div className="flex flex-col md:flex-row md:items-center justify-between flex-shrink-0 gap-4">
         <div className="flex items-center gap-6">
           {selectedTaskId && (
             <button onClick={() => setSelectedTaskId(null)} className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 hover:text-gold hover:border-gold/30 transition-all shadow-xl">
@@ -908,13 +942,29 @@ export default function TaskManagementPage() {
             </p>
           </div>
         </div>
+        {isAdminOrManager && !selectedTaskId && (
+          <div className="flex bg-white/5 rounded-2xl p-1 border border-white/10">
+            <button 
+              onClick={() => setAdminTab("ASSIGN")}
+              className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all ${adminTab === "ASSIGN" ? "bg-gold text-black shadow-lg" : "text-gray-400 hover:text-white"}`}
+            >
+              Giao việc
+            </button>
+            <button 
+              onClick={() => setAdminTab("TASKS")}
+              className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all ${adminTab === "TASKS" ? "bg-gold text-black shadow-lg" : "text-gray-400 hover:text-white"}`}
+            >
+              Task hôm nay
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden mt-4">
         <AnimatePresence mode="wait">
           {!selectedTaskId ? (
-            isAdminOrManager ? (
+            isAdminOrManager && adminTab === "ASSIGN" ? (
               // Admin/Manager view: Template cards + Assignment form
               <motion.div key="admin-delegation" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 overflow-y-auto pr-2 pb-10">
                 {/* Left side: 4 Task Templates Cards */}

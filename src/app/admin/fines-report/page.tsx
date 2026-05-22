@@ -195,7 +195,7 @@ export default function FinesReportPage() {
   };
 
   return (
-    <div className="h-full flex flex-col space-y-6 pb-6">
+    <div className="h-[calc(100vh-4rem)] flex flex-col space-y-6 pb-6 overflow-hidden">
       {/* Toast */}
       <AnimatePresence>
         {toastMsg && (
@@ -211,7 +211,7 @@ export default function FinesReportPage() {
       </AnimatePresence>
 
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 shrink-0">
         <button
           onClick={() => router.push("/admin")}
           className="p-2 rounded-xl bg-sidebar border border-border-custom text-gray-400 hover:text-white transition-all"
@@ -230,7 +230,7 @@ export default function FinesReportPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
         <motion.div
           whileHover={{ scale: 1.02 }}
           className="bg-sidebar border border-border-custom rounded-2xl p-4 shadow-lg"
@@ -320,7 +320,7 @@ export default function FinesReportPage() {
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
+      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center shrink-0">
         <div className="flex-1 relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
           <input
@@ -357,11 +357,11 @@ export default function FinesReportPage() {
       </div>
 
       {/* Fine Reports Table */}
-      <div className="bg-sidebar border border-border-custom rounded-2xl shadow-2xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border-custom bg-white/[0.02]">
+      <div className="bg-sidebar border border-border-custom rounded-2xl shadow-2xl overflow-hidden flex-1 flex flex-col min-h-0">
+        <div className="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
+          <table className="w-full relative">
+            <thead className="sticky top-0 bg-[#0d0d0d] z-10 shadow-sm border-b border-white/5">
+              <tr className="bg-white/[0.02]">
                 <th className="px-6 py-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-widest">
                   Nhân Viên
                 </th>

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from "next/server";
 
 // In-memory store on the Node server (shared across normal/incognito)

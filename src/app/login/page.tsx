@@ -123,6 +123,7 @@ function LoginForm() {
         return;
       }
 
+
       // Tự động Check-in ngay khi đăng nhập thành công
       let checkInISO = localStorage.getItem(`checkin_time_${user.username}`);
       let isCheckedInToday = false;

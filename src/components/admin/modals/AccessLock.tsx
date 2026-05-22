@@ -21,6 +21,28 @@ export default function AccessLock({ message, userName, onSendRequest, onLogout 
     return () => clearInterval(timer);
   }, []);
 
+  // Khôi phục trạng thái nếu đã gửi yêu cầu trước đó (khi đăng nhập lại)
+  useEffect(() => {
+    const localResponse = localStorage.getItem(`access_response_${userName}`);
+    if (localResponse === "DENIED") {
+      setStatus("DENIED");
+      setRequestSent(true);
+      return;
+    }
+    if (localResponse === "APPROVED") {
+      setStatus("APPROVED");
+      setRequestSent(true);
+      return;
+    }
+    
+    // Kiểm tra xem có đang nằm trong danh sách pending không
+    const pendingReqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
+    if (pendingReqs.some((req: any) => req.staffName === userName)) {
+      setStatus("PENDING");
+      setRequestSent(true);
+    }
+  }, [userName]);
+
   // Kiểm tra phản hồi từ quản lý - kéo từ cả localStorage lẫn server
   useEffect(() => {
     if (!requestSent) return;

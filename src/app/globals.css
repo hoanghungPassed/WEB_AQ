@@ -192,6 +192,9 @@ body {
 [data-theme="light"] .bg-\[\#0f0f0f\] {
   background-color: #f1f5f9 !important;
 }
+[data-theme="light"] .bg-\[\#121212\], [data-theme="light"] .bg-\[\#161616\] {
+  background-color: #ffffff !important;
+}
 [data-theme="light"] .border-white\/5 {
   border-color: rgba(0,0,0,0.06) !important;
 }

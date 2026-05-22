@@ -658,6 +658,21 @@ export default function AdminDashboard() {
     const savedMails = localStorage.getItem("global_mails_data");
     const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
 
+    // Phase 3.1: Validate 3 links before allowing "Đã làm" for SATELLITE mails (Role 03, 04 only)
+    const norm = (newWorkStatus || "").toUpperCase();
+    if (norm === "ĐÃ LÀM" && (user?.role === "03" || user?.role === "04")) {
+      const targetMail = currentMails.find((m: any) => m.id === mailId);
+      if (targetMail && targetMail.type === "SATELLITE") {
+        const links: string[] = targetMail.links || [];
+        const filledCount = [0, 1, 2].filter(i => links[i] && links[i].trim() !== "").length;
+        if (filledCount < 3) {
+          setCopyToast("Thiếu kênh! Vui lòng điền đủ 3 link kênh trước khi chuyển trạng thái.");
+          setTimeout(() => setCopyToast(null), 4000);
+          return;
+        }
+      }
+    }
+
     const updatedMails = currentMails.map((m: any) => {
       if (m.id === mailId) {
         let status = m.status;
@@ -2137,77 +2152,104 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              <div className="overflow-auto flex-1 custom-scrollbar relative z-10 border border-white/5 rounded-3xl bg-black/10">
-                <table className="w-full text-left whitespace-nowrap">
-                  <thead className="sticky top-0 bg-[#0d0d0d] z-20 border-b border-white/5">
-                    <tr className="text-gray-500 text-[10px] font-black uppercase tracking-widest">
-                      <th className="py-5 px-6">STT</th>
-                      <th className="py-5 px-6">Tên kênh</th>
-                      <th className="py-5 px-6">Link kênh</th>
-                      <th className="py-5 px-6 text-center">Trạng thái mời</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5 text-gray-300">
-                    {mails
-                      .filter((m: any) => m.type === "SATELLITE" && Array.isArray(m.eligibleChannels) && m.eligibleChannels.some(Boolean))
-                      .flatMap((m: any, mailIdx: number) => {
+              <div className="overflow-auto flex-1 custom-scrollbar relative z-10 space-y-6">
+                {(() => {
+                  const eligibleMails = mails.filter((m: any) => m.type === "SATELLITE" && Array.isArray(m.eligibleChannels) && m.eligibleChannels.some(Boolean));
+                  if (eligibleMails.length === 0) {
+                     return <div className="p-12 text-center text-gray-500 font-bold uppercase tracking-widest bg-black/10 rounded-3xl border border-white/5">Không có kênh nào đủ điều kiện hiện tại</div>;
+                  }
+                  
+                  const byBatch = eligibleMails.reduce((acc: any, m: any) => {
+                     const b = m.batchName || "Chưa phân lô";
+                     if (!acc[b]) acc[b] = [];
+                     acc[b].push(m);
+                     return acc;
+                  }, {});
+
+                  return Object.entries(byBatch).map(([batchName, bMails]: [string, any]) => {
+                     const channelsInBatch = bMails.flatMap((m: any) => {
                         const activeChannels = [];
                         for (let i = 0; i < 3; i++) {
                           if (m.eligibleChannels[i] && m.links && m.links[i]) {
-                            activeChannels.push({
-                              stt: `${mailIdx + 1}.${i + 1}`,
-                              name: m.channelNames && m.channelNames[i] ? m.channelNames[i] : `Kênh vệ tinh #${i + 1}`,
-                              link: m.links[i],
-                              mailId: m.id,
-                              chIdx: i,
-                              inviteStatus: (m.inviteStatuses && m.inviteStatuses[i]) ? m.inviteStatuses[i] : "Chưa mời"
-                            });
+                             activeChannels.push({
+                               stt: `${m.id - 1000}.${i + 1}`,
+                               mailEmail: m.email,
+                               name: m.channelNames && m.channelNames[i] ? m.channelNames[i] : `Kênh vệ tinh #${i + 1}`,
+                               link: m.links[i],
+                               mailId: m.id,
+                               chIdx: i,
+                               inviteStatus: (m.inviteStatuses && m.inviteStatuses[i]) ? m.inviteStatuses[i] : "Chưa mời"
+                             });
                           }
                         }
                         return activeChannels;
-                      })
-                      .map((row: any, idx: number) => (
-                        <tr key={`${row.mailId}-${row.chIdx}-${idx}`} className="hover:bg-white/[0.02] transition-colors group">
-                          <td className="py-4 px-6 text-[10px] font-black text-gray-500">{row.stt}</td>
-                          <td className="py-4 px-6 font-bold text-gold uppercase tracking-tighter text-xs">
-                            {row.name.replace("Tên kênh: ", "")}
-                          </td>
-                          <td className="py-4 px-6 text-xs text-gray-400 font-mono">
-                            <a 
-                              href={row.link} 
-                              target="_blank" 
-                              rel="noreferrer" 
-                              className="inline-flex items-center gap-1.5 text-blue-400 hover:text-blue-300 underline font-bold"
-                            >
-                              <span>{row.link.length > 35 ? `${row.link.substring(0, 35)}...` : row.link}</span>
-                              <ExternalLink size={12} />
-                            </a>
-                          </td>
-                          <td className="py-4 px-6 text-center">
-                            <select 
-                              value={row.inviteStatus}
-                              onChange={(e) => handleInviteStatusChange(row.mailId, row.chIdx, e.target.value)}
-                              className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-2xl outline-none border transition-all cursor-pointer ${
-                                row.inviteStatus === "Đã mời" 
-                                  ? "bg-green-500/10 text-green-500 border-green-500/20" 
-                                  : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-                              }`}
-                            >
-                              <option value="Chưa mời" className="bg-sidebar text-white">Chưa mời</option>
-                              <option value="Đã mời" className="bg-sidebar text-white">Đã mời</option>
-                            </select>
-                          </td>
-                        </tr>
-                      ))}
-                    {mails.filter((m: any) => m.type === "SATELLITE" && Array.isArray(m.eligibleChannels) && m.eligibleChannels.some(Boolean)).length === 0 && (
-                      <tr>
-                        <td colSpan={4} className="py-12 text-center text-gray-500 font-bold uppercase tracking-widest">
-                          Không có kênh nào đủ điều kiện hiện tại
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                     });
+
+                     return (
+                        <div key={batchName} className="border border-white/5 rounded-3xl bg-black/10 overflow-hidden">
+                          <div className="bg-[#0d0d0d] border-b border-white/5 p-4 flex items-center justify-between">
+                            <h3 className="text-sm font-black text-white uppercase tracking-tighter">Lô: <span className="text-gold">{batchName}</span></h3>
+                          </div>
+                          <table className="w-full text-left whitespace-nowrap">
+                            <thead className="bg-[#0a0a0a] border-b border-white/5">
+                              <tr className="text-gray-500 text-[10px] font-black uppercase tracking-widest">
+                                <th className="py-3 px-6 w-16">STT</th>
+                                <th className="py-3 px-6">Email Gốc</th>
+                                <th className="py-3 px-6">Tên kênh</th>
+                                <th className="py-3 px-6">Link kênh</th>
+                                <th className="py-3 px-6 text-center">Trạng thái mời</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5 text-gray-300">
+                              {channelsInBatch.map((row: any, idx: number) => (
+                                <tr key={`${row.mailId}-${row.chIdx}-${idx}`} className="hover:bg-white/[0.02] transition-colors group">
+                                  <td className="py-3 px-6 text-[10px] font-black text-gray-500">{row.stt}</td>
+                                  <td className="py-3 px-6 text-xs text-white font-bold">{row.mailEmail}</td>
+                                  <td className="py-3 px-6 font-bold text-gold uppercase tracking-tighter text-[10px]">
+                                    {row.name.replace("Tên kênh: ", "")}
+                                  </td>
+                                  <td className="py-3 px-6 text-xs text-gray-400 font-mono">
+                                    <a 
+                                      href={row.link} 
+                                      target="_blank" 
+                                      rel="noreferrer" 
+                                      className="inline-flex items-center gap-1.5 text-blue-400 hover:text-blue-300 underline font-bold"
+                                    >
+                                      <span>{row.link.length > 25 ? `${row.link.substring(0, 25)}...` : row.link}</span>
+                                      <ExternalLink size={12} />
+                                    </a>
+                                  </td>
+                                  <td className="py-3 px-6 text-center">
+                                    <select 
+                                      value={row.inviteStatus}
+                                      onChange={(e) => handleInviteStatusChange(row.mailId, row.chIdx, e.target.value)}
+                                      className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-2xl outline-none border transition-all cursor-pointer ${
+                                        row.inviteStatus === "Đã mời" 
+                                          ? "bg-green-500/10 text-green-500 border-green-500/20" 
+                                          : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                                      }`}
+                                    >
+                                      <option value="Chưa mời" className="bg-sidebar text-white">Chưa mời</option>
+                                      <option value="Đã mời" className="bg-sidebar text-white">Đã mời</option>
+                                    </select>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot className="bg-[#0a0a0a] border-t border-white/5">
+                              <tr>
+                                <td colSpan={5} className="py-4 px-6 text-right">
+                                  <span className="text-xs font-black text-gray-400 uppercase tracking-widest">
+                                    Tổng kênh đủ giờ của lô: <span className="text-gold text-sm">{channelsInBatch.length} kênh</span>
+                                  </span>
+                                </td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                     );
+                  });
+                })()}
               </div>
 
               <div className="mt-8 relative z-10 pt-4 border-t border-white/5 text-right">
