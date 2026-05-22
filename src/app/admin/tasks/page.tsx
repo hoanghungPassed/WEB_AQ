@@ -28,6 +28,11 @@ import { MailData } from "@/types/admin";
 import { MOCK_STAFF, MOCK_TASK_ASSIGNMENTS, MOCK_MAILS } from "@/data/mockData";;
 import { StaffData, TaskAssignment } from "@/types/admin";
 import { useRouter } from "next/navigation";
+import {
+  validateYouTubeUrl,
+  fetchChannelName,
+  cleanYouTubeUrl
+} from "@/components/admin/youtubeUtils";
 
 const UnifiedMailDetailModal = ({ 
   mail, 
@@ -59,46 +64,118 @@ const UnifiedMailDetailModal = ({
   const [scanning, setScanning] = useState<boolean[]>([false, false, false]);
   const [eligibleChannels, setEligibleChannels] = useState<boolean[]>(mail.eligibleChannels || [false, false, false]);
 
+  // Validation errors for each link (checks format, local duplicate, and global duplicate)
+  const [validationErrors, setValidationErrors] = useState<boolean[]>(() => {
+    const initLinks = mail.links || ["", "", ""];
+    const savedMails = typeof window !== "undefined" ? localStorage.getItem("global_mails_data") : null;
+    const allMails = savedMails ? JSON.parse(savedMails) : [];
+
+    return initLinks.map((link: string, i: number) => {
+      if (!link || link.trim() === "") return false;
+      
+      const cleaned = cleanYouTubeUrl(link);
+      const isFormatInvalid = !validateYouTubeUrl(link);
+      if (isFormatInvalid) return true;
+
+      // Check local duplicates inside this mail
+      const isDuplicateLocal = initLinks.some((l: string, idx: number) => idx !== i && l && cleanYouTubeUrl(l) === cleaned);
+      if (isDuplicateLocal) return true;
+
+      // Check global duplicates in database
+      const isDuplicateGlobal = allMails.some((m: any) => 
+        m.id !== mail.id && 
+        Array.isArray(m.links) && 
+        m.links.some((l: string) => l && cleanYouTubeUrl(l) === cleaned)
+      );
+      if (isDuplicateGlobal) return true;
+
+      return false;
+    });
+  });
+
   // State for MONETIZED
   const [reClickDate, setReClickDate] = useState(mail.reClickDate || "");
   const [step2PendingDate, setStep2PendingDate] = useState(mail.step2PendingDate || "");
   const [channelStatusDetail, setChannelStatusDetail] = useState(mail.channelStatusDetail || "Chưa Done");
 
-  const handleLinkChange = (idx: number, val: string) => {
+  const handleLinkChange = async (idx: number, val: string) => {
     const newLinks = [...links];
     newLinks[idx] = val;
     setLinks(newLinks);
 
-    if (val.trim()) {
-      const newScanning = [...scanning];
-      newScanning[idx] = true;
-      setScanning(newScanning);
+    const newValidationErrors = [...validationErrors];
+    const newNames = [...names];
 
-      const newNames = [...names];
-      newNames[idx] = "Đang quét thông tin kênh...";
-      setNames(newNames);
-
-      setTimeout(() => {
-        const finalScanning = [...scanning];
-        finalScanning[idx] = false;
-        setScanning(finalScanning);
-
-        const finalNames = [...names];
-        const mockNames = [
-          "AQ Vlogs Premium",
-          "AQ Media Official",
-          "Thế Giới Công Nghệ AQ",
-          "Ẩm Thực Ba Miền",
-          "Góc Thư Giãn Daily",
-          "Kênh Chia Sẻ Kiến Thức"
-        ];
-        finalNames[idx] = `Tên kênh: ${mockNames[Math.floor(Math.random() * mockNames.length)]}`;
-        setNames(finalNames);
-      }, 800);
-    } else {
-      const newNames = [...names];
+    if (!val.trim()) {
+      newValidationErrors[idx] = false;
       newNames[idx] = "";
+      setValidationErrors(newValidationErrors);
       setNames(newNames);
+      return;
+    }
+
+    // 1. Validate format
+    const isValid = validateYouTubeUrl(val);
+    if (!isValid) {
+      newValidationErrors[idx] = true;
+      newNames[idx] = "Link không đúng định dạng YouTube";
+      setValidationErrors(newValidationErrors);
+      setNames(newNames);
+      return;
+    }
+
+    const cleanedVal = cleanYouTubeUrl(val);
+
+    // 2. Check local duplicates within current mail inputs
+    const isDuplicateLocal = newLinks.some((l, i) => i !== idx && l && cleanYouTubeUrl(l) === cleanedVal);
+    if (isDuplicateLocal) {
+      newValidationErrors[idx] = true;
+      newNames[idx] = "Link đã được điền ở ô khác!";
+      setValidationErrors(newValidationErrors);
+      setNames(newNames);
+      return;
+    }
+
+    // 3. Check global duplicates in local storage database
+    const savedMails = localStorage.getItem("global_mails_data");
+    if (savedMails) {
+      const allMails = JSON.parse(savedMails);
+      const matchingMail = allMails.find((m: any) => 
+        m.id !== mail.id && 
+        Array.isArray(m.links) && 
+        m.links.some((l: string) => l && cleanYouTubeUrl(l) === cleanedVal)
+      );
+      if (matchingMail) {
+        newValidationErrors[idx] = true;
+        newNames[idx] = `Link trùng với mail: ${matchingMail.email}`;
+        setValidationErrors(newValidationErrors);
+        setNames(newNames);
+        return;
+      }
+    }
+
+    // Link is completely valid & unique, proceed to fetch the real channel name
+    newValidationErrors[idx] = false;
+    setValidationErrors(newValidationErrors);
+
+    const newScanning = [...scanning];
+    newScanning[idx] = true;
+    setScanning(newScanning);
+
+    newNames[idx] = "Đang quét thông tin kênh...";
+    setNames(newNames);
+
+    try {
+      const realName = await fetchChannelName(val);
+      const finalNames = [...names];
+      finalNames[idx] = realName;
+      setNames(finalNames);
+    } catch (err) {
+      console.error("Error fetching channel details:", err);
+    } finally {
+      const finalScanning = [...scanning];
+      finalScanning[idx] = false;
+      setScanning(finalScanning);
     }
   };
 
@@ -106,8 +183,15 @@ const UnifiedMailDetailModal = ({
     if (type === "ROOT") {
       onSave({ cccdDate, verificationStatus });
     } else if (type === "SATELLITE") {
+      // Validate all filled links before saving
+      const hasError = validationErrors.some((err, idx) => err && links[idx]?.trim() !== "");
+      if (hasError) {
+        alert("Không thể lưu! Vui lòng sửa các link kênh bị sai định dạng YouTube.");
+        return;
+      }
+
       onSave({ 
-        links, 
+        links: links.map(l => cleanYouTubeUrl(l)), 
         channelNames: names,
         eligibleChannels
       });
@@ -176,7 +260,9 @@ const UnifiedMailDetailModal = ({
                   <div className="flex items-center justify-between ml-1">
                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Link YouTube {idx + 1}</label>
                     {names[idx] && (
-                      <span className="text-[10px] font-black uppercase text-gold">
+                      <span className={`text-[10px] font-black uppercase ${
+                        validationErrors[idx] ? "text-red-400" : "text-gold"
+                      }`}>
                         {names[idx]}
                       </span>
                     )}
@@ -186,7 +272,11 @@ const UnifiedMailDetailModal = ({
                       value={links[idx] || ""} 
                       onChange={(e) => handleLinkChange(idx, e.target.value)} 
                       placeholder="Dán link channel YouTube..." 
-                      className="flex-1 h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all" 
+                      className={`flex-1 h-14 bg-white/5 border rounded-2xl px-6 text-white text-sm outline-none transition-all ${
+                        validationErrors[idx]
+                          ? "border-red-500/50 focus:border-red-500 bg-red-500/5 shadow-[0_0_15px_rgba(239,68,68,0.1)]"
+                          : "border-white/10 focus:border-gold/50"
+                      }`}
                     />
                     {isAdminOrManager && (
                       <button
@@ -876,14 +966,21 @@ export default function TaskManagementPage() {
     if (newStatus === "COMPLETED" && selectedTask?.type === "MAIL_VE_TINH") {
       let errorMails: string[] = [];
       taskMails.forEach((m: any) => {
-        const linksCount = (m.links || []).filter((l: string) => typeof l === 'string' && l.trim() !== "").length;
+        const activeLinks = (m.links || []).filter((l: string) => typeof l === 'string' && l.trim() !== "");
+        const linksCount = activeLinks.length;
+        
         if (linksCount < 3) {
           errorMails.push(`- ${m.email} (thiếu ${3 - linksCount} kênh)`);
+        } else {
+          const hasInvalid = activeLinks.some((l: string) => !validateYouTubeUrl(l));
+          if (hasInvalid) {
+            errorMails.push(`- ${m.email} (có link kênh sai định dạng YouTube)`);
+          }
         }
       });
 
       if (errorMails.length > 0) {
-        alert("KHÔNG THỂ HOÀN THÀNH!\nCác mail vệ tinh sau chưa nhập đủ 3 kênh:\n" + errorMails.join("\n"));
+        alert("KHÔNG THỂ HOÀN THÀNH!\nCác mail vệ tinh sau chưa đúng yêu cầu:\n" + errorMails.join("\n"));
         return;
       }
     }
