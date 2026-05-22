@@ -131,6 +131,7 @@ export default function ReportsPage() {
     
     const calculated = list.map((staff: any, idx: number) => {
       const myMails = mails.filter(m => String(m.assigneeId) === String(staff.id));
+      // TODO: Đổi logic đếm KPI từ đếm số lượng Mail (myMails.length) sang đếm tổng số Kênh Đủ Giờ (eligibleChannels) khi kết nối API thật. Mục tiêu: 50 kênh/ngày.
       const completed = myMails.filter(m => m.workStatus === "Đã làm" || m.workStatus === "Đã bán").length;
       const failed = myMails.filter(m => m.workStatus === "Lỗi").length;
       
