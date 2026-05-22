@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import { Lock, User, Eye, EyeOff, Loader2, UserPlus, ShieldAlert, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { StaffData } from "@/types/admin";
-import { MOCK_STAFF, initMockDB } from "@/data/mockData";
 
 function RealTimeClock() {
   const [timeStr, setTimeStr] = useState("");

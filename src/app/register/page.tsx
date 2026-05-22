@@ -5,12 +5,8 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, User, Mail, Loader2, ArrowLeft, Phone, Calendar, MapPin, UserCheck, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import Link from "next/link";
-import { initMockDB } from "@/data/mockData";
 
 export default function RegisterPage() {
-  React.useEffect(() => {
-    initMockDB();
-  }, []);
   const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",

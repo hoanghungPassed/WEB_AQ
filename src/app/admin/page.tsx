@@ -33,7 +33,7 @@ import {
   Send,
   Image
 } from "lucide-react";
-import { MOCK_DASHBOARD_STATS, MOCK_KPI_DATA, MOCK_MAILS, MOCK_STAFF, MOCK_TASK_ASSIGNMENTS } from "@/data/mockData";
+
 
 const getStableDateString = () => {
   const d = new Date();
@@ -87,10 +87,10 @@ const getMailsForTask = (t: any, allMails: any[]) => {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [kpi, setKpi] = useState(MOCK_KPI_DATA);
+  const [kpi, setKpi] = useState<any>({});
   const [user, setUser] = useState<any>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [stats, setStats] = useState(MOCK_DASHBOARD_STATS);
+  const [stats, setStats] = useState<any>({});
   
   // States quản lý bảng tập trung
   const [selectedViewType, setSelectedViewType] = useState<"LIVE" | "DIE" | "STAFF" | "TASKS" | null>(null);
@@ -282,7 +282,7 @@ export default function AdminDashboard() {
     localStorage.setItem("global_newsfeed_posts", JSON.stringify(updated));
     localStorage.setItem("newsfeed_trigger", Date.now().toString());
     
-    setCommentInputs(prev => ({ ...prev, [postId]: "" }));
+    setCommentInputs((prev: any) => ({ ...prev, [postId]: "" }));
   };
 
   const loadRequests = () => {
@@ -438,9 +438,9 @@ export default function AdminDashboard() {
 
   const refreshStats = () => {
     const savedMails = localStorage.getItem("global_mails_data");
-    const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
+    const currentMails = savedMails ? JSON.parse(savedMails) : [];
     if (!savedMails) {
-      localStorage.setItem("global_mails_data", JSON.stringify(MOCK_MAILS));
+      localStorage.setItem("global_mails_data", JSON.stringify([]));
     }
     
     const savedTasks = localStorage.getItem("global_tasks_data");
@@ -448,8 +448,8 @@ export default function AdminDashboard() {
     if (savedTasks) {
       currentTasks = JSON.parse(savedTasks);
     } else {
-      currentTasks = MOCK_TASK_ASSIGNMENTS;
-      localStorage.setItem("global_tasks_data", JSON.stringify(MOCK_TASK_ASSIGNMENTS));
+      currentTasks = [];
+      localStorage.setItem("global_tasks_data", JSON.stringify([]));
     }
 
     // Check current user role dynamically
@@ -479,7 +479,7 @@ export default function AdminDashboard() {
         mailWatchHours: eligibleCount
       });
     } else {
-      setStats(prev => ({
+      setStats((prev: any) => ({
         ...prev,
         totalMail: currentMails.length,
         mailLive: currentMails.filter((m: any) => m.status === "LIVE").length,
@@ -496,7 +496,7 @@ export default function AdminDashboard() {
 
   const loadStaff = () => {
     const stored = localStorage.getItem("global_users");
-    const allUsers = stored ? JSON.parse(stored) : MOCK_STAFF;
+    const allUsers = stored ? JSON.parse(stored) : [];
     
     const unique = allUsers.filter((item: any, index: number, self: any[]) =>
       index === self.findIndex((t) => String(t.id) === String(item.id))
@@ -504,7 +504,7 @@ export default function AdminDashboard() {
     setStaffList(unique);
     
     const onlineCount = unique.filter((u: any) => u.isOnline && u.role !== "01").length;
-    setStats(prev => ({ ...prev, staffOnline: onlineCount }));
+    setStats((prev: any) => ({ ...prev, staffOnline: onlineCount }));
   };
 
   useEffect(() => {
@@ -705,7 +705,7 @@ export default function AdminDashboard() {
 
   const handleStaffMailStatusChange = async (mailId: number, newWorkStatus: string) => {
     const savedMails = localStorage.getItem("global_mails_data");
-    const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
+    const currentMails = savedMails ? JSON.parse(savedMails) : [];
 
     // Phase 3.1: Validate 3 links before allowing "Đã làm" for SATELLITE mails (Role 03, 04 only)
     const norm = (newWorkStatus || "").toUpperCase();
@@ -747,7 +747,7 @@ export default function AdminDashboard() {
     setMails(updatedMails);
 
     const myMails = updatedMails.filter((m: any) => String(m.assigneeId) === String(user?.id));
-    setStats(prev => ({
+    setStats((prev: any) => ({
       ...prev,
       totalMail: myMails.length,
       mailLive: myMails.filter((m: any) => m.status === "LIVE").length,
@@ -756,7 +756,7 @@ export default function AdminDashboard() {
 
     // Recalculate progress for all tasks that contain this mail
     const savedTasks = localStorage.getItem("global_tasks_data");
-    let currentTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
+    let currentTasks = savedTasks ? JSON.parse(savedTasks) : [];
     
     currentTasks = currentTasks.map((t: any) => {
       let mailType = "ROOT";
@@ -869,11 +869,11 @@ export default function AdminDashboard() {
 
   const handleTaskStatusChange = async (taskId: string, newStatus: "IN_PROGRESS" | "COMPLETED") => {
     const savedTasks = localStorage.getItem("global_tasks_data");
-    const currentTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
+    const currentTasks = savedTasks ? JSON.parse(savedTasks) : [];
     const targetTask = currentTasks.find((t: any) => t.id === taskId);
 
     const savedMails = localStorage.getItem("global_mails_data");
-    const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
+    const currentMails = savedMails ? JSON.parse(savedMails) : [];
 
     if (newStatus === "COMPLETED" && targetTask?.type === "MAIL_VE_TINH") {
       const taskMails = getMailsForTask(targetTask, currentMails);
@@ -943,14 +943,14 @@ export default function AdminDashboard() {
     if (newStatus === "COMPLETED") {
       const currentTaskObj = currentTasks.find((t: any) => t.id === taskId);
       if (currentTaskObj && currentTaskObj.mailType === "MONETIZED") {
-        setKpi(prev => {
+        setKpi((prev: any) => {
           const updatedKpi = { ...prev, currentMonetized: Math.min(prev.targetMonetized, prev.currentMonetized + 1) };
           finalKpi = JSON.stringify(updatedKpi);
           localStorage.setItem("global_kpi_data", finalKpi);
           return updatedKpi;
         });
       } else {
-        setKpi(prev => {
+        setKpi((prev: any) => {
           const updatedKpi = { ...prev, currentWatchHours: Math.min(prev.targetWatchHours, prev.currentWatchHours + 1) };
           finalKpi = JSON.stringify(updatedKpi);
           localStorage.setItem("global_kpi_data", finalKpi);
@@ -981,7 +981,7 @@ export default function AdminDashboard() {
 
   const handleInviteStatusChange = (mailId: number, chIdx: number, newInviteStatus: string) => {
     const savedMails = localStorage.getItem("global_mails_data");
-    const currentMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
+    const currentMails = savedMails ? JSON.parse(savedMails) : [];
 
     const updatedMails = currentMails.map((m: any) => {
       if (m.id === mailId) {
@@ -1001,7 +1001,7 @@ export default function AdminDashboard() {
       }
       return sum;
     }, 0);
-    setStats(prev => ({ ...prev, mailWatchHours: eligibleCount }));
+    setStats((prev: any) => ({ ...prev, mailWatchHours: eligibleCount }));
 
     setCopyToast("Đã cập nhật trạng thái mời!");
     setTimeout(() => setCopyToast(null), 2000);

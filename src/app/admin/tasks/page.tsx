@@ -24,9 +24,8 @@ import {
   Search
 } from "lucide-react";
 
-import { MailData } from "@/types/admin";
-import { MOCK_STAFF, MOCK_TASK_ASSIGNMENTS, MOCK_MAILS } from "@/data/mockData";;
-import { StaffData, TaskAssignment } from "@/types/admin";
+import { MailData, StaffData, TaskAssignment } from "@/types/admin";
+
 import { useRouter } from "next/navigation";
 import {
   validateYouTubeUrl,
@@ -453,14 +452,14 @@ export default function TaskManagementPage() {
 
   const loadData = useCallback(() => {
     const savedTasks = localStorage.getItem("global_tasks_data");
-    setTasks(savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS);
+    setTasks(savedTasks ? JSON.parse(savedTasks) : []);
 
     const stored = localStorage.getItem("global_users");
-    const allUsers = stored ? JSON.parse(stored) : MOCK_STAFF;
+    const allUsers = stored ? JSON.parse(stored) : [];
     setStaffList(allUsers.filter((u: StaffData) => u.status === "ACTIVE" && u.role !== "01"));
 
     const savedMails = localStorage.getItem("global_mails_data");
-    setMails(savedMails ? JSON.parse(savedMails) : MOCK_MAILS);
+    setMails(savedMails ? JSON.parse(savedMails) : []);
   }, []);
 
   useEffect(() => {
@@ -706,7 +705,7 @@ export default function TaskManagementPage() {
 
   const handleSaveUnifiedDetails = useCallback((mailId: number, updatedFields: any) => {
     const savedMails = localStorage.getItem("global_mails_data");
-    let allMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
+    let allMails = savedMails ? JSON.parse(savedMails) : [];
 
     allMails = allMails.map((m: any) => {
       if (m.id === mailId) {
@@ -757,7 +756,7 @@ export default function TaskManagementPage() {
         const progressPercent = Math.round((completedCount / totalTaskMails) * 100);
 
         const savedTasks = localStorage.getItem("global_tasks_data");
-        let allTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
+        let allTasks = savedTasks ? JSON.parse(savedTasks) : [];
 
         allTasks = allTasks.map((t: any) => {
           if (t.id === selectedTask.id) {
@@ -790,7 +789,7 @@ export default function TaskManagementPage() {
     if (!selectedStaff) return;
 
     const savedMails = localStorage.getItem("global_mails_data");
-    let allMails = savedMails ? JSON.parse(savedMails) : MOCK_MAILS;
+    let allMails = savedMails ? JSON.parse(savedMails) : [];
 
     let assignedIds: number[] = [];
     let note = assignmentNote;
@@ -899,7 +898,7 @@ export default function TaskManagementPage() {
     localStorage.setItem("global_mails_data", JSON.stringify(allMails));
 
     const savedTasks = localStorage.getItem("global_tasks_data");
-    let allTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
+    let allTasks = savedTasks ? JSON.parse(savedTasks) : [];
 
     const selectedBatchObj = dynamicStaffBatches.find(b => b.name === selectedLo);
     const newTask: TaskAssignment & { taskName?: string; assignee?: string; assigneeName?: string; batch?: string; range?: string; selectedMailIds?: number[] } = {
@@ -986,7 +985,7 @@ export default function TaskManagementPage() {
     }
 
     const savedTasks = localStorage.getItem("global_tasks_data");
-    let allTasks = savedTasks ? JSON.parse(savedTasks) : MOCK_TASK_ASSIGNMENTS;
+    let allTasks = savedTasks ? JSON.parse(savedTasks) : [];
 
     allTasks = allTasks.map((t: any) => {
       if (t.id === selectedTaskId) {

@@ -6,7 +6,6 @@ import Header from "@/components/admin/Header";
 import ProfileModal from "@/components/admin/ProfileModal";
 import AccessLock from "@/components/admin/modals/AccessLock";
 import { useRouter } from "next/navigation";
-import { MOCK_ACCESS_REQUESTS, initMockDB } from "@/data/mockData";
 import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle, Plus, FileText, Download, Paperclip, Phone, Minus, Copy, ExternalLink, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -25,9 +24,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  useEffect(() => {
-    initMockDB();
-  }, []);
+
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [windowWidth, setWindowWidth] = useState(1200);
@@ -211,7 +208,7 @@ export default function AdminLayout({
     };
   }, []);
   const [isAccessGranted, setIsAccessGranted] = useState(false);
-  const [pendingRequests, setPendingRequests] = useState<any[]>(MOCK_ACCESS_REQUESTS);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [showManagerNotif, setShowManagerNotif] = useState(false);
   const [roleUpdateNotif, setRoleUpdateNotif] = useState<{ title: string, message: string } | null>(null);
   const lastNotifCountRef = React.useRef(0);

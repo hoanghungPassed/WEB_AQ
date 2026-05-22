@@ -13,8 +13,6 @@ import {
   ChevronRight,
   Mail
 } from "lucide-react";
-import { MOCK_MAILS } from "@/data/mockData";
-
 function MailTableContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -25,6 +23,13 @@ function MailTableContent() {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [copiedText, setCopiedText] = useState("");
   const itemsPerPage = 100;
+
+  const [mails, setMails] = useState<any[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("global_mails_data");
+    if (saved) setMails(JSON.parse(saved));
+  }, []);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -37,7 +42,7 @@ function MailTableContent() {
   ];
 
   // Lọc dữ liệu dựa trên type (LIVE, DIE, MONETIZED, ALL) và search và channelStatus
-  const filteredMails = MOCK_MAILS.filter(mail => {
+  const filteredMails = mails.filter(mail => {
     let matchesType = true;
     if (type === "live") matchesType = mail.status === "LIVE";
     else if (type === "die") matchesType = mail.status === "DIE";

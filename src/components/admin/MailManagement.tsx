@@ -27,7 +27,7 @@ import TOTPDisplay from "./TOTPDisplay";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
 import { MailData } from "@/types/admin";
-import { MOCK_MAILS } from "@/data/mockData";;
+
 import { useRouter } from "next/navigation";
 import MailDetailModal from "@/components/admin/MailDetailModal";
 
@@ -177,8 +177,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           }).catch(err => console.error("Auto migration sync error:", err));
         }
       } else {
-        setMails(MOCK_MAILS);
-        localStorage.setItem("global_mails_data", JSON.stringify(MOCK_MAILS));
+        setMails([]);
+        localStorage.setItem("global_mails_data", JSON.stringify([]));
       }
     };
 
@@ -949,13 +949,11 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               onClick={async () => {
                 if (confirm("Xác nhận khôi phục toàn bộ dữ liệu về trạng thái ban đầu?")) {
                   try {
-                    const { MOCK_STAFF, MOCK_MAILS, MOCK_TASK_ASSIGNMENTS, MOCK_KPI_DATA } = await import("@/data/mockData");
-
                     const resetPayload = {
-                      global_users: JSON.stringify(MOCK_STAFF),
-                      global_mails_data: JSON.stringify(MOCK_MAILS),
-                      global_tasks_data: JSON.stringify(MOCK_TASK_ASSIGNMENTS),
-                      global_kpi_data: JSON.stringify(MOCK_KPI_DATA),
+                      global_users: JSON.stringify([]),
+                      global_mails_data: JSON.stringify([]),
+                      global_tasks_data: JSON.stringify([]),
+                      global_kpi_data: JSON.stringify([]),
                       admin_notifications: JSON.stringify([]),
                       realtime_toast: JSON.stringify({ userId: "all", message: "Hệ thống đã được khôi phục dữ liệu gốc!" }),
                       pending_access_requests: JSON.stringify([])

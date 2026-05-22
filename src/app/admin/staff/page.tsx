@@ -10,8 +10,6 @@ import {
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { StaffData } from "@/types/admin";
-import { MOCK_STAFF } from "@/data/mockData";
-
 const getStableDateString = () => {
   const d = new Date();
   const year = d.getFullYear();

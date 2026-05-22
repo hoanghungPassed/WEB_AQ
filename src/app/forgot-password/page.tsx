@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Phone, Lock, ArrowLeft, Loader2, CheckCircle2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import { MOCK_OTP } from "@/data/mockData";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -32,10 +31,10 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
     // Mã mặc định giả lập
     await new Promise(resolve => setTimeout(resolve, 1000));
-    if (otp === MOCK_OTP) {
+    if (otp === "123456") {
       setStep(3);
     } else {
-      setError(`Mã OTP không đúng. Thử lại với ${MOCK_OTP}`);
+      setError(`Mã OTP không đúng. Thử lại với 123456`);
     }
     setIsLoading(false);
   };
@@ -132,7 +131,7 @@ export default function ForgotPasswordPage() {
                       required
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
-                      placeholder={`Thử ${MOCK_OTP}`}
+                      placeholder="Thử 123456"
                       className="h-16 w-full rounded-2xl border border-white/10 bg-white/5 pl-14 pr-6 text-center text-2xl tracking-[0.5em] text-white focus:border-gold/50 focus:outline-none transition-all"
                     />
                   </div>

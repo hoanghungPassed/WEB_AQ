@@ -191,20 +191,18 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
 
       await fetch("/api/sync", { method: "DELETE" });
 
-      const { MOCK_STAFF, MOCK_MAILS, MOCK_TASK_ASSIGNMENTS, MOCK_KPI_DATA } = await import("@/data/mockData");
-      
-      localStorage.setItem("global_users", JSON.stringify(MOCK_STAFF));
-      localStorage.setItem("global_mails_data", JSON.stringify(MOCK_MAILS));
-      localStorage.setItem("global_tasks_data", JSON.stringify(MOCK_TASK_ASSIGNMENTS));
-      localStorage.setItem("global_kpi_data", JSON.stringify(MOCK_KPI_DATA));
+      localStorage.setItem("global_users", JSON.stringify([]));
+      localStorage.setItem("global_mails_data", JSON.stringify([]));
+      localStorage.setItem("global_tasks_data", JSON.stringify([]));
+      localStorage.setItem("global_kpi_data", JSON.stringify([]));
       localStorage.setItem("admin_notifications", JSON.stringify([]));
       localStorage.setItem("pending_access_requests", JSON.stringify([]));
 
       const resetPayload = {
-        global_users: JSON.stringify(MOCK_STAFF),
-        global_mails_data: JSON.stringify(MOCK_MAILS),
-        global_tasks_data: JSON.stringify(MOCK_TASK_ASSIGNMENTS),
-        global_kpi_data: JSON.stringify(MOCK_KPI_DATA),
+        global_users: JSON.stringify([]),
+        global_mails_data: JSON.stringify([]),
+        global_tasks_data: JSON.stringify([]),
+        global_kpi_data: JSON.stringify([]),
         admin_notifications: JSON.stringify([]),
         realtime_toast: JSON.stringify({ userId: "all", message: "Hệ thống đã được khôi phục dữ liệu gốc!" }),
         pending_access_requests: JSON.stringify([])
