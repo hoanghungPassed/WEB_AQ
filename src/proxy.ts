@@ -31,7 +31,7 @@ function isTokenExpired(payload: Record<string, unknown>): boolean {
   return Date.now() >= exp * 1000;
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Chỉ bảo vệ các route /admin và /api/admin

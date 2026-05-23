@@ -50,86 +50,32 @@ export default function SystemLogsPage() {
       window.location.href = "/login";
     }
 
-    const loadLogs = () => {
-      const savedLogs = localStorage.getItem("global_system_logs");
-      if (!savedLogs || JSON.parse(savedLogs).length === 0) {
-        // High quality dynamic fallback seeding
-        const initialLogs: LogItem[] = [
-          {
-            id: "log-1",
-            user: "Nguyễn Admin",
-            role: "ADMIN",
-            action: "Khởi tạo kết nối cơ sở dữ liệu hệ thống thành công",
-            type: "SUCCESS",
-            timestamp: "2026-05-18 09:00:15"
-          },
-          {
-            id: "log-2",
-            user: "Nguyễn Admin",
-            role: "ADMIN",
-            action: "Import thành công Lô Mail 'Lô 1 ngày 15/10' gồm 150 tài khoản Mail Gốc",
-            type: "SUCCESS",
-            timestamp: "2026-05-18 10:14:32"
-          },
-          {
-            id: "log-3",
-            user: "Trần Quản Lý CV",
-            role: "QL CÔNG VIỆC",
-            action: "Gán phân công 17 Mail Vệ Tinh (Lô 2) cho Nhân Viên 'staff1'",
-            type: "INFO",
-            timestamp: "2026-05-18 11:30:05"
-          },
-          {
-            id: "log-4",
-            user: "Nhân Viên staff1",
-            role: "NHÂN VIÊN",
-            action: "Cập nhật trạng thái mail 'staff1.sat.1005@aqmedia.vn' sang 'Đã làm'",
-            type: "SUCCESS",
-            timestamp: "2026-05-18 13:45:22"
-          },
-          {
-            id: "log-5",
-            user: "Nhân Viên staff3",
-            role: "NHÂN VIÊN",
-            action: "Báo lỗi OTP không gửi về SĐT trên tài khoản 'staff3.sat.1042@aqmedia.vn'",
-            type: "ERROR",
-            timestamp: "2026-05-18 14:02:11"
-          },
-          {
-            id: "log-6",
-            user: "Trần Quản Lý CV",
-            role: "QL CÔNG VIỆC",
-            action: "Thu hồi quyền truy cập Lô 3 của nhân sự 'staff5' do không hoạt động",
-            type: "WARNING",
-            timestamp: "2026-05-18 15:20:43"
-          },
-          {
-            id: "log-7",
-            user: "Nguyễn Admin",
-            role: "ADMIN",
-            action: "Thay đổi cài đặt chunk gán mail mặc định từ 17 sang 20 tài khoản",
-            type: "WARNING",
-            timestamp: "2026-05-18 16:05:00"
-          },
-          {
-            id: "log-8",
-            user: "Nhân Viên staff2",
-            role: "NHÂN VIÊN",
-            action: "Đăng nhập hệ thống thành công qua địa chỉ IP: 192.168.1.45",
-            type: "INFO",
-            timestamp: "2026-05-18 17:33:12"
+    const loadLogs = async () => {
+      try {
+        const response = await fetch("/api/admin/logs");
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data)) {
+            const normalizedLogs = data.map((log: any) => ({
+              id: log._id || log.id,
+              user: log.userName || log.user || "Hệ thống",
+              role: log.role || "ADMIN",
+              action: log.action || log.message || "",
+              type: log.type || "INFO",
+              timestamp: log.timestamp ? new Date(log.timestamp).toLocaleString("vi-VN") : (log.createdAt ? new Date(log.createdAt).toLocaleString("vi-VN") : "")
+            }));
+            setLogs(normalizedLogs);
+            return;
           }
-        ];
-        localStorage.setItem("global_system_logs", JSON.stringify(initialLogs));
-        setLogs(initialLogs);
-      } else {
-        setLogs(JSON.parse(savedLogs));
+        }
+      } catch (err) {
+        console.error("Error loading logs:", err);
       }
+      setLogs([]);
     };
 
     loadLogs();
-    window.addEventListener("storage", loadLogs);
-    return () => window.removeEventListener("storage", loadLogs);
+    return () => undefined;
   }, []);
 
   const triggerToast = (msg: string) => {
@@ -138,19 +84,9 @@ export default function SystemLogsPage() {
   };
 
   const handleClearLogs = () => {
-    localStorage.setItem("global_system_logs", JSON.stringify([]));
     setLogs([]);
     setShowClearConfirm(false);
     triggerToast("Đã dọn dẹp sạch nhật ký hoạt động hệ thống!");
-    
-    // Sync with API
-    fetch("/api/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        global_system_logs: JSON.stringify([])
-      })
-    }).catch(e => console.error("Sync logs error:", e));
   };
 
   const getSeverityStyle = (t: string) => {

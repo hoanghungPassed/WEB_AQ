@@ -238,7 +238,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
             >
               <Bell size={20} />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-gray-900 dark:text-white border-2 border-sidebar shadow-md animate-pulse">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white border-2 border-sidebar shadow-md animate-pulse">{unreadCount > 9 ? '9+' : unreadCount}</span>
               )}
             </button>
 
@@ -250,7 +250,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 top-full mt-4 z-20 w-80 rounded-[32px] border border-gray-300 dark:border-white/10 bg-white dark:bg-[#161616] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl animate-fade-in"
+                    className="absolute right-0 top-full mt-4 z-20 w-80 rounded-[32px] border border-gray-300 dark:border-white/10 bg-white dark:bg-gray-900 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl animate-fade-in"
                   >
                     <div className="flex items-center justify-between mb-4 px-2">
                       <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-900 dark:text-white">Thông báo</p>
@@ -337,7 +337,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 top-full mt-4 z-20 w-64 rounded-3xl border border-gray-300 dark:border-white/10 bg-white dark:bg-sidebar p-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl"
+                    className="absolute right-0 top-full mt-4 z-20 w-64 rounded-3xl border border-gray-300 dark:border-white/10 bg-white dark:bg-gray-900 p-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl"
                   >
                     <div className="p-4 border-b border-gray-200 dark:border-white/5 mb-2">
                       <p className="text-[10px] font-black text-gold uppercase tracking-[0.3em]">{getRoleLabel(user?.role)}</p>

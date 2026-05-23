@@ -714,7 +714,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     .filter((m: MailData & { originalSTT: number }) => {
       if (isStaff && type === "SATELLITE") {
         if (String(m.assigneeId) !== String(user?.id)) return false;
-        if (selectedBatch && m.batchName !== selectedBatch) return false;
+        if (selectedBatch && m.batchId !== selectedBatch && m.batchName !== selectedBatch) return false;
       }
 
       // Lọc theo Lô
@@ -806,17 +806,17 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const staffBatches = useMemo(() => {
     if (!isStaff || type !== "SATELLITE") return [];
     const mySats = (mails || []).filter(m => String(m.assigneeId) === String(user?.id) && m.type === "SATELLITE");
-    const counts: Record<string, number> = {};
+    const counts: Record<string, { id: string; name: string; count: number }> = {};
     mySats.forEach(m => {
-      const b = m.batchName || "Lô chưa phân loại";
-      counts[b] = (counts[b] || 0) + 1;
+      const key = m.batchId || m.batchName || "Lô chưa phân loại";
+      if (!counts[key]) {
+        counts[key] = { id: key, name: m.batchName || "Lô chưa phân loại", count: 0 };
+      }
+      counts[key].count++;
     });
-    ["Lô 1", "Lô 2", "Lô 3", "Lô 4", "Lô 5", "Lô 6"].forEach(b => {
-      if (counts[b] === undefined) counts[b] = 0;
-    });
-    return Object.entries(counts).sort((a, b) => {
-      const numA = parseInt(a[0].replace(/\D/g, "")) || 999;
-      const numB = parseInt(b[0].replace(/\D/g, "")) || 999;
+    return Object.values(counts).sort((a, b) => {
+      const numA = parseInt(a.name.replace(/\D/g, "")) || 999;
+      const numB = parseInt(b.name.replace(/\D/g, "")) || 999;
       return numA - numB;
     });
   }, [mails, user, isStaff, type]);
@@ -836,7 +836,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       <AnimatePresence>
         {showConfirm && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[160] bg-white/90 dark:bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white dark:bg-sidebar border border-gray-300 dark:border-white/10 rounded-[40px] p-10 w-full max-w-md shadow-2xl text-center">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-white/10 rounded-[40px] p-10 w-full max-w-md shadow-2xl text-center">
               <div className="mx-auto h-20 w-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-6 shadow-inner">
                 <AlertTriangle size={40} />
               </div>
@@ -854,7 +854,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       <AnimatePresence>
         {showManualImport && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[150] bg-white/90 dark:bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white dark:bg-sidebar border border-gray-300 dark:border-white/10 rounded-[40px] p-10 w-full max-w-2xl shadow-2xl">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-white/10 rounded-[40px] p-10 w-full max-w-2xl shadow-2xl">
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-4"><PlusCircle className="text-gold" size={32} /> Import Thủ Công</h3>
                 <button onClick={() => setShowManualImport(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-colors"><X /></button>
@@ -888,7 +888,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-sidebar border border-gray-300 dark:border-white/10 rounded-[32px] p-8 w-full max-w-3xl shadow-2xl flex flex-col max-h-[85vh]"
+              className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-white/10 rounded-[40px] w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl overflow-hidden relative"
             >
               {/* Header */}
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-white/5">
@@ -1057,10 +1057,10 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
       {isStaff && type === "SATELLITE" && !selectedBatch ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {(staffBatches || []).map(([batchName, count]) => (
+          {(staffBatches || []).map((batch) => (
             <button
-              key={batchName}
-              onClick={() => setSelectedBatch(batchName)}
+              key={batch.id}
+              onClick={() => setSelectedBatch(batch.id)}
               className="bg-white dark:bg-sidebar border border-gray-300 dark:border-white/10 hover:border-gold/50 p-6 rounded-[24px] text-left transition-all group shadow-xl hover:shadow-gold/10"
             >
               <div className="flex items-center justify-between mb-4">
@@ -1068,10 +1068,10 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                   <Database size={24} />
                 </div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 bg-black/40 px-3 py-1 rounded-full">
-                  {count} mail
+                  {batch.count} mail
                 </span>
               </div>
-              <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter group-hover:text-gold transition-colors">{batchName}</h3>
+              <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter group-hover:text-gold transition-colors">{batch.name}</h3>
               <p className="text-xs text-gray-500 mt-2 font-medium">Bấm vào để xem và xử lý các mail trong lô này.</p>
             </button>
           ))}
@@ -1091,7 +1091,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                   <ArrowLeft size={16} /> Quay lại
                 </button>
               )}
-              <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter shrink-0">Dữ liệu chi tiết {selectedBatch ? `- ${selectedBatch}` : ""}</h3>
+              <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter shrink-0">Dữ liệu chi tiết {selectedBatch ? `- Lô mail` : ""}</h3>
               <div className="h-8 w-px bg-gray-200 dark:bg-white/10 hidden md:block" />
               <div className="flex items-center gap-2 bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 w-full md:w-64 lg:w-80 focus-within:border-gold transition-all">
                 <Search size={16} className="text-gray-500 shrink-0" />
@@ -1371,7 +1371,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="bg-white dark:bg-[#121212] border border-border-custom rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+              className="bg-white dark:bg-gray-900 border border-border-custom rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
             >
               <div className="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.02] flex items-center justify-between">
                 <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">Đặt Tên Lô Cho Dữ Liệu Import</h3>

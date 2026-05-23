@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowLeft, 
@@ -12,20 +13,76 @@ import {
   Check, 
   Info,
   ShieldCheck,
-  TrendingUp,
-  Bookmark,
   CornerDownRight,
   Pin,
   Trash2
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+type NewsfeedUser = {
+  id?: string;
+  name?: string;
+  username?: string;
+  role?: string;
+};
+
+type NewsfeedReply = {
+  id: string;
+  authorName: string;
+  authorRole: string;
+  authorUsername: string;
+  text: string;
+  timestamp: string;
+};
+
+type NewsfeedComment = {
+  id: string;
+  authorName: string;
+  authorRole: string;
+  authorUsername: string;
+  text: string;
+  timestamp: string;
+  replies: NewsfeedReply[];
+};
+
+type NewsfeedPost = {
+  id: string;
+  authorName: string;
+  authorRole: string;
+  authorUsername: string;
+  text: string;
+  imageUrl?: string | null;
+  likes: number;
+  likedBy: string[];
+  comments: NewsfeedComment[];
+  timestamp: string;
+  isPinned?: boolean;
+};
+
+type NewsfeedNotificationItem = {
+  _id?: string;
+  id?: string;
+  authorName?: string;
+  authorRole?: string;
+  authorUsername?: string;
+  message?: string;
+  title?: string;
+  imageUrl?: string;
+  likes?: number;
+  likedBy?: string[];
+  comments?: NewsfeedComment[];
+  createdAt?: string | number | Date;
+};
+
 export default function NewsfeedPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user] = useState<NewsfeedUser>(() => {
+    const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
+    return storedUser ? JSON.parse(storedUser) : {};
+  });
   
   // Newsfeed States
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<NewsfeedPost[]>([]);
   const [newPostText, setNewPostText] = useState("");
   const [selectedMockImage, setSelectedMockImage] = useState<string | null>(null);
   const [showImagePresets, setShowImagePresets] = useState(false);
@@ -40,145 +97,44 @@ export default function NewsfeedPage() {
   
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  // Load user
-  useEffect(() => {
-    const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
-    if (storedUser) setUser(JSON.parse(storedUser));
-  }, []);
-
-  // Set up notifications trigger
-  const triggerNotification = ({ id, title, message, postId, targetUsername }: any) => {
-    if (!targetUsername || !user) return;
-    if (String(targetUsername).toLowerCase() === String(user?.username || "").toLowerCase()) return;
-
-    const stored = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
-    const newNotif = {
-      id,
-      title,
-      message,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      type: "NEWSFEED",
-      postId,
-      targetUsername,
-      read: false
-    };
-
-    const updated = [newNotif, ...stored];
-    localStorage.setItem("admin_notifications", JSON.stringify(updated));
-    localStorage.setItem("request_trigger", Date.now().toString());
-    window.dispatchEvent(new Event("storage"));
+  const triggerNotification = (_payload?: unknown) => {
+    void _payload;
+    // Notification persistence will be handled by a dedicated API in the future.
   };
 
-  const loadPosts = () => {
-    const saved = localStorage.getItem("global_newsfeed_posts");
-    if (saved) {
-      setPosts(JSON.parse(saved));
-    } else {
-      const initialPosts = [
-        {
-          id: "post-1",
-          authorName: "Nguyễn Admin",
-          authorRole: "ADMIN",
-          authorUsername: "01",
-          text: "Chào mừng toàn thể anh chị em đến với hệ thống quản trị AQ MEDIA phiên bản nâng cấp hoàn hảo! Chúc cả nhà một tuần làm việc hiệu suất bùng nổ, vượt chỉ tiêu KPI đã đề ra! 🚀🔥",
-          imageUrl: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&auto=format&fit=crop&q=60",
-          likes: 12,
-          likedBy: [],
-          comments: [
-            {
-              id: "cmt-1",
-              authorName: "Trần Quản Lý CV",
-              authorRole: "QL CÔNG VIỆC",
-              authorUsername: "02",
-              text: "Phiên bản mới đẹp xuất sắc sếp ơi! Hệ thống mượt mà quá! 😍",
-              timestamp: "10 phút trước",
-              replies: [
-                {
-                  id: "rep-1",
-                  authorName: "Nguyễn Admin",
-                  authorRole: "ADMIN",
-                  authorUsername: "01",
-                  text: "Cảm ơn em nhé, cùng cố gắng đưa AQ Media phát triển hơn nữa nhé! 🙌",
-                  timestamp: "5 phút trước"
-                }
-              ]
-            }
-          ],
-          timestamp: "1 giờ trước"
-        },
-        {
-          id: "post-2",
-          authorName: "Trần Quản Lý CV",
-          authorRole: "QL CÔNG VIỆC",
-          authorUsername: "02",
-          text: "Mọi người chú ý hoàn thành phân công mail trong ngày nhé! Ai thiếu link nhớ cập nhật ngay trước 17:00 nha. Cảm ơn cả nhà!",
-          likes: 8,
-          likedBy: [],
-          comments: [],
-          timestamp: "3 giờ trước"
+  const loadPosts = async () => {
+    try {
+      const response = await fetch("/api/admin/notifications");
+      if (response.ok) {
+        const data = (await response.json()) as NewsfeedNotificationItem[];
+        if (Array.isArray(data)) {
+          setPosts(data.map((item) => ({
+            id: item._id || item.id || "",
+            authorName: item.authorName || "Hệ thống",
+            authorRole: item.authorRole || "ADMIN",
+            authorUsername: item.authorUsername || "system",
+            text: item.message || item.title || "",
+            imageUrl: item.imageUrl || null,
+            likes: typeof item.likes === "number" ? item.likes : 0,
+            likedBy: Array.isArray(item.likedBy) ? item.likedBy : [],
+            comments: Array.isArray(item.comments) ? item.comments : [],
+            timestamp: item.createdAt ? new Date(item.createdAt).toLocaleString("vi-VN") : ""
+          })));
+          return;
         }
-      ];
-      localStorage.setItem("global_newsfeed_posts", JSON.stringify(initialPosts));
-      setPosts(initialPosts);
+      }
+    } catch (err) {
+      console.error("Error loading newsfeed posts:", err);
     }
+    setPosts([]);
   };
 
   useEffect(() => {
-    loadPosts();
-    // Storage event sync
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === "global_newsfeed_posts" || e.key === "newsfeed_trigger") {
-        const saved = localStorage.getItem("global_newsfeed_posts");
-        if (saved) setPosts(JSON.parse(saved));
-      }
+    const fetchPosts = async () => {
+      await loadPosts();
     };
-    window.addEventListener("storage", handleStorage);
-
-    // Poll for updates every 2 seconds
-    const interval = setInterval(() => {
-      const saved = localStorage.getItem("global_newsfeed_posts");
-      if (saved) setPosts(JSON.parse(saved));
-    }, 2000);
-
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-      clearInterval(interval);
-    };
+    void fetchPosts();
   }, []);
-
-  // Handle post highlight scroll trigger
-  useEffect(() => {
-    if ((posts || []).length > 0) {
-      const targetPostId = localStorage.getItem("highlighted_post_id");
-      if (targetPostId) {
-        localStorage.removeItem("highlighted_post_id");
-        setTimeout(() => {
-          const element = document.getElementById(targetPostId);
-          if (element) {
-            element.scrollIntoView({ behavior: "smooth", block: "center" });
-            element.classList.add("ring-4", "ring-gold", "shadow-[0_0_50px_rgba(212,175,55,0.7)]");
-            
-            setTimeout(() => {
-              element.classList.remove("ring-4", "ring-gold", "shadow-[0_0_50px_rgba(212,175,55,0.7)]");
-            }, 4000);
-          }
-        }, 600);
-      }
-    }
-  }, [posts]);
-
-  const syncPosts = (updatedList: any[]) => {
-    localStorage.setItem("global_newsfeed_posts", JSON.stringify(updatedList));
-    localStorage.setItem("newsfeed_trigger", Date.now().toString());
-    window.dispatchEvent(new Event("storage"));
-
-    // Sync trigger to DB fallback
-    fetch("/api/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ global_newsfeed_posts: JSON.stringify(updatedList) })
-    }).catch(err => console.error("Newsfeed sync error:", err));
-  };
 
   const handleCreatePost = () => {
     if (!newPostText.trim() && !selectedMockImage) return;
@@ -198,7 +154,6 @@ export default function NewsfeedPage() {
 
     const updated = [newPost, ...posts];
     setPosts(updated);
-    syncPosts(updated);
     
     setNewPostText("");
     setSelectedMockImage(null);
@@ -242,7 +197,6 @@ export default function NewsfeedPage() {
     });
 
     setPosts(updated);
-    syncPosts(updated);
   };
 
   const handleAddComment = (postId: string) => {
@@ -279,7 +233,6 @@ export default function NewsfeedPage() {
     });
 
     setPosts(updated);
-    syncPosts(updated);
     setCommentInputs(prev => ({ ...prev, [postId]: "" }));
     setSuccessToast("Đã thêm bình luận!");
     setTimeout(() => setSuccessToast(null), 2000);
@@ -291,7 +244,7 @@ export default function NewsfeedPage() {
 
     const updated = (posts || []).map(p => {
       if (p.id === postId) {
-        const comments = (p.comments || []).map((cmt: any) => {
+        const comments = (p.comments || []).map((cmt: NewsfeedComment) => {
           if (cmt.id === commentId) {
             const replies = Array.isArray(cmt.replies) ? cmt.replies : [];
             const newReply = {
@@ -324,7 +277,6 @@ export default function NewsfeedPage() {
     });
 
     setPosts(updated);
-    syncPosts(updated);
     setReplyInputs(prev => ({ ...prev, [commentId]: "" }));
     setActiveReplyId(null);
     setSuccessToast("Đã gửi phản hồi!");
@@ -342,14 +294,12 @@ export default function NewsfeedPage() {
       return p;
     });
     setPosts(updated);
-    syncPosts(updated);
   };
 
   const handleDeletePost = (postId: string) => {
     if (confirm("Bạn có chắc chắn muốn xóa bài viết này?")) {
       const updated = (posts || []).filter(p => p.id !== postId);
       setPosts(updated);
-      syncPosts(updated);
       setSuccessToast("Đã xóa bài viết thành công!");
       setTimeout(() => setSuccessToast(null), 2000);
     }
@@ -408,7 +358,7 @@ export default function NewsfeedPage() {
     }
   };
 
-  const getRoleLabel = (role: string) => {
+  const getRoleLabel = (role?: string) => {
     if (role === "01") return "ADMIN";
     if (role === "02") return "QL CÔNG VIỆC";
     if (role === "03") return "QL NHÂN SỰ";
@@ -484,7 +434,7 @@ export default function NewsfeedPage() {
             {/* Selected Preset Image Preview */}
             {selectedMockImage && (
               <div className="mt-2 relative rounded-xl overflow-hidden border border-gray-300 dark:border-white/10 group h-36">
-                <img src={selectedMockImage} className="w-full h-full object-cover" />
+                <Image src={selectedMockImage!} alt="Preview" fill className="object-cover" />
                 <button 
                   onClick={() => setSelectedMockImage(null)}
                   className="absolute top-2 right-2 h-8 w-8 bg-black/70 rounded-full flex items-center justify-center text-gray-900 dark:text-white hover:bg-red-500 transition-colors shadow-lg"
@@ -535,7 +485,7 @@ export default function NewsfeedPage() {
                       }}
                       className="cursor-pointer h-16 rounded-xl overflow-hidden border border-gray-300 dark:border-white/10 hover:border-gold transition-all relative group"
                     >
-                      <img src={preset.url} className="w-full h-full object-cover" />
+                      <Image src={preset.url} alt={preset.name} fill className="object-cover" />
                       <div className="absolute inset-0 bg-black/50 group-hover:bg-black/20 transition-all flex items-center justify-center">
                         <span className="text-[9px] text-gray-900 dark:text-white font-black uppercase tracking-wider">{preset.name}</span>
                       </div>
@@ -618,8 +568,8 @@ export default function NewsfeedPage() {
                       <div className="space-y-2">
                       <p className="text-xs text-gray-700 dark:text-gray-300 font-bold leading-relaxed whitespace-pre-wrap">{post.text}</p>
                       {post.imageUrl && (
-                        <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-white/5 max-h-[280px]">
-                          <img src={post.imageUrl} className="w-full h-full object-cover" />
+                        <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-white/5 max-h-[280px] relative h-72">
+                          <Image src={post.imageUrl} alt={`${post.authorName} post`} fill className="object-cover" />
                         </div>
                       )}
                     </div>
@@ -656,7 +606,7 @@ export default function NewsfeedPage() {
                     {/* Threaded Nested Comments list box */}
                     {post.comments && (post.comments || []).length > 0 && (
                       <div className="space-y-3 bg-black/20 border border-gray-200 dark:border-white/5 rounded-xl p-3 mt-1">
-                        {(post.comments || []).map((cmt: any) => (
+                        {(post.comments || []).map((cmt: NewsfeedComment) => (
                           <div key={cmt.id} className="space-y-2 border-b border-gray-200 dark:border-white/5 last:border-none pb-3 last:pb-0">
                             {/* Main Comment */}
                             <div className="text-xs">
@@ -684,7 +634,7 @@ export default function NewsfeedPage() {
                             {/* Nested Replies Rendering */}
                             {cmt.replies && (cmt.replies || []).length > 0 && (
                               <div className="ml-6 pl-4 border-l border-gray-300 dark:border-white/10 space-y-2 mt-2">
-                                {(cmt.replies || []).map((reply: any) => (
+                                {(cmt.replies || []).map((reply: NewsfeedReply) => (
                                   <div key={reply.id} className="text-[11px]">
                                     <div className="flex items-center gap-2 mb-0.5">
                                       <CornerDownRight size={10} className="text-gold" />

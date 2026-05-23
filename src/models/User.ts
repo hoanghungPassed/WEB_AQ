@@ -115,7 +115,7 @@ const userSchema = new Schema<IUser>(
  * Sử dụng cơ chế check model tồn tại để tránh lỗi
  * OverwriteModelError khi Next.js Hot Reload re-evaluate module.
  */
-const User: Model<IUser> =
+export const User: Model<IUser> =
   mongoose.models.User || mongoose.model<IUser>("User", userSchema, "users");
 
 export default User;

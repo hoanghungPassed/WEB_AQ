@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     let query: any = {};
     if (assigneeId) query.assigneeId = assigneeId;
 
-    const tasks = await Task.find(query).sort({ createdAt: -1 });
+    const tasks = await Task.find(query).populate('assigneeId').sort({ createdAt: -1 });
     return NextResponse.json({ success: true, data: tasks });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

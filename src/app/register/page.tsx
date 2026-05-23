@@ -179,7 +179,7 @@ export default function RegisterPage() {
     }, 3000);
   };
 
-  const inputClass = (name: string) => `h-14 w-full rounded-2xl border ${errors[name] ? "border-red-500 bg-red-50/50" : "border-gray-200 bg-white"} pl-14 pr-6 text-sm text-gray-900 focus:border-gold focus:outline-none focus:ring-4 focus:ring-gold/10 transition-all shadow-sm placeholder:text-gray-600 dark:text-gray-400 font-bold`;
+  const inputClass = (name: string) => `h-14 w-full rounded-2xl border ${errors[name] ? "border-red-500 bg-red-50/50 dark:bg-red-900/20" : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800"} pl-14 pr-6 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder-gray-400 dark:placeholder-gray-500 font-bold`;
   const labelClass = "text-[10px] font-black uppercase tracking-widest text-gray-600 dark:text-gray-400 ml-1 mb-1 block";
 
   return (
@@ -281,7 +281,7 @@ export default function RegisterPage() {
                 <label className={labelClass}>Xác nhận mật khẩu</label>
                 <div className="relative group">
                   <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${formData.confirmPassword && formData.confirmPassword !== formData.password ? "text-red-500" : "text-gray-600 dark:text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
-                  <input type="password" name="confirmPassword" required value={formData.confirmPassword} onChange={handleInputChange} className={`h-14 w-full rounded-2xl border ${formData.confirmPassword && formData.confirmPassword !== formData.password ? "border-red-500 bg-red-50/50" : formData.confirmPassword && formData.confirmPassword === formData.password ? "border-green-500 bg-green-50/50" : "border-gray-200 bg-white"} pl-14 pr-6 text-sm text-gray-900 focus:border-gold focus:outline-none focus:ring-4 focus:ring-gold/10 transition-all shadow-sm placeholder:text-gray-600 dark:text-gray-400 font-bold`} />
+                  <input type="password" name="confirmPassword" required value={formData.confirmPassword} onChange={handleInputChange} className={`h-14 w-full rounded-2xl border ${formData.confirmPassword && formData.confirmPassword !== formData.password ? "border-red-500 bg-red-50/50 dark:bg-red-900/20" : formData.confirmPassword && formData.confirmPassword === formData.password ? "border-green-500 bg-green-50/50 dark:bg-green-900/20" : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800"} pl-14 pr-6 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder-gray-400 dark:placeholder-gray-500 font-bold`} />
                 </div>
                 {formData.confirmPassword && formData.confirmPassword !== formData.password && (
                   <p className="text-sm text-red-500 font-medium flex items-center gap-1 mt-1 ml-1"><AlertCircle size={14} /> Mật khẩu không khớp!</p>

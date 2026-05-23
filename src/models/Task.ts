@@ -1,20 +1,22 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface ITask extends Document {
-  title?: string;
-  status?: string;
-  assignee?: mongoose.Types.ObjectId | string;
+  batchName?: string;
+  assigneeId?: mongoose.Types.ObjectId | string;
   mailIds?: mongoose.Types.ObjectId[] | string[];
+  status?: string;
+  deadline?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const TaskSchema: Schema = new Schema(
   {
-    title: { type: String },
-    status: { type: String },
-    assignee: { type: Schema.Types.ObjectId, ref: 'User' },
-    mailIds: [{ type: Schema.Types.ObjectId, ref: 'Mail' }]
+    batchName: { type: String },
+    assigneeId: { type: Schema.Types.ObjectId, ref: 'User' },
+    mailIds: [{ type: Schema.Types.ObjectId, ref: 'Mail' }],
+    status: { type: String, default: 'PENDING' },
+    deadline: { type: Date }
   },
   { timestamps: true }
 );
