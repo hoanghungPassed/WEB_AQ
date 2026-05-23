@@ -597,13 +597,13 @@ export default function StaffManagementPage() {
                 <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-white/5 rounded-[24px] border border-gray-200 dark:border-white/5 shadow-inner">
                 <button 
                   onClick={() => { setActiveTab("PENDING"); setPendingSubTab("ACCOUNTS"); }}
-                  className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab === "PENDING" && pendingSubTab === "ACCOUNTS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-gray-900 dark:hover:text-white"}`}
+                  className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab === "PENDING" && pendingSubTab === "ACCOUNTS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"}`}
                 >
                   Duyệt đăng ký ({stats.pending})
                 </button>
                 <button 
                   onClick={() => { setActiveTab("PENDING"); setPendingSubTab("ACCESS"); }}
-                  className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-gray-900 dark:hover:text-white"}`}
+                  className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"}`}
                 >
                   Duyệt truy cập ({(accessRequests || []).length})
                 </button>
@@ -826,7 +826,7 @@ export default function StaffManagementPage() {
                         </button>
                         <button 
                           onClick={() => handleDenyAccess(req.id, req.staffName)}
-                          className="h-11 px-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-gray-900 dark:hover:text-white transition-all"
+                          className="h-11 px-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all"
                         >
                           Từ chối
                         </button>
@@ -929,7 +929,7 @@ export default function StaffManagementPage() {
                           </button>
                           <button 
                             onClick={() => handleDenyUser(staff.id)}
-                            className="h-10 w-10 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-gray-900 dark:hover:text-white transition-all flex items-center justify-center"
+                            className="h-10 w-10 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all flex items-center justify-center"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -979,7 +979,7 @@ export default function StaffManagementPage() {
                     className={`h-10 w-10 rounded-xl border transition-all text-[10px] font-black ${
                       currentPage === i + 1 
                         ? "bg-gold border-gold text-sidebar shadow-lg shadow-gold/20" 
-                        : "bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10"
+                        : "bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/10"
                     }`}
                   >
                     {i + 1}
@@ -1018,7 +1018,7 @@ export default function StaffManagementPage() {
               {/* Close Button */}
               <button 
                 onClick={() => setSelectedStaff(null)}
-                className="absolute top-6 right-6 z-20 h-10 w-10 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                className="absolute top-6 right-6 z-20 h-10 w-10 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
               >
                 <X size={18} />
               </button>
@@ -1073,7 +1073,7 @@ export default function StaffManagementPage() {
                               });
                             }
                           }}
-                          className="h-14 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-500 font-black uppercase text-[10px] tracking-widest hover:bg-green-500 hover:text-gray-900 dark:hover:text-white transition-all flex flex-col items-center justify-center gap-1"
+                          className="h-14 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-500 font-black uppercase text-[10px] tracking-widest hover:bg-green-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all flex flex-col items-center justify-center gap-1"
                         >
                           <Save size={18} />
                           Lưu thông tin
@@ -1102,8 +1102,8 @@ export default function StaffManagementPage() {
                           }}
                           className={`h-14 rounded-2xl border font-black uppercase text-[10px] tracking-widest transition-all flex flex-col items-center justify-center gap-1 ${
                             selectedStaff.status === "ACTIVE" 
-                            ? "bg-orange-500/10 border-orange-500/20 text-orange-500 hover:bg-orange-500 hover:text-gray-900 dark:hover:text-white" 
-                            : "bg-green-500/10 border-green-500/20 text-green-500 hover:bg-green-500 hover:text-gray-900 dark:hover:text-white"
+                            ? "bg-orange-500/10 border-orange-500/20 text-orange-500 hover:bg-orange-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white" 
+                            : "bg-green-500/10 border-green-500/20 text-green-500 hover:bg-green-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"
                           }`}
                         >
                           {selectedStaff.status === "ACTIVE" ? <XCircle size={18} /> : <CheckCircle2 size={18} />}
@@ -1111,7 +1111,7 @@ export default function StaffManagementPage() {
                         </button>
                         <button 
                           onClick={() => handleDenyUser(selectedStaff.id)}
-                          className="h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-gray-900 dark:hover:text-white transition-all flex flex-col items-center justify-center gap-1"
+                          className="h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all flex flex-col items-center justify-center gap-1"
                         >
                           <Trash2 size={18} />
                           Xóa tài khoản
@@ -1260,7 +1260,7 @@ export default function StaffManagementPage() {
             >
               <button 
                 onClick={() => setActiveDetailDay(null)}
-                className="absolute top-8 right-8 h-12 w-12 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                className="absolute top-8 right-8 h-12 w-12 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
               >
                 <X size={20} />
               </button>

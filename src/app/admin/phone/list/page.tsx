@@ -144,7 +144,7 @@ export default function EmployeePhoneListPage() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.push("/admin")}
-            className="p-2 rounded-xl bg-white dark:bg-sidebar border border-border-custom text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all shadow-md"
+            className="p-2 rounded-xl bg-white dark:bg-sidebar border border-border-custom text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all shadow-md"
           >
             <ArrowLeft size={20} />
           </button>

@@ -493,7 +493,7 @@ export default function PhoneBatchesPage() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push("/admin")}
-            className="p-2 rounded-xl bg-white dark:bg-sidebar border border-border-custom text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all shadow-md"
+            className="p-2 rounded-xl bg-white dark:bg-sidebar border border-border-custom text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all shadow-md"
           >
             <ArrowLeft size={20} />
           </button>
@@ -540,7 +540,7 @@ export default function PhoneBatchesPage() {
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
               activeTab === tab.key
                 ? "bg-gold text-sidebar shadow-lg shadow-gold/20"
-                : "text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/5"
             }`}
           >
             {tab.icon} {tab.label}
@@ -719,7 +719,7 @@ export default function PhoneBatchesPage() {
                           </div>
                           <ChevronRight
                             size={14}
-                            className={`transition-colors ${isSelected ? "text-gold" : "text-gray-600 group-hover:text-gray-900 dark:group-hover:text-white"}`}
+                            className={`transition-colors ${isSelected ? "text-gold" : "text-gray-600 group-hover:text-gray-900 dark:group-hover:text-gray-900 dark:text-white"}`}
                           />
                         </div>
                       </div>
@@ -919,7 +919,7 @@ export default function PhoneBatchesPage() {
                   )}
                   <button
                     onClick={() => setShowHistoryModal(false)}
-                    className="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    className="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-colors"
                   >
                     <X size={20} />
                   </button>
@@ -935,7 +935,7 @@ export default function PhoneBatchesPage() {
                     className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
                       historyTab === tab
                         ? "bg-gold text-sidebar shadow-md"
-                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"
                     }`}
                   >
                     {tab === "ALL" ? "Tất cả" : tab}

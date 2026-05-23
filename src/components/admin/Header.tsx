@@ -402,7 +402,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                   </button>
                   <button
                     onClick={() => setShowAllNotificationsModal(false)}
-                    className="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                    className="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
                   >
                     <X size={20} />
                   </button>
@@ -416,7 +416,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                   className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                     notifTab === "UNREAD"
                       ? "bg-gold text-sidebar shadow-lg shadow-gold/20 font-black"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"
                   }`}
                 >
                   Chưa đọc ({(uniqueNotifications || []).filter(n => !n.read).length})
@@ -426,7 +426,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                   className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                     notifTab === "READ"
                       ? "bg-gold text-sidebar shadow-lg shadow-gold/20 font-black"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"
                   }`}
                 >
                   Đã đọc ({(uniqueNotifications || []).filter(n => n.read).length})

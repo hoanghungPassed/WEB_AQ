@@ -596,7 +596,7 @@ export default function NewsfeedPage() {
                             className={`h-8 w-8 rounded-lg border flex items-center justify-center transition-all ${
                               post.isPinned 
                                 ? "bg-gold/20 text-gold border-gold/30 animate-pulse" 
-                                : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-white/5 hover:bg-gray-200 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
+                                : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-white/5 hover:bg-gray-200 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"
                             }`}
                             title={post.isPinned ? "Bỏ ghim bài viết" : "Ghim bài viết"}
                           >
@@ -640,7 +640,7 @@ export default function NewsfeedPage() {
                       <button 
                         onClick={() => handleLikePost(post.id)}
                         className={`flex-1 h-9 rounded-xl flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-wider transition-all bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 ${
-                          hasLiked ? "text-red-500 bg-red-500/5 border-red-500/20" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                          hasLiked ? "text-red-500 bg-red-500/5 border-red-500/20" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"
                         }`}
                       >
                         <Heart size={14} fill={hasLiked ? "currentColor" : "none"} />

@@ -248,21 +248,25 @@ export default function SettingsPage() {
     setTimeout(() => setToastMsg(""), 3000);
   };
 
-  // LocalStorage Space Usage Calculator
-  const storageUsage = useMemo(() => {
-    if (typeof window === "undefined") return { text: "0 KB", percentage: 0 };
-    let totalLength = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key) {
-        totalLength += (localStorage.getItem(key) || "").length + (key || []).length;
+  // MongoDB Space Usage Calculator
+  const [storageUsage, setStorageUsage] = useState({ text: "0 MB / 512 MB", percentage: 0 });
+
+  useEffect(() => {
+    const fetchDbStats = async () => {
+      try {
+        const res = await fetch("/api/admin/db-stats");
+        const data = await res.json();
+        if (data.success) {
+          const sizeMB = (data.dataSize / (1024 * 1024)).toFixed(2);
+          const percentage = Math.min(100, Math.round((Number(sizeMB) / 512) * 100)); // 512MB max for example
+          setStorageUsage({ text: `${sizeMB} MB / 512 MB`, percentage });
+        }
+      } catch (err) {
+        console.error("Fetch DB stats error:", err);
       }
-    }
-    // Convert to KB
-    const kb = Math.round((totalLength / 1024) * 100) / 100;
-    const percentage = Math.min(100, Math.round((kb / 5120) * 100)); // 5MB standard storage cap
-    return { text: `${kb} KB / 5.0 MB`, percentage };
-  }, [toastMsg]);
+    };
+    fetchDbStats();
+  }, []);
 
   // SAVE GENERAL SETTINGS
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -740,7 +744,7 @@ export default function SettingsPage() {
       <div className="flex items-center gap-4">
         <button 
           onClick={() => router.push("/admin")}
-          className="p-2 rounded-xl bg-white dark:bg-sidebar border border-border-custom text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all shadow-md"
+          className="p-2 rounded-xl bg-white dark:bg-sidebar border border-border-custom text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all shadow-md"
         >
           <ArrowLeft size={20} />
         </button>

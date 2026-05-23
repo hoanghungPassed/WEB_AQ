@@ -1448,7 +1448,7 @@ export default function AdminLayout({
                 <div className="pt-6">
                   <button
                     onClick={handleLogout}
-                    className="px-8 h-12 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-gray-900 dark:hover:text-white text-red-500 font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg shadow-red-500/5"
+                    className="px-8 h-12 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white text-red-500 font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg shadow-red-500/5"
                   >
                     Đăng xuất
                   </button>
@@ -1504,7 +1504,7 @@ export default function AdminLayout({
                       </button>
                       <button
                         onClick={handleLogout}
-                        className="px-8 h-12 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-gray-900 dark:hover:text-white text-red-500 font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg shadow-red-500/5"
+                        className="px-8 h-12 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white text-red-500 font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg shadow-red-500/5"
                       >
                         Đăng xuất
                       </button>
@@ -1671,7 +1671,7 @@ export default function AdminLayout({
 
                   <button
                     onClick={handleLogout}
-                    className="h-14 px-6 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-gray-900 dark:hover:text-white text-red-500 font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300"
+                    className="h-14 px-6 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white text-red-500 font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300"
                   >
                     Đăng xuất
                   </button>
@@ -1847,7 +1847,7 @@ export default function AdminLayout({
                                     <a
                                       href={msg.fileData}
                                       download={msg.fileName}
-                                      className={`h-6 w-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${isMe ? "bg-white dark:bg-sidebar/10 hover:bg-white dark:hover:bg-sidebar text-sidebar hover:text-gray-900 dark:hover:text-white" : "bg-gray-300 dark:bg-white/5 hover:bg-gold text-gray-500 dark:text-gray-400 hover:text-sidebar"}`}
+                                      className={`h-6 w-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${isMe ? "bg-white dark:bg-sidebar/10 hover:bg-white dark:hover:bg-sidebar text-sidebar hover:text-gray-900 dark:hover:text-gray-900 dark:text-white" : "bg-gray-300 dark:bg-white/5 hover:bg-gold text-gray-500 dark:text-gray-400 hover:text-sidebar"}`}
                                       title="Tải xuống tệp tin"
                                     >
                                       <Download size={10} />
@@ -1994,7 +1994,7 @@ export default function AdminLayout({
                                           <a
                                             href={msg.fileData}
                                             download={msg.fileName}
-                                            className={`h-6 w-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${isMe ? "bg-white dark:bg-sidebar/10 hover:bg-white dark:hover:bg-sidebar text-sidebar hover:text-gray-900 dark:hover:text-white" : "bg-gray-300 dark:bg-white/5 hover:bg-gold text-gray-500 dark:text-gray-400 hover:text-sidebar"}`}
+                                            className={`h-6 w-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${isMe ? "bg-white dark:bg-sidebar/10 hover:bg-white dark:hover:bg-sidebar text-sidebar hover:text-gray-900 dark:hover:text-gray-900 dark:text-white" : "bg-gray-300 dark:bg-white/5 hover:bg-gold text-gray-500 dark:text-gray-400 hover:text-sidebar"}`}
                                             title="Tải xuống tệp tin"
                                           >
                                             <Download size={10} />
@@ -2147,7 +2147,7 @@ export default function AdminLayout({
                               href={p.otpLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[10px] font-black text-gold hover:text-gray-900 dark:hover:text-white transition-colors bg-gold/10 hover:bg-gold border border-gold/20 px-3 py-1.5 rounded-lg flex items-center gap-1 shrink-0"
+                              className="text-[10px] font-black text-gold hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-colors bg-gold/10 hover:bg-gold border border-gold/20 px-3 py-1.5 rounded-lg flex items-center gap-1 shrink-0"
                             >
                               <span>Mở OTP</span>
                               <ExternalLink size={10} />
@@ -2168,14 +2168,14 @@ export default function AdminLayout({
                           {p.status === "XM lần 1" && (
                             <button
                               onClick={() => handleUpdatePhoneStatus(p.id, "XM lần 2")}
-                              className="py-1.5 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-gray-900 dark:hover:text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300"
+                              className="py-1.5 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300"
                             >
                               XM Lần 2
                             </button>
                           )}
                           <button
                             onClick={() => handleUpdatePhoneStatus(p.id, "Lỗi")}
-                            className="py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-gray-900 dark:hover:text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300"
+                            className="py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300"
                           >
                             Lỗi
                           </button>

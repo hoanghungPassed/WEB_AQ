@@ -243,7 +243,7 @@ export default function SystemLogsPage() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.push("/admin")}
-            className="p-2 rounded-xl bg-white dark:bg-sidebar border border-border-custom text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all shadow-md"
+            className="p-2 rounded-xl bg-white dark:bg-sidebar border border-border-custom text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all shadow-md"
           >
             <ArrowLeft size={20} />
           </button>
@@ -272,7 +272,7 @@ export default function SystemLogsPage() {
 
           <button 
             onClick={() => setShowClearConfirm(true)}
-            className="h-10 px-4 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-gray-900 dark:hover:text-white transition-all text-xs font-black uppercase tracking-wider flex items-center gap-2 border border-red-500/20"
+            className="h-10 px-4 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all text-xs font-black uppercase tracking-wider flex items-center gap-2 border border-red-500/20"
           >
             <Trash2 size={14} /> Dọn dẹp logs
           </button>

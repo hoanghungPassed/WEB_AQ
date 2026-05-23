@@ -280,13 +280,18 @@ export default function RegisterPage() {
               <div className="space-y-1">
                 <label className={labelClass}>Xác nhận mật khẩu</label>
                 <div className="relative group">
-                  <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.confirmPassword ? "text-red-500" : "text-gray-600 dark:text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
-                  <input type="password" name="confirmPassword" required value={formData.confirmPassword} onChange={handleInputChange} className={inputClass("confirmPassword")} />
+                  <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${formData.confirmPassword && formData.confirmPassword !== formData.password ? "text-red-500" : "text-gray-600 dark:text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+                  <input type="password" name="confirmPassword" required value={formData.confirmPassword} onChange={handleInputChange} className={`h-14 w-full rounded-2xl border ${formData.confirmPassword && formData.confirmPassword !== formData.password ? "border-red-500 bg-red-50/50" : formData.confirmPassword && formData.confirmPassword === formData.password ? "border-green-500 bg-green-50/50" : "border-gray-200 bg-white"} pl-14 pr-6 text-sm text-gray-900 focus:border-gold focus:outline-none focus:ring-4 focus:ring-gold/10 transition-all shadow-sm placeholder:text-gray-600 dark:text-gray-400 font-bold`} />
                 </div>
-                {errors.confirmPassword && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.confirmPassword}</p>}
+                {formData.confirmPassword && formData.confirmPassword !== formData.password && (
+                  <p className="text-sm text-red-500 font-medium flex items-center gap-1 mt-1 ml-1"><AlertCircle size={14} /> Mật khẩu không khớp!</p>
+                )}
+                {formData.confirmPassword && formData.confirmPassword === formData.password && (
+                  <p className="text-sm text-green-500 font-medium flex items-center gap-1 mt-1 ml-1"><CheckCircle2 size={14} /> Mật khẩu hợp lệ</p>
+                )}
               </div>
 
-              <button type="submit" disabled={isLoading} className="md:col-span-2 mt-8 h-16 w-full rounded-2xl bg-gold font-black uppercase tracking-[0.2em] text-[#0a0a0a] text-sm transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-70 shadow-2xl shadow-gold/20 flex items-center justify-center gap-3">
+              <button type="submit" disabled={isLoading || (formData.password !== '' && formData.confirmPassword !== formData.password)} className="md:col-span-2 mt-8 h-16 w-full rounded-2xl bg-gold font-black uppercase tracking-[0.2em] text-[#0a0a0a] text-sm transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-70 shadow-2xl shadow-gold/20 flex items-center justify-center gap-3">
                 {isLoading ? (
                   <div className="flex items-center gap-3">
                     <Loader2 className="animate-spin" size={24} />

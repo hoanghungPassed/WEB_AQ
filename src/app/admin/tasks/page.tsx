@@ -1038,13 +1038,13 @@ export default function TaskManagementPage() {
           <div className="flex bg-gray-100 dark:bg-white/5 rounded-2xl p-1 border border-gray-300 dark:border-white/10">
             <button 
               onClick={() => setAdminTab("ASSIGN")}
-              className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all ${adminTab === "ASSIGN" ? "bg-gold text-black shadow-lg" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"}`}
+              className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all ${adminTab === "ASSIGN" ? "bg-gold text-white dark:text-black shadow-lg" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"}`}
             >
               Giao việc
             </button>
             <button 
               onClick={() => setAdminTab("TASKS")}
-              className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all ${adminTab === "TASKS" ? "bg-gold text-black shadow-lg" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"}`}
+              className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all ${adminTab === "TASKS" ? "bg-gold text-white dark:text-black shadow-lg" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"}`}
             >
               Task hôm nay
             </button>

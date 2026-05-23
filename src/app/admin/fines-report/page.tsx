@@ -214,7 +214,7 @@ export default function FinesReportPage() {
       <div className="flex items-center gap-4 shrink-0">
         <button
           onClick={() => router.push("/admin")}
-          className="p-2 rounded-xl bg-white dark:bg-sidebar border border-border-custom text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all"
+          className="p-2 rounded-xl bg-white dark:bg-sidebar border border-border-custom text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all"
         >
           <ArrowLeft size={20} />
         </button>

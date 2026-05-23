@@ -786,7 +786,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white dark:bg-sidebar border border-gray-300 dark:border-white/10 rounded-[40px] p-10 w-full max-w-2xl shadow-2xl">
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-4"><PlusCircle className="text-gold" size={32} /> Import Thủ Công</h3>
-                <button onClick={() => setShowManualImport(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"><X /></button>
+                <button onClick={() => setShowManualImport(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-colors"><X /></button>
               </div>
               <p className="text-[10px] text-gray-500 mb-6 font-black uppercase tracking-widest leading-relaxed opacity-60">
                 Định dạng: Email [Tab/Cách] Pass [Tab/Cách] Mail KP [Tab/Cách] 2FA [Tab/Cách] SĐT [Tab/Cách] Link OTP
@@ -841,7 +841,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                   )}
                   <button
                     onClick={() => setShowHistoryModal(false)}
-                    className="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    className="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-colors"
                   >
                     <X size={20} />
                   </button>
@@ -857,7 +857,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                     className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
                       historyTab === tab
                         ? "bg-gold text-sidebar shadow-md"
-                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"
                     }`}
                   >
                     {tab === "ALL" ? "Tất cả" : tab}
@@ -935,7 +935,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       {(!isStaff || !selectedBatch) && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <button onClick={() => router.push("/admin")} className="flex items-center gap-2 text-gold hover:text-gray-900 dark:hover:text-white font-black uppercase text-xs tracking-widest transition-all group">
+            <button onClick={() => router.push("/admin")} className="flex items-center gap-2 text-gold hover:text-gray-900 dark:hover:text-gray-900 dark:text-white font-black uppercase text-xs tracking-widest transition-all group">
               <div className="h-10 w-10 bg-gold/10 rounded-xl flex items-center justify-center group-hover:bg-gold/20 transition-all shadow-lg"><ArrowLeft size={20} /></div>
               Quay lại bảng điều khiển
             </button>
@@ -1285,7 +1285,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                               Xem chi tiết
                             </button>
                             {isAdminOrManager && (
-                              <button onClick={() => deleteMail(mail.id)} className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-gray-900 dark:hover:text-white transition-all shadow-inner"><Trash2 size={16} /></button>
+                              <button onClick={() => deleteMail(mail.id)} className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all shadow-inner"><Trash2 size={16} /></button>
                             )}
                           </div>
                         </td>
@@ -1345,7 +1345,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                     setPendingMails(null);
                     setShowBatchNameModal(false);
                   }}
-                  className="p-1.5 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  className="p-1.5 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-colors"
                 >
                   <X size={16} />
                 </button>
@@ -1371,7 +1371,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                     setPendingMails(null);
                     setShowBatchNameModal(false);
                   }}
-                  className="px-5 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-xs font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  className="px-5 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-xs font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-colors"
                 >
                   Hủy bỏ
                 </button>

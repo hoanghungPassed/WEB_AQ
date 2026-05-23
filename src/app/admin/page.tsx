@@ -1216,7 +1216,7 @@ export default function AdminDashboard() {
                 </div>
                 <button
                   onClick={() => setMissingLinksWarning([])}
-                  className="h-7 w-7 rounded-lg bg-red-500/10 hover:bg-red-500/30 text-red-400 hover:text-gray-900 dark:hover:text-white transition-all flex items-center justify-center"
+                  className="h-7 w-7 rounded-lg bg-red-500/10 hover:bg-red-500/30 text-red-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all flex items-center justify-center"
                 >
                   <X size={14} />
                 </button>
@@ -1285,7 +1285,7 @@ export default function AdminDashboard() {
                   <td className="py-3 px-6 text-xs text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
                   <td className="py-3 px-6 whitespace-nowrap">
                     {mail.otpLink ? (
-                      <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-gray-900 dark:hover:text-white transition-all flex items-center gap-1 font-bold text-xs cursor-pointer">Link OTP <ExternalLink size={12} /></a>
+                      <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all flex items-center gap-1 font-bold text-xs cursor-pointer">Link OTP <ExternalLink size={12} /></a>
                     ) : <span className="text-gray-700">---</span>}
                   </td>
                   <td className="py-3 px-6 text-center whitespace-nowrap">
@@ -1324,7 +1324,7 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-6">
             <button 
               onClick={() => setSelectedViewType(null)}
-              className="flex items-center gap-2 text-gold hover:text-gray-900 dark:hover:text-white font-black uppercase text-xs tracking-widest transition-all group"
+              className="flex items-center gap-2 text-gold hover:text-gray-900 dark:hover:text-gray-900 dark:text-white font-black uppercase text-xs tracking-widest transition-all group"
             >
               <div className="h-10 w-10 bg-gold/10 rounded-xl flex items-center justify-center group-hover:bg-gold/20 transition-all shadow-lg">
                 <ArrowLeft size={20} />
@@ -1676,7 +1676,7 @@ export default function AdminDashboard() {
                   disabled={!checkInTime || !!checkOutTime}
                   className={`flex-1 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                     checkInTime && !checkOutTime 
-                      ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-gray-900 dark:hover:text-white" 
+                      ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white" 
                       : "bg-gray-100 dark:bg-white/5 text-gray-600 cursor-not-allowed border border-gray-200 dark:border-white/5"
                   }`}
                 >
@@ -1866,7 +1866,7 @@ export default function AdminDashboard() {
                           className="bg-transparent border-none outline-none text-xs text-gray-900 dark:text-white w-full" 
                         />
                       </div>
-                      <button onClick={() => setShowStaffMailsView(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"><X size={20} /></button>
+                      <button onClick={() => setShowStaffMailsView(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-colors"><X size={20} /></button>
                     </div>
                   </div>
 
@@ -1910,7 +1910,7 @@ export default function AdminDashboard() {
                               <td className="py-4 px-6 text-xs text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
                               <td className="py-4 px-6 text-xs text-gray-500 whitespace-nowrap">
                                 {mail.otpLink ? (
-                                  <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-gray-900 dark:hover:text-white transition-all flex items-center gap-1 font-bold text-xs cursor-pointer">Link OTP <ExternalLink size={12} /></a>
+                                  <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all flex items-center gap-1 font-bold text-xs cursor-pointer">Link OTP <ExternalLink size={12} /></a>
                                 ) : <span className="text-gray-700">---</span>}
                               </td>
                               <td className="py-4 px-6 text-center whitespace-nowrap">

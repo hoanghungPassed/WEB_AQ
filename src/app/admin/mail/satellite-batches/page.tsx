@@ -624,7 +624,7 @@ export default function SatelliteBatchesPage() {
         <div className="flex items-center gap-4 flex-shrink-0">
           <button 
             onClick={() => router.push("/admin")}
-            className="p-2 rounded-xl bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all shadow-md"
+            className="p-2 rounded-xl bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all shadow-md"
           >
             <ArrowLeft size={20} />
           </button>
@@ -650,7 +650,7 @@ export default function SatelliteBatchesPage() {
                 className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
                   assignmentFilter === "ALL" 
                     ? "bg-gold text-sidebar shadow-md" 
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"
                 }`}
               >
                 Tất cả
@@ -660,7 +660,7 @@ export default function SatelliteBatchesPage() {
                 className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
                   assignmentFilter === "ASSIGNED" 
                     ? "bg-gold text-sidebar shadow-md" 
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"
                 }`}
               >
                 Đã gán
@@ -670,7 +670,7 @@ export default function SatelliteBatchesPage() {
                 className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
                   assignmentFilter === "UNASSIGNED" 
                     ? "bg-gold text-sidebar shadow-md" 
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"
                 }`}
               >
                 Chưa gán
@@ -779,7 +779,7 @@ export default function SatelliteBatchesPage() {
                 setSelectedStaff(null);
                 setSelectedBatch(null);
               }}
-              className="p-2 rounded-xl bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all shadow-md"
+              className="p-2 rounded-xl bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all shadow-md"
             >
               <ArrowLeft size={20} />
             </button>
@@ -834,14 +834,14 @@ export default function SatelliteBatchesPage() {
                         </span>
                         <button
                           onClick={(e) => handleResetBatchLinks(e, batch)}
-                          className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-gray-900 dark:hover:text-white transition-all opacity-0 group-hover:opacity-100 border border-blue-500/20"
+                          className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all opacity-0 group-hover:opacity-100 border border-blue-500/20"
                           title="Reset toàn bộ link kênh"
                         >
                           <RefreshCcw size={12} />
                         </button>
                         <button
                           onClick={(e) => handleDeleteBatch(e, batch)}
-                          className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-gray-900 dark:hover:text-white transition-all opacity-0 group-hover:opacity-100 border border-red-500/20"
+                          className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all opacity-0 group-hover:opacity-100 border border-red-500/20"
                           title="Xóa lô này"
                         >
                           <Trash2 size={12} />
@@ -935,7 +935,7 @@ export default function SatelliteBatchesPage() {
                     setSelectedBatch(null);
                     setSelectedChunkId("");
                   }}
-                  className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all border border-gray-300 dark:border-white/10"
+                  className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all border border-gray-300 dark:border-white/10"
                 >
                   <X size={20} />
                 </button>
@@ -1005,7 +1005,7 @@ export default function SatelliteBatchesPage() {
                       </div>
                       <button
                         onClick={handleUnassignBatch}
-                        className="w-full h-12 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-gray-900 dark:hover:text-white border border-red-500/20 font-black uppercase text-xs tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2"
+                        className="w-full h-12 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white border border-red-500/20 font-black uppercase text-xs tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2"
                       >
                         <Trash2 size={16} />
                         Hủy gán & giải phóng lô

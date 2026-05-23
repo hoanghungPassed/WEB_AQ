@@ -104,7 +104,7 @@ function LoginForm() {
         animate={{ opacity: 1, y: 0 }}
         className="z-10 w-full max-w-[550px] p-6"
       >
-        <div className="rounded-[50px] border border-gray-300 dark:border-white/10 bg-gray-100 dark:bg-white/5 p-12 md:p-16 backdrop-blur-3xl shadow-2xl">
+        <div className="rounded-2xl border border-gray-300 dark:border-white/10 bg-gray-100 dark:bg-white/5 p-12 md:p-16 backdrop-blur-3xl shadow-xl dark:shadow-gray-900/50">
           {/* Logo Section */}
           <div className="mb-10 text-center">
             <motion.div
@@ -114,7 +114,7 @@ function LoginForm() {
             >
               <img src="/logo.png" alt="AQ MEDIA" className="h-full w-full object-contain p-2" onError={(e) => e.currentTarget.src = "https://via.placeholder.com/150/d4af37/000000?text=AQ"} />
             </motion.div>
-            <h1 className="text-4xl font-black tracking-tighter text-gray-900 dark:text-white">
+            <h1 className="text-3xl font-bold mb-6 text-center text-gray-900 dark:text-white">
               AQ <span className="text-gold uppercase tracking-widest text-2xl ml-1">Media</span>
             </h1>
             <p className="mt-3 text-xs font-bold text-gray-500 uppercase tracking-[0.4em]">
@@ -138,7 +138,7 @@ function LoginForm() {
           {/* Form Section */}
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">
+              <label className="text-lg font-medium text-gray-700 dark:text-gray-300 ml-1">
                 Tài khoản
               </label>
               <div className="group relative">
@@ -151,14 +151,14 @@ function LoginForm() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Username"
-                  className="h-14 w-full rounded-2xl border border-gray-300 dark:border-white/10 bg-gray-100 dark:bg-white/5 pl-14 pr-6 text-sm text-gray-900 dark:text-white transition-all focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 shadow-inner"
+                  className="w-full rounded-xl border border-gray-300 dark:border-white/10 bg-gray-50 dark:bg-gray-900 px-4 py-3 pl-14 text-lg text-gray-900 dark:text-white transition-all focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 shadow-inner"
                 />
               </div>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between ml-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                <label className="text-lg font-medium text-gray-700 dark:text-gray-300">
                   Mật khẩu
                 </label>
                 <Link href="/forgot-password" className="text-[10px] font-black text-gold hover:underline uppercase tracking-tighter">
@@ -174,13 +174,13 @@ function LoginForm() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="đủ 6 kí tự, có số và chữ và kí tự đặc biệt"
-                  className="h-14 w-full rounded-2xl border border-gray-300 dark:border-white/10 bg-gray-100 dark:bg-white/5 pl-14 pr-14 text-sm text-gray-900 dark:text-white transition-all focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 shadow-inner"
+                  placeholder="Mật khẩu của bạn"
+                  className="w-full rounded-xl border border-gray-300 dark:border-white/10 bg-gray-50 dark:bg-gray-900 px-4 py-3 pl-14 pr-14 text-lg text-gray-900 dark:text-white transition-all focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 shadow-inner"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-colors"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -190,7 +190,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={isLoading}
-              className="relative h-16 w-full overflow-hidden rounded-2xl bg-gold font-black uppercase tracking-[0.2em] text-[#0a0a0a] text-sm transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-70 shadow-2xl shadow-gold/20"
+              className="relative w-full overflow-hidden rounded-xl bg-gold font-bold text-gray-900 dark:text-white py-3 text-lg transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-70 shadow-xl dark:shadow-gray-900/50 mt-8"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center gap-3">

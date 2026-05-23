@@ -242,7 +242,7 @@ export default function ReportsPage() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.push("/admin")}
-            className="p-2 rounded-xl bg-white dark:bg-sidebar border border-border-custom text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all shadow-md"
+            className="p-2 rounded-xl bg-white dark:bg-sidebar border border-border-custom text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all shadow-md"
           >
             <ArrowLeft size={20} />
           </button>
@@ -261,14 +261,14 @@ export default function ReportsPage() {
           <div className="flex bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 p-1 rounded-2xl shadow-inner">
             <button
               onClick={() => setActiveTab("STATS")}
-              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "STATS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-gray-900 dark:hover:text-white"}`}
+              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "STATS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"}`}
             >
               Hiệu Suất KPI
             </button>
             {(user?.role === "01" || user?.role === "02" || user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC") && (
               <button
                 onClick={() => setActiveTab("PAYROLL")}
-                className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "PAYROLL" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-gray-900 dark:hover:text-white"}`}
+                className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "PAYROLL" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"}`}
               >
                 Bảng Lương
               </button>
