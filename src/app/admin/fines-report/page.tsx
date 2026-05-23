@@ -37,11 +37,28 @@ export default function FinesReportPage() {
       window.location.href = "/login";
     }
 
-    // Load fine reports từ localStorage
-    const storedFines = localStorage.getItem("global_fine_reports");
-    if (storedFines) {
-      setFineReports(JSON.parse(storedFines));
-    }
+    const fetchFines = async () => {
+      try {
+        const res = await fetch("/api/admin/fines");
+        if (res.ok) {
+          const data = await res.json();
+          // Map to match frontend format
+          const mapped = data.map((d: any) => ({
+            id: d._id,
+            staffId: d.userId?._id || "",
+            staffName: d.userId?.name || "Unknown",
+            reason: d.reason,
+            amount: d.amount,
+            status: d.status,
+            date: new Date(d.createdAt).toISOString().split('T')[0]
+          }));
+          setFineReports(mapped);
+        }
+      } catch (err) {
+        console.error("Error fetching fines:", err);
+      }
+    };
+    fetchFines();
   }, []);
 
   const triggerToast = (msg: string) => {
@@ -90,43 +107,44 @@ export default function FinesReportPage() {
     return { totalFines, totalAmount, paidAmount, pendingAmount, paidCount, pendingCount, overdueCount };
   }, [fineReports]);
 
-  // Handle mark as paid
-  const handleMarkAsPaid = (id: string) => {
-    const updated = (fineReports || []).map(r => {
-      if (r.id === id) {
-        return {
-          ...r,
-          status: "PAID" as const,
-          paymentMethod: "TRANSFER" as const,
-          paymentDate: new Date().toISOString().split("T")[0]
-        };
-      }
-      return r;
-    });
-    setFineReports(updated);
-    localStorage.setItem("global_fine_reports", JSON.stringify(updated));
-    triggerToast("Đã cập nhật trạng thái thanh toán ✓");
-
-    // Add log
-    const existingLogs = localStorage.getItem("global_system_logs");
-    const logsList = existingLogs ? JSON.parse(existingLogs) : [];
-    const report = fineReports.find(r => r.id === id);
-    logsList.unshift({
-      id: `log-${Date.now()}`,
-      user: user?.name || "Admin",
-      role: user?.role === "01" ? "ADMIN" : "QL CÔNG VIỆC",
-      action: `Cập nhật trạng thái thanh toán phạt của ${report?.staffName}`,
-      type: "SUCCESS",
-      timestamp: new Date().toLocaleString("vi-VN")
-    });
-    localStorage.setItem("global_system_logs", JSON.stringify(logsList));
+  const handleMarkAsPaid = async (id: string) => {
+    try {
+      const res = await fetch("/api/admin/fines", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: "PAID" })
+      });
+      if (!res.ok) throw new Error("Update failed");
+      
+      const updated = (fineReports || []).map(r => {
+        if (r.id === id) {
+          return {
+            ...r,
+            status: "PAID" as const,
+            paymentMethod: "TRANSFER" as const,
+            paymentDate: new Date().toISOString().split("T")[0]
+          };
+        }
+        return r;
+      });
+      setFineReports(updated);
+      triggerToast("Đã cập nhật trạng thái thanh toán ✓");
+    } catch (err) {
+      triggerToast("Lỗi khi cập nhật trạng thái");
+    }
   };
 
-  const handleDeleteFine = (id: string) => {
-    const updated = (fineReports || []).filter(r => r.id !== id);
-    setFineReports(updated);
-    localStorage.setItem("global_fine_reports", JSON.stringify(updated));
-    triggerToast("Đã xóa báo cáo phạt");
+  const handleDeleteFine = async (id: string) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa?")) return;
+    try {
+      const res = await fetch(`/api/admin/fines?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
+      const updated = (fineReports || []).filter(r => r.id !== id);
+      setFineReports(updated);
+      triggerToast("Đã xóa báo cáo phạt");
+    } catch (err) {
+      triggerToast("Lỗi khi xóa báo cáo");
+    }
   };
 
   const handleExportCSV = () => {

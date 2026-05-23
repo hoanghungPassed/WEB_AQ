@@ -33,6 +33,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!updatedUser) {
       return NextResponse.json({ error: "Không tìm thấy nhân viên" }, { status: 404 });
     }
+    
+    try {
+      const { Log } = await import('@/models/Log');
+      await Log.create({
+        user: "System",
+        role: role === "01" ? "ADMIN" : "QL NHÂN SỰ",
+        action: `Cập nhật thông tin nhân sự: ${updatedUser.name} (${updatedUser.username})`,
+        type: "SUCCESS",
+        timestamp: new Date().toLocaleString("vi-VN")
+      });
+    } catch (logErr) {
+      console.error("Log error:", logErr);
+    }
+    
     console.log("Kết quả lưu vào MongoDB (User):", updatedUser);
 
     return NextResponse.json({ 
@@ -67,6 +81,19 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     
     if (!deletedUser) {
       return NextResponse.json({ error: "Không tìm thấy nhân viên" }, { status: 404 });
+    }
+
+    try {
+      const { Log } = await import('@/models/Log');
+      await Log.create({
+        user: "System",
+        role: role === "01" ? "ADMIN" : "QL NHÂN SỰ",
+        action: `Xóa nhân sự: ${deletedUser.name} (${deletedUser.username})`,
+        type: "SUCCESS",
+        timestamp: new Date().toLocaleString("vi-VN")
+      });
+    } catch (logErr) {
+      console.error("Log error:", logErr);
     }
 
     return NextResponse.json({ message: "Đã xóa nhân viên thành công" });

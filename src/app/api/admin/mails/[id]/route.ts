@@ -1,13 +1,23 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
-import { Mail } from "@/models/Mail";
+import { RootMail } from "@/models/RootMail";
+import { SatelliteMail } from "@/models/SatelliteMail";
+import { MonetizedMail } from "@/models/MonetizedMail";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
     const body = await req.json();
     const { id } = await params;
-    const mail = await Mail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
+    
+    let mail = await RootMail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
+    if (!mail) {
+      mail = await SatelliteMail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
+    }
+    if (!mail) {
+      mail = await MonetizedMail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
+    }
+
     if (!mail) {
       return NextResponse.json({ success: false, error: "Mail not found" }, { status: 404 });
     }
@@ -21,7 +31,15 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   try {
     await dbConnect();
     const { id } = await params;
-    const mail = await Mail.findByIdAndDelete(id);
+    
+    let mail = await RootMail.findByIdAndDelete(id);
+    if (!mail) {
+      mail = await SatelliteMail.findByIdAndDelete(id);
+    }
+    if (!mail) {
+      mail = await MonetizedMail.findByIdAndDelete(id);
+    }
+
     if (!mail) {
       return NextResponse.json({ success: false, error: "Mail not found" }, { status: 404 });
     }

@@ -25,6 +25,20 @@ export async function POST(req: Request) {
     await dbConnect();
     const body = await req.json();
     const task = await Task.create(body);
+    
+    try {
+      const { Log } = await import('@/models/Log');
+      await Log.create({
+        user: "System",
+        role: "ADMIN",
+        action: `Phân công nhiệm vụ mới: ${task.title}`,
+        type: "SUCCESS",
+        timestamp: new Date().toLocaleString("vi-VN")
+      });
+    } catch (logErr) {
+      console.error("Log error:", logErr);
+    }
+
     return NextResponse.json({ success: true, data: task }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });

@@ -106,18 +106,26 @@ export default function NewsfeedPage() {
     try {
       const response = await fetch("/api/admin/notifications");
       if (response.ok) {
-        const data = (await response.json()) as NewsfeedNotificationItem[];
+        const data = await response.json();
         if (Array.isArray(data)) {
-          setPosts(data.map((item) => ({
-            id: item._id || item.id || "",
-            authorName: item.authorName || "Hệ thống",
-            authorRole: item.authorRole || "ADMIN",
-            authorUsername: item.authorUsername || "system",
+          setPosts(data.map((item: any) => ({
+            id: item._id,
+            authorName: item.author?.name || "Hệ thống",
+            authorRole: item.author?.role === "01" ? "ADMIN" : item.author?.role === "02" ? "QL CÔNG VIỆC" : item.author?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
+            authorUsername: item.author?.username || "system",
             text: item.message || item.title || "",
             imageUrl: item.imageUrl || null,
-            likes: typeof item.likes === "number" ? item.likes : 0,
-            likedBy: Array.isArray(item.likedBy) ? item.likedBy : [],
-            comments: Array.isArray(item.comments) ? item.comments : [],
+            likes: (item.likes || []).length,
+            likedBy: (item.likes || []).map((l: any) => l._id || l),
+            comments: (item.comments || []).map((c: any) => ({
+              id: c._id,
+              authorName: c.userId?.name || "Người dùng",
+              authorRole: c.userId?.role === "01" ? "ADMIN" : c.userId?.role === "02" ? "QL CÔNG VIỆC" : c.userId?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
+              authorUsername: c.userId?.username || "user",
+              text: c.content,
+              timestamp: new Date(c.createdAt).toLocaleString("vi-VN"),
+              replies: []
+            })),
             timestamp: item.createdAt ? new Date(item.createdAt).toLocaleString("vi-VN") : ""
           })));
           return;
@@ -136,106 +144,71 @@ export default function NewsfeedPage() {
     void fetchPosts();
   }, []);
 
-  const handleCreatePost = () => {
+  const handleCreatePost = async () => {
     if (!newPostText.trim() && !selectedMockImage) return;
     
-    const newPost = {
-      id: `post_${Date.now()}`,
-      authorName: user?.name || "Anonymous",
-      authorRole: user?.role === "01" ? "ADMIN" : user?.role === "02" ? "QL CÔNG VIỆC" : user?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
-      authorUsername: user?.username || "04",
-      text: newPostText,
-      imageUrl: selectedMockImage,
-      likes: 0,
-      likedBy: [],
-      comments: [],
-      timestamp: "Vừa xong"
-    };
+    try {
+      const res = await fetch("/api/admin/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Bài viết mới",
+          message: newPostText,
+          author: user?.id,
+          imageUrl: selectedMockImage,
+          type: "POST"
+        })
+      });
+      if (!res.ok) throw new Error("Failed to create post");
+      
+      await loadPosts();
+      
+      setNewPostText("");
+      setSelectedMockImage(null);
+      setShowImagePresets(false);
 
-    const updated = [newPost, ...posts];
-    setPosts(updated);
-    
-    setNewPostText("");
-    setSelectedMockImage(null);
-    setShowImagePresets(false);
-
-    setSuccessToast("Đăng bài viết thành công!");
-    setTimeout(() => setSuccessToast(null), 3000);
+      setSuccessToast("Đăng bài viết thành công!");
+      setTimeout(() => setSuccessToast(null), 3000);
+    } catch (err) {
+      setSuccessToast("Lỗi khi đăng bài!");
+      setTimeout(() => setSuccessToast(null), 3000);
+    }
   };
 
-  const handleLikePost = (postId: string) => {
-    const updated = (posts || []).map(p => {
-      if (p.id === postId) {
-        const likedBy = Array.isArray(p.likedBy) ? p.likedBy : [];
-        const userId = user?.id || "anon";
-        const hasLiked = likedBy.includes(userId);
-        
-        let newLikedBy;
-        let newLikes = p.likes || 0;
-        if (hasLiked) {
-          newLikedBy = (likedBy || []).filter((id: string) => id !== userId);
-          newLikes = Math.max(0, newLikes - 1);
-        } else {
-          newLikedBy = [...likedBy, userId];
-          newLikes += 1;
-
-          // Trigger notification to the post author
-          if (p.authorUsername && p.authorUsername !== user?.username) {
-            triggerNotification({
-              id: `newsfeed-like-${Date.now()}`,
-              title: "Tương tác Bảng tin",
-              message: `${user?.name || "Một người dùng"} đã thích bài viết của bạn.`,
-              postId: p.id,
-              targetUsername: p.authorUsername
-            });
-          }
-        }
-
-        return { ...p, likes: newLikes, likedBy: newLikedBy };
+  const handleLikePost = async (postId: string) => {
+    try {
+      const res = await fetch("/api/admin/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: postId, action: "LIKE", userId: user?.id })
+      });
+      if (res.ok) {
+        await loadPosts();
       }
-      return p;
-    });
-
-    setPosts(updated);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleAddComment = (postId: string) => {
+  const handleAddComment = async (postId: string) => {
     const text = commentInputs[postId] || "";
     if (!text.trim()) return;
 
-    const updated = (posts || []).map(p => {
-      if (p.id === postId) {
-        const comments = Array.isArray(p.comments) ? p.comments : [];
-        const newCmt = {
-          id: `cmt_${Date.now()}`,
-          authorName: user?.name || "Anonymous",
-          authorRole: user?.role === "01" ? "ADMIN" : user?.role === "02" ? "QL CÔNG VIỆC" : user?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
-          authorUsername: user?.username || "04",
-          text: text,
-          timestamp: "Vừa xong",
-          replies: []
-        };
-
-        // Trigger notification to the post author
-        if (p.authorUsername && p.authorUsername !== user?.username) {
-          triggerNotification({
-            id: `newsfeed-cmt-${Date.now()}`,
-            title: "Bình luận Bảng tin",
-            message: `${user?.name || "Một người dùng"} đã bình luận bài viết của bạn: "${text.slice(0, 30)}..."`,
-            postId: p.id,
-            targetUsername: p.authorUsername
-          });
-        }
-
-        return { ...p, comments: [...comments, newCmt] };
+    try {
+      const res = await fetch("/api/admin/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: postId, action: "COMMENT", userId: user?.id, content: text })
+      });
+      if (res.ok) {
+        await loadPosts();
+        setCommentInputs(prev => ({ ...prev, [postId]: "" }));
+        setSuccessToast("Đã thêm bình luận!");
+        setTimeout(() => setSuccessToast(null), 2000);
       }
-      return p;
-    });
-
-    setPosts(updated);
-    setCommentInputs(prev => ({ ...prev, [postId]: "" }));
-    setSuccessToast("Đã thêm bình luận!");
-    setTimeout(() => setSuccessToast(null), 2000);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleAddReply = (postId: string, commentId: string) => {
@@ -296,12 +269,18 @@ export default function NewsfeedPage() {
     setPosts(updated);
   };
 
-  const handleDeletePost = (postId: string) => {
+  const handleDeletePost = async (postId: string) => {
     if (confirm("Bạn có chắc chắn muốn xóa bài viết này?")) {
-      const updated = (posts || []).filter(p => p.id !== postId);
-      setPosts(updated);
-      setSuccessToast("Đã xóa bài viết thành công!");
-      setTimeout(() => setSuccessToast(null), 2000);
+      try {
+        const res = await fetch(`/api/admin/notifications?id=${postId}`, { method: "DELETE" });
+        if (res.ok) {
+          await loadPosts();
+          setSuccessToast("Đã xóa bài viết thành công!");
+          setTimeout(() => setSuccessToast(null), 2000);
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 

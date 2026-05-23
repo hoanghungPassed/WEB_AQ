@@ -450,9 +450,27 @@ export default function TaskManagementPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const loadData = useCallback(() => {
-    const savedTasks = localStorage.getItem("global_tasks_data");
-    setTasks(savedTasks ? JSON.parse(savedTasks) : []);
+  const loadData = useCallback(async () => {
+    try {
+      const taskRes = await fetch("/api/admin/tasks");
+      if (taskRes.ok) {
+        const taskData = await taskRes.json();
+        if (taskData.success) {
+          const apiTasks = taskData.data.map((t: any) => ({
+            ...t,
+            id: t._id,
+            assigneeId: t.assigneeId?._id || t.assigneeId,
+            assigneeName: t.assigneeId?.name || t.assigneeName
+          }));
+          setTasks(apiTasks);
+          localStorage.setItem("global_tasks_data", JSON.stringify(apiTasks));
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching tasks API:", err);
+      const savedTasks = localStorage.getItem("global_tasks_data");
+      setTasks(savedTasks ? JSON.parse(savedTasks) : []);
+    }
 
     const stored = localStorage.getItem("global_users");
     const allUsers = stored ? JSON.parse(stored) : [];
@@ -927,6 +945,29 @@ export default function TaskManagementPage() {
     setSelectedMailIdsForTask([]);
 
     // Sync to API server database
+    fetch("/api/admin/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newTask)
+    })
+    .then(async (res) => {
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Giao việc thất bại");
+      }
+      return res.json();
+    })
+    .then((data) => {
+      if (!data.success) throw new Error(data.error);
+      setNotification(`Đã giao việc thành công cho ${selectedStaff.name}!`);
+      setTimeout(() => setNotification(null), 4000);
+      window.dispatchEvent(new Event('storage'));
+    })
+    .catch(err => {
+      console.error("Lỗi giao việc:", err);
+      // alert(`Lỗi khi giao việc: ${err.message}`);
+    });
+
     fetch("/api/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

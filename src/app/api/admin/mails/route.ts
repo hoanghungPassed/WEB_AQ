@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
-import { Mail } from "@/models/Mail";
+import { RootMail } from "@/models/RootMail";
+import { SatelliteMail } from "@/models/SatelliteMail";
+import { MonetizedMail } from "@/models/MonetizedMail";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +14,25 @@ export async function GET(req: Request) {
     const status = searchParams.get("status");
     
     let query: any = {};
-    if (type) query.type = type;
     if (status) query.status = status;
 
-    const mails = await Mail.find(query).sort({ createdAt: -1 });
+    let mails: any[] = [];
+    if (!type || type === "ROOT") {
+      const rootMails = await RootMail.find(query).sort({ createdAt: -1 });
+      mails = [...mails, ...rootMails];
+    }
+    if (!type || type === "SATELLITE") {
+      const satelliteMails = await SatelliteMail.find(query).sort({ createdAt: -1 });
+      mails = [...mails, ...satelliteMails];
+    }
+    if (!type || type === "MONETIZED") {
+      const monetizedMails = await MonetizedMail.find(query).sort({ createdAt: -1 });
+      mails = [...mails, ...monetizedMails];
+    }
+    
+    // Sort all combined descending
+    mails.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
     return NextResponse.json({ success: true, data: mails });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -27,7 +44,6 @@ export async function POST(req: Request) {
     await dbConnect();
     const body = await req.json();
     
-    // Xử lý mapping dữ liệu (hỗ trợ cả import 1 mail và 1 mảng mail)
     let payload;
     if (Array.isArray(body)) {
       payload = body.map((item: any) => ({
@@ -52,47 +68,57 @@ export async function POST(req: Request) {
         updatedBy: item.updatedBy,
         lastUpdated: item.lastUpdated,
         links: item.links || [],
+        channelNames: item.channelNames || [],
         eligibleChannels: item.eligibleChannels || [],
+        reClickDate: item.reClickDate,
+        step2PendingDate: item.step2PendingDate,
+        channelStatusDetail: item.channelStatusDetail,
+        inviteStatus: item.inviteStatus,
         createdAt: item.createdAt || new Date()
       }));
     } else {
-      const { email, password, pass, recoveryMail, recovery, twoFA, phone, phoneLink, otpLink, stt, id, type, status, workStatus, verificationStatus, cccdDate, batch, batchName, batchId, assignee, assigneeId, assignedTo, updatedBy, lastUpdated, links, eligibleChannels } = body;
-      payload = { 
-        email, 
-        password: password || pass || "", 
-        recoveryMail: recoveryMail || recovery || "", 
-        twoFA: twoFA || "", 
-        phone: phone || "", 
-        phoneLink: phoneLink || otpLink || "",
-        stt: stt || id || 0,
-        type,
-        status: status || "LIVE",
-        workStatus,
-        verificationStatus,
-        cccdDate,
-        batch,
-        batchName,
-        batchId,
-        assignee,
-        assigneeId,
-        assignedTo,
-        updatedBy,
-        lastUpdated,
-        links: links || [],
-        eligibleChannels: eligibleChannels || []
-      };
+      payload = body;
     }
 
-    let newMail;
-    if (Array.isArray(payload)) {
-      newMail = await Mail.insertMany(payload);
-    } else {
-      newMail = await Mail.create(payload);
+    let newMails = [];
+    let items = Array.isArray(payload) ? payload : [payload];
+
+    const rootItems = items.filter(i => i.type === "ROOT");
+    const satelliteItems = items.filter(i => i.type === "SATELLITE");
+    const monetizedItems = items.filter(i => i.type === "MONETIZED");
+
+    if (rootItems.length > 0) {
+      const res = await RootMail.insertMany(rootItems);
+      newMails.push(...res);
     }
-    if (!newMail) throw new Error("Không thể tạo bản ghi");
-    return NextResponse.json({ success: true, data: newMail }, { status: 201 });
+    if (satelliteItems.length > 0) {
+      const res = await SatelliteMail.insertMany(satelliteItems);
+      newMails.push(...res);
+    }
+    if (monetizedItems.length > 0) {
+      const res = await MonetizedMail.insertMany(monetizedItems);
+      newMails.push(...res);
+    }
+
+    if (newMails.length === 0) throw new Error("Không thể tạo bản ghi hoặc sai type");
+    
+    try {
+      const { Log } = await import('@/models/Log');
+      const count = items.length;
+      await Log.create({
+        user: "System",
+        role: "ADMIN",
+        action: `Nhập lô mới: ${count} mail`,
+        type: "SUCCESS",
+        timestamp: new Date().toLocaleString("vi-VN")
+      });
+    } catch (logErr) {
+      console.error("Log error:", logErr);
+    }
+    
+    return NextResponse.json({ success: true, data: Array.isArray(payload) ? newMails : newMails[0] }, { status: 201 });
   } catch (error: any) {
-    console.error("LỖI API:", error);
+    console.error("LỖI API POST:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
@@ -112,8 +138,26 @@ export async function DELETE(req: Request) {
     if (batchId) query.batchId = batchId;
     else if (batchName) query.batchName = batchName;
 
-    const result = await Mail.deleteMany(query);
-    return NextResponse.json({ success: true, deletedCount: result.deletedCount }, { status: 200 });
+    const resRoot = await RootMail.deleteMany(query);
+    const resSat = await SatelliteMail.deleteMany(query);
+    const resMon = await MonetizedMail.deleteMany(query);
+    
+    const deletedCount = resRoot.deletedCount + resSat.deletedCount + resMon.deletedCount;
+
+    try {
+      const { Log } = await import('@/models/Log');
+      await Log.create({
+        user: "System",
+        role: "ADMIN",
+        action: `Xóa lô mail: ${batchName || batchId} (${deletedCount} mail)`,
+        type: "SUCCESS",
+        timestamp: new Date().toLocaleString("vi-VN")
+      });
+    } catch (logErr) {
+      console.error("Log error:", logErr);
+    }
+    
+    return NextResponse.json({ success: true, deletedCount }, { status: 200 });
   } catch (error: any) {
     console.error("LỖI API DELETE:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

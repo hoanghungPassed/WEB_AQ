@@ -632,12 +632,6 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       importedBy: user?.name || user?.username || "Admin"
     };
 
-    const savedBatches = localStorage.getItem("global_batches");
-    const currentBatches = savedBatches ? JSON.parse(savedBatches) : [];
-    const updatedBatches = [...currentBatches, newBatch];
-    localStorage.setItem("global_batches", JSON.stringify(updatedBatches));
-
-    // Save to global import history
     const historyEntry = {
       id: `import-${Date.now()}`,
       type: "MAIL" as const,
@@ -647,31 +641,42 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       importedBy: user?.name || user?.username || "Admin"
     };
 
-    const savedHistory = localStorage.getItem("global_import_history");
-    const currentHistory = savedHistory ? JSON.parse(savedHistory) : [];
-    const updatedHistory = [historyEntry, ...currentHistory];
-    localStorage.setItem("global_import_history", JSON.stringify(updatedHistory));
-
-    setPendingMails(null);
-    setImportBatchName("");
-    setShowBatchNameModal(false);
-    triggerToast(`Đang lưu ${(mappedMails || []).length} mail vào Lô "${batchNameInput}" trên Server...`);
-
     try {
+      triggerToast(`Đang lưu ${(mappedMails || []).length} mail vào Lô "${batchNameInput}" trên Server...`);
       // 1. Send all new mails to the database
       const res = await fetch("/api/admin/mails", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(mappedMails)
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Lỗi lưu dữ liệu");
+      }
+      
       const data = await res.json();
-      if (data.success) {
-         triggerToast(`Đã lưu thành công ${(mappedMails || []).length} mail vào Lô "${batchNameInput}"!`);
-      } else {
-         triggerToast(`Có lỗi xảy ra: ${data.error}`);
+      if (!data.success) {
+        throw new Error(data.error || "Lỗi lưu dữ liệu");
       }
 
-      // 2. Also keep syncing batches and history via old sync for now
+      // 2. Only if success, update local storage and close modal
+      const savedBatches = localStorage.getItem("global_batches");
+      const currentBatches = savedBatches ? JSON.parse(savedBatches) : [];
+      const updatedBatches = [...currentBatches, newBatch];
+      localStorage.setItem("global_batches", JSON.stringify(updatedBatches));
+
+      const savedHistory = localStorage.getItem("global_import_history");
+      const currentHistory = savedHistory ? JSON.parse(savedHistory) : [];
+      const updatedHistory = [historyEntry, ...currentHistory];
+      localStorage.setItem("global_import_history", JSON.stringify(updatedHistory));
+
+      setPendingMails(null);
+      setImportBatchName("");
+      setShowBatchNameModal(false);
+      triggerToast(`Đã lưu thành công ${(mappedMails || []).length} mail vào Lô "${batchNameInput}"!`);
+
+      // 3. Keep syncing batches and history via old sync for now
       await fetch("/api/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -683,9 +688,10 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
       // TRIGGER RELOAD AFTER POST COMPLETE
       window.dispatchEvent(new Event("storage"));
-    } catch (err) {
+    } catch (err: any) {
       console.error("Lỗi khi gọi API POST mails:", err);
-      triggerToast("Lỗi kết nối Server khi lưu mail!");
+      // Giữ nguyên modal (không gọi setShowBatchNameModal(false))
+      triggerToast(`Lỗi kết nối Server: ${err.message || "Không thể lưu mail!"}`);
     }
   };
 

@@ -59,6 +59,19 @@ export async function POST(req: NextRequest) {
     const userObj = newUser.toObject();
     delete (userObj as any).password;
 
+    try {
+      const { Log } = await import('@/models/Log');
+      await Log.create({
+        user: "System",
+        role: role === "01" ? "ADMIN" : "QL NHÂN SỰ",
+        action: `Thêm nhân sự mới: ${data.name} (${data.username})`,
+        type: "SUCCESS",
+        timestamp: new Date().toLocaleString("vi-VN")
+      });
+    } catch (logErr) {
+      console.error("Log error:", logErr);
+    }
+
     return NextResponse.json({ 
       message: "Tạo nhân viên thành công", 
       user: userObj 

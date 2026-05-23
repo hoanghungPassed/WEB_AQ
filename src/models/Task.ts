@@ -1,22 +1,50 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface ITask extends Document {
-  batchName?: string;
+  id?: string;
+  title?: string;
+  taskName?: string;
+  type?: string;
   assigneeId?: mongoose.Types.ObjectId | string;
-  mailIds?: mongoose.Types.ObjectId[] | string[];
+  assigneeName?: string;
+  assignee?: string;
+  progress?: number;
   status?: string;
-  deadline?: Date;
+  deadline?: string;
+  mailCount?: number;
+  note?: string;
+  mailRange?: string;
+  batch?: string;
+  range?: string;
+  mailType?: string;
+  selectedMailIds?: number[];
+  batchName?: string;
+  mailIds?: mongoose.Types.ObjectId[] | string[];
   createdAt: Date;
   updatedAt: Date;
 }
 
 const TaskSchema: Schema = new Schema(
   {
-    batchName: { type: String },
+    id: { type: String },
+    title: { type: String },
+    taskName: { type: String },
+    type: { type: String },
     assigneeId: { type: Schema.Types.ObjectId, ref: 'User' },
-    mailIds: [{ type: Schema.Types.ObjectId, ref: 'Mail' }],
+    assigneeName: { type: String },
+    assignee: { type: String },
+    progress: { type: Number, default: 0 },
     status: { type: String, default: 'PENDING' },
-    deadline: { type: Date }
+    deadline: { type: String },
+    mailCount: { type: Number, default: 0 },
+    note: { type: String },
+    mailRange: { type: String },
+    batch: { type: String },
+    range: { type: String },
+    mailType: { type: String },
+    selectedMailIds: [{ type: Number }],
+    batchName: { type: String },
+    mailIds: [{ type: Schema.Types.ObjectId, ref: 'Mail' }]
   },
   { timestamps: true }
 );

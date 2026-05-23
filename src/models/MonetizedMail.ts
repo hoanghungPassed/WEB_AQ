@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
-export interface IMail extends Document {
+export interface IMonetizedMail extends Document {
   stt?: number;
   email: string;
   password?: string;
@@ -9,25 +9,24 @@ export interface IMail extends Document {
   phone?: string;
   phoneLink?: string;
   status: string;
-  type?: string;
+  type: string; // "MONETIZED"
   workStatus?: string;
-  verificationStatus?: string;
-  cccdDate?: string;
   batch?: string;
   batchName?: string;
   batchId?: string;
   assignee?: mongoose.Types.ObjectId | string;
-  assigneeId?: mongoose.Types.ObjectId | string;
+  assigneeId?: string;
   assignedTo?: string;
   updatedBy?: string;
   lastUpdated?: string;
-  links?: string[];
-  eligibleChannels?: boolean[];
+  reClickDate?: string;
+  step2PendingDate?: string;
+  channelStatusDetail?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const MailSchema: Schema = new Schema(
+const MonetizedMailSchema: Schema = new Schema(
   {
     stt: { type: Number, default: 0 },
     email: { type: String, required: true },
@@ -37,10 +36,8 @@ const MailSchema: Schema = new Schema(
     phone: { type: String, default: "" },
     phoneLink: { type: String, default: "" },
     status: { type: String, default: 'LIVE' },
-    type: { type: String },
+    type: { type: String, default: 'MONETIZED' },
     workStatus: { type: String },
-    verificationStatus: { type: String },
-    cccdDate: { type: String },
     batch: { type: String },
     batchName: { type: String },
     batchId: { type: String },
@@ -49,15 +46,15 @@ const MailSchema: Schema = new Schema(
     assignedTo: { type: String },
     updatedBy: { type: String },
     lastUpdated: { type: String },
-    links: { type: [String], default: [] },
-    eligibleChannels: { type: [Boolean], default: [] },
+    reClickDate: { type: String },
+    step2PendingDate: { type: String },
+    channelStatusDetail: { type: String }
   },
   { timestamps: true }
 );
 
-// Xóa model cũ nếu đã tồn tại để tránh lỗi cache Schema khi dev (Hot Reload)
-if (mongoose.models.Mail) {
-  delete mongoose.models.Mail;
+if (mongoose.models.MonetizedMail) {
+  delete mongoose.models.MonetizedMail;
 }
 
-export const Mail: Model<IMail> = mongoose.model<IMail>("Mail", MailSchema, "mails");
+export const MonetizedMail: Model<IMonetizedMail> = mongoose.model<IMonetizedMail>("MonetizedMail", MonetizedMailSchema, "monetized_mails");

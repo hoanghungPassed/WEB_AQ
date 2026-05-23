@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import { Mail } from '@/models/Mail';
+import { RootMail } from '@/models/RootMail';
+import { SatelliteMail } from '@/models/SatelliteMail';
+import { MonetizedMail } from '@/models/MonetizedMail';
 import { User } from '@/models/User';
 import { Kpi } from '@/models/Kpi';
 
 export async function GET() {
   try {
     await dbConnect();
-    const totalMails = await Mail.countDocuments();
+    const rootCount = await RootMail.countDocuments();
+    const satCount = await SatelliteMail.countDocuments();
+    const monCount = await MonetizedMail.countDocuments();
+    const totalMails = rootCount + satCount + monCount;
+    
     const activeStaff = await User.countDocuments({
       role: { $in: ["03", "04"] }
     });
