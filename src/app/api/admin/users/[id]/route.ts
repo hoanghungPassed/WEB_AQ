@@ -5,15 +5,19 @@ import { hashPassword } from "@/lib/auth";
 
 // Cập nhật thông tin nhân sự
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  console.log("--- BẮT ĐẦU XỬ LÝ API (USER PUT) ---");
+  console.log("Request Method:", req.method);
   try {
     await dbConnect();
     
     const { id } = await params;
     const data = await req.json();
+    console.log("Payload nhận được:", data);
+
     const reqUserId = req.headers.get("x-user-id");
     const role = req.headers.get("x-user-role");
 
-    // Nếu không phải admin (01) hoặc HR (03) thì chỉ được sửa thông tin của chính mình
+    // Nếu không phải admin (01) hoặc HR (03) thì chỉ được sửa thôngৃদtin của chính mình
     if (role !== "01" && role !== "03" && reqUserId !== id) {
         return NextResponse.json({ error: "Không có quyền chỉnh sửa nhân sự khác" }, { status: 403 });
     }
@@ -29,13 +33,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!updatedUser) {
       return NextResponse.json({ error: "Không tìm thấy nhân viên" }, { status: 404 });
     }
+    console.log("Kết quả lưu vào MongoDB (User):", updatedUser);
 
     return NextResponse.json({ 
       message: "Cập nhật thành công", 
       user: updatedUser 
     });
   } catch (error: any) {
-    console.error("Update user error:", error);
+    console.error("LỖI CHI TIẾT TẠI BACKEND (User Update):", error);
     return NextResponse.json({ error: "Lỗi máy chủ: " + error.message }, { status: 500 });
   }
 }

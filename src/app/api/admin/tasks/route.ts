@@ -1,0 +1,32 @@
+import { NextResponse } from "next/server";
+import dbConnect from "@/lib/mongodb";
+import { Task } from "@/models/Task";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(req: Request) {
+  try {
+    await dbConnect();
+    const { searchParams } = new URL(req.url);
+    const assigneeId = searchParams.get("assigneeId");
+    
+    let query: any = {};
+    if (assigneeId) query.assigneeId = assigneeId;
+
+    const tasks = await Task.find(query).sort({ createdAt: -1 });
+    return NextResponse.json({ success: true, data: tasks });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    await dbConnect();
+    const body = await req.json();
+    const task = await Task.create(body);
+    return NextResponse.json({ success: true, data: task }, { status: 201 });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+  }
+}

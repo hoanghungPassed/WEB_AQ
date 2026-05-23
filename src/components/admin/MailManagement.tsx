@@ -161,24 +161,22 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                            roleUpper === "QUẢN LÝ CÔNG VIỆC";
 
   useEffect(() => {
-    const loadData = () => {
-      const saved = localStorage.getItem("global_mails_data");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        const fixed = normalizeAndFixStoredMails(parsed);
-        setMails(fixed);
-        const hasChanges = JSON.stringify(parsed) !== JSON.stringify(fixed);
-        if (hasChanges) {
-          localStorage.setItem("global_mails_data", JSON.stringify(fixed));
-          fetch("/api/sync", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ global_mails_data: JSON.stringify(fixed) })
-          }).catch(err => console.error("Auto migration sync error:", err));
+    const loadData = async () => {
+      try {
+        const res = await fetch('/api/admin/mails');
+        const data = await res.json();
+        console.log("Dữ liệu nhận từ DB:", data);
+        if (data.success) {
+          if (!data.data || data.data.length === 0) {
+            triggerToast("Server phản hồi thành công nhưng không có mail nào trong DB");
+          }
+          setMails(data.data || []);
+        } else {
+          setMails([]);
         }
-      } else {
+      } catch (err) {
+        console.error("Error fetching mails:", err);
         setMails([]);
-        localStorage.setItem("global_mails_data", JSON.stringify([]));
       }
     };
 
@@ -211,21 +209,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   }, [mails, type]);
 
   const saveMails = async (newMails: MailData[]) => {
+    // Note: In full implementation, we should PUT to /api/admin/mails/[id].
+    // Here we update UI state immediately.
     setMails(newMails);
-    localStorage.setItem("global_mails_data", JSON.stringify(newMails));
-    window.dispatchEvent(new Event("storage"));
-
-    try {
-      await fetch("/api/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          global_mails_data: JSON.stringify(newMails)
-        })
-      });
-    } catch (err) {
-      console.error("Sync error:", err);
-    }
   };
 
   const triggerToast = (msg: string) => {

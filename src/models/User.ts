@@ -116,6 +116,6 @@ const userSchema = new Schema<IUser>(
  * OverwriteModelError khi Next.js Hot Reload re-evaluate module.
  */
 const User: Model<IUser> =
-  mongoose.models.User || mongoose.model<IUser>("User", userSchema);
+  mongoose.models.User || mongoose.model<IUser>("User", userSchema, "users");
 
 export default User;

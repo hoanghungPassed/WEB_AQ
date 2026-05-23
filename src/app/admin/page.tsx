@@ -436,70 +436,68 @@ export default function AdminDashboard() {
     }
   }, [dutyRosterData, user]);
 
-  const refreshStats = () => {
-    const savedMails = localStorage.getItem("global_mails_data");
-    const currentMails = savedMails ? JSON.parse(savedMails) : [];
-    if (!savedMails) {
-      localStorage.setItem("global_mails_data", JSON.stringify([]));
-    }
-    
-    const savedTasks = localStorage.getItem("global_tasks_data");
-    let currentTasks = [];
-    if (savedTasks) {
-      currentTasks = JSON.parse(savedTasks);
-    } else {
-      currentTasks = [];
-      localStorage.setItem("global_tasks_data", JSON.stringify([]));
-    }
+  const refreshStats = async () => {
+    try {
+      const [mailsRes, tasksRes] = await Promise.all([
+        fetch('/api/admin/mails'),
+        fetch('/api/admin/tasks')
+      ]);
+      const mailsData = await mailsRes.json();
+      const tasksData = await tasksRes.json();
+      
+      const currentMails = mailsData.success ? mailsData.data : [];
+      const currentTasks = tasksData.success ? tasksData.data : [];
 
-    // Check current user role dynamically
-    const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
-    const currentUserObj = storedUser ? JSON.parse(storedUser) : null;
-    const isMinimalRole = currentUserObj?.role === "03" || currentUserObj?.role === "04" || currentUserObj?.role === "NHÂN VIÊN" || currentUserObj?.role === "QUẢN LÝ NHÂN SỰ";
+      const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
+      const currentUserObj = storedUser ? JSON.parse(storedUser) : null;
+      const isMinimalRole = currentUserObj?.role === "03" || currentUserObj?.role === "04" || currentUserObj?.role === "NHÂN VIÊN" || currentUserObj?.role === "QUẢN LÝ NHÂN SỰ";
 
-    setTasksList(currentTasks);
-    const eligibleCount = currentMails.reduce((sum: number, m: any) => {
-      if (m.type === "SATELLITE" && Array.isArray(m.eligibleChannels)) {
-        return sum + (m.eligibleChannels || []).filter(Boolean).length;
+      setTasksList(currentTasks);
+      setMails(currentMails);
+
+      const eligibleCount = currentMails.reduce((sum: number, m: any) => {
+        if (m.type === "SATELLITE" && Array.isArray(m.eligibleChannels)) {
+          return sum + (m.eligibleChannels || []).filter(Boolean).length;
+        }
+        return sum;
+      }, 0);
+
+      if (isMinimalRole && currentUserObj) {
+        const myMails = (currentMails || []).filter((m: any) => String(m.assigneeId) === String(currentUserObj?.id));
+        const myTasks = (currentTasks || []).filter((t: any) => String(t.assigneeId) === String(currentUserObj?.id) && (t.status === "IN_PROGRESS" || t.status === "PENDING" || t.status === "COMPLETED"));
+        setStats({
+          totalMail: (myMails || []).length,
+          mailLive: (myMails || []).filter((m: any) => m.status === "LIVE").length,
+          mailDie: (myMails || []).filter((m: any) => m.status === "DIE").length,
+          mailRoot: 0,
+          mailSatellite: 0,
+          mailMonetized: 0,
+          tasksToday: (myTasks || []).filter((t: any) => t.status === "IN_PROGRESS" || t.status === "PENDING").length,
+          staffOnline: 0,
+          mailWatchHours: eligibleCount
+        });
+      } else {
+        setStats((prev: any) => ({
+          ...prev,
+          totalMail: (currentMails || []).length,
+          mailLive: (currentMails || []).filter((m: any) => m.status === "LIVE").length,
+          mailDie: (currentMails || []).filter((m: any) => m.status === "DIE").length,
+          mailRoot: (currentMails || []).filter((m: any) => m.type === "ROOT").length,
+          mailSatellite: (currentMails || []).filter((m: any) => m.type === "SATELLITE").length,
+          mailMonetized: (currentMails || []).filter((m: any) => m.type === "MONETIZED").length,
+          tasksToday: (currentTasks || []).filter((t: any) => t.status === "IN_PROGRESS" || t.status === "PENDING").length,
+          mailWatchHours: eligibleCount
+        }));
       }
-      return sum;
-    }, 0);
-    if (isMinimalRole && currentUserObj) {
-      const myMails = (currentMails || []).filter((m: any) => String(m.assigneeId) === String(currentUserObj?.id));
-      const myTasks = (currentTasks || []).filter((t: any) => String(t.assigneeId) === String(currentUserObj?.id) && (t.status === "IN_PROGRESS" || t.status === "PENDING" || t.status === "COMPLETED"));
-      setStats({
-        totalMail: (myMails || []).length,
-        mailLive: (myMails || []).filter((m: any) => m.status === "LIVE").length,
-        mailDie: (myMails || []).filter((m: any) => m.status === "DIE").length,
-        mailRoot: 0,
-        mailSatellite: 0,
-        mailMonetized: 0,
-        tasksToday: (myTasks || []).filter((t: any) => t.status === "IN_PROGRESS" || t.status === "PENDING").length,
-        staffOnline: 0,
-        mailWatchHours: eligibleCount
-      });
-    } else {
-      setStats((prev: any) => ({
-        ...prev,
-        totalMail: (currentMails || []).length,
-        mailLive: (currentMails || []).filter((m: any) => m.status === "LIVE").length,
-        mailDie: (currentMails || []).filter((m: any) => m.status === "DIE").length,
-        mailRoot: (currentMails || []).filter((m: any) => m.type === "ROOT").length,
-        mailSatellite: (currentMails || []).filter((m: any) => m.type === "SATELLITE").length,
-        mailMonetized: (currentMails || []).filter((m: any) => m.type === "MONETIZED").length,
-        tasksToday: (currentTasks || []).filter((t: any) => t.status === "IN_PROGRESS" || t.status === "PENDING").length,
-        mailWatchHours: eligibleCount
-      }));
-    }
-    setMails(currentMails);
 
-    // Lấy thông kê thật từ API Skeleton
-    fetch('/api/admin/stats')
-      .then(res => res.json())
-      .then(data => {
-        setStats((prev: any) => ({ ...prev, ...data }));
-      })
-      .catch(err => console.debug("Lỗi lấy API stats:", err));
+      fetch('/api/admin/stats')
+        .then(res => res.json())
+        .then(data => setStats((prev: any) => ({ ...prev, ...data })))
+        .catch(err => console.debug("Lỗi lấy API stats:", err));
+        
+    } catch (error) {
+      console.error("Error refreshing stats", error);
+    }
   };
 
   const loadStaff = () => {
