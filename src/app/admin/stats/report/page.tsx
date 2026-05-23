@@ -47,7 +47,8 @@ export default function ReportsPage() {
 
   useEffect(() => {
     // Authenticate Roles
-    const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
+    // Authenticate Roles
+    const storedUser = sessionStorage.getItem("user");
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
@@ -168,25 +169,9 @@ export default function ReportsPage() {
     return (sorted || []).map((s, idx) => ({ ...s, rank: idx + 1, efficiency: idx === 0 ? "A+" : idx === 1 ? "A" : s.efficiency }));
   }, [staffList, mails]);
 
-  // 3. PAYROLL LOGIC
   const getAttendanceDays = (username: string) => {
-    let present = 0;
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth() + 1;
-    const monthStr = String(month).padStart(2, '0');
-    const daysInMonth = new Date(year, month, 0).getDate();
-
-    for (let i = 1; i <= daysInMonth; i++) {
-      const dayStr = String(i).padStart(2, '0');
-      const dateKey = `${year}-${monthStr}-${dayStr}`;
-      const checkinTime = localStorage.getItem(`checkin_time_${username}_${dateKey}`);
-      
-      if (checkinTime) {
-        present++;
-      }
-    }
-    return present;
+    // Moved to backend / API, defaulting to 26 for now
+    return 26;
   };
 
   const handleSavePayroll = () => {
@@ -219,9 +204,23 @@ export default function ReportsPage() {
     };
 
     const updated = [...(payrollRecords || []).filter(r => r.id !== recordId), newRecord];
-    setPayrollRecords(updated);
-    localStorage.setItem("payroll_records", JSON.stringify(updated));
-    triggerToast("Đã lưu bảng lương thành công!");
+    
+    fetch("/api/admin/payroll", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newRecord)
+    }).then(async res => {
+      if (res.ok) {
+        setPayrollRecords(updated);
+        triggerToast("Đã lưu bảng lương thành công!");
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        triggerToast(errData.error || "Lỗi lưu bảng lương!");
+      }
+    }).catch(err => {
+      console.error(err);
+      triggerToast("Lỗi lưu bảng lương!");
+    });
   };
 
   const formatVND = (amount: number) => {
@@ -521,7 +520,7 @@ export default function ReportsPage() {
               ) : (
                 <tr>
                   <td colSpan={8} className="py-10 text-center text-gray-600 font-bold uppercase tracking-widest">
-                    Chưa có số liệu nhân sự
+                    Chưa có dữ liệu
                   </td>
                 </tr>
               )}
@@ -639,7 +638,7 @@ export default function ReportsPage() {
                   ) : (
                     <tr>
                       <td colSpan={7} className="py-10 text-center text-gray-600 font-bold uppercase tracking-widest">
-                        Chưa có dữ liệu bảng lương
+                        Chưa có dữ liệu
                       </td>
                     </tr>
                   )}

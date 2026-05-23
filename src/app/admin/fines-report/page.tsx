@@ -114,21 +114,14 @@ export default function FinesReportPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status: "PAID" })
       });
-      if (!res.ok) throw new Error("Update failed");
-      
-      const updated = (fineReports || []).map(r => {
-        if (r.id === id) {
-          return {
-            ...r,
-            status: "PAID" as const,
-            paymentMethod: "TRANSFER" as const,
-            paymentDate: new Date().toISOString().split("T")[0]
-          };
-        }
-        return r;
-      });
-      setFineReports(updated);
-      triggerToast("Đã cập nhật trạng thái thanh toán ✓");
+      if (res.ok) {
+        const updated = (fineReports || []).map(r => r.id === id ? { ...r, status: "PAID" as const } : r);
+        setFineReports(updated);
+        triggerToast("Đã cập nhật thanh toán!");
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        triggerToast(errData.error || "Lỗi cập nhật!");
+      }
     } catch (err) {
       triggerToast("Lỗi khi cập nhật trạng thái");
     }
@@ -138,10 +131,14 @@ export default function FinesReportPage() {
     if (!confirm("Bạn có chắc chắn muốn xóa?")) return;
     try {
       const res = await fetch(`/api/admin/fines?id=${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
-      const updated = (fineReports || []).filter(r => r.id !== id);
-      setFineReports(updated);
-      triggerToast("Đã xóa báo cáo phạt");
+      if (res.ok) {
+        const updated = (fineReports || []).filter(r => r.id !== id);
+        setFineReports(updated);
+        triggerToast("Đã xóa báo cáo!");
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        triggerToast(errData.error || "Lỗi xóa báo cáo!");
+      }
     } catch (err) {
       triggerToast("Lỗi khi xóa báo cáo");
     }
@@ -406,7 +403,7 @@ export default function FinesReportPage() {
                   <td colSpan={6} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <FileText size={32} className="text-gray-600 opacity-50" />
-                      <p className="text-gray-500 font-bold">Không có báo cáo nào</p>
+                      <p className="text-gray-500 font-bold">Chưa có dữ liệu</p>
                     </div>
                   </td>
                 </tr>

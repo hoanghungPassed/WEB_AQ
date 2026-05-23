@@ -11,6 +11,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (!task) {
       return NextResponse.json({ success: false, error: "Task not found" }, { status: 404 });
     }
+    try {
+      const { logAction } = await import('@/lib/logger');
+      await logAction("system", `Cập nhật nhiệm vụ: ${task.title || id}`, `Cập nhật trạng thái/chi tiết nhiệm vụ.`);
+    } catch (logErr) {
+      console.error("Log error:", logErr);
+    }
     return NextResponse.json({ success: true, data: task });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });
@@ -24,6 +30,12 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const task = await Task.findByIdAndDelete(id);
     if (!task) {
       return NextResponse.json({ success: false, error: "Task not found" }, { status: 404 });
+    }
+    try {
+      const { logAction } = await import('@/lib/logger');
+      await logAction("system", `Xóa nhiệm vụ: ${task.title || id}`, `Đã xóa nhiệm vụ.`);
+    } catch (logErr) {
+      console.error("Log error:", logErr);
     }
     return NextResponse.json({ success: true, data: {} });
   } catch (error: any) {

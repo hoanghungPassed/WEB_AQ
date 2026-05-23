@@ -21,6 +21,7 @@ export interface IUser extends Document {
   address?: string;
   checkInTime?: string;
   checkOutTime?: string;
+  offWorkTime?: string;
 }
 
 const userSchema = new Schema<IUser>(
@@ -95,6 +96,10 @@ const userSchema = new Schema<IUser>(
     checkOutTime: {
       type: String,
       default: "",
+    },
+    offWorkTime: {
+      type: String,
+      default: "17:30", // Mặc định là 17:30
     },
   },
   {

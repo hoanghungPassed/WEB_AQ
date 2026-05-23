@@ -1711,7 +1711,7 @@ export default function AdminDashboard() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1.5">Chưa có lô nào được gán</p>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1.5">Chưa có dữ liệu</p>
                     )}
                   </div>
                 </div>

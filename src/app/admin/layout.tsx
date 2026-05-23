@@ -207,6 +207,34 @@ export default function AdminLayout({
       clearInterval(pollInterval);
     };
   }, []);
+
+  // useNotification: Poll API reminders
+  useEffect(() => {
+    const pollReminders = async () => {
+      const storedUserStr = sessionStorage.getItem("user") || localStorage.getItem("user");
+      if (!storedUserStr) return;
+      const currentUser = JSON.parse(storedUserStr);
+      // Chỉ poll nếu là nhân viên
+      if (["04", "05", "NHÂN VIÊN", "NV THỬ VIỆC"].includes(currentUser?.role)) {
+        try {
+          const res = await fetch('/api/admin/tasks/reminders');
+          if (res.ok) {
+            // Note: API already sends Notification to DB. We can also fetch unread Notifications here to show a toast.
+            // But since the API returns success, we might rely on the existing checkNewNotifications() to show it, 
+            // or trigger it directly. 
+            // For now, the API calculates and creates Notifications. The frontend checkNewNotifications() will pick them up if we trigger a storage event.
+            window.dispatchEvent(new Event("storage"));
+          }
+        } catch (err) {
+          console.error("Reminder poll error", err);
+        }
+      }
+    };
+
+    // Poll mỗi 1 phút (60000ms)
+    const reminderInterval = setInterval(pollReminders, 60000);
+    return () => clearInterval(reminderInterval);
+  }, []);
   const [isAccessGranted, setIsAccessGranted] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [showManagerNotif, setShowManagerNotif] = useState(false);

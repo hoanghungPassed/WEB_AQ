@@ -4,6 +4,7 @@ export interface INotification extends Document {
   title: string;
   message: string;
   type: string;
+  recipientId?: mongoose.Types.ObjectId | string;
   author?: mongoose.Types.ObjectId | string;
   imageUrl?: string;
   likes?: mongoose.Types.ObjectId[] | string[];
@@ -21,6 +22,7 @@ const NotificationSchema: Schema = new Schema(
     title: { type: String, required: true },
     message: { type: String, required: true },
     type: { type: String, default: 'INFO' },
+    recipientId: { type: Schema.Types.ObjectId, ref: 'User' },
     author: { type: Schema.Types.ObjectId, ref: 'User' },
     imageUrl: { type: String },
     likes: [{ type: Schema.Types.ObjectId, ref: 'User' }],

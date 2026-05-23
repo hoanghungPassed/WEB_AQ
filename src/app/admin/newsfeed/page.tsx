@@ -77,7 +77,7 @@ type NewsfeedNotificationItem = {
 export default function NewsfeedPage() {
   const router = useRouter();
   const [user] = useState<NewsfeedUser>(() => {
-    const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
+    const storedUser = sessionStorage.getItem("user");
     return storedUser ? JSON.parse(storedUser) : {};
   });
   
@@ -159,16 +159,20 @@ export default function NewsfeedPage() {
           type: "POST"
         })
       });
-      if (!res.ok) throw new Error("Failed to create post");
-      
-      await loadPosts();
-      
-      setNewPostText("");
-      setSelectedMockImage(null);
-      setShowImagePresets(false);
+      if (res.ok) {
+        await loadPosts();
+        
+        setNewPostText("");
+        setSelectedMockImage(null);
+        setShowImagePresets(false);
 
-      setSuccessToast("Đăng bài viết thành công!");
-      setTimeout(() => setSuccessToast(null), 3000);
+        setSuccessToast("Đăng bài viết thành công!");
+        setTimeout(() => setSuccessToast(null), 3000);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setSuccessToast(errData.error || "Lỗi khi đăng bài!");
+        setTimeout(() => setSuccessToast(null), 3000);
+      }
     } catch (err) {
       setSuccessToast("Lỗi khi đăng bài!");
       setTimeout(() => setSuccessToast(null), 3000);
@@ -276,6 +280,10 @@ export default function NewsfeedPage() {
         if (res.ok) {
           await loadPosts();
           setSuccessToast("Đã xóa bài viết thành công!");
+          setTimeout(() => setSuccessToast(null), 2000);
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          setSuccessToast(errData.error || "Lỗi khi xóa bài viết!");
           setTimeout(() => setSuccessToast(null), 2000);
         }
       } catch (err) {
@@ -678,7 +686,7 @@ export default function NewsfeedPage() {
             {(posts || []).length === 0 && (
               <div className="h-40 rounded-2xl border border-gray-200 dark:border-white/5 bg-white dark:bg-sidebar/50 flex flex-col items-center justify-center text-center p-4">
                 <MessageSquare size={32} className="text-gray-600 mb-2" />
-                <h4 className="text-gray-900 dark:text-white font-black uppercase tracking-tight text-[11px]">Chưa có bài viết nào</h4>
+                <h4 className="text-gray-900 dark:text-white font-black uppercase tracking-tight text-[11px]">Chưa có dữ liệu</h4>
                 <p className="text-[9px] text-gray-500 mt-1">Hãy đăng bài chia sẻ đầu tiên trên Bảng tin nội bộ nhé!</p>
               </div>
             )}

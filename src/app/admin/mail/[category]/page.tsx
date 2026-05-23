@@ -10,7 +10,7 @@ export default function MailCategoryPage() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
+    const storedUser = sessionStorage.getItem("user");
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);

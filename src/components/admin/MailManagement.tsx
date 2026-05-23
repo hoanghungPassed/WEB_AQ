@@ -39,11 +39,6 @@ type ImportHistoryItem = {
   importedBy: string;
 };
 
-type StoredBatchItem = {
-  id: string;
-  name: string;
-  type: "ROOT" | "SATELLITE" | "MONETIZED";
-};
 
 interface MailManagementProps {
   type: "ROOT" | "SATELLITE" | "MONETIZED" | "ALL";
@@ -56,13 +51,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const [historyTab, setHistoryTab] = useState<"ALL" | "MAIL" | "SĐT">("ALL");
 
   useEffect(() => {
-    const loadHistory = () => {
-      const saved = localStorage.getItem("global_import_history");
-      setImportHistory(saved ? (JSON.parse(saved) as ImportHistoryItem[]) : []);
-    };
-    loadHistory();
-    window.addEventListener("storage", loadHistory);
-    return () => window.removeEventListener("storage", loadHistory);
+    // History is no longer loaded from localStorage. 
+    // Wait for actual API if available, or just empty.
   }, []);
 
   const filteredHistory = useMemo(() => {
@@ -74,35 +64,11 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     if (!confirm("Bạn có chắc chắn muốn xóa dòng lịch sử import này? (Không ảnh hưởng đến dữ liệu đã import)")) return;
     const updated = (importHistory || []).filter((item) => item.id !== id);
     setImportHistory(updated);
-    localStorage.setItem("global_import_history", JSON.stringify(updated));
-    window.dispatchEvent(new Event("storage"));
-
-    try {
-      await fetch("/api/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ global_import_history: JSON.stringify(updated) })
-      });
-    } catch (err) {
-      console.error("Sync history deletion error:", err);
-    }
   };
 
   const handleClearAllHistory = async () => {
     if (!confirm("Xác nhận xóa TOÀN BỘ lịch sử import? Hành động này không thể hoàn tác.")) return;
     setImportHistory([]);
-    localStorage.setItem("global_import_history", JSON.stringify([]));
-    window.dispatchEvent(new Event("storage"));
-
-    try {
-      await fetch("/api/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ global_import_history: JSON.stringify([]) })
-      });
-    } catch (err) {
-      console.error("Sync history clear error:", err);
-    }
   };
 
   const [mails, setMails] = useState<MailData[]>([]);
@@ -126,7 +92,6 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const [pendingMails, setPendingMails] = useState<MailData[] | null>(null);
   const [importBatchName, setImportBatchName] = useState("");
   const [showBatchNameModal, setShowBatchNameModal] = useState(false);
-  const [importFileName, setImportFileName] = useState("");
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const itemsPerPage = 20;
 
@@ -186,18 +151,10 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   }, [type]);
 
   const availableBatches = useMemo(() => {
-    const saved = localStorage.getItem("global_batches");
-    const list = saved ? (JSON.parse(saved) as StoredBatchItem[]) : [];
-    const filtered = (list || []).filter((b) => type === "ALL" || b.type === type);
-
-    if ((filtered || []).length === 0) {
-      const scannedNames = new Set(
-        (mails || []).filter(m => (type === "ALL" || m.type === type) && m.batchName).map(m => m.batchName)
-      );
-      return Array.from(scannedNames).map(name => ({ id: name as string, name: name as string }));
-    }
-
-    return filtered;
+    const scannedNames = new Set(
+      (mails || []).filter(m => (type === "ALL" || m.type === type) && m.batchName).map(m => m.batchName)
+    );
+    return Array.from(scannedNames).map(name => ({ id: name as string, name: name as string }));
   }, [mails, type]);
 
   const copyToClipboard = (text: string, label: string) => {
@@ -241,21 +198,16 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       }
       return m;
     });
-    setMails(updated);
-    triggerToast("Đã cập nhật trạng thái công việc!");
-
-    if (!updatedMail) {
-      return;
-    }
-
-    if (typeof identifier !== 'string' || identifier.length <= 10) {
+    if (!updatedMail || typeof identifier !== 'string' || identifier.length <= 10) {
+      setMails(updated);
+      triggerToast("Đã cập nhật trạng thái công việc! (Chỉ trên giao diện)");
       return;
     }
 
     const mailToSave: MailData = updatedMail!;
 
     try {
-      await fetch(`/api/admin/mails/${identifier}`, {
+      const res = await fetch(`/api/admin/mails/${identifier}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -266,8 +218,17 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           updatedBy: mailToSave.updatedBy
         })
       });
+
+      if (res.ok) {
+        setMails(updated);
+        triggerToast("Đã cập nhật trạng thái công việc thành công!");
+      } else {
+        const errorData = await res.json();
+        triggerToast(`Lỗi: ${errorData.error || 'Không thể cập nhật'}`);
+      }
     } catch (err) {
       console.error("Lỗi khi update workStatus lên DB:", err);
+      triggerToast("Đã xảy ra lỗi hệ thống khi lưu.");
     }
   };
 
@@ -298,25 +259,29 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       }
       return m;
     });
-    setMails(updated);
-    triggerToast("Đã cập nhật chi tiết thành công!");
-
-    if (!updatedMail) {
-      return;
-    }
-
-    if (typeof identifier !== 'string' || identifier.length <= 10) {
+    if (!updatedMail || typeof identifier !== 'string' || identifier.length <= 10) {
+      setMails(updated);
+      triggerToast("Đã cập nhật chi tiết thành công! (Chỉ trên giao diện)");
       return;
     }
 
     try {
-      await fetch(`/api/admin/mails/${identifier}`, {
+      const res = await fetch(`/api/admin/mails/${identifier}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(fieldsToSave)
       });
+
+      if (res.ok) {
+        setMails(updated);
+        triggerToast("Đã cập nhật chi tiết thành công!");
+      } else {
+        const errorData = await res.json();
+        triggerToast(`Lỗi: ${errorData.error || 'Không thể cập nhật'}`);
+      }
     } catch (err) {
       console.error("Lỗi khi update detail lên DB:", err);
+      triggerToast("Đã xảy ra lỗi hệ thống khi lưu.");
     }
   };
 
@@ -339,21 +304,30 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         try {
           // Delete from MongoDB if it has a MongoDB ID
           if (typeof identifier === 'string' && identifier.length > 10) {
-            await fetch(`/api/admin/mails/${identifier}`, {
+            const res = await fetch(`/api/admin/mails/${identifier}`, {
               method: 'DELETE'
             });
+            if (res.ok) {
+              const finalMails = (mails || []).filter(m => String(m._id) !== String(identifier) && String(m.id) !== String(identifier));
+              setMails(finalMails);
+              setShowConfirm(false);
+              triggerToast("Đã xóa mail thành công!");
+            } else {
+              const errorData = await res.json();
+              triggerToast(`Lỗi: ${errorData.error || 'Không thể xóa'}`);
+              setShowConfirm(false);
+            }
+          } else {
+            // It's a local mock mail, just delete it
+            const finalMails = (mails || []).filter(m => String(m._id) !== String(identifier) && String(m.id) !== String(identifier));
+            setMails(finalMails);
+            setShowConfirm(false);
+            triggerToast("Đã xóa mail (local) thành công!");
           }
-          
-          const finalMails = (mails || []).filter(m => m._id !== identifier && m.id !== identifier);
-          setMails(finalMails);
-          // Only update local storage for old data fallback
-          localStorage.setItem("global_mails_data", JSON.stringify(finalMails));
-          
-          setShowConfirm(false);
-          triggerToast("Đã xóa mail thành công!");
         } catch (err) {
           console.error("Lỗi xóa mail:", err);
           triggerToast("Lỗi khi xóa mail!");
+          setShowConfirm(false);
         }
       }
     });
@@ -363,7 +337,6 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setImportFileName(file.name);
 
     const reader = new FileReader();
     reader.onload = (evt) => {
@@ -618,7 +591,6 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       triggerToast(`Đã bỏ qua ${duplicateCount} mail bị trùng!`);
     }
     setPendingMails(newItems);
-    setImportFileName("Nhập thủ công");
     setImportBatchName("");
     setShowBatchNameModal(true);
     setManualData("");
@@ -629,7 +601,6 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     if (!pendingMails || (pendingMails || []).length === 0) return;
     const batchNameInput = importBatchName.trim() || `Lô ngày ${new Date().toLocaleDateString("vi-VN")}`;
     const batchId = `batch-${Date.now()}`;
-    const targetType = (type === "ALL" ? "SATELLITE" : type) as "ROOT" | "SATELLITE" | "MONETIZED";
 
     const mappedMails = (pendingMails || []).map(m => ({
       ...m,
@@ -637,23 +608,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       batchName: batchNameInput
     }));
 
-    const newBatch = {
-      id: batchId,
-      name: batchNameInput,
-      type: targetType,
-      importedAt: new Date().toISOString().split("T")[0],
-      mailCount: (pendingMails || []).length,
-      importedBy: user?.name || user?.username || "Admin"
-    };
 
-    const historyEntry = {
-      id: `import-${Date.now()}`,
-      type: "MAIL" as const,
-      fileName: importFileName || `Lô mail: ${batchNameInput}`,
-      quantity: (pendingMails || []).length,
-      importedAt: new Date().toLocaleString("vi-VN"),
-      importedBy: user?.name || user?.username || "Admin"
-    };
 
     try {
       triggerToast(`Đang lưu ${(mappedMails || []).length} mail vào Lô "${batchNameInput}" trên Server...`);
@@ -674,38 +629,21 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         throw new Error(data.error || "Lỗi lưu dữ liệu");
       }
 
-      // 2. Only if success, update local storage and close modal
-      const savedBatches = localStorage.getItem("global_batches");
-      const currentBatches = savedBatches ? JSON.parse(savedBatches) : [];
-      const updatedBatches = [...currentBatches, newBatch];
-      localStorage.setItem("global_batches", JSON.stringify(updatedBatches));
-
-      const savedHistory = localStorage.getItem("global_import_history");
-      const currentHistory = savedHistory ? JSON.parse(savedHistory) : [];
-      const updatedHistory = [historyEntry, ...currentHistory];
-      localStorage.setItem("global_import_history", JSON.stringify(updatedHistory));
-
       setPendingMails(null);
       setImportBatchName("");
       setShowBatchNameModal(false);
       triggerToast(`Đã lưu thành công ${(mappedMails || []).length} mail vào Lô "${batchNameInput}"!`);
 
-      // 3. Keep syncing batches and history via old sync for now
-      await fetch("/api/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          global_batches: JSON.stringify(updatedBatches),
-          global_import_history: JSON.stringify(updatedHistory)
-        })
-      });
-
       // TRIGGER RELOAD AFTER POST COMPLETE
       window.dispatchEvent(new Event("storage"));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Lỗi khi gọi API POST mails:", err);
       // Giữ nguyên modal (không gọi setShowBatchNameModal(false))
-      triggerToast(`Lỗi kết nối Server: ${err.message || "Không thể lưu mail!"}`);
+      if (err instanceof Error) {
+        triggerToast(`Lỗi kết nối Server: ${err.message}`);
+      } else {
+        triggerToast(`Lỗi kết nối Server: Không thể lưu mail!`);
+      }
     }
   };
 
@@ -1347,7 +1285,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                       </tr>
                     );
                   }) : (
-                    <tr><td colSpan={isAdminOrManager && (type === "SATELLITE" || type === "ROOT" || type === "MONETIZED") ? 10 : 9} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Không có dữ liệu</td></tr>
+                    <tr><td colSpan={isAdminOrManager && (type === "SATELLITE" || type === "ROOT" || type === "MONETIZED") ? 10 : 9} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Chưa có dữ liệu</td></tr>
                   )}
                 </tbody>
               </table>

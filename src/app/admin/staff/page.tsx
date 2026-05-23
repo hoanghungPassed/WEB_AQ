@@ -720,7 +720,7 @@ export default function StaffManagementPage() {
                 )) : (
                   <div className="h-full flex flex-col items-center justify-center opacity-30 text-center space-y-4">
                     <CalendarDays size={48} />
-                    <p className="text-xs font-black uppercase tracking-widest">Chưa có lịch trực nhật</p>
+                    <p className="text-xs font-black uppercase tracking-widest">Chưa có dữ liệu</p>
                   </div>
                 )}
               </div>

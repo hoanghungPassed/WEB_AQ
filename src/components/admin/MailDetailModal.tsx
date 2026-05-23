@@ -61,8 +61,6 @@ export default function MailDetailModal({
   // Validation errors for each link (checks format, local duplicate, and global duplicate)
   const [validationErrors, setValidationErrors] = useState<boolean[]>(() => {
     const initLinks = mail.links || ["", "", ""];
-    const savedMails = typeof window !== "undefined" ? localStorage.getItem("global_mails_data") : null;
-    const allMails = savedMails ? JSON.parse(savedMails) : [];
 
     return (initLinks || []).map((link: string, i: number) => {
       if (!link || link.trim() === "") return false;
@@ -74,14 +72,6 @@ export default function MailDetailModal({
       // Check local duplicates inside this mail
       const isDuplicateLocal = initLinks.some((l: string, idx: number) => idx !== i && l && cleanYouTubeUrl(l) === cleaned);
       if (isDuplicateLocal) return true;
-
-      // Check global duplicates in database
-      const isDuplicateGlobal = allMails.some((m: any) => 
-        m.id !== mail.id && 
-        Array.isArray(m.links) && 
-        m.links.some((l: string) => l && cleanYouTubeUrl(l) === cleaned)
-      );
-      if (isDuplicateGlobal) return true;
 
       return false;
     });
@@ -134,24 +124,6 @@ export default function MailDetailModal({
       return;
     }
 
-    // 3. Check global duplicates in local storage database
-    const savedMails = localStorage.getItem("global_mails_data");
-    if (savedMails) {
-      const allMails = JSON.parse(savedMails);
-      const matchingMail = allMails.find((m: any) => 
-        m.id !== mail.id && 
-        Array.isArray(m.links) && 
-        m.links.some((l: string) => l && cleanYouTubeUrl(l) === cleanedVal)
-      );
-      if (matchingMail) {
-        newValidationErrors[idx] = true;
-        newNames[idx] = `Link trùng với mail: ${matchingMail.email}`;
-        setValidationErrors(newValidationErrors);
-        setNames(newNames);
-        return;
-      }
-    }
-
     // Link is completely valid & unique, proceed to fetch the real channel name
     newValidationErrors[idx] = false;
     setValidationErrors(newValidationErrors);
@@ -186,37 +158,6 @@ export default function MailDetailModal({
       if (hasError) {
         alert("Không thể lưu! Vui lòng sửa các link kênh bị sai định dạng YouTube.");
         return;
-      }
-
-      // Calculate newly eligible channels to add to global_eligible_channels
-      const savedEligible = localStorage.getItem("global_eligible_channels");
-      const currentList = savedEligible ? JSON.parse(savedEligible) : [];
-      let listUpdated = false;
-
-      links.forEach((link, idx) => {
-        if (link && link.trim() !== "" && eligibleChannels[idx]) {
-          const exists = currentList.some((c: any) => c.link === link);
-          if (!exists) {
-            currentList.push({
-              id: `channel-${Date.now()}-${idx}`,
-              link: cleanYouTubeUrl(link),
-              name: names[idx] || `Kênh ${idx + 1} của ${mail.email}`,
-              status: "Chưa mời"
-            });
-            listUpdated = true;
-          }
-        } else if (link && !eligibleChannels[idx]) {
-          const index = currentList.findIndex((c: any) => c.link === link);
-          if (index !== -1) {
-            currentList.splice(index, 1);
-            listUpdated = true;
-          }
-        }
-      });
-
-      if (listUpdated) {
-        localStorage.setItem("global_eligible_channels", JSON.stringify(currentList));
-        window.dispatchEvent(new Event("storage"));
       }
 
       onSave({ links, channelNames: names, eligibleChannels, linkErrors });

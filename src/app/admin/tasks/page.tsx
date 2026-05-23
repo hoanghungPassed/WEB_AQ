@@ -463,21 +463,27 @@ export default function TaskManagementPage() {
             assigneeName: t.assigneeId?.name || t.assigneeName
           }));
           setTasks(apiTasks);
-          localStorage.setItem("global_tasks_data", JSON.stringify(apiTasks));
+        }
+      }
+      
+      const userRes = await fetch("/api/admin/users");
+      if (userRes.ok) {
+        const userData = await userRes.json();
+        if (userData.success) {
+          setStaffList(userData.data.filter((u: any) => u.status === "ACTIVE" && u.role !== "01"));
+        }
+      }
+
+      const mailRes = await fetch("/api/admin/mails");
+      if (mailRes.ok) {
+        const mailData = await mailRes.json();
+        if (mailData.success) {
+          setMails(mailData.data);
         }
       }
     } catch (err) {
-      console.error("Error fetching tasks API:", err);
-      const savedTasks = localStorage.getItem("global_tasks_data");
-      setTasks(savedTasks ? JSON.parse(savedTasks) : []);
+      console.error("Error fetching data:", err);
     }
-
-    const stored = localStorage.getItem("global_users");
-    const allUsers = stored ? JSON.parse(stored) : [];
-    setStaffList((allUsers || []).filter((u: StaffData) => u.status === "ACTIVE" && u.role !== "01"));
-
-    const savedMails = localStorage.getItem("global_mails_data");
-    setMails(savedMails ? JSON.parse(savedMails) : []);
   }, []);
 
   useEffect(() => {
@@ -944,59 +950,26 @@ export default function TaskManagementPage() {
     setTasks(allTasks);
     setSelectedMailIdsForTask([]);
 
-    // Sync to API server database
     fetch("/api/admin/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newTask)
     })
     .then(async (res) => {
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Giao việc thất bại");
+      if (res.ok) {
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        setNotification(`Đã giao việc thành công cho ${selectedStaff.name}!`);
+        setTimeout(() => setNotification(null), 4000);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setNotification(errData.error || "Giao việc thất bại");
+        setTimeout(() => setNotification(null), 4000);
       }
-      return res.json();
-    })
-    .then((data) => {
-      if (!data.success) throw new Error(data.error);
-      setNotification(`Đã giao việc thành công cho ${selectedStaff.name}!`);
-      setTimeout(() => setNotification(null), 4000);
-      window.dispatchEvent(new Event('storage'));
     })
     .catch(err => {
       console.error("Lỗi giao việc:", err);
-      // alert(`Lỗi khi giao việc: ${err.message}`);
     });
-
-    fetch("/api/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        global_mails_data: JSON.stringify(allMails),
-        global_tasks_data: JSON.stringify(allTasks)
-      })
-    }).catch(err => console.error("Sync error:", err));
-
-    // Trigger Real-time Toast and push system notification
-    localStorage.setItem("realtime_toast", JSON.stringify({
-      userId: selectedStaff.id,
-      message: "Bạn nhận được công việc mới"
-    }));
-
-    const existingNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
-    const newNotif = {
-      id: Date.now(),
-      title: "Nhiệm vụ mới",
-      message: `Bạn đã được giao ${mailCount} mail thực hiện task: ${selectedTemplate}.`,
-      time: "Vừa xong",
-      type: "TASK_ASSIGNED",
-      targetUsername: selectedStaff.username,
-      read: false
-    };
-    localStorage.setItem("admin_notifications", JSON.stringify([newNotif, ...existingNotifs]));
-
-    setNotification(`Đã giao việc thành công cho ${selectedStaff.name}!`);
-    setTimeout(() => setNotification(null), 4000);
     window.dispatchEvent(new Event('storage'));
   }, [targetStaffId, selectedTemplate, selectedLo, selectedMoiKenhLo, selectedRootMailId, monetizedOption, mailRangeStart, mailRangeEnd, assignmentNote, staffList, user]);
 
@@ -1467,7 +1440,7 @@ export default function TaskManagementPage() {
                             <td colSpan={5} className="px-10 py-20 text-center">
                               <div className="flex flex-col items-center gap-4 opacity-20">
                                 <Mail size={60} className="text-gold" />
-                                <p className="text-xl font-black uppercase tracking-[0.2em] text-gray-900 dark:text-white">Chưa có mail nào được giao</p>
+                                <p className="text-xl font-black uppercase tracking-[0.2em] text-gray-900 dark:text-white">Chưa có dữ liệu</p>
                               </div>
                             </td>
                           </tr>

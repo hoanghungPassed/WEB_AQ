@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, Phone, MapPin, ShieldCheck, Save, AlertCircle, Camera, Calendar, User } from "lucide-react";
+import { X, Mail, Phone, MapPin, ShieldCheck, Save, AlertCircle, Camera, Calendar, User, Clock } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -23,6 +23,7 @@ interface ProfileModalProps {
     role?: string;
     avatar?: string;
     birthYear?: string;
+    offWorkTime?: string;
   };
 }
 
@@ -59,39 +60,33 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
     if (!validate()) return;
     
     setIsSaving(true);
-    // Lưu vào localStorage Mock DB
-    const allUsers = JSON.parse(localStorage.getItem("global_users") || "[]");
-    const updatedUsers = (allUsers || []).map((u: any) => {
-      return String(u.id) === String(formData.id) ? { ...u, ...formData } : u;
-    });
-    localStorage.setItem("global_users", JSON.stringify(updatedUsers));
-    
-    // Cập nhật session (cả localStorage và sessionStorage)
-    const updatedUserData = { ...formData };
-    const currentUser = JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}");
-    if (String(currentUser.id) === String(formData.id) || currentUser?.username === formData.username) {
-      const mergedUser = { ...currentUser, ...updatedUserData };
-      localStorage.setItem("user", JSON.stringify(mergedUser));
-      sessionStorage.setItem("user", JSON.stringify(mergedUser));
-    }
-
-    // Đồng bộ lên server
     try {
-      await fetch("/api/sync", {
-        method: "POST",
+      const res = await fetch(`/api/users/${formData.id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ global_users: JSON.stringify(updatedUsers) })
+        body: JSON.stringify(formData)
       });
+
+      if (res.ok) {
+        const data = await res.json();
+        // Cập nhật session 
+        const updatedUserData = { ...formData, ...data.user };
+        localStorage.setItem("user", JSON.stringify(updatedUserData));
+        sessionStorage.setItem("user", JSON.stringify(updatedUserData));
+        
+        window.dispatchEvent(new Event("storage"));
+        alert("Cập nhật thông tin thành công!");
+        onClose();
+      } else {
+        const errorData = await res.json();
+        alert(errorData.error || "Lỗi khi cập nhật thông tin");
+      }
     } catch (err) {
       console.error("Profile sync error:", err);
+      alert("Đã xảy ra lỗi hệ thống khi lưu.");
+    } finally {
+      setIsSaving(false);
     }
-
-    window.dispatchEvent(new Event("storage"));
-
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setIsSaving(false);
-    alert("Cập nhật thông tin thành công!");
-    onClose();
   };
 
   const getRoleLabel = (role?: string) => {
@@ -119,34 +114,25 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
       return;
     }
 
-    const allUsers = JSON.parse(localStorage.getItem("global_users") || "[]");
-    const userIndex = allUsers.findIndex((u: any) => u.id === formData.id);
-    if (userIndex === -1) {
-      setPasswordError("Không tìm thấy người dùng");
-      return;
-    }
-
-    if (allUsers[userIndex].password !== currentPassword) {
-      setPasswordError("Mật khẩu hiện tại không đúng");
-      return;
-    }
-
-    allUsers[userIndex].password = newPassword;
-    localStorage.setItem("global_users", JSON.stringify(allUsers));
-    
     try {
-      await fetch("/api/sync", {
-        method: "POST",
+      const res = await fetch(`/api/users/${formData.id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ global_users: JSON.stringify(allUsers) })
+        body: JSON.stringify({ password: newPassword, currentPassword })
       });
-    } catch (err) {}
 
-    window.dispatchEvent(new Event("storage"));
-    setPasswordSuccess("Đổi mật khẩu thành công!");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+      if (res.ok) {
+        setPasswordSuccess("Đổi mật khẩu thành công!");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        const errorData = await res.json();
+        setPasswordError(errorData.error || "Mật khẩu hiện tại không đúng hoặc lỗi hệ thống");
+      }
+    } catch (err) {
+      setPasswordError("Lỗi kết nối đến máy chủ");
+    }
   };
 
   return (
@@ -185,6 +171,16 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                 <div className="mt-4 text-center">
                   <p className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">{formData.name}</p>
                   <p className="text-xs font-bold text-gold uppercase tracking-[0.3em] mt-1">@{formData.username}</p>
+                </div>
+                <div className="w-full mt-4 max-w-xs">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 flex items-center gap-2 mb-2">
+                    <Clock size={14} className="text-gold" /> Giờ tan làm
+                  </label>
+                  <input
+                    type="time" value={formData.offWorkTime || "17:30"}
+                    onChange={(e) => setFormData({...formData, offWorkTime: e.target.value})}
+                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-sm focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+                  />
                 </div>
               </div>
 

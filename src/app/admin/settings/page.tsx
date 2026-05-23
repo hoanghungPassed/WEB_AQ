@@ -1287,7 +1287,7 @@ export default function SettingsPage() {
                           </div>
                         </div>
                       ) : (
-                        <p className="text-gray-500 text-xs text-center py-4 font-medium">Chưa có thông tin</p>
+                        <p className="text-gray-500 text-xs text-center py-4 font-medium">Chưa có dữ liệu</p>
                       )}
                     </div>
                   </div>
