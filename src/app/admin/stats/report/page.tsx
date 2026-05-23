@@ -90,13 +90,28 @@ export default function ReportsPage() {
   };
 
   const handleExportReport = () => {
-    triggerToast("Đang kết xuất báo cáo thống kê chu kỳ... Đã xuất file AQ_MEDIA_REPORT.xlsx!");
+    triggerToast("Đang kết xuất báo cáo thống kê chu kỳ... Đã xuất file CSV!");
     
-    // Simulate File Download
+    // Generate CSV Content (Month)
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+
+    let csvContent = "Nhân viên,Username,Tổng số kênh đủ giờ trong tháng\n";
+    
+    (staffList || []).filter((s: any) => s.role === "04" || s.role === "05" || s.role === "NHÂN VIÊN" || s.role === "NV THỬ VIỆC").forEach((staff: any) => {
+      const myMails = (mails || []).filter(m => String(m.assigneeId) === String(staff.id));
+      
+      const eligibleChannelsMonthly = (myMails || []).filter(m => m.type === "SATELLITE" && m.updatedAt && new Date(m.updatedAt).getMonth() === currentMonth && new Date(m.updatedAt).getFullYear() === currentYear).reduce((sum, m) => {
+         return sum + (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0);
+      }, 0);
+
+      csvContent += `"${staff.name}","${staff.username}",${eligibleChannelsMonthly}\n`;
+    });
+
     const element = document.createElement("a");
-    const file = new Blob(["BÁO CÁO THỐNG KÊ AQ MEDIA\n\nTổng Số Lượng: " + (mails || []).length + " tài khoản."], {type: 'text/plain'});
-    element.href = URL.createObjectURL(file);
-    element.download = "AQ_MEDIA_REPORT_SUMMARY.txt";
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], {type: 'text/csv;charset=utf-8;'});
+    element.href = URL.createObjectURL(blob);
+    element.download = `AQ_MEDIA_REPORT_MONTHLY_${currentMonth + 1}_${currentYear}.csv`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
@@ -132,15 +147,31 @@ export default function ReportsPage() {
     };
   }, [mails]);
 
-  // 2. CALCULATE STAFF LEADERBOARDS
+  // 2. CALCULATE STAFF LEADERBOARDS (WEEKLY RESET)
   const staffLeaderboard = useMemo<StaffPerformance[]>(() => {
     const list = (staffList || []).filter((s: any) => s.role === "04" || s.role === "05" || s.role === "NHÂN VIÊN" || s.role === "NV THỬ VIỆC");
     
+    // Get current week's Monday
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    const monday = new Date(now.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
+
     const calculated = (list || []).map((staff: any, idx: number) => {
-      const myMails = (mails || []).filter(m => String(m.assigneeId) === String(staff.id));
-      const eligibleChannels = (myMails || []).reduce((sum, m) => sum + (Number(m.eligibleChannels) || 0), 0);
+      // Filter mails updated this week
+      const myMails = (mails || []).filter(m => {
+         if (String(m.assigneeId) !== String(staff.id)) return false;
+         if (!m.updatedAt) return true; // fallback
+         return new Date(m.updatedAt) >= monday;
+      });
+
+      const eligibleChannelsWeekly = (myMails || []).filter(m => m.type === "SATELLITE").reduce((sum, m) => {
+         return sum + (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0);
+      }, 0);
+
       const targetWeekly = 300; // 50 channels per day -> 300 channels per week
-      const progress = targetWeekly > 0 ? Math.round((eligibleChannels / targetWeekly) * 100) : 0;
+      const progress = targetWeekly > 0 ? Math.round((eligibleChannelsWeekly / targetWeekly) * 100) : 0;
       
       const completed = (myMails || []).filter(m => m.workStatus === "Đã làm" || m.workStatus === "Đã bán").length;
       const failed = (myMails || []).filter(m => m.workStatus === "Lỗi").length;
@@ -157,9 +188,9 @@ export default function ReportsPage() {
         name: staff.name,
         username: staff.username,
         assigned: (myMails || []).length,
-        completed: completed,
+        completed: completed, // We can reuse this or show channels
         errorRate: errorPercent,
-        kpiProgress: progress,
+        kpiProgress: progress, // Percentage
         efficiency
       };
     });
@@ -347,9 +378,9 @@ export default function ReportsPage() {
           Chưa có dữ liệu
         </div>
       ) : (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* SVG Cumulative Output Line Graph */}
-        <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl col-span-2 flex flex-col justify-between">
+        <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl flex flex-col justify-between">
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-white/5 pb-4 mb-4">
             <h3 className="text-md font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
               <TrendingUp size={16} className="text-gold" />
@@ -394,50 +425,6 @@ export default function ReportsPage() {
             <span>Thứ 5</span>
             <span>Thứ 6</span>
             <span>Hôm nay</span>
-          </div>
-        </div>
-
-        {/* Circular Donut Type Distribution chart */}
-        <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-gray-200 dark:border-white/5 pb-4 mb-4">
-            <h3 className="text-md font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
-              <Zap size={16} className="text-gold" />
-              Phân bố loại mail quản lý
-            </h3>
-          </div>
-
-          <div className="flex-1 flex items-center justify-center relative">
-            <svg className="w-36 h-36 transform -rotate-90">
-              {/* Outer track */}
-              <circle cx="72" cy="72" r="56" stroke="rgba(255,255,255,0.03)" strokeWidth="18" fill="transparent" />
-              
-              {/* Segments representing Gốc (ROOT), Vệ tinh (SATELLITE), BKT (MONETIZED) */}
-              {/* Satellite Segment (50%) */}
-              <circle cx="72" cy="72" r="56" stroke="#38bdf8" strokeWidth="18" fill="transparent" strokeDasharray="351.8" strokeDashoffset="175.9" />
-              {/* Root Segment (33%) */}
-              <circle cx="72" cy="72" r="56" stroke="#6366f1" strokeWidth="18" fill="transparent" strokeDasharray="351.8" strokeDashoffset="292.0" className="transform rotate-[180deg] origin-center" />
-              {/* Monetized Segment (17%) */}
-              <circle cx="72" cy="72" r="56" stroke="#10b981" strokeWidth="18" fill="transparent" strokeDasharray="351.8" strokeDashoffset="316.6" className="transform rotate-[298deg] origin-center" />
-            </svg>
-            <div className="absolute flex flex-col items-center justify-center">
-              <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Tỉ lệ chính</span>
-              <span className="text-xl font-black text-gray-900 dark:text-white">50% <span className="text-xs text-sky-400 font-medium">Sat</span></span>
-            </div>
-          </div>
-
-          <div className="space-y-2 mt-4 pt-3 border-t border-gray-200 dark:border-white/5">
-            <div className="flex items-center justify-between text-[11px] font-bold">
-              <span className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><span className="h-2 w-2 rounded-full bg-sky-400" /> Mail Vệ Tinh (Satellite)</span>
-              <span className="text-gray-900 dark:text-white">50.0%</span>
-            </div>
-            <div className="flex items-center justify-between text-[11px] font-bold">
-              <span className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><span className="h-2 w-2 rounded-full bg-indigo-500" /> Mail Gốc (Root)</span>
-              <span className="text-gray-900 dark:text-white">33.3%</span>
-            </div>
-            <div className="flex items-center justify-between text-[11px] font-bold">
-              <span className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Mail BKT (Monetized)</span>
-              <span className="text-gray-900 dark:text-white">16.7%</span>
-            </div>
           </div>
         </div>
       </div>

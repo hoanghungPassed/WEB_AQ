@@ -239,7 +239,9 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
             >
               <Bell size={20} />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white border-2 border-sidebar shadow-md animate-pulse">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                <span className="absolute -top-1.5 -right-1.5 flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white border-2 border-white dark:border-[#0a0a0a] shadow-md animate-pulse">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
               )}
             </button>
 

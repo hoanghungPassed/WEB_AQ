@@ -182,10 +182,21 @@ const UnifiedMailDetailModal = ({
     if (type === "ROOT") {
       onSave({ cccdDate, verificationStatus });
     } else if (type === "SATELLITE") {
-      // Validate all filled links before saving
-      const hasError = validationErrors.some((err, idx) => err && links[idx]?.trim() !== "");
-      if (hasError) {
-        alert("Không thể lưu! Vui lòng sửa các link kênh bị sai định dạng YouTube.");
+      // Validate all 3 links are filled and have no format error
+      const newValidationErrors = [...validationErrors];
+      let hasMissingOrError = false;
+      [0, 1, 2].forEach(idx => {
+        if (!links[idx] || links[idx].trim() === "") {
+           newValidationErrors[idx] = true;
+           hasMissingOrError = true;
+        } else if (validationErrors[idx]) {
+           hasMissingOrError = true;
+        }
+      });
+
+      if (hasMissingOrError) {
+        setValidationErrors(newValidationErrors);
+        alert("Thiếu kênh hoặc sai định dạng! Vui lòng điền đủ 3 link kênh hợp lệ trước khi cập nhật.");
         return;
       }
 

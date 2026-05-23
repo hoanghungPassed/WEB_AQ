@@ -130,8 +130,30 @@ function LoginForm() {
           )}
 
           {error && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-black uppercase tracking-widest text-center flex items-center gap-3 leading-relaxed">
-              <ShieldAlert size={16} className="shrink-0" /> {error}
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-black uppercase tracking-widest text-left flex flex-col gap-3 leading-relaxed">
+              <div className="flex items-center gap-3">
+                <ShieldAlert size={16} className="shrink-0" /> {error}
+              </div>
+              {error.includes("yêu cầu duyệt") && (
+                <button 
+                  onClick={() => {
+                    const reqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
+                    reqs.push({
+                      id: Date.now(),
+                      username,
+                      staffName: username,
+                      time: new Date().toLocaleString("vi-VN"),
+                      status: "PENDING"
+                    });
+                    localStorage.setItem("pending_access_requests", JSON.stringify(reqs));
+                    setError("");
+                    setMessage("Đã gửi yêu cầu duyệt thành công. Vui lòng chờ Admin.");
+                  }}
+                  className="mt-2 h-10 rounded-xl bg-red-500/20 border border-red-500/30 hover:bg-red-500 text-white font-black uppercase tracking-widest transition-all text-[10px]"
+                >
+                  Gửi yêu cầu duyệt ngay
+                </button>
+              )}
             </motion.div>
           )}
 

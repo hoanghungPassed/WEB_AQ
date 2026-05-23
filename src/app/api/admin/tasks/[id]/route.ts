@@ -14,6 +14,35 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     try {
       const { logAction } = await import('@/lib/logger');
       await logAction("system", `Cập nhật nhiệm vụ: ${task.title || id}`, `Cập nhật trạng thái/chi tiết nhiệm vụ.`);
+
+      // Check if COMPLETED but overdue
+      if (body.status === 'COMPLETED' && task.deadline) {
+        const now = new Date();
+        const deadlineDate = new Date(task.deadline);
+        // Compare dates (end of day if no time specified)
+        if (now > deadlineDate && now.getDate() !== deadlineDate.getDate()) {
+           const { Fine } = await import('@/models/Fine');
+           const { Notification } = await import('@/models/Notification');
+           
+           // Check if fine already exists
+           const existingFine = await Fine.findOne({ userId: task.assigneeId, reason: { $regex: /Trễ hạn Task/ } });
+           if (!existingFine) {
+             await Fine.create({
+               userId: task.assigneeId,
+               amount: 50000,
+               reason: `Hoàn thành trễ hạn Task: ${task.title || id}`,
+               status: 'UNPAID'
+             });
+
+             await Notification.create({
+               recipientId: task.assigneeId,
+               title: "Phạt Trễ Hạn",
+               message: `Bạn bị phạt 50.000đ do hoàn thành trễ hạn nhiệm vụ: ${task.title || id}.`,
+               type: "WARNING"
+             });
+           }
+        }
+      }
     } catch (logErr) {
       console.error("Log error:", logErr);
     }

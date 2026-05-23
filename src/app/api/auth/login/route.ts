@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     
     if (isStaff && currentMins >= 1080) { // 1080 = 18:00
       return NextResponse.json(
-        { error: "Đã quá giờ làm việc (18:00). Bạn không thể đăng nhập. Vui lòng gửi yêu cầu nếu cần truy cập." },
+        { error: "Đã quá giờ làm việc (18:00). Bạn không thể đăng nhập. Vui lòng gửi yêu cầu duyệt nếu cần truy cập." },
         { status: 403 }
       );
     }
