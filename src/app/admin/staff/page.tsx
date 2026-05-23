@@ -575,35 +575,35 @@ export default function StaffManagementPage() {
       <div className="flex flex-col gap-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Quản trị Nhân sự</h1>
+            <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">Quản trị Nhân sự</h1>
             <p className="text-gray-500 font-medium mt-1">Hệ thống phê duyệt và quản lý đặc quyền nhân sự.</p>
           </div>
           <div className="flex gap-4">
               <button 
                 onClick={() => setActiveTab("ACTIVE")}
-                className={`h-12 px-6 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2 transition-all ${activeTab === "ACTIVE" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-white/5 text-gray-500 hover:bg-white/10"}`}
+                className={`h-12 px-6 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2 transition-all ${activeTab === "ACTIVE" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-gray-100 dark:bg-white/5 text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10"}`}
               >
                 <Users size={18} /> Nhân viên ({stats.total})
               </button>
               {canManageDuty && (
                 <button 
                   onClick={() => setActiveTab("DUTY")}
-                  className={`h-12 px-6 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2 transition-all ${activeTab === "DUTY" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-white/5 text-gray-500 hover:bg-white/10"}`}
+                  className={`h-12 px-6 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2 transition-all ${activeTab === "DUTY" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-gray-100 dark:bg-white/5 text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10"}`}
                 >
                   <CalendarDays size={18} /> Lịch Trực Nhật
                 </button>
               )}
               {!isRestricted && (
-                <div className="flex items-center gap-2 p-1 bg-white/5 rounded-[24px] border border-white/5 shadow-inner">
+                <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-white/5 rounded-[24px] border border-gray-200 dark:border-white/5 shadow-inner">
                 <button 
                   onClick={() => { setActiveTab("PENDING"); setPendingSubTab("ACCOUNTS"); }}
-                  className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab === "PENDING" && pendingSubTab === "ACCOUNTS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-white"}`}
+                  className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab === "PENDING" && pendingSubTab === "ACCOUNTS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-gray-900 dark:hover:text-white"}`}
                 >
                   Duyệt đăng ký ({stats.pending})
                 </button>
                 <button 
                   onClick={() => { setActiveTab("PENDING"); setPendingSubTab("ACCESS"); }}
-                  className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-white"}`}
+                  className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-gray-900 dark:hover:text-white"}`}
                 >
                   Duyệt truy cập ({(accessRequests || []).length})
                 </button>
@@ -615,7 +615,7 @@ export default function StaffManagementPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <StatCard title="Tổng nhân viên" value={stats.total} icon={<Users className="text-blue-400" />} color="blue" />
           <StatCard title="Đang Online" value={stats.online} icon={<Activity className="text-green-400" />} color="green" />
-          <StatCard title="Offline" value={stats.offline} icon={<Clock className="text-gray-400" />} color="gray" />
+          <StatCard title="Offline" value={stats.offline} icon={<Clock className="text-gray-600 dark:text-gray-400" />} color="gray" />
           {!isRestricted && (
             <StatCard title="Chờ phê duyệt" value={stats.pending} icon={<AlertCircle className="text-gold" />} color="gold" />
           )}
@@ -625,10 +625,10 @@ export default function StaffManagementPage() {
       {activeTab === "DUTY" && canManageDuty ? (
         <div className="flex flex-col gap-6 animate-fade-in">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 bg-sidebar border border-white/5 p-8 rounded-[32px] shadow-2xl flex flex-col gap-6">
-              <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+            <div className="md:col-span-2 bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 p-8 rounded-[32px] shadow-2xl flex flex-col gap-6">
+              <div className="flex items-center gap-3 border-b border-gray-200 dark:border-white/5 pb-4">
                 <CalendarDays className="text-gold" size={24} />
-                <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Cấu hình Lịch Trực Nhật</h2>
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Cấu hình Lịch Trực Nhật</h2>
               </div>
               
               <div className="space-y-4">
@@ -639,7 +639,7 @@ export default function StaffManagementPage() {
                     value={dutyTaskWeek}
                     onChange={(e) => setDutyTaskWeek(e.target.value)}
                     placeholder="Vd: Dọn vệ sinh văn phòng hàng ngày, đổ rác, pha trà..."
-                    className="w-full bg-black/20 border border-white/5 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-gold/50 transition-all custom-scrollbar resize-none"
+                    className="w-full bg-black/20 border border-gray-200 dark:border-white/5 rounded-2xl p-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all custom-scrollbar resize-none"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -649,7 +649,7 @@ export default function StaffManagementPage() {
                     value={dutyTaskWeekend}
                     onChange={(e) => setDutyTaskWeekend(e.target.value)}
                     placeholder="Vd: Tổng vệ sinh toàn công ty, lau kính, giặt rèm..."
-                    className="w-full bg-black/20 border border-white/5 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-gold/50 transition-all custom-scrollbar resize-none"
+                    className="w-full bg-black/20 border border-gray-200 dark:border-white/5 rounded-2xl p-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all custom-scrollbar resize-none"
                   />
                 </div>
               </div>
@@ -666,13 +666,13 @@ export default function StaffManagementPage() {
                     Chọn tất cả
                   </button>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-60 overflow-y-auto custom-scrollbar p-2 bg-black/20 rounded-2xl border border-white/5">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-60 overflow-y-auto custom-scrollbar p-2 bg-black/20 rounded-2xl border border-gray-200 dark:border-white/5">
                   {(staffList || []).filter(s => s.status === "ACTIVE").map(staff => (
                     <div 
                       key={staff.id} 
                       onClick={() => handleToggleDutyStaff(staff.id)}
                       className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3 ${
-                        dutySelectedStaff.includes(staff.id) ? "bg-gold/10 border-gold/30" : "bg-white/5 border-transparent hover:bg-white/10"
+                        dutySelectedStaff.includes(staff.id) ? "bg-gold/10 border-gold/30" : "bg-gray-100 dark:bg-white/5 border-transparent hover:bg-gray-200 dark:hover:bg-white/10"
                       }`}
                     >
                       <div className={`h-4 w-4 rounded-[4px] border flex items-center justify-center transition-colors ${
@@ -680,13 +680,13 @@ export default function StaffManagementPage() {
                       }`}>
                         {dutySelectedStaff.includes(staff.id) && <CheckSquare size={12} className="text-sidebar" />}
                       </div>
-                      <span className="text-xs font-bold text-white truncate">{staff.name}</span>
+                      <span className="text-xs font-bold text-gray-900 dark:text-white truncate">{staff.name}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="flex justify-end pt-4 border-t border-white/5">
+              <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-white/5">
                 <button 
                   onClick={handleGenerateRoster}
                   className="h-12 px-8 rounded-2xl bg-gold text-sidebar font-black uppercase text-[10px] tracking-widest hover:bg-yellow-500 transition-all shadow-xl shadow-gold/20 flex items-center gap-2"
@@ -696,21 +696,21 @@ export default function StaffManagementPage() {
               </div>
             </div>
 
-            <div className="md:col-span-1 bg-sidebar border border-white/5 p-8 rounded-[32px] shadow-2xl flex flex-col h-full">
-              <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-6">
+            <div className="md:col-span-1 bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 p-8 rounded-[32px] shadow-2xl flex flex-col h-full">
+              <div className="flex items-center gap-3 border-b border-gray-200 dark:border-white/5 pb-4 mb-6">
                 <ClipboardList className="text-blue-400" size={24} />
-                <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Lịch Tuần Này</h2>
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Lịch Tuần Này</h2>
               </div>
               
               <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-2">
                 {(dutyRoster || []).length > 0 ? (dutyRoster || []).map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                  <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5">
                     <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex flex-col items-center justify-center text-blue-400 border border-blue-500/20 flex-shrink-0">
                       <span className="text-[10px] font-black uppercase tracking-tighter">Thứ</span>
                       <span className="text-lg font-black">{item.day.split(' ')[1]}</span>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-black text-white truncate">{item.staffName}</p>
+                      <p className="text-sm font-black text-gray-900 dark:text-white truncate">{item.staffName}</p>
                       <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest truncate">@{item.username}</p>
                     </div>
                   </div>
@@ -727,7 +727,7 @@ export default function StaffManagementPage() {
       ) : (
         <>
           {/* Toolbar */}
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-sidebar/50 border border-white/5 p-4 rounded-[32px] backdrop-blur-xl">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white dark:bg-sidebar/50 border border-gray-200 dark:border-white/5 p-4 rounded-[32px] backdrop-blur-xl">
         <div className="flex flex-1 gap-4 w-full">
           <div className="relative flex-1 group">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={20} />
@@ -736,36 +736,36 @@ export default function StaffManagementPage() {
               placeholder="Tìm kiếm tên hoặc username..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-12 w-full bg-black/20 border border-white/5 rounded-2xl pl-14 pr-6 text-sm text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+              className="h-12 w-full bg-black/20 border border-gray-200 dark:border-white/5 rounded-2xl pl-14 pr-6 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
             />
           </div>
           
           {activeTab === "ACTIVE" && (
             <>
-              <div className="flex items-center gap-2 bg-black/20 border border-white/5 rounded-2xl px-4 h-12 min-w-[180px]">
+              <div className="flex items-center gap-2 bg-black/20 border border-gray-200 dark:border-white/5 rounded-2xl px-4 h-12 min-w-[180px]">
                 <Filter size={16} className="text-gold" />
                 <select 
-                  className="bg-transparent border-none outline-none text-xs text-white font-bold uppercase tracking-widest cursor-pointer w-full"
+                  className="bg-transparent border-none outline-none text-xs text-gray-900 dark:text-white font-bold uppercase tracking-widest cursor-pointer w-full"
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
                 >
-                  <option value="ALL" className="bg-sidebar">Tất cả Role</option>
-                  <option value="01" className="bg-sidebar">ADMIN</option>
-                  <option value="02" className="bg-sidebar">QL CÔNG VIỆC</option>
-                  <option value="03" className="bg-sidebar">QL NHÂN SỰ</option>
-                  <option value="04" className="bg-sidebar">NHÂN VIÊN</option>
+                  <option value="ALL" className="bg-white dark:bg-sidebar">Tất cả Role</option>
+                  <option value="01" className="bg-white dark:bg-sidebar">ADMIN</option>
+                  <option value="02" className="bg-white dark:bg-sidebar">QL CÔNG VIỆC</option>
+                  <option value="03" className="bg-white dark:bg-sidebar">QL NHÂN SỰ</option>
+                  <option value="04" className="bg-white dark:bg-sidebar">NHÂN VIÊN</option>
                 </select>
               </div>
-              <div className="flex items-center gap-2 bg-black/20 border border-white/5 rounded-2xl px-4 h-12 min-w-[180px]">
+              <div className="flex items-center gap-2 bg-black/20 border border-gray-200 dark:border-white/5 rounded-2xl px-4 h-12 min-w-[180px]">
                 <Activity size={16} className="text-gold" />
                 <select 
-                  className="bg-transparent border-none outline-none text-xs text-white font-bold uppercase tracking-widest cursor-pointer w-full"
+                  className="bg-transparent border-none outline-none text-xs text-gray-900 dark:text-white font-bold uppercase tracking-widest cursor-pointer w-full"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
-                  <option value="ALL" className="bg-sidebar">Trạng thái</option>
-                  <option value="ACTIVE" className="bg-sidebar">Hoạt động</option>
-                  <option value="LOCKED" className="bg-sidebar">Đã khóa</option>
+                  <option value="ALL" className="bg-white dark:bg-sidebar">Trạng thái</option>
+                  <option value="ACTIVE" className="bg-white dark:bg-sidebar">Hoạt động</option>
+                  <option value="LOCKED" className="bg-white dark:bg-sidebar">Đã khóa</option>
                 </select>
               </div>
             </>
@@ -774,11 +774,11 @@ export default function StaffManagementPage() {
       </div>
 
       {/* Table Section */}
-      <div className="bg-sidebar border border-border-custom rounded-[40px] shadow-2xl flex flex-col overflow-hidden">
+      <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[40px] shadow-2xl flex flex-col overflow-hidden">
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-[1200px]">
             <thead>
-              <tr className="bg-white/[0.02] border-b border-white/5 uppercase text-[11px] font-black tracking-widest text-gray-500">
+              <tr className="bg-gray-50 dark:bg-white/[0.02] border-b border-gray-200 dark:border-white/5 uppercase text-[11px] font-black tracking-widest text-gray-500">
                 <th className="px-10 py-8 whitespace-nowrap">Nhân viên</th>
                 <th className="px-8 py-8 whitespace-nowrap">{activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "Thời gian" : "Liên hệ"}</th>
                 <th className="px-8 py-8 whitespace-nowrap">{activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "Lý do" : "Chi tiết"}</th>
@@ -795,38 +795,38 @@ export default function StaffManagementPage() {
             <tbody className="divide-y divide-white/5">
               {activeTab === "PENDING" && pendingSubTab === "ACCESS" ? (
                 (accessRequests || []).length > 0 ? (accessRequests || []).map((req) => (
-                  <tr key={req.id} className="group hover:bg-white/[0.02] transition-all">
+                  <tr key={req.id} className="group hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-all">
                     <td className="px-10 py-7">
                       <div className="flex items-center gap-6">
                         <div className="h-16 w-16 rounded-[24px] bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center text-2xl text-gold font-black border border-gold/10 shadow-xl group-hover:scale-110 transition-all">
                           {req.staffName.charAt(0)}
                         </div>
                         <div className="whitespace-nowrap">
-                          <p className="text-lg font-black text-white group-hover:text-gold transition-colors">{req.staffName}</p>
+                          <p className="text-lg font-black text-gray-900 dark:text-white group-hover:text-gold transition-colors">{req.staffName}</p>
                           <p className="text-xs text-gray-500 font-bold uppercase mt-1 tracking-wider">ID: #{req.id}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-8 py-7">
                       <div className="flex flex-col">
-                        <span className="text-sm font-black text-white">{req.time}</span>
+                        <span className="text-sm font-black text-gray-900 dark:text-white">{req.time}</span>
                         <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Ngày: {new Date().toLocaleDateString()}</span>
                       </div>
                     </td>
                     <td className="px-8 py-7">
-                      <span className="text-sm font-medium text-gray-400 italic">"{req.reason}"</span>
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400 italic">"{req.reason}"</span>
                     </td>
                     <td className="px-8 py-7">
                       <div className="flex items-center gap-3">
                         <button 
                           onClick={() => handleApproveAccess(req.id, req.staffName)}
-                          className="h-11 px-6 rounded-2xl bg-green-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-600 transition-all shadow-xl shadow-green-500/20"
+                          className="h-11 px-6 rounded-2xl bg-green-500 text-gray-900 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-600 transition-all shadow-xl shadow-green-500/20"
                         >
                           Đồng ý
                         </button>
                         <button 
                           onClick={() => handleDenyAccess(req.id, req.staffName)}
-                          className="h-11 px-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
+                          className="h-11 px-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-gray-900 dark:hover:text-white transition-all"
                         >
                           Từ chối
                         </button>
@@ -845,34 +845,34 @@ export default function StaffManagementPage() {
                 )
               ) : (
                 (currentStaff || []).length > 0 ? (currentStaff || []).map((staff) => (
-                <tr key={`${staff.id}-${staff.username}`} className="group hover:bg-white/[0.02] transition-all cursor-pointer" onClick={() => setSelectedStaff(staff)}>
+                <tr key={`${staff.id}-${staff.username}`} className="group hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-all cursor-pointer" onClick={() => setSelectedStaff(staff)}>
                   <td className="px-10 py-7">
                     <div className="flex items-center gap-6">
                       <div className="h-16 w-16 rounded-[24px] bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center text-2xl text-gold font-black border border-gold/10 shadow-xl group-hover:scale-110 transition-all">
                         {staff.avatar ? <img src={staff.avatar} className="w-full h-full object-cover rounded-[24px]" onError={(e) => e.currentTarget.src = "https://ui-avatars.com/api/?name=" + (staff.name || "U") + "&background=d4af37&color=000"} /> : staff.name.charAt(0)}
                       </div>
                       <div className="whitespace-nowrap">
-                        <p className="text-lg font-black text-white group-hover:text-gold transition-colors">{staff.name}</p>
+                        <p className="text-lg font-black text-gray-900 dark:text-white group-hover:text-gold transition-colors">{staff.name}</p>
                         <p className="text-xs text-gray-500 font-bold uppercase mt-1 tracking-wider">@{staff.username}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-8 py-7">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-xs text-gray-400 font-bold">
+                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 font-bold">
                         <Mail size={12} className="text-gold/50" /> {staff.email}
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-400 font-bold">
+                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 font-bold">
                         <Phone size={12} className="text-gold/50" /> {staff.phone || "---"}
                       </div>
                     </div>
                   </td>
                   <td className="px-8 py-7">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-xs text-gray-400 font-bold">
+                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 font-bold">
                         <Calendar size={12} className="text-gold/50" /> {staff.birthYear || "---"}
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-400 font-bold">
+                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 font-bold">
                         <MapPin size={12} className="text-gold/50" /> {staff.address || "---"}
                       </div>
                     </div>
@@ -883,7 +883,7 @@ export default function StaffManagementPage() {
                         staff.role === "01" ? "bg-red-500/10 text-red-500 border-red-500/20" :
                         staff.role === "02" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" :
                         staff.role === "03" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
-                        "bg-gray-500/10 text-gray-400 border-gray-500/20"
+                        "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20"
                       }`}>
                         {staff.role === "01" ? "ADMIN" : 
                          staff.role === "02" ? "QL CÔNG VIỆC" : 
@@ -894,7 +894,7 @@ export default function StaffManagementPage() {
                         {!isRestricted ? (
                           <select 
                             id={`role-assign-${staff.id}`}
-                            className="h-10 px-4 rounded-xl bg-black/20 border border-white/10 text-[10px] font-black text-white uppercase outline-none focus:border-gold/50 cursor-pointer"
+                            className="h-10 px-4 rounded-xl bg-black/20 border border-gray-300 dark:border-white/10 text-[10px] font-black text-gray-900 dark:text-white uppercase outline-none focus:border-gold/50 cursor-pointer"
                           >
                             <option value="04">Nhân viên</option>
                             <option value="03">QL Nhân sự</option>
@@ -929,7 +929,7 @@ export default function StaffManagementPage() {
                           </button>
                           <button 
                             onClick={() => handleDenyUser(staff.id)}
-                            className="h-10 w-10 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"
+                            className="h-10 w-10 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-gray-900 dark:hover:text-white transition-all flex items-center justify-center"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -959,15 +959,15 @@ export default function StaffManagementPage() {
 
         {/* Pagination Footer */}
         {(filteredStaff || []).length > 0 && (
-          <div className="bg-white/[0.02] border-t border-white/5 px-10 py-6 flex items-center justify-between">
+          <div className="bg-gray-50 dark:bg-white/[0.02] border-t border-gray-200 dark:border-white/5 px-10 py-6 flex items-center justify-between">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-              Hiển thị <span className="text-white">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="text-white">{Math.min(currentPage * itemsPerPage, (filteredStaff || []).length)}</span> trên <span className="text-white">{(filteredStaff || []).length}</span> nhân sự
+              Hiển thị <span className="text-gray-900 dark:text-white">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="text-gray-900 dark:text-white">{Math.min(currentPage * itemsPerPage, (filteredStaff || []).length)}</span> trên <span className="text-gray-900 dark:text-white">{(filteredStaff || []).length}</span> nhân sự
             </p>
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="h-10 px-4 rounded-xl border border-white/5 bg-white/5 text-gray-500 hover:text-gold hover:bg-gold/10 disabled:opacity-30 disabled:hover:bg-white/5 disabled:hover:text-gray-500 transition-all text-[10px] font-black uppercase tracking-widest"
+                className="h-10 px-4 rounded-xl border border-gray-200 dark:border-white/5 bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gold hover:bg-gold/10 disabled:opacity-30 disabled:hover:bg-gray-100 dark:hover:bg-white/5 disabled:hover:text-gray-500 transition-all text-[10px] font-black uppercase tracking-widest"
               >
                 Trước
               </button>
@@ -979,7 +979,7 @@ export default function StaffManagementPage() {
                     className={`h-10 w-10 rounded-xl border transition-all text-[10px] font-black ${
                       currentPage === i + 1 
                         ? "bg-gold border-gold text-sidebar shadow-lg shadow-gold/20" 
-                        : "bg-white/5 border-white/5 text-gray-500 hover:text-white hover:bg-white/10"
+                        : "bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10"
                     }`}
                   >
                     {i + 1}
@@ -989,7 +989,7 @@ export default function StaffManagementPage() {
               <button 
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="h-10 px-4 rounded-xl border border-white/5 bg-white/5 text-gray-500 hover:text-gold hover:bg-gold/10 disabled:opacity-30 disabled:hover:bg-white/5 disabled:hover:text-gray-500 transition-all text-[10px] font-black uppercase tracking-widest"
+                className="h-10 px-4 rounded-xl border border-gray-200 dark:border-white/5 bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gold hover:bg-gold/10 disabled:opacity-30 disabled:hover:bg-gray-100 dark:hover:bg-white/5 disabled:hover:text-gray-500 transition-all text-[10px] font-black uppercase tracking-widest"
               >
                 Sau
               </button>
@@ -1013,19 +1013,19 @@ export default function StaffManagementPage() {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-6xl bg-sidebar border border-white/10 rounded-[48px] shadow-2xl overflow-y-auto md:overflow-hidden max-h-[90vh] custom-scrollbar"
+              className="relative w-full max-w-6xl bg-white dark:bg-sidebar border border-gray-300 dark:border-white/10 rounded-[48px] shadow-2xl overflow-y-auto md:overflow-hidden max-h-[90vh] custom-scrollbar"
             >
               {/* Close Button */}
               <button 
                 onClick={() => setSelectedStaff(null)}
-                className="absolute top-6 right-6 z-20 h-10 w-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+                className="absolute top-6 right-6 z-20 h-10 w-10 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
               >
                 <X size={18} />
               </button>
 
               <div className="grid grid-cols-1 md:grid-cols-12 max-h-[90vh] overflow-y-auto md:overflow-hidden">
                 {/* Left Side: Profile & Actions (4 Columns) */}
-                <div className="md:col-span-4 p-12 bg-gradient-to-b from-white/[0.03] to-transparent border-r border-white/5 flex flex-col items-center text-center md:max-h-[90vh] md:overflow-y-auto custom-scrollbar">
+                <div className="md:col-span-4 p-12 bg-gradient-to-b from-white/[0.03] to-transparent border-r border-gray-200 dark:border-white/5 flex flex-col items-center text-center md:max-h-[90vh] md:overflow-y-auto custom-scrollbar">
                   <div className="relative group">
                     <div className="h-32 w-32 rounded-[40px] bg-gold/10 border border-gold/20 flex items-center justify-center text-5xl text-gold font-black shadow-2xl group-hover:scale-105 transition-all">
                       {selectedStaff.avatar ? <img src={selectedStaff.avatar} className="w-full h-full object-cover rounded-[40px]" onError={(e) => e.currentTarget.src = "https://ui-avatars.com/api/?name=" + (selectedStaff.name || "U") + "&background=d4af37&color=000"} /> : selectedStaff.name.charAt(0)}
@@ -1034,7 +1034,7 @@ export default function StaffManagementPage() {
                   </div>
                   
                   <div className="mt-8 space-y-2">
-                    <h2 className="text-3xl font-black text-white tracking-tighter uppercase">{selectedStaff.name}</h2>
+                    <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">{selectedStaff.name}</h2>
                     <p className="text-gold font-bold uppercase tracking-[0.3em] text-[10px]">@{selectedStaff.username}</p>
                   </div>
 
@@ -1073,7 +1073,7 @@ export default function StaffManagementPage() {
                               });
                             }
                           }}
-                          className="h-14 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-500 font-black uppercase text-[10px] tracking-widest hover:bg-green-500 hover:text-white transition-all flex flex-col items-center justify-center gap-1"
+                          className="h-14 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-500 font-black uppercase text-[10px] tracking-widest hover:bg-green-500 hover:text-gray-900 dark:hover:text-white transition-all flex flex-col items-center justify-center gap-1"
                         >
                           <Save size={18} />
                           Lưu thông tin
@@ -1086,7 +1086,7 @@ export default function StaffManagementPage() {
                               setTimeout(() => setShowToast(false), 2000);
                             });
                           }}
-                          className="h-14 rounded-2xl bg-white/5 border border-white/10 text-gray-400 font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-1"
+                          className="h-14 rounded-2xl bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-600 dark:text-gray-400 font-black uppercase text-[10px] tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-1"
                         >
                           <Shield size={18} />
                           Reset Pass
@@ -1102,8 +1102,8 @@ export default function StaffManagementPage() {
                           }}
                           className={`h-14 rounded-2xl border font-black uppercase text-[10px] tracking-widest transition-all flex flex-col items-center justify-center gap-1 ${
                             selectedStaff.status === "ACTIVE" 
-                            ? "bg-orange-500/10 border-orange-500/20 text-orange-500 hover:bg-orange-500 hover:text-white" 
-                            : "bg-green-500/10 border-green-500/20 text-green-500 hover:bg-green-500 hover:text-white"
+                            ? "bg-orange-500/10 border-orange-500/20 text-orange-500 hover:bg-orange-500 hover:text-gray-900 dark:hover:text-white" 
+                            : "bg-green-500/10 border-green-500/20 text-green-500 hover:bg-green-500 hover:text-gray-900 dark:hover:text-white"
                           }`}
                         >
                           {selectedStaff.status === "ACTIVE" ? <XCircle size={18} /> : <CheckCircle2 size={18} />}
@@ -1111,7 +1111,7 @@ export default function StaffManagementPage() {
                         </button>
                         <button 
                           onClick={() => handleDenyUser(selectedStaff.id)}
-                          className="h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-white transition-all flex flex-col items-center justify-center gap-1"
+                          className="h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-gray-900 dark:hover:text-white transition-all flex flex-col items-center justify-center gap-1"
                         >
                           <Trash2 size={18} />
                           Xóa tài khoản
@@ -1130,7 +1130,7 @@ export default function StaffManagementPage() {
                         <Activity size={14} className="text-gold" /> Thông tin quản trị
                       </h4>
                       <div className="grid grid-cols-1 gap-3">
-                        <div className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-white/5 group hover:bg-white/5 transition-all">
+                        <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 group hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
                           <div className="flex items-center gap-3">
                             <div className="text-gold opacity-60 group-hover:opacity-100 transition-all"><Shield size={14} /></div>
                             <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Phân quyền</span>
@@ -1141,10 +1141,10 @@ export default function StaffManagementPage() {
                             onChange={(e) => setTempRole(e.target.value)}
                             className={`bg-transparent border-none outline-none text-sm font-black text-gold cursor-pointer text-right ${(!(currentUser?.role === "01" || currentUser?.role === "02") || selectedStaff.id === currentUser?.id) ? "opacity-50 cursor-not-allowed" : ""}`}
                           >
-                            <option value="01" className="bg-sidebar">ADMIN</option>
-                            <option value="02" className="bg-sidebar">QUẢN LÝ CÔNG VIỆC</option>
-                            <option value="03" className="bg-sidebar">QUẢN LÝ NHÂN SỰ</option>
-                            <option value="04" className="bg-sidebar">NHÂN VIÊN CHÍNH THỨC</option>
+                            <option value="01" className="bg-white dark:bg-sidebar">ADMIN</option>
+                            <option value="02" className="bg-white dark:bg-sidebar">QUẢN LÝ CÔNG VIỆC</option>
+                            <option value="03" className="bg-white dark:bg-sidebar">QUẢN LÝ NHÂN SỰ</option>
+                            <option value="04" className="bg-white dark:bg-sidebar">NHÂN VIÊN CHÍNH THỨC</option>
                           </select>
                         </div>
                         <InfoRow label="Trạng thái" value={selectedStaff.status === "ACTIVE" ? "ĐANG HOẠT ĐỘNG" : selectedStaff.status === "LOCKED" ? "ĐÃ BỊ KHÓA" : "CHỜ PHÊ DUYỆT"} icon={<Activity size={14} />} />
@@ -1166,7 +1166,7 @@ export default function StaffManagementPage() {
                   </div>
 
                   {/* Calendar attendance grid with summary stats */}
-                  <div className="space-y-4 pt-4 border-t border-white/5">
+                  <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-white/5">
                     <div className="flex items-center justify-between">
                       <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
                         <Calendar size={14} className="text-gold" /> Lịch Chấm Công & Hoạt Động (26 Ngày Công)
@@ -1175,10 +1175,10 @@ export default function StaffManagementPage() {
                     </div>
                     
                     {/* Dynamic Present/Absent Summary Bar */}
-                    <div className="grid grid-cols-3 gap-4 bg-black/20 border border-white/5 rounded-3xl p-5">
-                      <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/[0.02] border border-white/5">
+                    <div className="grid grid-cols-3 gap-4 bg-black/20 border border-gray-200 dark:border-white/5 rounded-3xl p-5">
+                      <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5">
                         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Tổng ngày công</span>
-                        <span className="text-xl font-black text-white mt-1">26 ngày</span>
+                        <span className="text-xl font-black text-gray-900 dark:text-white mt-1">26 ngày</span>
                       </div>
                       <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-green-500/5 border border-green-500/10">
                         <span className="text-[10px] font-bold text-green-500/80 uppercase tracking-widest">Có mặt</span>
@@ -1191,7 +1191,7 @@ export default function StaffManagementPage() {
                     </div>
 
                     {/* Interactive 26-Day Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 bg-black/20 border border-white/5 rounded-3xl p-5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 bg-black/20 border border-gray-200 dark:border-white/5 rounded-3xl p-5">
                       {(attendanceData.list || []).map((day) => {
                         const isToday = day.isToday;
                         return (
@@ -1201,7 +1201,7 @@ export default function StaffManagementPage() {
                             className={`group/day flex flex-col items-center justify-between p-3 rounded-2xl border text-center transition-all hover:scale-105 hover:bg-white/[0.06] hover:border-gold/30 active:scale-95 ${
                               isToday 
                                 ? "bg-gold/10 border-gold shadow-lg shadow-gold/5" 
-                                : "bg-white/[0.02] border-white/5"
+                                : "bg-gray-50 dark:bg-white/[0.02] border-gray-200 dark:border-white/5"
                             }`}
                           >
                             <span className={`text-[9px] font-black uppercase tracking-tighter ${isToday ? "text-gold" : "text-gray-500"}`}>Ngày {day.dayNum}</span>
@@ -1221,16 +1221,16 @@ export default function StaffManagementPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-4 pt-4 border-t border-white/5">
+                  <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-white/5">
                     <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
                       <ClipboardList size={14} className="text-gold" /> Hiệu suất công việc
                     </h4>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="p-6 rounded-3xl bg-black/20 border border-white/5 text-center">
-                        <p className="text-3xl font-black text-white">{selectedStaff.taskCount}</p>
+                      <div className="p-6 rounded-3xl bg-black/20 border border-gray-200 dark:border-white/5 text-center">
+                        <p className="text-3xl font-black text-gray-900 dark:text-white">{selectedStaff.taskCount}</p>
                         <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">Nhiệm vụ</p>
                       </div>
-                      <div className="p-6 rounded-3xl bg-black/20 border border-white/5 text-center">
+                      <div className="p-6 rounded-3xl bg-black/20 border border-gray-200 dark:border-white/5 text-center">
                         <p className="text-3xl font-black text-gold">{selectedStaff.kpiProgress}%</p>
                         <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">KPI Tháng</p>
                       </div>
@@ -1250,17 +1250,17 @@ export default function StaffManagementPage() {
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setActiveDetailDay(null)}
-              className="absolute inset-0 bg-black/90 backdrop-blur-md"
+              className="absolute inset-0 bg-white/95 dark:bg-black/90 backdrop-blur-md"
             />
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-3xl bg-sidebar border border-white/15 rounded-[44px] shadow-2xl p-12 overflow-hidden"
+              className="relative w-full max-w-3xl bg-white dark:bg-sidebar border border-white/15 rounded-[44px] shadow-2xl p-12 overflow-hidden"
             >
               <button 
                 onClick={() => setActiveDetailDay(null)}
-                className="absolute top-8 right-8 h-12 w-12 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+                className="absolute top-8 right-8 h-12 w-12 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
               >
                 <X size={20} />
               </button>
@@ -1270,8 +1270,8 @@ export default function StaffManagementPage() {
                   <ClipboardList size={32} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-white uppercase tracking-tight">Chi Tiết Ngày Công {activeDetailDay.dayNum}</h3>
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-1">
+                  <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Chi Tiết Ngày Công {activeDetailDay.dayNum}</h3>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-wider mt-1">
                     Nhân sự: <span className="text-gold">{selectedStaff?.name}</span> | Ngày: {activeDetailDay.dateKey}
                   </p>
                 </div>
@@ -1295,9 +1295,9 @@ export default function StaffManagementPage() {
                   </div>
                 </div>
                 {activeDetailDay.hasCheckedIn && (
-                  <div className="sm:text-right border-t sm:border-t-0 pt-4 sm:pt-0 border-white/5">
-                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Giờ Check-in / Out</p>
-                    <p className="text-base font-black text-white mt-1">
+                  <div className="sm:text-right border-t sm:border-t-0 pt-4 sm:pt-0 border-gray-200 dark:border-white/5">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest">Giờ Check-in / Out</p>
+                    <p className="text-base font-black text-gray-900 dark:text-white mt-1">
                       {activeDetailDay.checkinTime} - {activeDetailDay.checkoutTime}
                     </p>
                   </div>
@@ -1306,30 +1306,30 @@ export default function StaffManagementPage() {
 
               {/* Work log timeline */}
               <div className="space-y-6">
-                <h4 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-4">
+                <h4 className="text-xs font-black text-gray-600 dark:text-gray-400 uppercase tracking-[0.2em] mb-4">
                   Nhật Ký Ca Làm Việc Chi Tiết
                 </h4>
                 <div className="space-y-5 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
                   {(activeDetailDay.workLog || []).map((log: any, idx: number) => (
                     <div key={`log-timeline-${idx}`} className="flex gap-5 group/item">
                       <div className="flex flex-col items-center">
-                        <div className="h-11 px-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-sm font-black text-gold group-hover/item:bg-gold/10 group-hover/item:border-gold/20 transition-all shrink-0 shadow-lg">
+                        <div className="h-11 px-4 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 flex items-center justify-center text-sm font-black text-gold group-hover/item:bg-gold/10 group-hover/item:border-gold/20 transition-all shrink-0 shadow-lg">
                           {log.time !== "N/A" ? log.time.slice(0, 5) : "!"}
                         </div>
                         {idx < (activeDetailDay.workLog || []).length - 1 && (
-                          <div className="w-0.5 h-16 bg-white/5 group-hover/item:bg-gold/20 transition-colors my-2" />
+                          <div className="w-0.5 h-16 bg-gray-100 dark:bg-white/5 group-hover/item:bg-gold/20 transition-colors my-2" />
                         )}
                       </div>
-                      <div className="flex-1 bg-white/[0.02] border border-white/5 rounded-2xl p-5 group-hover/item:bg-white/[0.04] transition-all">
-                        <p className="text-sm font-black text-white tracking-tight">{log.title}</p>
-                        <p className="text-xs font-semibold text-gray-300 mt-2 leading-relaxed">{log.desc}</p>
+                      <div className="flex-1 bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 rounded-2xl p-5 group-hover/item:bg-white/[0.04] transition-all">
+                        <p className="text-sm font-black text-gray-900 dark:text-white tracking-tight">{log.title}</p>
+                        <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-2 leading-relaxed">{log.desc}</p>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-white/5 flex justify-end">
+              <div className="mt-8 pt-6 border-t border-gray-200 dark:border-white/5 flex justify-end">
                 <button
                   onClick={() => setActiveDetailDay(null)}
                   className="h-14 px-10 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-xs tracking-widest rounded-xl transition-all shadow-xl shadow-gold/20"
@@ -1349,25 +1349,25 @@ export default function StaffManagementPage() {
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setModalConfig({ ...modalConfig, isOpen: false })}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+              className="absolute inset-0 bg-white/90 dark:bg-black/80 backdrop-blur-md"
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-[#161616] border border-white/10 rounded-[32px] shadow-2xl overflow-hidden p-10 text-center"
+              className="relative w-full max-w-md bg-white dark:bg-[#161616] border border-gray-300 dark:border-white/10 rounded-[32px] shadow-2xl overflow-hidden p-10 text-center"
             >
               <div className="mx-auto w-16 h-16 rounded-2xl bg-gold/10 flex items-center justify-center mb-6">
                 <AlertCircle size={32} className="text-gold" />
               </div>
-              <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-2">{modalConfig.title}</h3>
-              <p className="text-gray-400 font-medium text-sm leading-relaxed mb-8">{modalConfig.message}</p>
+              <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-2">{modalConfig.title}</h3>
+              <p className="text-gray-600 dark:text-gray-400 font-medium text-sm leading-relaxed mb-8">{modalConfig.message}</p>
               
               <div className="flex gap-4">
                 {modalConfig.type === "CONFIRM" && (
                   <button 
                     onClick={() => setModalConfig({ ...modalConfig, isOpen: false })}
-                    className="flex-1 h-12 rounded-xl bg-white/5 border border-white/10 text-gray-500 font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all"
+                    className="flex-1 h-12 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-500 font-black uppercase text-[10px] tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
                   >
                     Hủy bỏ
                   </button>
@@ -1396,7 +1396,7 @@ function StatCard({ title, value, icon, color }: any) {
   const colorStyles: any = {
     blue: "from-blue-600/20 to-blue-900/40 text-blue-400 border-blue-500/20",
     green: "from-green-600/20 to-green-900/40 text-green-400 border-green-500/20",
-    gray: "from-gray-600/20 to-gray-900/40 text-gray-400 border-gray-500/20",
+    gray: "from-gray-600/20 to-gray-900/40 text-gray-600 dark:text-gray-400 border-gray-500/20",
     gold: "from-gold/20 to-gold/40 text-gold border-gold/20",
   };
 
@@ -1405,13 +1405,13 @@ function StatCard({ title, value, icon, color }: any) {
       whileHover={{ y: -8, scale: 1.02 }}
       className={`relative overflow-hidden rounded-[32px] border p-6 bg-gradient-to-br ${colorStyles[color]} shadow-2xl group transition-all`}
     >
-      <div className="absolute -right-4 -bottom-4 h-24 w-24 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-all" />
+      <div className="absolute -right-4 -bottom-4 h-24 w-24 bg-gray-100 dark:bg-white/5 rounded-full blur-2xl group-hover:bg-gray-200 dark:group-hover:bg-white/10 transition-all" />
       <div className="relative z-10 flex items-center justify-between">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 opacity-60">{title}</p>
-          <h3 className="text-4xl font-black tracking-tighter text-white">{value}</h3>
+          <h3 className="text-4xl font-black tracking-tighter text-gray-900 dark:text-white">{value}</h3>
         </div>
-        <div className="h-14 w-14 rounded-2xl bg-white/10 flex items-center justify-center shadow-inner">
+        <div className="h-14 w-14 rounded-2xl bg-gray-200 dark:bg-white/10 flex items-center justify-center shadow-inner">
           {icon}
         </div>
       </div>
@@ -1421,12 +1421,12 @@ function StatCard({ title, value, icon, color }: any) {
 
 function InfoRow({ label, value, icon }: any) {
   return (
-    <div className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-white/5 group hover:bg-white/5 transition-all">
+    <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 group hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
       <div className="flex items-center gap-3">
         <div className="text-gold opacity-60 group-hover:opacity-100 transition-all">{icon}</div>
         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">{label}</span>
       </div>
-      <span className="text-xs font-black text-white">{value}</span>
+      <span className="text-xs font-black text-gray-900 dark:text-white">{value}</span>
     </div>
   );
 }

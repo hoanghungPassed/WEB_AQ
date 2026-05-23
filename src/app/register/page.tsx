@@ -179,16 +179,16 @@ export default function RegisterPage() {
     }, 3000);
   };
 
-  const inputClass = (name: string) => `h-14 w-full rounded-2xl border ${errors[name] ? "border-red-500 bg-red-50/50" : "border-gray-200 bg-white"} pl-14 pr-6 text-sm text-gray-900 focus:border-gold focus:outline-none focus:ring-4 focus:ring-gold/10 transition-all shadow-sm placeholder:text-gray-400 font-bold`;
-  const labelClass = "text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1 mb-1 block";
+  const inputClass = (name: string) => `h-14 w-full rounded-2xl border ${errors[name] ? "border-red-500 bg-red-50/50" : "border-gray-200 bg-white"} pl-14 pr-6 text-sm text-gray-900 focus:border-gold focus:outline-none focus:ring-4 focus:ring-gold/10 transition-all shadow-sm placeholder:text-gray-600 dark:text-gray-400 font-bold`;
+  const labelClass = "text-[10px] font-black uppercase tracking-widest text-gray-600 dark:text-gray-400 ml-1 mb-1 block";
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0f0f0f] font-sans p-4 py-20 text-white">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white dark:bg-[#0f0f0f] font-sans p-4 py-20 text-gray-900 dark:text-white">
       <div className="absolute -left-20 -top-20 h-[500px] w-[500px] rounded-full bg-gold/5 blur-[120px]" />
       <div className="absolute -bottom-20 -right-20 h-[500px] w-[500px] rounded-full bg-gold/5 blur-[120px]" />
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="z-10 w-full max-w-2xl">
-        <div className="rounded-[48px] border border-white/5 bg-[#161616] p-10 md:p-16 shadow-2xl">
+        <div className="rounded-[48px] border border-gray-200 dark:border-white/5 bg-white dark:bg-[#161616] p-10 md:p-16 shadow-2xl">
           <div className="mb-12 text-center">
             <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[32px] bg-gold/5 border border-gold/10 p-2 shadow-2xl">
               <img src="/logo.png" alt="AQ MEDIA" className="h-full w-full object-contain" onError={(e) => e.currentTarget.src = "https://via.placeholder.com/150/d4af37/000000?text=AQ"} />
@@ -203,18 +203,18 @@ export default function RegisterPage() {
                 <Clock size={40} />
               </div>
               <div className="space-y-2">
-                <h2 className="text-2xl font-black uppercase tracking-tighter text-white">Đăng ký thành công!</h2>
+                <h2 className="text-2xl font-black uppercase tracking-tighter text-gray-900 dark:text-white">Đăng ký thành công!</h2>
                 <p className="text-gold font-bold text-lg">Vui lòng đợi hệ thống xác nhận tài khoản.</p>
                 <p className="text-gray-500 text-sm italic font-medium">Thông báo đã được gửi tới Admin để phê duyệt.</p>
               </div>
-              <p className="text-gray-400 text-[10px] uppercase tracking-widest font-black pt-4">Đang chuyển hướng về trang đăng nhập...</p>
+              <p className="text-gray-600 dark:text-gray-400 text-[10px] uppercase tracking-widest font-black pt-4">Đang chuyển hướng về trang đăng nhập...</p>
             </motion.div>
           ) : (
             <form onSubmit={handleRegister} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
               <div className="space-y-1">
                 <label className={labelClass}>Họ và tên</label>
                 <div className="relative group">
-                  <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.name ? "text-red-500" : "text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+                  <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.name ? "text-red-500" : "text-gray-600 dark:text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
                   <input type="text" name="name" required value={formData.name} onChange={handleInputChange} placeholder="Nguyễn Văn A" className={inputClass("name")} />
                 </div>
                 {errors.name && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.name}</p>}
@@ -223,7 +223,7 @@ export default function RegisterPage() {
               <div className="space-y-1">
                 <label className={labelClass}>Năm sinh</label>
                 <div className="relative group">
-                  <Calendar className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.birthYear ? "text-red-500" : "text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+                  <Calendar className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.birthYear ? "text-red-500" : "text-gray-600 dark:text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
                   <select name="birthYear" required value={formData.birthYear} onChange={handleInputChange} className={`${inputClass("birthYear")} appearance-none cursor-pointer`}>
                     <option value="" disabled>Chọn năm</option>
                     {(years || []).map(y => <option key={y} value={y}>{y}</option>)}
@@ -234,7 +234,7 @@ export default function RegisterPage() {
               <div className="space-y-1">
                 <label className={labelClass}>Username</label>
                 <div className="relative group">
-                  <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.username ? "text-red-500" : "text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+                  <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.username ? "text-red-500" : "text-gray-600 dark:text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
                   <input type="text" name="username" required value={formData.username} onChange={handleInputChange} placeholder="username_01" className={inputClass("username")} />
                 </div>
                 {errors.username && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.username}</p>}
@@ -243,7 +243,7 @@ export default function RegisterPage() {
               <div className="space-y-1">
                 <label className={labelClass}>Số điện thoại</label>
                 <div className="relative group">
-                  <Phone className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.phone ? "text-red-500" : "text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+                  <Phone className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.phone ? "text-red-500" : "text-gray-600 dark:text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
                   <input type="tel" name="phone" required value={formData.phone} onChange={handleInputChange} placeholder="09xxxxxxxx" className={inputClass("phone")} />
                 </div>
                 {errors.phone && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.phone}</p>}
@@ -252,7 +252,7 @@ export default function RegisterPage() {
               <div className="md:col-span-2 space-y-1">
                 <label className={labelClass}>Địa chỉ liên hệ</label>
                 <div className="relative group">
-                  <MapPin className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.address ? "text-red-500" : "text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+                  <MapPin className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.address ? "text-red-500" : "text-gray-600 dark:text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
                   <input type="text" name="address" required value={formData.address} onChange={handleInputChange} placeholder="Hà Nội, Việt Nam" className={inputClass("address")} />
                 </div>
               </div>
@@ -260,7 +260,7 @@ export default function RegisterPage() {
               <div className="space-y-1">
                 <label className={labelClass}>Mật khẩu</label>
                 <div className="relative group">
-                  <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.password ? "text-red-500" : "text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+                  <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.password ? "text-red-500" : "text-gray-600 dark:text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
                   <input type="password" name="password" required value={formData.password} onChange={handleInputChange} className={inputClass("password")} />
                 </div>
                 {formData.password && (
@@ -269,7 +269,7 @@ export default function RegisterPage() {
                       <span className="text-gray-500">Độ mạnh:</span>
                       <span className={passwordStrength.label === "Mạnh" ? "text-green-500" : passwordStrength.label === "Trung bình" ? "text-yellow-500" : "text-red-500"}>{passwordStrength.label}</span>
                     </div>
-                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-1 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
                       <motion.div initial={{ width: 0 }} animate={{ width: `${(passwordStrength.score / 3) * 100}%` }} className={`h-full ${passwordStrength.color}`} />
                     </div>
                   </div>
@@ -280,7 +280,7 @@ export default function RegisterPage() {
               <div className="space-y-1">
                 <label className={labelClass}>Xác nhận mật khẩu</label>
                 <div className="relative group">
-                  <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.confirmPassword ? "text-red-500" : "text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+                  <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.confirmPassword ? "text-red-500" : "text-gray-600 dark:text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
                   <input type="password" name="confirmPassword" required value={formData.confirmPassword} onChange={handleInputChange} className={inputClass("confirmPassword")} />
                 </div>
                 {errors.confirmPassword && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.confirmPassword}</p>}

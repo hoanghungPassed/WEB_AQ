@@ -33,9 +33,9 @@ function RealTimeClock() {
   }, []);
 
   return (
-    <div className="absolute right-8 top-8 z-20 flex flex-col items-end rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md text-right font-mono text-white shadow-lg">
+    <div className="absolute right-8 top-8 z-20 flex flex-col items-end rounded-2xl border border-gray-300 dark:border-white/10 bg-gray-100 dark:bg-white/5 p-4 backdrop-blur-md text-right font-mono text-gray-900 dark:text-white shadow-lg">
       <div className="text-2xl font-black tracking-widest text-gold">{timeStr}</div>
-      <div className="text-[10px] font-black uppercase tracking-wider text-gray-400 mt-1">{dateStr}</div>
+      <div className="text-[10px] font-black uppercase tracking-wider text-gray-600 dark:text-gray-400 mt-1">{dateStr}</div>
     </div>
   );
 }
@@ -91,7 +91,7 @@ function LoginForm() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0a0a0a] font-sans">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white dark:bg-[#0a0a0a] font-sans">
       {/* Real-time clock widget in the corner */}
       <RealTimeClock />
 
@@ -104,7 +104,7 @@ function LoginForm() {
         animate={{ opacity: 1, y: 0 }}
         className="z-10 w-full max-w-[550px] p-6"
       >
-        <div className="rounded-[50px] border border-white/10 bg-white/5 p-12 md:p-16 backdrop-blur-3xl shadow-2xl">
+        <div className="rounded-[50px] border border-gray-300 dark:border-white/10 bg-gray-100 dark:bg-white/5 p-12 md:p-16 backdrop-blur-3xl shadow-2xl">
           {/* Logo Section */}
           <div className="mb-10 text-center">
             <motion.div
@@ -114,7 +114,7 @@ function LoginForm() {
             >
               <img src="/logo.png" alt="AQ MEDIA" className="h-full w-full object-contain p-2" onError={(e) => e.currentTarget.src = "https://via.placeholder.com/150/d4af37/000000?text=AQ"} />
             </motion.div>
-            <h1 className="text-4xl font-black tracking-tighter text-white">
+            <h1 className="text-4xl font-black tracking-tighter text-gray-900 dark:text-white">
               AQ <span className="text-gold uppercase tracking-widest text-2xl ml-1">Media</span>
             </h1>
             <p className="mt-3 text-xs font-bold text-gray-500 uppercase tracking-[0.4em]">
@@ -151,7 +151,7 @@ function LoginForm() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Username"
-                  className="h-14 w-full rounded-2xl border border-white/10 bg-white/5 pl-14 pr-6 text-sm text-white transition-all focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 shadow-inner"
+                  className="h-14 w-full rounded-2xl border border-gray-300 dark:border-white/10 bg-gray-100 dark:bg-white/5 pl-14 pr-6 text-sm text-gray-900 dark:text-white transition-all focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 shadow-inner"
                 />
               </div>
             </div>
@@ -175,12 +175,12 @@ function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="đủ 6 kí tự, có số và chữ và kí tự đặc biệt"
-                  className="h-14 w-full rounded-2xl border border-white/10 bg-white/5 pl-14 pr-14 text-sm text-white transition-all focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 shadow-inner"
+                  className="h-14 w-full rounded-2xl border border-gray-300 dark:border-white/10 bg-gray-100 dark:bg-white/5 pl-14 pr-14 text-sm text-gray-900 dark:text-white transition-all focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 shadow-inner"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+                  className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -228,7 +228,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex items-center justify-center">
         <Loader2 className="animate-spin text-gold" size={48} />
       </div>
     }>

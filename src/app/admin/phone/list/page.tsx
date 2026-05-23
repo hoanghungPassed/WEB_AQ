@@ -144,12 +144,12 @@ export default function EmployeePhoneListPage() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.push("/admin")}
-            className="p-2 rounded-xl bg-sidebar border border-border-custom text-gray-400 hover:text-white transition-all shadow-md"
+            className="p-2 rounded-xl bg-white dark:bg-sidebar border border-border-custom text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all shadow-md"
           >
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-3">
               <Phone className="text-gold" size={28} />
               Danh sách SĐT xác minh
             </h2>
@@ -163,15 +163,15 @@ export default function EmployeePhoneListPage() {
       {/* Stats row & Progress Bar */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
         {/* Progress Card */}
-        <div className="md:col-span-4 bg-sidebar border border-white/5 rounded-3xl p-6 shadow-xl flex flex-col justify-between h-32 relative overflow-hidden group">
-          <div className="absolute right-[-10px] bottom-[-10px] text-white/5 group-hover:scale-110 transition-transform">
+        <div className="md:col-span-4 bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 rounded-3xl p-6 shadow-xl flex flex-col justify-between h-32 relative overflow-hidden group">
+          <div className="absolute right-[-10px] bottom-[-10px] text-gray-900 dark:text-white/5 group-hover:scale-110 transition-transform">
             <CheckSquare size={120} />
           </div>
           <div>
             <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">Tiến độ công việc SĐT</span>
-            <span className="text-3xl font-black text-white mt-1">{stats.total - stats.pending} <span className="text-sm text-gray-500">/ {stats.total} Số</span></span>
+            <span className="text-3xl font-black text-gray-900 dark:text-white mt-1">{stats.total - stats.pending} <span className="text-sm text-gray-500">/ {stats.total} Số</span></span>
           </div>
-          <div className="w-full bg-white/5 rounded-full h-2 mt-4 relative">
+          <div className="w-full bg-gray-100 dark:bg-white/5 rounded-full h-2 mt-4 relative">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${stats.progress}%` }}
@@ -183,28 +183,28 @@ export default function EmployeePhoneListPage() {
 
         {/* Breakdown Stats */}
         <div className="md:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-sidebar/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between h-24">
+          <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex flex-col justify-between h-24">
             <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-1">
               <Activity size={12} className="text-indigo-400" /> Chưa làm
             </span>
-            <span className="text-2xl font-black text-white mt-1">{stats.pending}</span>
+            <span className="text-2xl font-black text-gray-900 dark:text-white mt-1">{stats.pending}</span>
           </div>
 
-          <div className="bg-sidebar/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between h-24">
+          <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex flex-col justify-between h-24">
             <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest flex items-center gap-1">
               <Award size={12} /> XM lần 1
             </span>
             <span className="text-2xl font-black text-yellow-500 mt-1">{stats.xm1}</span>
           </div>
 
-          <div className="bg-sidebar/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between h-24">
+          <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex flex-col justify-between h-24">
             <span className="text-[9px] font-black text-green-500 uppercase tracking-widest flex items-center gap-1">
               <ShieldCheck size={12} /> XM lần 2
             </span>
             <span className="text-2xl font-black text-green-500 mt-1">{stats.xm2}</span>
           </div>
 
-          <div className="bg-sidebar/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between h-24">
+          <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex flex-col justify-between h-24">
             <span className="text-[9px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1">
               <AlertOctagon size={12} /> Báo lỗi
             </span>
@@ -214,14 +214,14 @@ export default function EmployeePhoneListPage() {
       </div>
 
       {/* Interactive Table Panel */}
-      <div className="bg-sidebar border border-white/5 rounded-[36px] p-6 shadow-2xl flex-1 flex flex-col justify-between min-h-[400px]">
+      <div className="bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 rounded-[36px] p-6 shadow-2xl flex-1 flex flex-col justify-between min-h-[400px]">
         {/* Table Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-white/5 mb-4">
           <div className="relative group">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={15} />
             <input 
               placeholder="Tìm kiếm số điện thoại..."
-              className="bg-black/20 border border-white/10 rounded-xl pl-10 pr-4 h-10 text-xs text-white outline-none focus:border-gold/50 transition-all w-full sm:w-64"
+              className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl pl-10 pr-4 h-10 text-xs text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full sm:w-64"
               type="text" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -233,21 +233,21 @@ export default function EmployeePhoneListPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
+              className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
             >
-              <option value="ALL" className="bg-sidebar text-white">Tất cả</option>
-              <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
-              <option value="XM lần 1" className="bg-sidebar text-white">XM lần 1</option>
-              <option value="XM lần 2" className="bg-sidebar text-white">XM lần 2</option>
-              <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
+              <option value="ALL" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Tất cả</option>
+              <option value="Chưa làm" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Chưa làm</option>
+              <option value="XM lần 1" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">XM lần 1</option>
+              <option value="XM lần 2" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">XM lần 2</option>
+              <option value="Lỗi" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Lỗi</option>
             </select>
           </div>
         </div>
 
         {/* Table content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar border border-white/5 bg-black/10 rounded-2xl mb-4">
+        <div className="flex-1 overflow-y-auto custom-scrollbar border border-gray-200 dark:border-white/5 bg-black/10 rounded-2xl mb-4">
           <table className="w-full text-left text-xs min-w-[700px]">
-            <thead className="sticky top-0 bg-[#0c0c0c] text-gray-500 border-b border-white/5 z-10 font-black uppercase text-[9px] tracking-widest">
+            <thead className="sticky top-0 bg-white dark:bg-[#0c0c0c] text-gray-500 border-b border-gray-200 dark:border-white/5 z-10 font-black uppercase text-[9px] tracking-widest">
               <tr>
                 <th className="py-3.5 px-6">STT</th>
                 <th className="py-3.5 px-6">Số điện thoại</th>
@@ -257,12 +257,12 @@ export default function EmployeePhoneListPage() {
                 <th className="py-3.5 px-6 text-center">Thao tác cập nhật</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 text-gray-300">
+            <tbody className="divide-y divide-white/5 text-gray-700 dark:text-gray-300">
               {(filteredPhones || []).map((p, idx) => (
                 <tr key={p.id} className="hover:bg-white/[0.01] transition-colors">
                   <td className="py-4 px-6 text-gray-500 font-bold">{idx + 1}</td>
-                  <td className="py-4 px-6 font-bold text-white font-mono text-sm tracking-wide">{p.number}</td>
-                  <td className="py-4 px-6 text-gray-400 font-mono text-[10px] max-w-[240px] truncate">
+                  <td className="py-4 px-6 font-bold text-gray-900 dark:text-white font-mono text-sm tracking-wide">{p.number}</td>
+                  <td className="py-4 px-6 text-gray-600 dark:text-gray-400 font-mono text-[10px] max-w-[240px] truncate">
                     {(p as any).otpLink ? (
                       <a href={(p as any).otpLink} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 hover:underline transition-colors">
                         {(p as any).otpLink}
@@ -277,7 +277,7 @@ export default function EmployeePhoneListPage() {
                       p.status === "XM lần 1" ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" : 
                       p.status === "XM lần 2" ? "bg-green-500/10 text-green-500 border-green-500/20" : 
                       p.status === "Lỗi" ? "bg-red-500/10 text-red-500 border-red-500/20" : 
-                      "bg-gray-500/10 text-gray-400 border-white/5"
+                      "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-white/5"
                     }`}>
                       {p.status}
                     </span>
@@ -308,7 +308,7 @@ export default function EmployeePhoneListPage() {
                         onClick={() => handleUpdateStatus(p.id, "Lỗi")}
                         className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
                           p.status === "Lỗi" 
-                            ? "bg-red-500 text-white border-red-600 shadow-md shadow-red-500/20" 
+                            ? "bg-red-500 text-gray-900 dark:text-white border-red-600 shadow-md shadow-red-500/20" 
                             : "bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20"
                         }`}
                       >

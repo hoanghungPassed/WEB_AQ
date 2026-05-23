@@ -242,12 +242,12 @@ export default function ReportsPage() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.push("/admin")}
-            className="p-2 rounded-xl bg-sidebar border border-border-custom text-gray-400 hover:text-white transition-all shadow-md"
+            className="p-2 rounded-xl bg-white dark:bg-sidebar border border-border-custom text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all shadow-md"
           >
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-3">
               <BarChart3 className="text-gold" size={28} />
               Thống Kê & Nhân Sự (Reports & Payroll)
             </h2>
@@ -258,17 +258,17 @@ export default function ReportsPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex bg-sidebar border border-white/5 p-1 rounded-2xl shadow-inner">
+          <div className="flex bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 p-1 rounded-2xl shadow-inner">
             <button
               onClick={() => setActiveTab("STATS")}
-              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "STATS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-white"}`}
+              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "STATS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-gray-900 dark:hover:text-white"}`}
             >
               Hiệu Suất KPI
             </button>
             {(user?.role === "01" || user?.role === "02" || user?.role === "ADMIN" || user?.role === "QUẢN LÝ CÔNG VIỆC") && (
               <button
                 onClick={() => setActiveTab("PAYROLL")}
-                className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "PAYROLL" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-white"}`}
+                className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "PAYROLL" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-gray-900 dark:hover:text-white"}`}
               >
                 Bảng Lương
               </button>
@@ -290,10 +290,10 @@ export default function ReportsPage() {
         <>
           {/* 4 Premium Stats Widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-sidebar border border-white/5 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-gold/30 transition-all">
+        <div className="bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-gold/30 transition-all">
           <div className="space-y-1">
             <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest block">Tỷ lệ hoàn thành KPI</span>
-            <span className="text-3xl font-black text-white block">{stats.completionRate}%</span>
+            <span className="text-3xl font-black text-gray-900 dark:text-white block">{stats.completionRate}%</span>
             <span className="text-[10px] text-green-400 font-bold block">▲ +4.2% so với tuần trước</span>
           </div>
           <div className="h-14 w-14 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold">
@@ -301,7 +301,7 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="bg-sidebar border border-white/5 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-indigo-500/30 transition-all">
+        <div className="bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-indigo-500/30 transition-all">
           <div className="space-y-1">
             <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest block">Watch Hours lũy kế</span>
             <span className="text-3xl font-black text-indigo-400 block">450 / 2K<span className="text-xs text-gray-500"> Hrs</span></span>
@@ -312,7 +312,7 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="bg-sidebar border border-white/5 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-emerald-500/30 transition-all">
+        <div className="bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-emerald-500/30 transition-all">
           <div className="space-y-1">
             <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest block">Tỷ lệ tài khoản LIVE</span>
             <span className="text-3xl font-black text-emerald-400 block">{stats.liveRatio}%</span>
@@ -323,7 +323,7 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="bg-sidebar border border-white/5 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-sky-500/30 transition-all">
+        <div className="bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-sky-500/30 transition-all">
           <div className="space-y-1">
             <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest block">Tổng Sản Lượng Mail</span>
             <span className="text-3xl font-black text-sky-400 block">{stats.total} <span className="text-xs text-gray-500">Accounts</span></span>
@@ -338,9 +338,9 @@ export default function ReportsPage() {
       {/* Visual Analytics Graphs Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* SVG Cumulative Output Line Graph */}
-        <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl col-span-2 flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
-            <h3 className="text-md font-black text-white uppercase tracking-tighter flex items-center gap-2">
+        <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl col-span-2 flex flex-col justify-between">
+          <div className="flex items-center justify-between border-b border-gray-200 dark:border-white/5 pb-4 mb-4">
+            <h3 className="text-md font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
               <TrendingUp size={16} className="text-gold" />
               Sản lượng tích lũy tuần này
             </h3>
@@ -376,7 +376,7 @@ export default function ReportsPage() {
             </svg>
           </div>
 
-          <div className="flex justify-between text-[9px] text-gray-500 font-black uppercase tracking-widest mt-4 pt-3 border-t border-white/5">
+          <div className="flex justify-between text-[9px] text-gray-500 font-black uppercase tracking-widest mt-4 pt-3 border-t border-gray-200 dark:border-white/5">
             <span>Thứ 2</span>
             <span>Thứ 3</span>
             <span>Thứ 4</span>
@@ -387,9 +387,9 @@ export default function ReportsPage() {
         </div>
 
         {/* Circular Donut Type Distribution chart */}
-        <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
-            <h3 className="text-md font-black text-white uppercase tracking-tighter flex items-center gap-2">
+        <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl flex flex-col justify-between">
+          <div className="flex items-center justify-between border-b border-gray-200 dark:border-white/5 pb-4 mb-4">
+            <h3 className="text-md font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
               <Zap size={16} className="text-gold" />
               Phân bố loại mail quản lý
             </h3>
@@ -410,31 +410,31 @@ export default function ReportsPage() {
             </svg>
             <div className="absolute flex flex-col items-center justify-center">
               <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Tỉ lệ chính</span>
-              <span className="text-xl font-black text-white">50% <span className="text-xs text-sky-400 font-medium">Sat</span></span>
+              <span className="text-xl font-black text-gray-900 dark:text-white">50% <span className="text-xs text-sky-400 font-medium">Sat</span></span>
             </div>
           </div>
 
-          <div className="space-y-2 mt-4 pt-3 border-t border-white/5">
+          <div className="space-y-2 mt-4 pt-3 border-t border-gray-200 dark:border-white/5">
             <div className="flex items-center justify-between text-[11px] font-bold">
-              <span className="flex items-center gap-2 text-gray-400"><span className="h-2 w-2 rounded-full bg-sky-400" /> Mail Vệ Tinh (Satellite)</span>
-              <span className="text-white">50.0%</span>
+              <span className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><span className="h-2 w-2 rounded-full bg-sky-400" /> Mail Vệ Tinh (Satellite)</span>
+              <span className="text-gray-900 dark:text-white">50.0%</span>
             </div>
             <div className="flex items-center justify-between text-[11px] font-bold">
-              <span className="flex items-center gap-2 text-gray-400"><span className="h-2 w-2 rounded-full bg-indigo-500" /> Mail Gốc (Root)</span>
-              <span className="text-white">33.3%</span>
+              <span className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><span className="h-2 w-2 rounded-full bg-indigo-500" /> Mail Gốc (Root)</span>
+              <span className="text-gray-900 dark:text-white">33.3%</span>
             </div>
             <div className="flex items-center justify-between text-[11px] font-bold">
-              <span className="flex items-center gap-2 text-gray-400"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Mail BKT (Monetized)</span>
-              <span className="text-white">16.7%</span>
+              <span className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Mail BKT (Monetized)</span>
+              <span className="text-gray-900 dark:text-white">16.7%</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Staff Productivity Report Leaderboard */}
-      <div className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex-1 flex flex-col min-h-0">
-        <div className="p-6 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
-          <h3 className="text-lg font-black text-white uppercase tracking-tighter flex items-center gap-2">
+      <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex-1 flex flex-col min-h-0">
+        <div className="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.02] flex items-center justify-between">
+          <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
             <Award size={18} className="text-gold animate-bounce" />
             Bảng hiệu suất nhân sự (KPI Leaderboard)
           </h3>
@@ -445,7 +445,7 @@ export default function ReportsPage() {
 
         <div className="flex-1 overflow-x-auto custom-scrollbar">
           <table className="w-full text-left text-sm whitespace-nowrap min-w-[1000px]">
-            <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5 sticky top-0 z-10">
+            <thead className="bg-white dark:bg-[#0a0a0a] text-gray-500 border-b border-gray-200 dark:border-white/5 sticky top-0 z-10">
               <tr>
                 <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center w-16">Hạng</th>
                 <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Nhân sự</th>
@@ -457,22 +457,22 @@ export default function ReportsPage() {
                 <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Xếp loại</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 text-gray-300">
+            <tbody className="divide-y divide-white/5 text-gray-700 dark:text-gray-300">
               {(staffLeaderboard || []).length > 0 ? (
                 (staffLeaderboard || []).map((staff, idx) => (
-                  <tr key={staff.username} className="hover:bg-white/[0.02] transition-colors group">
+                  <tr key={staff.username} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
                     <td className="py-4.5 px-6 text-center">
                       <span className={`h-6 w-6 rounded-lg font-black text-xs inline-flex items-center justify-center border ${
                         staff.rank === 1 ? "bg-gold/20 border-gold/50 text-gold" : 
-                        staff.rank === 2 ? "bg-gray-400/20 border-gray-400/30 text-gray-300" :
+                        staff.rank === 2 ? "bg-gray-400/20 border-gray-400/30 text-gray-700 dark:text-gray-300" :
                         staff.rank === 3 ? "bg-amber-700/20 border-amber-700/30 text-amber-500" :
-                        "border-white/5 text-gray-500"
+                        "border-gray-200 dark:border-white/5 text-gray-500"
                       }`}>
                         {staff.rank}
                       </span>
                     </td>
-                    <td className="py-4.5 px-6 font-black text-white text-xs">{staff.name}</td>
-                    <td className="py-4.5 px-6 text-xs text-gray-400 font-mono">{staff.username}</td>
+                    <td className="py-4.5 px-6 font-black text-gray-900 dark:text-white text-xs">{staff.name}</td>
+                    <td className="py-4.5 px-6 text-xs text-gray-600 dark:text-gray-400 font-mono">{staff.username}</td>
                     <td className="py-4.5 px-6 text-center font-bold">{staff.assigned} Mail</td>
                     <td className="py-4.5 px-6 text-center text-green-400 font-bold">{staff.completed} Mail</td>
                     <td className="py-4.5 px-6 text-center font-mono font-bold">
@@ -482,7 +482,7 @@ export default function ReportsPage() {
                     </td>
                     <td className="py-4.5 px-6">
                       <div className="flex items-center gap-3 w-40">
-                        <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                        <div className="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden">
                           <div 
                             className={`h-full rounded-full ${
                               staff.kpiProgress >= 80 ? "bg-green-400" :
@@ -491,7 +491,7 @@ export default function ReportsPage() {
                             style={{ width: `${staff.kpiProgress}%` }}
                           />
                         </div>
-                        <span className="text-[10px] font-black text-white font-mono">{staff.kpiProgress}%</span>
+                        <span className="text-[10px] font-black text-gray-900 dark:text-white font-mono">{staff.kpiProgress}%</span>
                       </div>
                     </td>
                     <td className="py-4.5 px-6 text-center">
@@ -519,23 +519,23 @@ export default function ReportsPage() {
       </>
       ) : (
         <div className="flex-1 flex flex-col gap-6">
-          <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl">
-            <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-4">
+          <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl">
+            <div className="flex items-center gap-2 border-b border-gray-200 dark:border-white/5 pb-4 mb-4">
               <Calculator size={18} className="text-gold" />
-              <h3 className="text-lg font-black text-white uppercase tracking-tighter">Cấu hình Bảng lương</h3>
+              <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">Cấu hình Bảng lương</h3>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Chọn nhân viên</label>
                 <select 
-                  className="h-12 px-4 rounded-xl bg-black/20 border border-white/5 text-sm text-white focus:outline-none focus:border-gold/50 cursor-pointer"
+                  className="h-12 px-4 rounded-xl bg-black/20 border border-gray-200 dark:border-white/5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 cursor-pointer"
                   value={selectedStaffId}
                   onChange={(e) => setSelectedStaffId(e.target.value)}
                 >
-                  <option value="" className="bg-sidebar text-gray-400">-- Nhấp để chọn --</option>
+                  <option value="" className="bg-white dark:bg-sidebar text-gray-600 dark:text-gray-400">-- Nhấp để chọn --</option>
                   {(staffList || []).map(s => (
-                    <option key={s.id} value={s.id} className="bg-sidebar">{s.name} (@{s.username})</option>
+                    <option key={s.id} value={s.id} className="bg-white dark:bg-sidebar">{s.name} (@{s.username})</option>
                   ))}
                 </select>
               </div>
@@ -551,7 +551,7 @@ export default function ReportsPage() {
                          staffList.find(s => s.id === selectedStaffId)?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN")
                       : ""
                   }
-                  className="h-12 px-4 rounded-xl bg-white/5 border border-white/5 text-sm text-gray-400 font-bold" 
+                  className="h-12 px-4 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 text-sm text-gray-600 dark:text-gray-400 font-bold" 
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -560,7 +560,7 @@ export default function ReportsPage() {
                   type="text" 
                   value={baseSalary ? Number(baseSalary).toLocaleString("vi-VN") : ""}
                   onChange={(e) => setBaseSalary(e.target.value.replace(/\D/g, ""))}
-                  className="h-12 px-4 rounded-xl bg-black/20 border border-white/5 text-sm text-white focus:outline-none focus:border-gold/50 font-bold" 
+                  className="h-12 px-4 rounded-xl bg-black/20 border border-gray-200 dark:border-white/5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 font-bold" 
                   placeholder="Ví dụ: 5.000.000"
                 />
               </div>
@@ -570,7 +570,7 @@ export default function ReportsPage() {
                   type="text" 
                   value={allowance ? Number(allowance).toLocaleString("vi-VN") : ""}
                   onChange={(e) => setAllowance(e.target.value.replace(/\D/g, ""))}
-                  className="h-12 px-4 rounded-xl bg-black/20 border border-white/5 text-sm text-white focus:outline-none focus:border-gold/50 font-bold" 
+                  className="h-12 px-4 rounded-xl bg-black/20 border border-gray-200 dark:border-white/5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 font-bold" 
                   placeholder="Ví dụ: 500.000"
                 />
               </div>
@@ -586,14 +586,14 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex-1 flex flex-col min-h-0">
-            <div className="p-6 border-b border-white/5 bg-white/[0.02] flex items-center gap-2">
+          <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex-1 flex flex-col min-h-0">
+            <div className="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.02] flex items-center gap-2">
               <Banknote size={18} className="text-green-400" />
-              <h3 className="text-lg font-black text-white uppercase tracking-tighter">Bảng Tổng Hợp Lương (Payroll Table)</h3>
+              <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">Bảng Tổng Hợp Lương (Payroll Table)</h3>
             </div>
             <div className="flex-1 overflow-x-auto custom-scrollbar">
               <table className="w-full text-left text-sm whitespace-nowrap min-w-[1000px]">
-                <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5 sticky top-0 z-10">
+                <thead className="bg-white dark:bg-[#0a0a0a] text-gray-500 border-b border-gray-200 dark:border-white/5 sticky top-0 z-10">
                   <tr>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Nhân viên</th>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Chức vụ</th>
@@ -604,21 +604,21 @@ export default function ReportsPage() {
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-right">Thời gian lưu</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5 text-gray-300">
+                <tbody className="divide-y divide-white/5 text-gray-700 dark:text-gray-300">
                   {(payrollRecords || []).length > 0 ? (
                     (payrollRecords || []).map((record) => (
-                      <tr key={record.id} className="hover:bg-white/[0.02] transition-colors group">
-                        <td className="py-4.5 px-6 font-black text-white text-xs">{record.name}</td>
-                        <td className="py-4.5 px-6 text-xs text-gray-400 font-bold">
+                      <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+                        <td className="py-4.5 px-6 font-black text-gray-900 dark:text-white text-xs">{record.name}</td>
+                        <td className="py-4.5 px-6 text-xs text-gray-600 dark:text-gray-400 font-bold">
                           {record.role === "01" ? "ADMIN" : record.role === "02" ? "QL CÔNG VIỆC" : record.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN"}
                         </td>
-                        <td className="py-4.5 px-6 text-right font-mono text-gray-400">{formatVND(record.baseSalary)}</td>
+                        <td className="py-4.5 px-6 text-right font-mono text-gray-600 dark:text-gray-400">{formatVND(record.baseSalary)}</td>
                         <td className="py-4.5 px-6 text-center">
                           <span className="inline-flex items-center gap-1 bg-green-500/10 text-green-400 border border-green-500/20 px-3 py-1 rounded-lg font-black text-[10px]">
                             <CalendarDays size={12} /> {record.attendanceDays} / 26
                           </span>
                         </td>
-                        <td className="py-4.5 px-6 text-right font-mono text-gray-400">{formatVND(record.allowance)}</td>
+                        <td className="py-4.5 px-6 text-right font-mono text-gray-600 dark:text-gray-400">{formatVND(record.allowance)}</td>
                         <td className="py-4.5 px-6 text-right font-mono font-black text-gold text-sm">{formatVND(record.totalReceived)}</td>
                         <td className="py-4.5 px-6 text-right text-[10px] text-gray-500 font-bold">{new Date(record.timestamp).toLocaleString("vi-VN")}</td>
                       </tr>

@@ -163,7 +163,7 @@ export default function SystemLogsPage() {
   const getRoleStyle = (r: string) => {
     if (r === "ADMIN") return "text-indigo-400";
     if (r === "QL CÔNG VIỆC") return "text-gold";
-    return "text-gray-400";
+    return "text-gray-600 dark:text-gray-400";
   };
 
   const filteredLogs = (logs || []).filter(l => {
@@ -197,38 +197,38 @@ export default function SystemLogsPage() {
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
-            className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+            className="fixed inset-0 z-[150] bg-white/90 dark:bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
           >
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }} 
               animate={{ scale: 1, opacity: 1 }} 
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#121212] border border-red-500/30 rounded-[32px] p-8 w-full max-w-md shadow-2xl flex flex-col"
+              className="bg-white dark:bg-[#121212] border border-red-500/30 rounded-[32px] p-8 w-full max-w-md shadow-2xl flex flex-col"
             >
               <div className="flex items-center gap-4 mb-6 flex-shrink-0">
                 <div className="h-12 w-12 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-500">
                   <AlertCircle size={28} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-white uppercase tracking-tighter">Xóa Nhật Ký</h3>
+                  <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Xóa Nhật Ký</h3>
                   <p className="text-[10px] text-red-500/70 font-black uppercase tracking-widest mt-0.5">Xác nhận dọn dẹp</p>
                 </div>
               </div>
 
-              <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-5 mb-6 text-xs text-gray-300 font-bold leading-relaxed">
+              <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-5 mb-6 text-xs text-gray-700 dark:text-gray-300 font-bold leading-relaxed">
                 Bạn có chắc chắn muốn xóa toàn bộ nhật ký hệ thống không? Hành động này sẽ dọn sạch tất cả dữ liệu lịch sử và không thể khôi phục lại.
               </div>
 
               <div className="flex gap-4">
                 <button 
                   onClick={() => setShowClearConfirm(false)} 
-                  className="flex-1 h-12 rounded-xl border border-white/10 text-white font-bold uppercase text-xs tracking-widest hover:bg-white/5 transition-all"
+                  className="flex-1 h-12 rounded-xl border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white font-bold uppercase text-xs tracking-widest hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
                 >
                   Hủy bỏ
                 </button>
                 <button 
                   onClick={handleClearLogs} 
-                  className="flex-1 h-12 rounded-xl bg-red-500 text-white font-black uppercase text-xs tracking-widest hover:bg-red-600 transition-all shadow-xl shadow-red-500/10"
+                  className="flex-1 h-12 rounded-xl bg-red-500 text-gray-900 dark:text-white font-black uppercase text-xs tracking-widest hover:bg-red-600 transition-all shadow-xl shadow-red-500/10"
                 >
                   Xác nhận xóa
                 </button>
@@ -243,12 +243,12 @@ export default function SystemLogsPage() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.push("/admin")}
-            className="p-2 rounded-xl bg-sidebar border border-border-custom text-gray-400 hover:text-white transition-all shadow-md"
+            className="p-2 rounded-xl bg-white dark:bg-sidebar border border-border-custom text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all shadow-md"
           >
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-3">
               <Terminal className="text-gold" size={28} />
               Nhật Ký Hoạt Động (Logs)
             </h2>
@@ -263,7 +263,7 @@ export default function SystemLogsPage() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={16} />
             <input 
               placeholder="Tìm kiếm tác vụ, tài khoản..."
-              className="bg-black/20 border border-white/10 rounded-xl pl-10 pr-4 h-10 text-xs text-white outline-none focus:border-gold/50 transition-all w-60"
+              className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl pl-10 pr-4 h-10 text-xs text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-60"
               type="text" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -272,7 +272,7 @@ export default function SystemLogsPage() {
 
           <button 
             onClick={() => setShowClearConfirm(true)}
-            className="h-10 px-4 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-all text-xs font-black uppercase tracking-wider flex items-center gap-2 border border-red-500/20"
+            className="h-10 px-4 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-gray-900 dark:hover:text-white transition-all text-xs font-black uppercase tracking-wider flex items-center gap-2 border border-red-500/20"
           >
             <Trash2 size={14} /> Dọn dẹp logs
           </button>
@@ -280,30 +280,30 @@ export default function SystemLogsPage() {
       </div>
 
       {/* Filters Row */}
-      <div className="flex flex-wrap items-center gap-4 bg-sidebar/30 border border-white/5 rounded-2xl p-4">
+      <div className="flex flex-wrap items-center gap-4 bg-white dark:bg-sidebar/30 border border-gray-200 dark:border-white/5 rounded-2xl p-4">
         <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest flex items-center gap-1.5"><Filter size={12} /> Bộ lọc nâng cao:</span>
         
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="bg-black/20 border border-white/10 rounded-xl px-4 h-9 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
+          className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-9 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
         >
-          <option value="ALL" className="bg-sidebar text-white">Mọi mức độ</option>
-          <option value="SUCCESS" className="bg-sidebar text-white">Thành công (SUCCESS)</option>
-          <option value="INFO" className="bg-sidebar text-white">Thông tin (INFO)</option>
-          <option value="WARNING" className="bg-sidebar text-white">Cảnh báo (WARNING)</option>
-          <option value="ERROR" className="bg-sidebar text-white">Lỗi nghiêm trọng (ERROR)</option>
+          <option value="ALL" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Mọi mức độ</option>
+          <option value="SUCCESS" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Thành công (SUCCESS)</option>
+          <option value="INFO" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Thông tin (INFO)</option>
+          <option value="WARNING" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Cảnh báo (WARNING)</option>
+          <option value="ERROR" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Lỗi nghiêm trọng (ERROR)</option>
         </select>
 
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
-          className="bg-black/20 border border-white/10 rounded-xl px-4 h-9 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
+          className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-9 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
         >
-          <option value="ALL" className="bg-sidebar text-white">Tất cả chức vụ</option>
-          <option value="ADMIN" className="bg-sidebar text-white">ADMIN</option>
-          <option value="QL CÔNG VIỆC" className="bg-sidebar text-white">QL CÔNG VIỆC</option>
-          <option value="NHÂN VIÊN" className="bg-sidebar text-white">NHÂN VIÊN</option>
+          <option value="ALL" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Tất cả chức vụ</option>
+          <option value="ADMIN" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">ADMIN</option>
+          <option value="QL CÔNG VIỆC" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">QL CÔNG VIỆC</option>
+          <option value="NHÂN VIÊN" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">NHÂN VIÊN</option>
         </select>
 
         <span className="text-[10px] font-black text-gold/80 bg-gold/10 px-3 py-1 rounded-full border border-gold/20 ml-auto uppercase tracking-widest">
@@ -312,9 +312,9 @@ export default function SystemLogsPage() {
       </div>
 
       {/* Main Table Display */}
-      <div className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex-1 flex flex-col min-h-0">
-        <div className="p-6 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
-          <h3 className="text-lg font-black text-white uppercase tracking-tighter flex items-center gap-2">
+      <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex-1 flex flex-col min-h-0">
+        <div className="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.02] flex items-center justify-between">
+          <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
             <Terminal size={18} className="text-gold" />
             Nhật ký sự kiện thời gian thực
           </h3>
@@ -323,7 +323,7 @@ export default function SystemLogsPage() {
 
         <div className="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
           <table className="w-full text-left text-sm whitespace-nowrap min-w-[1000px]">
-            <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5 sticky top-0 z-10">
+            <thead className="bg-white dark:bg-[#0a0a0a] text-gray-500 border-b border-gray-200 dark:border-white/5 sticky top-0 z-10">
               <tr>
                 <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Thời gian</th>
                 <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Mức độ</th>
@@ -332,21 +332,21 @@ export default function SystemLogsPage() {
                 <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Hành động ghi nhận</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 text-gray-300">
+            <tbody className="divide-y divide-white/5 text-gray-700 dark:text-gray-300">
               {(filteredLogs || []).length > 0 ? (
                 (filteredLogs || []).map((log) => (
-                  <tr key={log.id} className="hover:bg-white/[0.02] transition-colors group">
-                    <td className="py-4 px-6 text-xs text-gray-400 font-mono font-bold">{log.timestamp}</td>
+                  <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+                    <td className="py-4 px-6 text-xs text-gray-600 dark:text-gray-400 font-mono font-bold">{log.timestamp}</td>
                     <td className="py-4 px-6 text-xs">
                       <span className={`px-3 py-1 rounded-xl text-[9px] font-black tracking-widest uppercase border ${getSeverityStyle(log.type)}`}>
                         {log.type}
                       </span>
                     </td>
-                    <td className="py-4 px-6 font-black text-white text-xs">{log.user}</td>
+                    <td className="py-4 px-6 font-black text-gray-900 dark:text-white text-xs">{log.user}</td>
                     <td className="py-4 px-6 text-[10px] font-black uppercase tracking-widest">
                       <span className={getRoleStyle(log.role)}>{log.role}</span>
                     </td>
-                    <td className="py-4 px-6 text-xs text-gray-300 truncate max-w-lg font-bold group-hover:text-gold transition-colors">
+                    <td className="py-4 px-6 text-xs text-gray-700 dark:text-gray-300 truncate max-w-lg font-bold group-hover:text-gold transition-colors">
                       {log.action}
                     </td>
                   </tr>

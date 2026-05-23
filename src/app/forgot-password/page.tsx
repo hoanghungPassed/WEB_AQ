@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0a0a0a] font-sans p-4">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white dark:bg-[#0a0a0a] font-sans p-4">
       {/* Background Orbs */}
       <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-gold/10 blur-[120px]" />
       <div className="absolute -bottom-20 -right-20 h-96 w-96 rounded-full bg-gold/5 blur-[120px]" />
@@ -66,13 +66,13 @@ export default function ForgotPasswordPage() {
         animate={{ opacity: 1, y: 0 }}
         className="z-10 w-full max-w-[550px]"
       >
-        <div className="rounded-[50px] border border-white/10 bg-white/5 p-12 md:p-16 backdrop-blur-3xl shadow-2xl">
+        <div className="rounded-[50px] border border-gray-300 dark:border-white/10 bg-gray-100 dark:bg-white/5 p-12 md:p-16 backdrop-blur-3xl shadow-2xl">
           {/* Header */}
           <div className="mb-10 text-center">
             <div className="mx-auto mb-8 flex h-32 w-32 items-center justify-center rounded-[40px] bg-gold/5 border border-gold/10 overflow-hidden shadow-2xl">
               <img src="/logo.png" alt="AQ MEDIA" className="h-full w-full object-contain p-2" onError={(e) => e.currentTarget.src = "https://via.placeholder.com/150/d4af37/000000?text=AQ"} />
             </div>
-            <h1 className="text-3xl font-black tracking-tighter text-white uppercase">
+            <h1 className="text-3xl font-black tracking-tighter text-gray-900 dark:text-white uppercase">
               {step === 4 ? "Thành công!" : "Quên mật khẩu"}
             </h1>
             <p className="mt-3 text-sm font-bold text-gray-500 uppercase tracking-[0.2em]">
@@ -103,7 +103,7 @@ export default function ForgotPasswordPage() {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="09xx xxx xxx"
-                      className="h-16 w-full rounded-2xl border border-white/10 bg-white/5 pl-14 pr-6 text-lg text-white focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 transition-all"
+                      className="h-16 w-full rounded-2xl border border-gray-300 dark:border-white/10 bg-gray-100 dark:bg-white/5 pl-14 pr-6 text-lg text-gray-900 dark:text-white focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 transition-all"
                     />
                   </div>
                 </div>
@@ -132,7 +132,7 @@ export default function ForgotPasswordPage() {
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
                       placeholder="Thử 123456"
-                      className="h-16 w-full rounded-2xl border border-white/10 bg-white/5 pl-14 pr-6 text-center text-2xl tracking-[0.5em] text-white focus:border-gold/50 focus:outline-none transition-all"
+                      className="h-16 w-full rounded-2xl border border-gray-300 dark:border-white/10 bg-gray-100 dark:bg-white/5 pl-14 pr-6 text-center text-2xl tracking-[0.5em] text-gray-900 dark:text-white focus:border-gold/50 focus:outline-none transition-all"
                     />
                   </div>
                   {error && <p className="text-center text-xs font-bold text-red-500 uppercase tracking-widest">{error}</p>}
@@ -162,7 +162,7 @@ export default function ForgotPasswordPage() {
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="h-16 w-full rounded-2xl border border-white/10 bg-white/5 pl-14 pr-6 text-lg text-white focus:border-gold/50 focus:outline-none transition-all"
+                      className="h-16 w-full rounded-2xl border border-gray-300 dark:border-white/10 bg-gray-100 dark:bg-white/5 pl-14 pr-6 text-lg text-gray-900 dark:text-white focus:border-gold/50 focus:outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -182,8 +182,8 @@ export default function ForgotPasswordPage() {
                 <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-green-500/20 text-green-500 shadow-2xl shadow-green-500/20">
                   <CheckCircle2 size={48} />
                 </div>
-                <h2 className="text-2xl font-bold text-white">Xác nhận thành công!</h2>
-                <p className="text-gray-400">Bạn sẽ được chuyển về trang đăng nhập sau vài giây.</p>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Xác nhận thành công!</h2>
+                <p className="text-gray-600 dark:text-gray-400">Bạn sẽ được chuyển về trang đăng nhập sau vài giây.</p>
               </motion.div>
             )}
           </AnimatePresence>

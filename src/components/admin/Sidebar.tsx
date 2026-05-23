@@ -175,59 +175,13 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
     window.location.href = "/login";
   };
 
-  const handleResetDatabase = async () => {
-    const confirmReset = window.confirm(
-      "Bạn có chắc chắn muốn khôi phục toàn bộ cơ sở dữ liệu về trạng thái mặc định ban đầu không? Mọi thay đổi về phân công, trạng thái mail, tài khoản... sẽ bị reset."
-    );
-    if (!confirmReset) return;
 
-    try {
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key) keysToRemove.push(key);
-      }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-
-      await fetch("/api/sync", { method: "DELETE" });
-
-      localStorage.setItem("global_users", JSON.stringify([]));
-      localStorage.setItem("global_mails_data", JSON.stringify([]));
-      localStorage.setItem("global_tasks_data", JSON.stringify([]));
-      localStorage.setItem("global_kpi_data", JSON.stringify([]));
-      localStorage.setItem("admin_notifications", JSON.stringify([]));
-      localStorage.setItem("pending_access_requests", JSON.stringify([]));
-
-      const resetPayload = {
-        global_users: JSON.stringify([]),
-        global_mails_data: JSON.stringify([]),
-        global_tasks_data: JSON.stringify([]),
-        global_kpi_data: JSON.stringify([]),
-        admin_notifications: JSON.stringify([]),
-        realtime_toast: JSON.stringify({ userId: "all", message: "Hệ thống đã được khôi phục dữ liệu gốc!" }),
-        pending_access_requests: JSON.stringify([])
-      };
-
-      await fetch("/api/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(resetPayload)
-      });
-
-      window.dispatchEvent(new Event("storage"));
-      alert("Khôi phục dữ liệu gốc thành công! Toàn bộ hệ thống đã được đồng bộ lại.");
-      window.location.reload();
-    } catch (err) {
-      console.error("Reset error:", err);
-      alert("Đã xảy ra lỗi khi khôi phục dữ liệu.");
-    }
-  };
 
   return (
     <motion.aside 
       initial={false}
       animate={{ width: isCollapsed ? (windowWidth && windowWidth < 640 ? 70 : 100) : 320 }}
-      className="fixed left-0 top-0 z-40 h-screen border-r border-white/5 bg-sidebar text-white flex flex-col shadow-2xl"
+      className="fixed left-0 top-0 z-40 h-screen border-r border-gray-200 dark:border-white/5 bg-white dark:bg-sidebar text-gray-900 dark:text-white flex flex-col shadow-2xl"
     >
       {/* Logo */}
       <div className={cn(
@@ -241,7 +195,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
           <img src="/logo.png" alt="AQ" className="h-full w-full object-contain p-1" onError={(e) => e.currentTarget.src = "https://via.placeholder.com/150/d4af37/000000?text=AQ"} />
         </div>
         {!isCollapsed && (
-          <span className="ml-4 text-2xl font-black tracking-tighter text-white whitespace-nowrap">
+          <span className="ml-4 text-2xl font-black tracking-tighter text-gray-900 dark:text-white whitespace-nowrap">
             AQ <span className="text-gold uppercase tracking-widest text-xl ml-1">MEDIA</span>
           </span>
         )}
@@ -260,8 +214,8 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
                 <button
                   onClick={() => toggleMenu(item.title)}
                   className={cn(
-                    "group flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-sm font-black uppercase tracking-widest transition-all hover:bg-white/[0.03]",
-                    (isOpen || isActive) && !isCollapsed ? "text-gold bg-white/[0.03]" : "text-gray-500"
+                    "group flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-sm font-black uppercase tracking-widest transition-all hover:bg-gray-50 dark:hover:bg-white/[0.03]",
+                    (isOpen || isActive) && !isCollapsed ? "text-gold bg-gray-50 dark:bg-white/[0.03]" : "text-gray-500"
                   )}
                 >
                   <div className="flex items-center gap-4 overflow-hidden">
@@ -280,7 +234,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
                 <Link
                   href={item.href || "#"}
                   className={cn(
-                    "group flex items-center gap-4 rounded-2xl px-4 py-3.5 text-sm font-black uppercase tracking-widest transition-all hover:bg-white/[0.03]",
+                    "group flex items-center gap-4 rounded-2xl px-4 py-3.5 text-sm font-black uppercase tracking-widest transition-all hover:bg-gray-50 dark:hover:bg-white/[0.03]",
                     pathname === item.href ? "bg-gold/5 text-gold shadow-lg shadow-gold/5" : "text-gray-500"
                   )}
                 >
@@ -310,7 +264,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
                             key={sub.title} href={sub.href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all hover:text-gold text-gray-600 hover:bg-white/[0.02] flex items-center"
+                            className="block rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all hover:text-gold text-gray-600 hover:bg-gray-50 dark:hover:bg-white/[0.02] flex items-center"
                           >
                             {subContent}
                           </a>
@@ -336,23 +290,11 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
         })}
       </nav>
 
-      {/* Reset Mock Data & User Profile at bottom */}
-      <div className="border-t border-white/5 p-4 bg-white/[0.01] space-y-3">
-        {/* Reset Database Button */}
-        <button
-          onClick={handleResetDatabase}
-          className={cn(
-            "flex items-center gap-3 w-full rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-widest text-gold hover:text-white bg-gold/5 hover:bg-gold/80 border border-gold/20 hover:border-gold transition-all duration-300 shadow-lg shadow-gold/5",
-            isCollapsed ? "justify-center px-0 h-12 w-12" : "h-12"
-          )}
-          title="Khôi phục dữ liệu gốc"
-        >
-          <RotateCcw size={16} className="flex-shrink-0 animate-pulse" />
-          {!isCollapsed && <span className="whitespace-nowrap">Khôi phục dữ liệu gốc</span>}
-        </button>
+      {/* User Profile at bottom */}
+      <div className="border-t border-gray-200 dark:border-white/5 p-4 bg-white/[0.01] space-y-3">
 
         <div className={cn(
-          "flex items-center justify-between rounded-3xl p-3 transition-colors hover:bg-white/5 group",
+          "flex items-center justify-between rounded-3xl p-3 transition-colors hover:bg-gray-100 dark:hover:bg-white/5 group",
           isCollapsed && "flex-col gap-4"
         )}>
           <div className="flex items-center gap-4 overflow-hidden">
@@ -366,7 +308,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
             {!isCollapsed && (
               <div className="flex flex-col overflow-hidden">
                 <span className="text-[10px] font-black text-gold uppercase tracking-[0.2em]">{getRoleLabel(user?.role)}</span>
-                <span className="text-sm font-black text-white truncate">{user?.name || "GUEST"}</span>
+                <span className="text-sm font-black text-gray-900 dark:text-white truncate">{user?.name || "GUEST"}</span>
                 <span className="text-[9px] text-gray-600 font-bold uppercase tracking-tighter truncate">@{user?.username || "unknown"}</span>
               </div>
             )}

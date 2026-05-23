@@ -207,7 +207,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-white/90 dark:bg-black/80 backdrop-blur-sm"
           />
 
           <motion.div
@@ -217,12 +217,12 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
             className="relative w-full max-w-xl overflow-hidden rounded-[40px] border border-gray-200 dark:border-white/10 bg-white dark:bg-sidebar shadow-2xl"
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/5 bg-white/[0.02] px-8 py-6">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/[0.02] px-8 py-6">
               <h2 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-3 uppercase tracking-tighter">
                 <span className="h-6 w-1.5 rounded-full bg-gold shadow-[0_0_10px_#d4af37]" />
                 Hồ sơ cá nhân
               </h2>
-              <button onClick={onClose} className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-white/5 hover:text-gray-900 dark:text-white">
+              <button onClick={onClose} className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white">
                 <X size={24} />
               </button>
             </div>
@@ -309,7 +309,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                   <label className="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
                     <ShieldCheck size={14} className="text-gold" /> Chức vụ hệ thống
                   </label>
-                  <div className="flex h-12 w-full items-center rounded-2xl border border-gray-100 dark:border-white/5 bg-white/[0.02] px-4 text-sm font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="flex h-12 w-full items-center rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/[0.02] px-4 text-sm font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     {getRoleLabel(userData.role)}
                   </div>
                 </div>
@@ -319,7 +319,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
 
             {/* Footer */}
             <div className="flex items-center justify-end gap-4 border-t border-gray-100 dark:border-white/5 bg-white/[0.01] px-8 py-6">
-              <button onClick={onClose} className="px-6 py-3 text-xs font-black text-gray-500 uppercase tracking-widest hover:text-gray-900 dark:text-white transition-colors">Hủy bỏ</button>
+              <button onClick={onClose} className="px-6 py-3 text-xs font-black text-gray-500 uppercase tracking-widest hover:text-gray-900 dark:hover:text-white transition-colors">Hủy bỏ</button>
               <button 
                 onClick={handleSave} disabled={isSaving}
                 className="flex items-center gap-2 rounded-xl bg-gold px-8 py-3 text-xs font-black text-sidebar transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-50 shadow-lg shadow-gold/20 uppercase tracking-widest"

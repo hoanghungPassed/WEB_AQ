@@ -164,7 +164,7 @@ export default function FinesReportPage() {
       case "OVERDUE":
         return "bg-red-500/10 border-red-500/30 text-red-400";
       default:
-        return "bg-gray-500/10 border-gray-500/30 text-gray-400";
+        return "bg-gray-500/10 border-gray-500/30 text-gray-600 dark:text-gray-400";
     }
   };
 
@@ -214,12 +214,12 @@ export default function FinesReportPage() {
       <div className="flex items-center gap-4 shrink-0">
         <button
           onClick={() => router.push("/admin")}
-          className="p-2 rounded-xl bg-sidebar border border-border-custom text-gray-400 hover:text-white transition-all"
+          className="p-2 rounded-xl bg-white dark:bg-sidebar border border-border-custom text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all"
         >
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+          <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-3">
             <FileText className="text-gold" size={28} />
             Báo Cáo Đi Muộn & Phạt
           </h2>
@@ -233,14 +233,14 @@ export default function FinesReportPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
         <motion.div
           whileHover={{ scale: 1.02 }}
-          className="bg-sidebar border border-border-custom rounded-2xl p-4 shadow-lg"
+          className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-4 shadow-lg"
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">
                 Tổng Báo Cáo
               </p>
-              <p className="text-2xl font-black text-white">{stats.totalFines}</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.totalFines}</p>
             </div>
             <div className="p-3 bg-gold/10 rounded-xl">
               <FileText className="text-gold" size={24} />
@@ -250,7 +250,7 @@ export default function FinesReportPage() {
 
         <motion.div
           whileHover={{ scale: 1.02 }}
-          className="bg-sidebar border border-border-custom rounded-2xl p-4 shadow-lg"
+          className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-4 shadow-lg"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -269,7 +269,7 @@ export default function FinesReportPage() {
 
         <motion.div
           whileHover={{ scale: 1.02 }}
-          className="bg-sidebar border border-green-500/20 rounded-2xl p-4 shadow-lg"
+          className="bg-white dark:bg-sidebar border border-green-500/20 rounded-2xl p-4 shadow-lg"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -286,7 +286,7 @@ export default function FinesReportPage() {
 
         <motion.div
           whileHover={{ scale: 1.02 }}
-          className="bg-sidebar border border-yellow-500/20 rounded-2xl p-4 shadow-lg"
+          className="bg-white dark:bg-sidebar border border-yellow-500/20 rounded-2xl p-4 shadow-lg"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -303,7 +303,7 @@ export default function FinesReportPage() {
 
         <motion.div
           whileHover={{ scale: 1.02 }}
-          className="bg-sidebar border border-red-500/20 rounded-2xl p-4 shadow-lg"
+          className="bg-white dark:bg-sidebar border border-red-500/20 rounded-2xl p-4 shadow-lg"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -328,7 +328,7 @@ export default function FinesReportPage() {
             placeholder="Tìm theo tên nhân viên hoặc lí do..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-sidebar border border-border-custom rounded-xl text-sm text-white placeholder:text-gray-500 outline-none focus:border-gold/50 transition-all"
+            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-sidebar border border-border-custom rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-500 outline-none focus:border-gold/50 transition-all"
           />
         </div>
 
@@ -340,7 +340,7 @@ export default function FinesReportPage() {
               className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                 filterStatus === status
                   ? "bg-gold text-sidebar shadow-lg shadow-gold/20"
-                  : "bg-white/5 text-gray-400 hover:bg-white/10"
+                  : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10"
               }`}
             >
               {status === "ALL" ? "Tất Cả" : status === "PENDING" ? "Chờ TT" : status === "PAID" ? "Đã TT" : "Quá Hạn"}
@@ -350,18 +350,18 @@ export default function FinesReportPage() {
 
         <button
           onClick={handleExportCSV}
-          className="px-4 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg"
+          className="px-4 py-3 bg-indigo-500 hover:bg-indigo-600 text-gray-900 dark:text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg"
         >
           <Download size={16} /> Xuất CSV
         </button>
       </div>
 
       {/* Fine Reports Table */}
-      <div className="bg-sidebar border border-border-custom rounded-2xl shadow-2xl overflow-hidden flex-1 flex flex-col min-h-0">
+      <div className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl shadow-2xl overflow-hidden flex-1 flex flex-col min-h-0">
         <div className="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
           <table className="w-full relative">
-            <thead className="sticky top-0 bg-[#0d0d0d] z-10 shadow-sm border-b border-white/5">
-              <tr className="bg-white/[0.02]">
+            <thead className="sticky top-0 bg-white dark:bg-[#0d0d0d] z-10 shadow-sm border-b border-gray-200 dark:border-white/5">
+              <tr className="bg-gray-50 dark:bg-white/[0.02]">
                 <th className="px-6 py-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-widest">
                   Nhân Viên
                 </th>
@@ -399,18 +399,18 @@ export default function FinesReportPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.05 }}
-                    className="border-b border-border-custom hover:bg-white/[0.03] transition-colors"
+                    className="border-b border-border-custom hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center">
                           <User size={16} className="text-gold" />
                         </div>
-                        <span className="text-sm font-bold text-white">{report.staffName}</span>
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">{report.staffName}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-gray-300">{report.reason}</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{report.reason}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <span className="text-sm font-bold text-gold">
@@ -418,7 +418,7 @@ export default function FinesReportPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                         <Calendar size={14} />
                         {report.date}
                       </div>
@@ -464,12 +464,12 @@ export default function FinesReportPage() {
       </div>
 
       {/* Notes Section */}
-      <div className="bg-sidebar border border-border-custom rounded-2xl p-6">
+      <div className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-6">
         <div className="flex items-center gap-2 mb-4">
           <AlertCircle className="text-gold" size={18} />
-          <h3 className="text-sm font-black text-white uppercase tracking-tight">Ghi Chú</h3>
+          <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">Ghi Chú</h3>
         </div>
-        <div className="text-xs text-gray-400 space-y-2 font-medium leading-relaxed">
+        <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2 font-medium leading-relaxed">
           <p>• Chọn <span className="text-gold font-black">Đã TT</span> để cập nhật trạng thái thanh toán của nhân viên</p>
           <p>• Nhân viên có báo cáo <span className="text-red-400 font-black">Quá Hạn</span> chưa thanh toán sẽ được thông báo</p>
           <p>• Xuất CSV để lưu trữ hoặc chia sẻ báo cáo chi tiết</p>

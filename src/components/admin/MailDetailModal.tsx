@@ -245,12 +245,12 @@ export default function MailDetailModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4"
+      className="fixed inset-0 z-[400] bg-white/95 dark:bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4"
     >
       <motion.div
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
-        className="bg-sidebar border border-white/10 w-full max-w-4xl rounded-[40px] p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col max-h-[90vh]"
+        className="bg-white dark:bg-sidebar border border-gray-300 dark:border-white/10 w-full max-w-4xl rounded-[40px] p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col max-h-[90vh]"
       >
         <div className="absolute top-0 right-0 h-96 w-96 bg-gold/5 blur-[120px] -mr-48 -mt-48" />
 
@@ -267,7 +267,7 @@ export default function MailDetailModal({
               )}
             </div>
             <div>
-              <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
+              <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
                 {type === "ROOT"
                   ? "Chi tiết Mail Gốc"
                   : type === "SATELLITE"
@@ -281,7 +281,7 @@ export default function MailDetailModal({
           </div>
           <button
             onClick={onClose}
-            className="h-10 w-10 bg-white/5 hover:bg-white/10 text-white rounded-full flex items-center justify-center border border-white/10 transition-all"
+            className="h-10 w-10 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-full flex items-center justify-center border border-gray-300 dark:border-white/10 transition-all"
           >
             <X size={20} />
           </button>
@@ -299,7 +299,7 @@ export default function MailDetailModal({
                   type="date"
                   value={cccdDate}
                   onChange={(e) => setCccdDate(e.target.value)}
-                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
+                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
                 />
               </div>
               <div className="space-y-2">
@@ -309,18 +309,18 @@ export default function MailDetailModal({
                 <select
                   value={verificationStatus}
                   onChange={(e) => setVerificationStatus(e.target.value)}
-                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
+                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
                 >
-                  <option value="Mail veri" className="bg-sidebar text-white">
+                  <option value="Mail veri" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">
                     Mail veri
                   </option>
-                  <option value="Đã xanh" className="bg-sidebar text-white">
+                  <option value="Đã xanh" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">
                     Đã xanh
                   </option>
-                  <option value="Chưa xanh" className="bg-sidebar text-white">
+                  <option value="Chưa xanh" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">
                     Chưa xanh
                   </option>
-                  <option value="Quét CCCD" className="bg-sidebar text-white">
+                  <option value="Quét CCCD" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">
                     Quét CCCD
                   </option>
                 </select>
@@ -349,10 +349,10 @@ export default function MailDetailModal({
                       value={links[idx] || ""}
                       onChange={(e) => handleLinkChange(idx, e.target.value)}
                       placeholder="Dán link channel YouTube..."
-                      className={`flex-1 h-14 bg-white/5 border rounded-2xl px-6 text-white text-sm outline-none transition-all ${
+                      className={`flex-1 h-14 bg-gray-100 dark:bg-white/5 border rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none transition-all ${
                         validationErrors[idx]
                           ? "border-red-500/50 focus:border-red-500 bg-red-500/5 shadow-[0_0_15px_rgba(239,68,68,0.1)]"
-                          : "border-white/10 focus:border-gold/50"
+                          : "border-gray-300 dark:border-white/10 focus:border-gold/50"
                       }`}
                     />
                     <button
@@ -371,9 +371,9 @@ export default function MailDetailModal({
                       }
                       className={`h-14 px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border flex items-center gap-2 flex-shrink-0 ${
                         !links[idx] || links[idx].trim() === ""
-                          ? "bg-white/[0.02] text-gray-600 border-white/5 cursor-not-allowed opacity-40"
+                          ? "bg-gray-50 dark:bg-white/[0.02] text-gray-600 border-gray-200 dark:border-white/5 cursor-not-allowed opacity-40"
                           : linkErrors[idx]
-                          ? "bg-red-600 text-white border-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20"
+                          ? "bg-red-600 text-gray-900 dark:text-white border-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20"
                           : "bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40"
                       }`}
                     >
@@ -396,10 +396,10 @@ export default function MailDetailModal({
                         }
                         className={`h-14 px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border flex items-center gap-2 flex-shrink-0 ${
                           !links[idx] || links[idx].trim() === ""
-                            ? "bg-white/[0.02] text-gray-600 border-white/5 cursor-not-allowed opacity-40"
+                            ? "bg-gray-50 dark:bg-white/[0.02] text-gray-600 border-gray-200 dark:border-white/5 cursor-not-allowed opacity-40"
                             : eligibleChannels[idx]
                             ? "bg-gold text-sidebar border-gold shadow-lg shadow-gold/20"
-                            : "bg-white/5 text-gray-400 border-white/10 hover:border-gold/30 hover:text-gold"
+                            : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-white/10 hover:border-gold/30 hover:text-gold"
                         }`}
                       >
                         <CheckCircle size={16} />
@@ -422,7 +422,7 @@ export default function MailDetailModal({
                   type="date"
                   value={reClickDate}
                   onChange={(e) => setReClickDate(e.target.value)}
-                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
+                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
                 />
               </div>
               <div className="space-y-2">
@@ -433,7 +433,7 @@ export default function MailDetailModal({
                   type="date"
                   value={step2PendingDate}
                   onChange={(e) => setStep2PendingDate(e.target.value)}
-                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
+                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
                 />
               </div>
               <div className="space-y-3">
@@ -457,7 +457,7 @@ export default function MailDetailModal({
                       className={`h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest border transition-all ${
                         channelStatusDetail === status
                           ? "bg-gold/20 text-gold border-gold/45 shadow-lg shadow-gold/5"
-                          : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10"
+                          : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-white/10 hover:bg-gray-200 dark:hover:bg-white/10"
                       }`}
                     >
                       {status}
@@ -470,10 +470,10 @@ export default function MailDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="grid grid-cols-2 gap-4 mt-8 relative z-10 pt-4 border-t border-white/5">
+        <div className="grid grid-cols-2 gap-4 mt-8 relative z-10 pt-4 border-t border-gray-200 dark:border-white/5">
           <button
             onClick={onClose}
-            className="h-14 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-xs tracking-widest transition-all"
+            className="h-14 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-2xl font-black uppercase text-xs tracking-widest transition-all"
           >
             Đóng
           </button>
@@ -489,7 +489,7 @@ export default function MailDetailModal({
         <div className="flex items-center justify-center mt-4 relative z-10">
           <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-gold/30 bg-gold/10">
             <span className="text-[10px] font-black text-gold/80 uppercase tracking-widest">
-              Cập nhật lần cuối ngày: <span className="text-white font-mono">{updatedAtStr || "---"}</span> {mail.updatedBy && <>- Người sửa: <span className="text-white">{mail.updatedBy}</span></>}
+              Cập nhật lần cuối ngày: <span className="text-gray-900 dark:text-white font-mono">{updatedAtStr || "---"}</span> {mail.updatedBy && <>- Người sửa: <span className="text-gray-900 dark:text-white">{mail.updatedBy}</span></>}
             </span>
           </div>
         </div>

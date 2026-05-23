@@ -100,7 +100,7 @@ export default function AccessLock({ message, userName, onSendRequest, onLogout 
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#0a0a0a] flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-[100] bg-white dark:bg-[#0a0a0a] flex items-center justify-center p-6">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gold/5 blur-[120px] rounded-full" />
       </div>
@@ -108,7 +108,7 @@ export default function AccessLock({ message, userName, onSendRequest, onLogout 
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-2xl bg-sidebar border border-gold/20 rounded-[50px] p-12 text-center relative overflow-hidden shadow-2xl"
+        className="w-full max-w-2xl bg-white dark:bg-sidebar border border-gold/20 rounded-[50px] p-12 text-center relative overflow-hidden shadow-2xl"
       >
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-gold to-transparent opacity-50" />
         
@@ -116,15 +116,15 @@ export default function AccessLock({ message, userName, onSendRequest, onLogout 
           <Lock size={48} />
         </div>
 
-        <h1 className="text-4xl font-black text-white tracking-tighter mb-4 uppercase">Hệ thống đã khóa</h1>
-        <div className="bg-white/5 border border-white/5 rounded-2xl py-4 px-8 mb-8 inline-flex items-center gap-4">
+        <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter mb-4 uppercase">Hệ thống đã khóa</h1>
+        <div className="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-2xl py-4 px-8 mb-8 inline-flex items-center gap-4">
            <Clock className="text-gold" size={24} />
-           <span className="text-2xl font-mono font-black text-white">
+           <span className="text-2xl font-mono font-black text-gray-900 dark:text-white">
              {currentTime.toLocaleTimeString('vi-VN')}
            </span>
         </div>
 
-        <p className="text-xl text-gray-400 font-medium mb-10 leading-relaxed">
+        <p className="text-xl text-gray-600 dark:text-gray-400 font-medium mb-10 leading-relaxed">
           {message}
         </p>
 
@@ -139,13 +139,13 @@ export default function AccessLock({ message, userName, onSendRequest, onLogout 
           )}
 
           {status === "PENDING" && (
-            <div className="h-16 px-10 rounded-2xl bg-white/5 border border-gold/50 text-gold font-black uppercase tracking-widest flex items-center justify-center gap-3 animate-pulse">
+            <div className="h-16 px-10 rounded-2xl bg-gray-100 dark:bg-white/5 border border-gold/50 text-gold font-black uppercase tracking-widest flex items-center justify-center gap-3 animate-pulse">
               <ShieldAlert size={24} /> Đang chờ phê duyệt...
             </div>
           )}
 
           {status === "APPROVED" && (
-            <div className="h-16 px-10 rounded-2xl bg-green-500 text-white font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-green-500/20">
+            <div className="h-16 px-10 rounded-2xl bg-green-500 text-gray-900 dark:text-white font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-green-500/20">
               <CheckCircle2 size={24} /> Đã được đồng ý!
             </div>
           )}
@@ -166,7 +166,7 @@ export default function AccessLock({ message, userName, onSendRequest, onLogout 
 
           <button 
             onClick={onLogout}
-            className="h-16 px-10 rounded-2xl bg-white/5 border border-white/10 text-gray-400 font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 transition-all"
+            className="h-16 px-10 rounded-2xl bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-600 dark:text-gray-400 font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
           >
             <LogOut size={24} /> Đăng xuất
           </button>
