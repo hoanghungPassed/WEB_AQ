@@ -148,6 +148,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
     if (r === "02" || r === "QL CÔNG VIỆC" || r === "QUẢN LÝ CÔNG VIỆC") return "QL CÔNG VIỆC";
     if (r === "03" || r === "QL NHÂN SỰ" || r === "QUẢN LÝ NHÂN SỰ") return "QL NHÂN SỰ";
     if (r === "04" || r === "NHÂN VIÊN") return "NHÂN VIÊN";
+    if (r === "05" || r === "NV THỬ VIỆC") return "NV THỬ VIỆC";
     return "GUEST";
   };
 

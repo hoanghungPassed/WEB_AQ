@@ -98,7 +98,8 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
     if (role === "01") return "01 - ADMIN";
     if (role === "02") return "02 - QUẢN LÝ CÔNG VIỆC";
     if (role === "03") return "03 - QUẢN LÝ NHÂN SỰ";
-    if (role === "04") return "04 - NHÂN VIÊN";
+    if (role === "04") return "04 - NHÂN VIÊN CHÍNH THỨC";
+    if (role === "05") return "05 - NHÂN VIÊN THỬ VIỆC";
     return "CHƯA CẤP QUYỀN";
   };
 
@@ -195,7 +196,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                   <input
                     type="text" value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="h-12 w-full rounded-2xl border border-gray-100 dark:border-white/5 bg-black/20 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
                   />
                 </div>
 
@@ -206,7 +207,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                   <input
                     type="text" value={formData.birthYear || ""}
                     onChange={(e) => setFormData({...formData, birthYear: e.target.value})}
-                    className="h-12 w-full rounded-2xl border border-gray-100 dark:border-white/5 bg-black/20 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
                   />
                 </div>
 
@@ -217,7 +218,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                   <input
                     type="email" value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="h-12 w-full rounded-2xl border border-gray-100 dark:border-white/5 bg-black/20 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
                   />
                 </div>
 
@@ -228,7 +229,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                   <input
                     type="text" value={formData.phone || ""}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="h-12 w-full rounded-2xl border border-gray-100 dark:border-white/5 bg-black/20 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
                   />
                 </div>
 
@@ -239,7 +240,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                   <input
                     type="text" value={formData.address || ""}
                     onChange={(e) => setFormData({...formData, address: e.target.value})}
-                    className="h-12 w-full rounded-2xl border border-gray-100 dark:border-white/5 bg-black/20 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
                   />
                 </div>
 
@@ -257,7 +258,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
 
             {/* Footer */}
             <div className="flex items-center justify-end gap-4 border-t border-gray-100 dark:border-white/5 bg-white/[0.01] px-8 py-6">
-              <button onClick={onClose} className="px-6 py-3 text-xs font-black text-gray-500 uppercase tracking-widest hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-colors">Hủy bỏ</button>
+              <button onClick={onClose} className="px-8 py-3 text-xs font-black text-gray-500 uppercase tracking-widest hover:text-gray-900 dark:hover:text-white transition-colors rounded-xl border border-gray-300 dark:border-gray-600">Hủy bỏ</button>
               <button 
                 onClick={handleSave} disabled={isSaving}
                 className="flex items-center gap-2 rounded-xl bg-gold px-8 py-3 text-xs font-black text-sidebar transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-50 shadow-lg shadow-gold/20 uppercase tracking-widest"

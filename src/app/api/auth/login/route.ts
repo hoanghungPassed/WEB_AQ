@@ -73,12 +73,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Cập nhật trạng thái online và check-in
+    // Kiểm tra giờ làm việc (Sau 18:00 chặn Role 03, 04)
     const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const isStaff = user.role === "03" || user.role === "04" || user.role === "05" || String(user.role).includes("03") || String(user.role).includes("04") || String(user.role).includes("05");
+    
+    if (isStaff && currentMins >= 1080) { // 1080 = 18:00
+      return NextResponse.json(
+        { error: "Đã quá giờ làm việc (18:00). Bạn không thể đăng nhập. Vui lòng gửi yêu cầu nếu cần truy cập." },
+        { status: 403 }
+      );
+    }
+
+    // Cập nhật trạng thái online và check-in
     user.isOnline = true;
     user.lastActive = now.toISOString();
-    if (!user.checkInTime) {
+    if (!user.checkInTime || !user.checkInTime.startsWith(now.toISOString().split("T")[0])) {
       user.checkInTime = now.toISOString();
+      user.checkOutTime = undefined; // Reset checkout for new day
     }
     await user.save();
 

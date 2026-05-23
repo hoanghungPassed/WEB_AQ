@@ -103,15 +103,9 @@ export async function POST(req: Request) {
     if (newMails.length === 0) throw new Error("Không thể tạo bản ghi hoặc sai type");
     
     try {
-      const { Log } = await import('@/models/Log');
+      const { logAction } = await import('@/lib/logger');
       const count = items.length;
-      await Log.create({
-        user: "System",
-        role: "ADMIN",
-        action: `Nhập lô mới: ${count} mail`,
-        type: "SUCCESS",
-        timestamp: new Date().toLocaleString("vi-VN")
-      });
+      await logAction("system", `Nhập lô mới: ${count} mail`, `Lô mail mới được nhập thành công.`);
     } catch (logErr) {
       console.error("Log error:", logErr);
     }
@@ -145,14 +139,8 @@ export async function DELETE(req: Request) {
     const deletedCount = resRoot.deletedCount + resSat.deletedCount + resMon.deletedCount;
 
     try {
-      const { Log } = await import('@/models/Log');
-      await Log.create({
-        user: "System",
-        role: "ADMIN",
-        action: `Xóa lô mail: ${batchName || batchId} (${deletedCount} mail)`,
-        type: "SUCCESS",
-        timestamp: new Date().toLocaleString("vi-VN")
-      });
+      const { logAction } = await import('@/lib/logger');
+      await logAction("system", `Xóa lô mail: ${batchName || batchId} (${deletedCount} mail)`, `Đã xóa lô mail.`);
     } catch (logErr) {
       console.error("Log error:", logErr);
     }

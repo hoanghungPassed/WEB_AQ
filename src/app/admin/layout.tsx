@@ -504,7 +504,7 @@ export default function AdminLayout({
       const activeUserStr = getActiveUserStr();
       if (!activeUserStr) return;
       const currentUser = JSON.parse(activeUserStr);
-      const isStaff = currentUser?.role === "04" || currentUser?.role === "NHÂN VIÊN" || String(currentUser?.role).includes("04");
+      const isStaff = currentUser?.role === "04" || currentUser?.role === "05" || currentUser?.role === "NHÂN VIÊN" || currentUser?.role === "NV THỬ VIỆC" || String(currentUser?.role).includes("04") || String(currentUser?.role).includes("05");
       if (!isStaff) {
         setIsLate(false);
         return;
@@ -594,85 +594,15 @@ export default function AdminLayout({
           }
         } catch (e) { /* ignore */ }
       }
+      
       const nowTime = new Date();
       const currentTotalMinutes = nowTime.getHours() * 60 + nowTime.getMinutes();
+      
+      // We are now doing auto-checkout via the API (e.g. cron or /api/admin/attendance)
+      // and login blocking via /api/auth/login, so we don't modify localStorage here.
       if (currentTotalMinutes >= closeTimeMins) {
-        const todayStr = getStableDateString();
-        let changed = false;
-        const updatedUsers = (allUsers || []).map((u: any) => {
-          const isStaffUser = u.role === "03" || u.role === "04" || u.role === "NHÂN VIÊN" || String(u.role).includes("03") || String(u.role).includes("04");
-          if (!isStaffUser) return u;
-
-          const uCheckInISO = localStorage.getItem(`checkin_time_${u.username}`);
-          let uCheckedInToday = false;
-          if (uCheckInISO) {
-            try {
-              const d = new Date(uCheckInISO);
-              const today = new Date();
-              uCheckedInToday = d.getDate() === today.getDate() &&
-                                d.getMonth() === today.getMonth() &&
-                                d.getFullYear() === today.getFullYear();
-            } catch (e) {}
-          }
-
-          if (uCheckedInToday) {
-            const uCheckOutISO = localStorage.getItem(`checkout_time_${u.username}`);
-            let uCheckedOutToday = false;
-            if (uCheckOutISO) {
-              try {
-                const d = new Date(uCheckOutISO);
-                const today = new Date();
-                uCheckedOutToday = d.getDate() === today.getDate() &&
-                                   d.getMonth() === today.getMonth() &&
-                                   d.getFullYear() === today.getFullYear();
-              } catch (e) {}
-            }
-
-            if (!uCheckedOutToday || !u.checkOutTime) {
-              const checkoutISO = new Date();
-              const [endH, endM] = endTimeStr.split(":").map(Number);
-              checkoutISO.setHours(endH, endM, 0, 0);
-
-              localStorage.setItem(`checkout_time_${u.username}`, checkoutISO.toISOString());
-              const checkoutTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}:00`;
-              const totalHoursVal = calculateWorkedHours(uCheckInISO || "", checkoutISO.toISOString(), startTimeStr, endTimeStr);
-
-              changed = true;
-              return {
-                ...u,
-                checkOutTime: checkoutTimeStr,
-                totalHours: totalHoursVal,
-                isOnline: false
-              };
-            }
-          }
-          return u;
-        });
-
-        if (changed) {
-          localStorage.setItem("global_users", JSON.stringify(updatedUsers));
-          window.dispatchEvent(new Event("storage"));
-        }
-
-        // Also update all tasks that are not completed to PENDING (Chưa hoàn thành)
-        const savedTasks = localStorage.getItem("global_tasks_data");
-        if (savedTasks) {
-          try {
-            const tasksArr = JSON.parse(savedTasks);
-            let tasksChanged = false;
-            const updatedTasks = (tasksArr || []).map((t: any) => {
-              if (t.status !== "COMPLETED" && t.status !== "PENDING") {
-                tasksChanged = true;
-                return { ...t, status: "PENDING" };
-              }
-              return t;
-            });
-            if (tasksChanged) {
-              localStorage.setItem("global_tasks_data", JSON.stringify(updatedTasks));
-              window.dispatchEvent(new Event("storage"));
-            }
-          } catch (e) {}
-        }
+         // Optionally you could call fetch('/api/admin/attendance', { method: 'POST' }) here,
+         // but a cron job is better for production. 
       }
     };
 
@@ -1187,9 +1117,9 @@ export default function AdminLayout({
   const endTime = 18 * 60; // 6:00 PM
 
   const isSunday = now.getDay() === 0;
-  const isRestrictedRole = user?.role === "03" || user?.role === "04" || String(user?.role).includes("03") || String(user?.role).includes("04") || user?.role === "QL NHÂN SỰ" || user?.role === "NHÂN VIÊN";
+  const isRestrictedRole = user?.role === "03" || user?.role === "04" || user?.role === "05" || String(user?.role).includes("03") || String(user?.role).includes("04") || String(user?.role).includes("05") || user?.role === "QL NHÂN SỰ" || user?.role === "NHÂN VIÊN" || user?.role === "NV THỬ VIỆC";
   const isWorkingHours = totalMinutes >= startTime && totalMinutes < endTime;
-  const isStaff = user?.role === "04" || user?.role === "NHÂN VIÊN" || String(user?.role).includes("04");
+  const isStaff = user?.role === "04" || user?.role === "05" || user?.role === "NHÂN VIÊN" || user?.role === "NV THỬ VIỆC" || String(user?.role).includes("04") || String(user?.role).includes("05");
 
   const shouldLock = ((isSunday && isRestrictedRole) || (isRestrictedRole && !isWorkingHours)) && !isAccessGranted;
   const isLateLocked = isStaff && isLate && !isFinePaid && !isAccessGranted;
@@ -2094,7 +2024,7 @@ export default function AdminLayout({
       )}
 
       {/* Floating Phone Widget */}
-      {user && (user?.role === "03" || user?.role === "04" || String(user?.role).includes("03") || String(user?.role).includes("04") || user?.role === "NHÂN VIÊN" || String(user?.role).includes("NHÂN VIÊN")) && (
+      {user && (user?.role === "03" || user?.role === "04" || user?.role === "05" || String(user?.role).includes("03") || String(user?.role).includes("04") || String(user?.role).includes("05") || user?.role === "NHÂN VIÊN" || user?.role === "NV THỬ VIỆC" || String(user?.role).includes("NHÂN VIÊN") || String(user?.role).includes("THỬ VIỆC")) && (
         <div className="fixed bottom-6 right-28 z-50 flex flex-col items-end">
           <AnimatePresence>
             {isPhonePanelOpen && (

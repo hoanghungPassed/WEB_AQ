@@ -401,6 +401,7 @@ export default function AdminDashboard() {
     if (role === "02") return "QL CÔNG VIỆC";
     if (role === "03") return "QL NHÂN SỰ";
     if (role === "04") return "NHÂN VIÊN";
+    if (role === "05") return "NV THỬ VIỆC";
     return "GUEST";
   };
 
@@ -450,7 +451,7 @@ export default function AdminDashboard() {
 
       const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
       const currentUserObj = storedUser ? JSON.parse(storedUser) : null;
-      const isMinimalRole = currentUserObj?.role === "03" || currentUserObj?.role === "04" || currentUserObj?.role === "NHÂN VIÊN" || currentUserObj?.role === "QUẢN LÝ NHÂN SỰ";
+      const isMinimalRole = currentUserObj?.role === "03" || currentUserObj?.role === "04" || currentUserObj?.role === "05" || currentUserObj?.role === "NHÂN VIÊN" || currentUserObj?.role === "NV THỬ VIỆC" || currentUserObj?.role === "QUẢN LÝ NHÂN SỰ";
 
       setTasksList(currentTasks);
       setMails(currentMails);
@@ -715,7 +716,7 @@ export default function AdminDashboard() {
 
     // Phase 3.1: Validate 3 links before allowing "Đã làm" for SATELLITE mails (Role 03, 04 only)
     const norm = (newWorkStatus || "").toUpperCase();
-    if (norm === "ĐÃ LÀM" && (user?.role === "03" || user?.role === "04")) {
+    if (norm === "ĐÃ LÀM" && (user?.role === "03" || user?.role === "04" || user?.role === "05")) {
       const targetMail = currentMails.find((m: any) => m.id === mailId);
       if (targetMail && targetMail.type === "SATELLITE") {
         const links: string[] = targetMail.links || [];
@@ -1078,7 +1079,7 @@ export default function AdminDashboard() {
   React.useEffect(() => {
     const mainEl = document.querySelector("main");
     if (!mainEl) return;
-    if (selectedStaffTask && (user?.role === "03" || user?.role === "04")) {
+    if (selectedStaffTask && (user?.role === "03" || user?.role === "04" || user?.role === "05")) {
       mainEl.style.overflow = "hidden";
     } else {
       mainEl.style.overflow = "";
@@ -1086,7 +1087,7 @@ export default function AdminDashboard() {
     return () => { mainEl.style.overflow = ""; };
   }, [selectedStaffTask, user?.role]);
 
-  if (selectedStaffTask && (user?.role === "03" || user?.role === "04")) {
+  if (selectedStaffTask && (user?.role === "03" || user?.role === "04" || user?.role === "05")) {
     const taskMails = (mails || []).filter((m: any) => {
       const belongsToUser = String(m.assigneeId) === String(user?.id);
       if (!belongsToUser) return false;
@@ -1612,9 +1613,9 @@ export default function AdminDashboard() {
         )}
       </AnimatePresence>
 
-      {user?.role === "04" ? (
+      {user?.role === "04" || user?.role === "05" ? (
         <div className="space-y-6">
-          <div className={`grid grid-cols-1 md:grid-cols-${(user?.role === "03" || user?.role === "04") ? 4 : 3} gap-6`}>
+          <div className={`grid grid-cols-1 md:grid-cols-${(user?.role === "03" || user?.role === "04" || user?.role === "05") ? 4 : 3} gap-6`}>
             <StatCard 
               title="Tổng mail được giao" 
               value={stats.totalMail} 
@@ -1684,7 +1685,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Kênh vệ tinh đủ giờ card */}
-            {(user?.role === "03" || user?.role === "04") && (
+            {(user?.role === "03" || user?.role === "04" || user?.role === "05") && (
               <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl relative overflow-hidden group flex flex-col justify-between min-h-[160px]">
                 <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[50px] -mr-16 -mt-16 transition-all group-hover:bg-gold/10" />
                 <div className="relative z-10 flex-1 flex flex-col justify-between">
@@ -2096,7 +2097,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className={`grid gap-8 ${isAdminOrManager ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1"}`}>
-                {isAdminOrManager && !(user?.role === "03" || user?.role === "04") && (
+                {isAdminOrManager && !(user?.role === "03" || user?.role === "04" || user?.role === "05") && (
                   <KPIInputCard label="Kênh bật kiếm tiền" target={kpi.targetMonetized} current={kpi.currentMonetized} onChange={(val: any) => setKpi({ ...kpi, targetMonetized: val })} unit="kênh" readonly={false} />
                 )}
                 <div className={!isAdminOrManager ? "max-w-md mx-auto w-full" : ""}>

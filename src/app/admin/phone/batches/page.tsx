@@ -176,7 +176,7 @@ export default function PhoneBatchesPage() {
         const all = JSON.parse(raw);
         setEmployees(
           (all || []).filter((u: any) =>
-            u.role === "03" || u.role === "04" || u.role === "NHÂN VIÊN" || u.role === "QUẢN LÝ NHÂN SỰ"
+            u.role === "03" || u.role === "04" || u.role === "05" || u.role === "NHÂN VIÊN" || u.role === "NV THỬ VIỆC" || u.role === "QUẢN LÝ NHÂN SỰ"
           )
         );
       }

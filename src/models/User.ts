@@ -9,7 +9,7 @@ export interface IUser extends Document {
   username: string;
   email: string;
   password: string;
-  role: "01" | "02" | "03" | "04";
+  role: "01" | "02" | "03" | "04" | "05";
   status: "ACTIVE" | "LOCKED" | "PENDING";
   isOnline: boolean;
   taskCount: number;
@@ -20,6 +20,7 @@ export interface IUser extends Document {
   phone?: string;
   address?: string;
   checkInTime?: string;
+  checkOutTime?: string;
 }
 
 const userSchema = new Schema<IUser>(
@@ -47,8 +48,8 @@ const userSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ["01", "02", "03", "04"],
-      default: "04",
+      enum: ["01", "02", "03", "04", "05"],
+      default: "05",
     },
     status: {
       type: String,
@@ -88,6 +89,10 @@ const userSchema = new Schema<IUser>(
       default: "",
     },
     checkInTime: {
+      type: String,
+      default: "",
+    },
+    checkOutTime: {
       type: String,
       default: "",
     },

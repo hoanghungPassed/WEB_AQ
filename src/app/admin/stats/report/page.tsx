@@ -59,22 +59,28 @@ export default function ReportsPage() {
       router.push("/login");
     }
 
-    const loadData = () => {
-      const savedMails = localStorage.getItem("global_mails_data");
-      const savedUsers = localStorage.getItem("global_users");
-      
-      setMails(savedMails ? JSON.parse(savedMails) : []);
-      setStaffList(savedUsers ? JSON.parse(savedUsers) : []);
-      
-      const savedPayroll = localStorage.getItem("payroll_records");
-      if (savedPayroll) {
-        setPayrollRecords(JSON.parse(savedPayroll));
+    const loadData = async () => {
+      try {
+        const res = await fetch("/api/admin/kpis");
+        const data = res.ok ? await res.json() : null;
+        if (data) {
+          setMails(data.mails || []);
+          setStaffList(data.staff || []);
+          setPayrollRecords(data.payrollRecords || []);
+        } else {
+          setMails([]);
+          setStaffList([]);
+          setPayrollRecords([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch kpis", error);
+        setMails([]);
+        setStaffList([]);
+        setPayrollRecords([]);
       }
     };
 
     loadData();
-    window.addEventListener("storage", loadData);
-    return () => window.removeEventListener("storage", loadData);
   }, []);
 
   const triggerToast = (msg: string) => {
@@ -127,18 +133,19 @@ export default function ReportsPage() {
 
   // 2. CALCULATE STAFF LEADERBOARDS
   const staffLeaderboard = useMemo<StaffPerformance[]>(() => {
-    const list = (staffList || []).filter((s: any) => s.role === "04" || s.role === "NHÂN VIÊN");
+    const list = (staffList || []).filter((s: any) => s.role === "04" || s.role === "05" || s.role === "NHÂN VIÊN" || s.role === "NV THỬ VIỆC");
     
     const calculated = (list || []).map((staff: any, idx: number) => {
       const myMails = (mails || []).filter(m => String(m.assigneeId) === String(staff.id));
-      // TODO: Đổi logic đếm KPI từ đếm số lượng Mail ((myMails || []).length) sang đếm tổng số Kênh Đủ Giờ (eligibleChannels) khi kết nối API thật. Mục tiêu: 50 kênh/ngày.
+      const eligibleChannels = (myMails || []).reduce((sum, m) => sum + (Number(m.eligibleChannels) || 0), 0);
+      const targetWeekly = 300; // 50 channels per day -> 300 channels per week
+      const progress = targetWeekly > 0 ? Math.round((eligibleChannels / targetWeekly) * 100) : 0;
+      
       const completed = (myMails || []).filter(m => m.workStatus === "Đã làm" || m.workStatus === "Đã bán").length;
       const failed = (myMails || []).filter(m => m.workStatus === "Lỗi").length;
       
       const errorPercent = (myMails || []).length > 0 ? Math.round((failed / (myMails || []).length) * 100) : 0;
-      const progress = (myMails || []).length > 0 ? Math.round((completed / (myMails || []).length) * 100) : 0;
       
-      // Compute efficiency rating
       let efficiency = "C";
       if (progress >= 90) efficiency = "A+";
       else if (progress >= 75) efficiency = "A";
@@ -336,6 +343,11 @@ export default function ReportsPage() {
       </div>
 
       {/* Visual Analytics Graphs Row */}
+      {(mails || []).length === 0 ? (
+        <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl flex items-center justify-center h-56 text-gray-500 font-bold uppercase tracking-widest">
+          Chưa có dữ liệu
+        </div>
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* SVG Cumulative Output Line Graph */}
         <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl col-span-2 flex flex-col justify-between">
@@ -430,6 +442,7 @@ export default function ReportsPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Staff Productivity Report Leaderboard */}
       <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex-1 flex flex-col min-h-0">
@@ -529,7 +542,7 @@ export default function ReportsPage() {
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Chọn nhân viên</label>
                 <select 
-                  className="h-12 px-4 rounded-xl bg-black/20 border border-gray-200 dark:border-white/5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 cursor-pointer"
+                  className="h-12 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 text-sm focus:outline-none focus:border-gold/50 cursor-pointer"
                   value={selectedStaffId}
                   onChange={(e) => setSelectedStaffId(e.target.value)}
                 >
@@ -551,7 +564,7 @@ export default function ReportsPage() {
                          staffList.find(s => s.id === selectedStaffId)?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN")
                       : ""
                   }
-                  className="h-12 px-4 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 text-sm text-gray-600 dark:text-gray-400 font-bold" 
+                  className="h-12 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 text-sm font-bold" 
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -560,7 +573,7 @@ export default function ReportsPage() {
                   type="text" 
                   value={baseSalary ? Number(baseSalary).toLocaleString("vi-VN") : ""}
                   onChange={(e) => setBaseSalary(e.target.value.replace(/\D/g, ""))}
-                  className="h-12 px-4 rounded-xl bg-black/20 border border-gray-200 dark:border-white/5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 font-bold" 
+                  className="h-12 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 text-sm focus:outline-none focus:border-gold/50 font-bold" 
                   placeholder="Ví dụ: 5.000.000"
                 />
               </div>
@@ -570,7 +583,7 @@ export default function ReportsPage() {
                   type="text" 
                   value={allowance ? Number(allowance).toLocaleString("vi-VN") : ""}
                   onChange={(e) => setAllowance(e.target.value.replace(/\D/g, ""))}
-                  className="h-12 px-4 rounded-xl bg-black/20 border border-gray-200 dark:border-white/5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 font-bold" 
+                  className="h-12 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 text-sm focus:outline-none focus:border-gold/50 font-bold" 
                   placeholder="Ví dụ: 500.000"
                 />
               </div>

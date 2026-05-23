@@ -624,10 +624,10 @@ export default function TaskManagementPage() {
 
       // 3. General role hierarchy restrictions
       if (is01) {
-        return s.role === "02" || s.role === "03" || s.role === "04";
+        return s.role === "02" || s.role === "03" || s.role === "04" || s.role === "05";
       }
       if (is02) {
-        return s.role === "03" || s.role === "04";
+        return s.role === "03" || s.role === "04" || s.role === "05";
       }
       return false;
     });
@@ -714,7 +714,7 @@ export default function TaskManagementPage() {
       );
     }
 
-    if (user?.role === "04") {
+    if (user?.role === "04" || user?.role === "05") {
       filtered = (filtered || []).filter(m => String(m.assigneeId) === String(user.id));
     }
 

@@ -224,7 +224,7 @@ export default function NewsfeedPage() {
               id: `reply_${Date.now()}`,
               authorName: user?.name || "Anonymous",
               authorRole: user?.role === "01" ? "ADMIN" : user?.role === "02" ? "QL CÔNG VIỆC" : user?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
-              authorUsername: user?.username || "04",
+              authorUsername: user?.username || "05",
               text: text,
               timestamp: "Vừa xong"
             };

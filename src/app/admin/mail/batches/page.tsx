@@ -121,7 +121,7 @@ export default function BatchesManagementPage() {
         // Load Staff
         const savedUsers = localStorage.getItem("global_users");
         const list = savedUsers ? JSON.parse(savedUsers) : [];
-        const filtered = (list || []).filter((u: any) => u.role === "04" || u.role === "03" || u.role === "NHÂN VIÊN" || u.role === "QUẢN LÝ NHÂN SỰ");
+        const filtered = (list || []).filter((u: any) => u.role === "04" || u.role === "05" || u.role === "03" || u.role === "NHÂN VIÊN" || u.role === "NV THỬ VIỆC" || u.role === "QUẢN LÝ NHÂN SỰ");
         setStaffList(filtered);
       } catch (err) {
         console.error("Lỗi khi load batches từ API", err);

@@ -138,7 +138,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
   const roleUpper = String(user?.role || "").toUpperCase();
   const isStaff = roleUpper === "04" || 
+                  roleUpper === "05" || 
                   roleUpper === "NHÂN VIÊN" || 
+                  roleUpper === "NV THỬ VIỆC" || 
                   roleUpper === "03" || 
                   roleUpper === "QL NHÂN SỰ" || 
                   roleUpper === "QUẢN LÝ NHÂN SỰ";
@@ -207,6 +209,18 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const handleWorkStatusChange = async (identifier: string | number, newStatus: string) => {
     const now = new Date().toISOString();
     let updatedMail: MailData | null = null;
+    
+    // Validation: Require 3 links for SATELLITE mails if marking as "Đã làm"
+    const targetMail = mails.find(m => m._id === identifier || m.id === identifier);
+    if (newStatus === "Đã làm" && targetMail?.type === "SATELLITE") {
+      const links = targetMail.links || [];
+      const filledCount = [0, 1, 2].filter(i => links[i] && links[i].trim() !== "").length;
+      if (filledCount < 3) {
+        alert("Thiếu kênh, cần đủ 3 link!");
+        return;
+      }
+    }
+
     const updated = (mails || []).map(m => {
       if (m._id === identifier || m.id === identifier) {
         let status = m.status;

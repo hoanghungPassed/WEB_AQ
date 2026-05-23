@@ -15,7 +15,7 @@ export async function GET() {
     const totalMails = rootCount + satCount + monCount;
     
     const activeStaff = await User.countDocuments({
-      role: { $in: ["03", "04"] }
+      role: { $in: ["03", "04", "05"] }
     });
 
     const priceAggregation = await Kpi.aggregate([

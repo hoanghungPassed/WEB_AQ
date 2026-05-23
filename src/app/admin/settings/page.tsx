@@ -833,7 +833,7 @@ export default function SettingsPage() {
                     type="password"
                     value={oldPassword}
                     onChange={(e) => handleOldPasswordChange(e.target.value)}
-                    className={`w-full bg-white dark:bg-[#0a0a0a] border rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:bg-gray-50 dark:focus:bg-[#161616] transition-all ${passErrors.old ? "border-red-500/50 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-gray-200 dark:border-white/20 focus:border-gold/50"}`}
+                    className={`w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:bg-gray-50 dark:focus:bg-[#161616] transition-all ${passErrors.old ? "border-red-500/50 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-gray-200 dark:border-white/20 focus:border-gold/50"}`}
                     placeholder="Nhập mật khẩu đang sử dụng"
                   />
                 </div>
@@ -847,7 +847,7 @@ export default function SettingsPage() {
                     type="password"
                     value={newPassword}
                     onChange={(e) => handleNewPasswordChange(e.target.value)}
-                    className={`w-full bg-white dark:bg-[#0a0a0a] border rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:bg-gray-50 dark:focus:bg-[#161616] transition-all ${passErrors.new ? "border-red-500/50 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-gray-200 dark:border-white/20 focus:border-gold/50"}`}
+                    className={`w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:bg-gray-50 dark:focus:bg-[#161616] transition-all ${passErrors.new ? "border-red-500/50 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-gray-200 dark:border-white/20 focus:border-gold/50"}`}
                     placeholder="Mật khẩu mới (ít nhất 6 ký tự, gồm số và chữ hoa)"
                   />
                   {newPassword && !passErrors.new && (
@@ -868,7 +868,7 @@ export default function SettingsPage() {
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => handleConfirmPasswordChange(e.target.value)}
-                    className={`w-full bg-white dark:bg-[#0a0a0a] border rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:bg-gray-50 dark:focus:bg-[#161616] transition-all ${passErrors.confirm ? "border-red-500/50 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-gray-200 dark:border-white/20 focus:border-gold/50"}`}
+                    className={`w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:bg-gray-50 dark:focus:bg-[#161616] transition-all ${passErrors.confirm ? "border-red-500/50 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-gray-200 dark:border-white/20 focus:border-gold/50"}`}
                     placeholder="Nhập lại mật khẩu mới"
                   />
                 </div>
@@ -905,7 +905,7 @@ export default function SettingsPage() {
                         type="time" 
                         value={workStartTime}
                         onChange={(e) => setWorkStartTime(e.target.value)}
-                        className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-lg text-gray-900 dark:text-white outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+                        className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-lg text-gray-900 dark:text-white outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
                       />
                     </div>
                   </div>
@@ -916,7 +916,7 @@ export default function SettingsPage() {
                         type="time" 
                         value={workEndTime}
                         onChange={(e) => setWorkEndTime(e.target.value)}
-                        className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-lg text-gray-900 dark:text-white outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+                        className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-lg text-gray-900 dark:text-white outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
                       />
                     </div>
                   </div>
@@ -927,7 +927,7 @@ export default function SettingsPage() {
                         type="time" 
                         value={systemCloseTime}
                         onChange={(e) => setSystemCloseTime(e.target.value)}
-                        className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+                        className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
                       />
                     </div>
                   </div>
@@ -942,7 +942,7 @@ export default function SettingsPage() {
                           type="text" 
                           value={Number(fineTier1).toLocaleString("vi-VN")}
                           onChange={(e) => setFineTier1(Math.max(0, Number(e.target.value.replace(/\D/g, ""))))}
-                          className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-black tracking-wider"
                         />
                         <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">VND</span>
                       </div>
@@ -954,7 +954,7 @@ export default function SettingsPage() {
                           type="text" 
                           value={Number(fineTier2).toLocaleString("vi-VN")}
                           onChange={(e) => setFineTier2(Math.max(0, Number(e.target.value.replace(/\D/g, ""))))}
-                          className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-black tracking-wider"
                         />
                         <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">VND</span>
                       </div>
@@ -966,7 +966,7 @@ export default function SettingsPage() {
                           type="text" 
                           value={Number(fineTier3).toLocaleString("vi-VN")}
                           onChange={(e) => setFineTier3(Math.max(0, Number(e.target.value.replace(/\D/g, ""))))}
-                          className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-black tracking-wider"
                         />
                         <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">VND</span>
                       </div>
@@ -1007,7 +1007,7 @@ export default function SettingsPage() {
                             type="number" 
                             value={chunkSize}
                             onChange={(e) => setChunkSize(Math.max(1, Number(e.target.value)))}
-                            className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-sm text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+                            className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-black tracking-wider"
                             required
                           />
                         </div>
@@ -1017,7 +1017,7 @@ export default function SettingsPage() {
                             type="number" 
                             value={kpiTargetMails}
                             onChange={(e) => setKpiTargetMails(Math.max(1, Number(e.target.value)))}
-                            className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-bold"
+                            className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-bold"
                             required
                           />
                         </div>
@@ -1027,7 +1027,7 @@ export default function SettingsPage() {
                             type="number" 
                             value={kpiTargetWatchHours}
                             onChange={(e) => setKpiTargetWatchHours(Math.max(1, Number(e.target.value)))}
-                            className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-bold"
+                            className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-bold"
                             required
                           />
                         </div>
@@ -1038,7 +1038,7 @@ export default function SettingsPage() {
                           type="text" 
                           value={apiSyncEndpoint}
                           onChange={(e) => setApiSyncEndpoint(e.target.value)}
-                          className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-sm text-gray-600 dark:text-gray-300 font-mono outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full"
+                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gray-600 dark:text-gray-300 font-mono outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full"
                           required
                         />
                       </div>
@@ -1101,7 +1101,7 @@ export default function SettingsPage() {
                         <label className="text-[11px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest block mb-2">Ngân Hàng Thụ Hưởng</label>
                         <div 
                           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                          className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full font-bold flex items-center justify-between cursor-pointer"
+                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full font-bold flex items-center justify-between cursor-pointer"
                         >
                           <div className="flex items-center gap-2 overflow-hidden">
                             {activeBank.logo ? (
@@ -1181,7 +1181,7 @@ export default function SettingsPage() {
                                 setLookupSuccess(null);
                               }}
                               placeholder="Ví dụ: 0123456789"
-                              className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl pl-5 pr-12 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
+                              className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
                               required
                             />
                             {isLookingUp && (
@@ -1216,7 +1216,7 @@ export default function SettingsPage() {
                           value={bankAccountHolder}
                           onChange={(e) => setBankAccountHolder(e.target.value.toUpperCase())}
                           placeholder="Ví dụ: NGUYEN VAN A"
-                          className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
+                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
                           required
                         />
                         <p className="text-[9px] text-gray-500">Tên viết in hoa không dấu - Hệ thống tự động tra cứu khi nhập đủ STK</p>

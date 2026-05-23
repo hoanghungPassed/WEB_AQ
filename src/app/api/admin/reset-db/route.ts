@@ -21,8 +21,14 @@ export async function POST(request: Request) {
     const collectionNames = (collections || []).map((col) => col.name);
 
     if (collectionNames.includes("users")) await db.dropCollection("users");
-    if (collectionNames.includes("mails")) await db.dropCollection("mails");
+    if (collectionNames.includes("root_mails")) await db.dropCollection("root_mails");
+    if (collectionNames.includes("satellite_mails")) await db.dropCollection("satellite_mails");
+    if (collectionNames.includes("monetized_mails")) await db.dropCollection("monetized_mails");
+    if (collectionNames.includes("phones")) await db.dropCollection("phones");
     if (collectionNames.includes("kpis")) await db.dropCollection("kpis");
+    if (collectionNames.includes("tasks")) await db.dropCollection("tasks");
+    if (collectionNames.includes("fines")) await db.dropCollection("fines");
+    if (collectionNames.includes("logs")) await db.dropCollection("logs");
 
     // Re-create Admin account
     const defaultPassword = await hashPassword("123456");

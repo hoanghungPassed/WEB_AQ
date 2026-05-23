@@ -3,7 +3,7 @@ export interface StaffData {
   name: string;
   username: string;
   email: string;
-  role?: "01" | "02" | "03" | "04";
+  role?: "01" | "02" | "03" | "04" | "05";
   status: "ACTIVE" | "LOCKED" | "PENDING";
   isOnline: boolean;
   taskCount: number;

@@ -50,9 +50,11 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
                            roleUpper === "QUẢN LÝ CÔNG VIỆC";
   const isMinimalRole = roleUpper === "03" || 
                          roleUpper === "04" || 
+                         roleUpper === "05" || 
                          roleUpper === "QL NHÂN SỰ" || 
                          roleUpper === "QUẢN LÝ NHÂN SỰ" || 
-                         roleUpper === "NHÂN VIÊN";
+                         roleUpper === "NHÂN VIÊN" ||
+                         roleUpper === "NV THỬ VIỆC";
 
   const dynamicMenuItems: any[] = [
     { title: "Dashboard", icon: <Gauge size={24} />, href: "/admin" },
@@ -166,6 +168,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
     if (role === "02") return "QL CÔNG VIỆC";
     if (role === "03") return "QL NHÂN SỰ";
     if (role === "04") return "NHÂN VIÊN";
+    if (role === "05") return "NV THỬ VIỆC";
     return "GUEST";
   };
 

@@ -151,7 +151,7 @@ function LoginForm() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Username"
-                  className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-4 py-3 pl-14 text-lg text-gray-900 dark:text-white transition-all focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500 shadow-inner placeholder-gray-400 dark:placeholder-gray-500"
+                  className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 pl-14 text-lg text-gray-900 dark:text-white transition-all focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500 shadow-inner placeholder-gray-400 dark:placeholder-gray-500"
                 />
               </div>
             </div>
@@ -175,7 +175,7 @@ function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Mật khẩu của bạn"
-                  className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-4 py-3 pl-14 pr-14 text-lg text-gray-900 dark:text-white transition-all focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500 shadow-inner placeholder-gray-400 dark:placeholder-gray-500"
+                  className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 pl-14 pr-14 text-lg text-gray-900 dark:text-white transition-all focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500 shadow-inner placeholder-gray-400 dark:placeholder-gray-500"
                 />
                 <button
                   type="button"

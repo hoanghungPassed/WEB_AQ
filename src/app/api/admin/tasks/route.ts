@@ -27,14 +27,8 @@ export async function POST(req: Request) {
     const task = await Task.create(body);
     
     try {
-      const { Log } = await import('@/models/Log');
-      await Log.create({
-        user: "System",
-        role: "ADMIN",
-        action: `Phân công nhiệm vụ mới: ${task.title}`,
-        type: "SUCCESS",
-        timestamp: new Date().toLocaleString("vi-VN")
-      });
+      const { logAction } = await import('@/lib/logger');
+      await logAction("system", `Phân công nhiệm vụ mới: ${task.title}`, `Phân công công việc.`);
     } catch (logErr) {
       console.error("Log error:", logErr);
     }

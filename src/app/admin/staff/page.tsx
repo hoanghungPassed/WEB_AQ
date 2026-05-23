@@ -48,9 +48,11 @@ export default function StaffManagementPage() {
     const curRoleUpper = String(currentUser?.role || "").toUpperCase();
     return curRoleUpper === "03" || 
            curRoleUpper === "04" || 
+           curRoleUpper === "05" || 
            curRoleUpper === "QL NHÂN SỰ" || 
            curRoleUpper === "QUẢN LÝ NHÂN SỰ" || 
-           curRoleUpper === "NHÂN VIÊN";
+           curRoleUpper === "NHÂN VIÊN" ||
+           curRoleUpper === "NV THỬ VIỆC";
   }, [currentUser]);
 
   const isAdminOrWorkManager = useMemo(() => {
@@ -255,7 +257,7 @@ export default function StaffManagementPage() {
     window.dispatchEvent(new Event("storage"));
   };
 
-  const handleUpdateRole = (id: string, role: "01" | "02" | "03" | "04") => {
+  const handleUpdateRole = (id: string, role: "01" | "02" | "03" | "04" | "05") => {
     const staff = staffList.find(s => s.id === id);
     if (!staff) return;
 
@@ -267,7 +269,8 @@ export default function StaffManagementPage() {
       message: `Chức vụ của bạn đã được Admin thay đổi thành: ${
         role === "01" ? "ADMIN" : 
         role === "02" ? "QUẢN LÝ CÔNG VIỆC" : 
-        role === "03" ? "QUẢN LÝ NHÂN SỰ" : "NHÂN VIÊN"
+        role === "03" ? "QUẢN LÝ NHÂN SỰ" : 
+        role === "05" ? "NHÂN VIÊN THỬ VIỆC" : "NHÂN VIÊN CHÍNH THỨC"
       }`,
       time: new Date().toLocaleTimeString(),
       read: false,
@@ -754,6 +757,7 @@ export default function StaffManagementPage() {
                   <option value="02" className="bg-white dark:bg-sidebar">QL CÔNG VIỆC</option>
                   <option value="03" className="bg-white dark:bg-sidebar">QL NHÂN SỰ</option>
                   <option value="04" className="bg-white dark:bg-sidebar">NHÂN VIÊN</option>
+                  <option value="05" className="bg-white dark:bg-sidebar">NV THỬ VIỆC</option>
                 </select>
               </div>
               <div className="flex items-center gap-2 bg-black/20 border border-gray-200 dark:border-white/5 rounded-2xl px-4 h-12 min-w-[180px]">
@@ -883,11 +887,13 @@ export default function StaffManagementPage() {
                         staff.role === "01" ? "bg-red-500/10 text-red-500 border-red-500/20" :
                         staff.role === "02" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" :
                         staff.role === "03" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
+                        staff.role === "05" ? "bg-gray-500/10 text-gray-500 border-gray-500/20" :
                         "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20"
                       }`}>
                         {staff.role === "01" ? "ADMIN" : 
                          staff.role === "02" ? "QL CÔNG VIỆC" : 
-                         staff.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN"}
+                         staff.role === "03" ? "QL NHÂN SỰ" : 
+                         staff.role === "05" ? "NV THỬ VIỆC" : "NHÂN VIÊN"}
                       </span>
                     ) : (
                       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
@@ -896,7 +902,8 @@ export default function StaffManagementPage() {
                             id={`role-assign-${staff.id}`}
                             className="h-10 px-4 rounded-xl bg-black/20 border border-gray-300 dark:border-white/10 text-[10px] font-black text-gray-900 dark:text-white uppercase outline-none focus:border-gold/50 cursor-pointer"
                           >
-                            <option value="04">Nhân viên</option>
+                            <option value="04">Nhân viên chính thức</option>
+                            <option value="05">Nhân viên thử việc</option>
                             <option value="03">QL Nhân sự</option>
                             <option value="02">QL Công việc</option>
                             <option value="01">Admin</option>
@@ -1047,7 +1054,8 @@ export default function StaffManagementPage() {
                             { id: "01", label: "ADMIN" },
                             { id: "02", label: "QL CÔNG VIỆC" },
                             { id: "03", label: "QL NHÂN SỰ" },
-                            { id: "04", label: "NHÂN VIÊN" }
+                            { id: "04", label: "NHÂN VIÊN" },
+                            { id: "05", label: "NV THỬ VIỆC" }
                           ].map((r) => (
                             <button
                               key={r.id}
@@ -1145,6 +1153,7 @@ export default function StaffManagementPage() {
                             <option value="02" className="bg-white dark:bg-sidebar">QUẢN LÝ CÔNG VIỆC</option>
                             <option value="03" className="bg-white dark:bg-sidebar">QUẢN LÝ NHÂN SỰ</option>
                             <option value="04" className="bg-white dark:bg-sidebar">NHÂN VIÊN CHÍNH THỨC</option>
+                            <option value="05" className="bg-white dark:bg-sidebar">NHÂN VIÊN THỬ VIỆC</option>
                           </select>
                         </div>
                         <InfoRow label="Trạng thái" value={selectedStaff.status === "ACTIVE" ? "ĐANG HOẠT ĐỘNG" : selectedStaff.status === "LOCKED" ? "ĐÃ BỊ KHÓA" : "CHỜ PHÊ DUYỆT"} icon={<Activity size={14} />} />

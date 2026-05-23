@@ -127,7 +127,7 @@ export default function SatelliteBatchesPage() {
       const savedUsers = localStorage.getItem("global_users");
       const users = savedUsers ? JSON.parse(savedUsers) : [];
       const staffOnly = (users || []).filter((u: any) => 
-        u.role === "04" || u.role === "03" || u.role === "NHÂN VIÊN" || u.role === "QUẢN LÝ NHÂN SỰ"
+        u.role === "04" || u.role === "05" || u.role === "03" || u.role === "NHÂN VIÊN" || u.role === "NV THỬ VIỆC" || u.role === "QUẢN LÝ NHÂN SỰ"
       );
       setStaffList(staffOnly);
     };

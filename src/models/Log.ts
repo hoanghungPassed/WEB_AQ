@@ -6,6 +6,7 @@ export interface ILog extends Document {
   action: string;
   type: string;
   timestamp: Date;
+  details?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -16,7 +17,8 @@ const LogSchema: Schema = new Schema(
     role: { type: String, required: true },
     action: { type: String, required: true },
     type: { type: String, required: true },
-    timestamp: { type: Date, default: Date.now }
+    timestamp: { type: Date, default: Date.now },
+    details: { type: String, default: "" }
   },
   { timestamps: true }
 );
