@@ -19,4 +19,9 @@ const TaskSchema: Schema = new Schema(
   { timestamps: true }
 );
 
-export const Task: Model<ITask> = mongoose.models.Task || mongoose.model<ITask>("Task", TaskSchema);
+// Xóa model cũ nếu đã tồn tại để tránh lỗi cache Schema khi dev (Hot Reload)
+if (mongoose.models.Task) {
+  delete mongoose.models.Task;
+}
+
+export const Task: Model<ITask> = mongoose.model<ITask>("Task", TaskSchema, "tasks");

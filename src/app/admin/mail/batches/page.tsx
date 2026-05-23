@@ -67,55 +67,65 @@ export default function BatchesManagementPage() {
       window.location.href = "/login";
     }
 
-    const loadBatches = () => {
-      const savedBatches = localStorage.getItem("global_batches");
-      const savedMails = localStorage.getItem("global_mails_data");
-      const mails = savedMails ? JSON.parse(savedMails) : [];
+    const loadBatches = async () => {
+      try {
+        const savedBatches = localStorage.getItem("global_batches");
+        const res = await fetch("/api/admin/mails");
+        const data = await res.json();
+        const mails = data.success && data.data ? data.data : [];
 
-      if (!savedBatches || JSON.parse(savedBatches).length === 0) {
-        // Dynamic Fallback Seeding
-        const batchesMap: Record<string, BatchItem> = {};
-        mails.forEach((m: any) => {
-          if (m.batchName) {
-            const key = `${m.type}-${m.batchName}`;
-            if (!batchesMap[key]) {
-              batchesMap[key] = {
-                id: m.batchId || `batch-seed-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-                name: m.batchName,
-                type: m.type as any,
-                importedAt: m.createdAt || new Date().toISOString().split("T")[0],
-                mailCount: 0,
-                importedBy: m.importedBy || m.updatedBy || "Admin",
-                assignedTo: m.assignedTo || "Chưa phân công"
-              };
+        if (!savedBatches || JSON.parse(savedBatches).length === 0) {
+          // Dynamic Fallback Seeding
+          const batchesMap: Record<string, BatchItem> = {};
+          mails.forEach((m: any) => {
+            if (m.batchName) {
+              const key = m.batchId || `${m.type}-${m.batchName}`;
+              if (!batchesMap[key]) {
+                batchesMap[key] = {
+                  id: m.batchId || `batch-seed-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                  name: m.batchName,
+                  type: m.type as any,
+                  importedAt: m.createdAt || new Date().toISOString().split("T")[0],
+                  mailCount: 0,
+                  importedBy: m.importedBy || m.updatedBy || "Admin",
+                  assignedTo: m.assignedTo || "Chưa phân công"
+                };
+              }
+              batchesMap[key].mailCount++;
+              if (m.assignedTo && batchesMap[key].assignedTo === "Chưa phân công") {
+                batchesMap[key].assignedTo = m.assignedTo;
+              }
             }
-            batchesMap[key].mailCount++;
-            if (m.assignedTo && batchesMap[key].assignedTo === "Chưa phân công") {
-              batchesMap[key].assignedTo = m.assignedTo;
-            }
-          }
-        });
-        const seeded = Object.values(batchesMap);
-        localStorage.setItem("global_batches", JSON.stringify(seeded));
-        setBatches(seeded);
-      } else {
-        const parsedBatches = JSON.parse(savedBatches);
-        // Sync counting to ensure accurate display
-        const updated = (parsedBatches || []).map((b: BatchItem) => {
-          const batchMails = (mails || []).filter((m: any) => m.batchId === b.id || m.batchName === b.name);
-          const count = (batchMails || []).length;
-          const assignedUsernames = Array.from(new Set((batchMails || []).map((m: any) => m.assignedTo).filter(Boolean)));
-          const assignedTo = (assignedUsernames || []).length > 0 ? assignedUsernames.join(", ") : "Chưa phân công";
-          return { ...b, mailCount: count, assignedTo };
-        });
-        setBatches(updated);
+          });
+          const seeded = Object.values(batchesMap);
+          localStorage.setItem("global_batches", JSON.stringify(seeded));
+          setBatches(seeded);
+        } else {
+          const parsedBatches = JSON.parse(savedBatches);
+          // Sync counting to ensure accurate display
+          const updated = (parsedBatches || []).map((b: BatchItem) => {
+            const batchMails = (mails || []).filter((m: any) => {
+              if (m.batchId) {
+                return m.batchId === b.id;
+              }
+              return m.batchName === b.name;
+            });
+            const count = (batchMails || []).length;
+            const assignedUsernames = Array.from(new Set((batchMails || []).map((m: any) => m.assignedTo).filter(Boolean)));
+            const assignedTo = (assignedUsernames || []).length > 0 ? assignedUsernames.join(", ") : "Chưa phân công";
+            return { ...b, mailCount: count, assignedTo };
+          });
+          setBatches(updated);
+        }
+
+        // Load Staff
+        const savedUsers = localStorage.getItem("global_users");
+        const list = savedUsers ? JSON.parse(savedUsers) : [];
+        const filtered = (list || []).filter((u: any) => u.role === "04" || u.role === "03" || u.role === "NHÂN VIÊN" || u.role === "QUẢN LÝ NHÂN SỰ");
+        setStaffList(filtered);
+      } catch (err) {
+        console.error("Lỗi khi load batches từ API", err);
       }
-
-      // Load Staff
-      const savedUsers = localStorage.getItem("global_users");
-      const list = savedUsers ? JSON.parse(savedUsers) : [];
-      const filtered = (list || []).filter((u: any) => u.role === "04" || u.role === "03" || u.role === "NHÂN VIÊN" || u.role === "QUẢN LÝ NHÂN SỰ");
-      setStaffList(filtered);
     };
 
     loadBatches();
@@ -278,13 +288,25 @@ export default function BatchesManagementPage() {
 
   useEffect(() => {
     if (!selectedBatchForDetail) return;
-    const loadDetailMails = () => {
-      const savedMails = localStorage.getItem("global_mails_data");
-      const mails = savedMails ? JSON.parse(savedMails) : [];
-      const filtered = (mails || []).filter((m: any) => m.batchId === selectedBatchForDetail.id || m.batchName === selectedBatchForDetail.name);
-      setDetailMails(filtered);
+    const loadDetailMails = async () => {
+      try {
+        const res = await fetch("/api/admin/mails");
+        const data = await res.json();
+        const mails = data.success && data.data ? data.data : [];
+        const filtered = mails.filter((m: any) => m.batchId === selectedBatchForDetail.id || m.batchName === selectedBatchForDetail.name);
+        // Sort by STT
+        filtered.sort((a: any, b: any) => {
+          const aStt = a.stt || a.id || 0;
+          const bStt = b.stt || b.id || 0;
+          return aStt - bStt;
+        });
+        setDetailMails(filtered);
+      } catch (e) {
+        console.error("Lỗi khi load detail mails", e);
+      }
     };
     loadDetailMails();
+    // Re-fetch when localStorage changes (optional but good for sync)
     window.addEventListener("storage", loadDetailMails);
     return () => window.removeEventListener("storage", loadDetailMails);
   }, [selectedBatchForDetail]);
@@ -322,6 +344,19 @@ export default function BatchesManagementPage() {
           global_mails_data: JSON.stringify(remainingMails)
         })
       });
+
+      // Delete from MongoDB
+      const queryParams = new URLSearchParams();
+      if (batchToDelete.id && !batchToDelete.id.startsWith("batch-seed-")) {
+        queryParams.append("batchId", batchToDelete.id);
+      } else {
+        queryParams.append("batchName", batchToDelete.name);
+      }
+      
+      await fetch(`/api/admin/mails?${queryParams.toString()}`, {
+        method: "DELETE"
+      });
+
     } catch (e) {
       console.error("Sync error:", e);
     }
@@ -707,7 +742,7 @@ export default function BatchesManagementPage() {
                           setTimeout(() => setDetailCopyToast(""), 2000);
                         };
                         return (
-                          <tr key={mail.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                          <tr key={mail._id || mail.id || idx} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
                             <td className="py-3 px-4 text-gray-500 font-bold">{idx + 1}</td>
                             <td className="py-3 px-4 font-bold text-gray-900 dark:text-white cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
                             <td className="py-3 px-4 text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.recovery || "", "Mail KP")}>{mail.recovery || "---"}</td>

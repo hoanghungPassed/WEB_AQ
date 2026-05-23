@@ -67,21 +67,28 @@ export interface PhoneItem {
 }
 
 export interface MailData {
+  _id?: string;
   id: number;
+  stt?: number;
   email: string;
   pass: string;
   recovery: string;
   type: "ROOT" | "SATELLITE" | "MONETIZED";
   status: "LIVE" | "DIE";
-  workStatus: string; // Dynamic status based on type
+  workStatus?: string; // Dynamic status based on type
   updatedBy?: string;
   updatedAt?: string;
   channelStatus?: string;
+  batch?: string;
+  batchId?: string;
   assignedTo?: string; 
   assigneeId?: string; // ID của nhân viên được giao
   twoFA?: string;
   phone?: string;
   otpLink?: string;
+  phoneLink?: string;
+  password?: string;
+  recoveryMail?: string;
   createdAt?: string;
   links?: string[]; // Cột chứa tối đa 3 link channel YouTube
   channelNames?: string[]; // Channel names scanned

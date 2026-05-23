@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Search,
   Download,
@@ -16,7 +16,6 @@ import {
   AlertTriangle,
   Database,
   Mail,
-  RefreshCcw,
   Copy,
   Phone,
   FileText,
@@ -31,52 +30,35 @@ import { MailData } from "@/types/admin";
 import { useRouter } from "next/navigation";
 import MailDetailModal from "@/components/admin/MailDetailModal";
 
-// UnifiedMailDetailModal is now MailDetailModal from @/components/admin/MailDetailModal
-const _UNUSED = ({
-}: any) => null;
+type ImportHistoryItem = {
+  id: string;
+  type: "ALL" | "MAIL" | "SĐT";
+  fileName: string;
+  quantity: number;
+  importedAt: string;
+  importedBy: string;
+};
 
-const normalizeAndFixStoredMails = (mails: MailData[]): MailData[] => {
-  if (!mails || (mails || []).length === 0) return [];
-  const rootMails = (mails || []).filter(m => m.type === "ROOT");
-  const satMails = (mails || []).filter(m => m.type === "SATELLITE");
-  const monMails = (mails || []).filter(m => m.type === "MONETIZED");
-
-  const fixSequences = (items: MailData[], startOffset: number) => {
-    const cleanItems = (items || []).filter(m => m.id < startOffset + 1000 && m.id >= startOffset);
-    const dirtyItems = (items || []).filter(m => m.id >= 1000000000000 || m.id < startOffset || m.id >= startOffset + 1000);
-
-    let nextId = cleanItems.reduce((max, m) => m.id > max ? m.id : max, startOffset - 1) + 1;
-    
-    return [
-      ...cleanItems,
-      ...(dirtyItems || []).map((m) => {
-        const fixedId = nextId++;
-        return { ...m, id: fixedId };
-      })
-    ];
-  };
-
-  return [
-    ...fixSequences(rootMails, 1),
-    ...fixSequences(satMails, 1001),
-    ...fixSequences(monMails, 2001)
-  ];
+type StoredBatchItem = {
+  id: string;
+  name: string;
+  type: "ROOT" | "SATELLITE" | "MONETIZED";
 };
 
 interface MailManagementProps {
   type: "ROOT" | "SATELLITE" | "MONETIZED" | "ALL";
-  user: any;
+  user: { id?: string; role?: string; name?: string; username?: string } | null;
 }
 
 export default function MailManagement({ type, user }: MailManagementProps) {
   const router = useRouter();
-  const [importHistory, setImportHistory] = useState<any[]>([]);
+  const [importHistory, setImportHistory] = useState<ImportHistoryItem[]>([]);
   const [historyTab, setHistoryTab] = useState<"ALL" | "MAIL" | "SĐT">("ALL");
 
   useEffect(() => {
     const loadHistory = () => {
       const saved = localStorage.getItem("global_import_history");
-      setImportHistory(saved ? JSON.parse(saved) : []);
+      setImportHistory(saved ? (JSON.parse(saved) as ImportHistoryItem[]) : []);
     };
     loadHistory();
     window.addEventListener("storage", loadHistory);
@@ -138,7 +120,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const [showManualImport, setShowManualImport] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState({ title: "", msg: "", onConfirm: () => { } });
-  const [selectedMailForConfig, setSelectedMailForConfig] = useState<any>(null);
+  const [selectedMailForConfig, setSelectedMailForConfig] = useState<MailData | null>(null);
 
   const [manualData, setManualData] = useState("");
   const [pendingMails, setPendingMails] = useState<MailData[] | null>(null);
@@ -147,6 +129,12 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const [importFileName, setImportFileName] = useState("");
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const itemsPerPage = 20;
+
+  const triggerToast = useCallback((msg: string) => {
+    setToastMsg(msg);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  }, []);
 
   const roleUpper = String(user?.role || "").toUpperCase();
   const isStaff = roleUpper === "04" || 
@@ -183,20 +171,22 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     loadData();
     window.addEventListener("storage", loadData);
     return () => window.removeEventListener("storage", loadData);
-  }, []);
+  }, [triggerToast]);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, assignmentFilter, dateFilter, selectedBatch, selectedBatchFilter, type]);
+    if (currentPage !== 1) {
+      requestAnimationFrame(() => setCurrentPage(1));
+    }
+  }, [searchTerm, statusFilter, assignmentFilter, dateFilter, selectedBatch, selectedBatchFilter, type, currentPage]);
 
   useEffect(() => {
-    setSelectedBatchFilter("ALL");
+    requestAnimationFrame(() => setSelectedBatchFilter("ALL"));
   }, [type]);
 
   const availableBatches = useMemo(() => {
     const saved = localStorage.getItem("global_batches");
-    const list = saved ? JSON.parse(saved) : [];
-    const filtered = (list || []).filter((b: any) => type === "ALL" || b.type === type);
+    const list = saved ? (JSON.parse(saved) as StoredBatchItem[]) : [];
+    const filtered = (list || []).filter((b) => type === "ALL" || b.type === type);
 
     if ((filtered || []).length === 0) {
       const scannedNames = new Set(
@@ -208,87 +198,149 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     return filtered;
   }, [mails, type]);
 
-  const saveMails = async (newMails: MailData[]) => {
-    // Note: In full implementation, we should PUT to /api/admin/mails/[id].
-    // Here we update UI state immediately.
-    setMails(newMails);
-  };
-
-  const triggerToast = (msg: string) => {
-    setToastMsg(msg);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2000);
-  };
-
   const copyToClipboard = (text: string, label: string) => {
     if (!text) return;
     navigator.clipboard.writeText(text);
     triggerToast(`Đã sao chép ${label}`);
   };
 
-  const handleWorkStatusChange = (mailId: number, newStatus: string) => {
+  const handleWorkStatusChange = async (identifier: string | number, newStatus: string) => {
     const now = new Date().toISOString();
+    let updatedMail: MailData | null = null;
     const updated = (mails || []).map(m => {
-      if (m.id === mailId) {
+      if (m._id === identifier || m.id === identifier) {
         let status = m.status;
         if (newStatus === "Đã làm" || newStatus === "Đã bán" || newStatus === "Chưa làm") {
           status = "LIVE";
         } else if (newStatus === "Lỗi") {
           status = "DIE";
         }
-        return {
+        updatedMail = {
           ...m,
-          workStatus: newStatus as any,
+          workStatus: newStatus,
           status,
           lastUpdated: now,
           updatedAt: now,
           updatedBy: user?.name || user?.username || "Hệ thống"
         };
+        return updatedMail;
       }
       return m;
     });
-    saveMails(updated);
+    setMails(updated);
     triggerToast("Đã cập nhật trạng thái công việc!");
+
+    if (!updatedMail) {
+      return;
+    }
+
+    if (typeof identifier !== 'string' || identifier.length <= 10) {
+      return;
+    }
+
+    const mailToSave: MailData = updatedMail!;
+
+    try {
+      await fetch(`/api/admin/mails/${identifier}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workStatus: mailToSave.workStatus,
+          status: mailToSave.status,
+          lastUpdated: mailToSave.lastUpdated,
+          updatedAt: mailToSave.updatedAt,
+          updatedBy: mailToSave.updatedBy
+        })
+      });
+    } catch (err) {
+      console.error("Lỗi khi update workStatus lên DB:", err);
+    }
   };
 
-  const handleSaveUnifiedDetails = (mailId: number, updatedFields: any) => {
+  const handleSaveUnifiedDetails = async (identifier: string | number, updatedFields: Partial<MailData>) => {
     const now = new Date().toISOString();
-    const updated = (mails || []).map(m => {
-      if (m.id === mailId) {
-        return {
+    let updatedMail: MailData | null = null;
+    const fieldsToSave = { ...updatedFields } as Partial<MailData>;
+
+    const updated = (mails || []).map((m) => {
+      if (m._id === identifier || m.id === identifier) {
+        if (fieldsToSave.verificationStatus) {
+           const vs = fieldsToSave.verificationStatus;
+           if (vs === "Mail veri" || vs?.startsWith("Quét CCCD")) {
+               fieldsToSave.status = "DIE";
+           } else {
+               fieldsToSave.status = "LIVE";
+           }
+        }
+        
+        updatedMail = {
           ...m,
-          ...updatedFields,
+          ...fieldsToSave,
           lastUpdated: now,
           updatedAt: now,
           updatedBy: user?.name || user?.username || "Hệ thống"
         };
+        return updatedMail;
       }
       return m;
     });
-    saveMails(updated);
+    setMails(updated);
     triggerToast("Đã cập nhật chi tiết thành công!");
+
+    if (!updatedMail) {
+      return;
+    }
+
+    if (typeof identifier !== 'string' || identifier.length <= 10) {
+      return;
+    }
+
+    try {
+      await fetch(`/api/admin/mails/${identifier}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fieldsToSave)
+      });
+    } catch (err) {
+      console.error("Lỗi khi update detail lên DB:", err);
+    }
   };
 
   const getStatusSelectStyle = (status: string) => {
     const val = (status || "").toLowerCase().trim();
-    if (val.startsWith("đã") || val.startsWith("hoàn thành") || val === "mail veri") {
+    if (val.startsWith("đã") || val.startsWith("hoàn thành")) {
       return "bg-green-500/10 text-green-500 border-green-500/20";
     }
-    if (val === "lỗi" || val === "die" || val === "chưa xanh") {
+    if (val === "lỗi" || val === "die" || val === "mail veri" || val.startsWith("quét cccd")) {
       return "bg-red-500/10 text-red-500 border-red-500/20";
     }
     return "bg-amber-500/10 text-amber-500 border-amber-500/20";
   };
 
-  const deleteMail = (id: number) => {
+  const deleteMail = (identifier: string | number) => {
     setConfirmConfig({
       title: "Xác nhận xóa",
       msg: "Bạn có chắc chắn muốn xóa mail này?",
-      onConfirm: () => {
-        const finalMails = (mails || []).filter(m => m.id !== id);
-        saveMails(finalMails);
-        setShowConfirm(false);
-        triggerToast("Đã xóa mail thành công!");
+      onConfirm: async () => {
+        try {
+          // Delete from MongoDB if it has a MongoDB ID
+          if (typeof identifier === 'string' && identifier.length > 10) {
+            await fetch(`/api/admin/mails/${identifier}`, {
+              method: 'DELETE'
+            });
+          }
+          
+          const finalMails = (mails || []).filter(m => m._id !== identifier && m.id !== identifier);
+          setMails(finalMails);
+          // Only update local storage for old data fallback
+          localStorage.setItem("global_mails_data", JSON.stringify(finalMails));
+          
+          setShowConfirm(false);
+          triggerToast("Đã xóa mail thành công!");
+        } catch (err) {
+          console.error("Lỗi xóa mail:", err);
+          triggerToast("Lỗi khi xóa mail!");
+        }
       }
     });
     setShowConfirm(true);
@@ -305,7 +357,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         const bstr = evt.target?.result;
         const wb = XLSX.read(bstr, { type: "binary" });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+        const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
 
         if ((rawRows || []).length === 0) {
           triggerToast("Không tìm thấy dữ liệu mail hợp lệ!");
@@ -324,9 +376,10 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                             firstCellStr.includes("tài khoản") || 
                             firstCellStr.includes("tai khoan") || 
                             firstCellStr === "tk" ||
+                            firstCellStr === "stt" ||
                             firstRow.some(cell => {
                               const s = String(cell || "").toLowerCase().trim();
-                              return s === "pass" || s === "recovery" || s === "2fa" || s === "sđt" || s === "sdt" || s === "link otp" || s === "link sđt";
+                              return s === "pass" || s === "recovery" || s === "2fa" || s === "sđt" || s === "sdt" || s === "link otp" || s === "link sđt" || s === "stt";
                             }));
 
         let emailIdx = 0;
@@ -335,13 +388,14 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         let twoFAIdx = 3;
         let phoneIdx = 4;
         let otpLinkIdx = 5;
+        let sttIdx = -1;
 
         if (isHeaderRow) {
           firstRow.forEach((cell, idx) => {
             const s = String(cell || "").trim().toUpperCase()
               .replace(/\s+/g, ' ')
               .replace(/[ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÂÊÔƠƯưăâêôơư]/g, (c) => {
-                const map: any = {
+                const map: Record<string, string> = {
                   'Đ': 'D', 'đ': 'd',
                   'À': 'A', 'Á': 'A', 'Â': 'A', 'Ã': 'A', 'È': 'E', 'É': 'E', 'Ê': 'E',
                   'Ì': 'I', 'Í': 'I', 'Ò': 'O', 'Ó': 'O', 'Ô': 'O', 'Õ': 'O', 'Ù': 'U',
@@ -369,6 +423,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               phoneIdx = idx;
             } else if (s.includes("LINK OTP") || s.includes("LINK SDT") || s.includes("OTPLINK") || s.includes("MO OTP")) {
               otpLinkIdx = idx;
+            } else if (s === "STT" || s === "SO THU TU") {
+              sttIdx = idx;
             }
           });
           startIndex = 1;
@@ -401,15 +457,24 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         const targetType = (type === "ALL" ? "SATELLITE" : type) as "ROOT" | "SATELLITE" | "MONETIZED";
         if (targetType === "ROOT") {
           const rootMails = (mails || []).filter(m => m.type === "ROOT");
-          const maxId = rootMails.reduce((max, m) => m.id > max ? m.id : max, 0);
+          const maxId = rootMails.reduce((max, m) => {
+            const current = m.stt || m.id || 0;
+            return current > max ? current : max;
+          }, 0);
           startId = maxId > 0 ? maxId + 1 : 1;
         } else if (targetType === "SATELLITE") {
           const satMails = (mails || []).filter(m => m.type === "SATELLITE");
-          const maxId = satMails.reduce((max, m) => m.id > max ? m.id : max, 1000);
+          const maxId = satMails.reduce((max, m) => {
+            const current = m.stt || m.id || 1000;
+            return current > max ? current : max;
+          }, 1000);
           startId = maxId > 1000 ? maxId + 1 : 1001;
         } else if (targetType === "MONETIZED") {
           const monMails = (mails || []).filter(m => m.type === "MONETIZED");
-          const maxId = monMails.reduce((max, m) => m.id > max ? m.id : max, 2000);
+          const maxId = monMails.reduce((max, m) => {
+            const current = m.stt || m.id || 2000;
+            return current > max ? current : max;
+          }, 2000);
           startId = maxId > 2000 ? maxId + 1 : 2001;
         }
 
@@ -432,6 +497,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
           importedMails.push({
             id: startId + importedCount,
+            stt: sttIdx !== -1 && row[sttIdx] ? Number(row[sttIdx]) : (startId + importedCount),
             email,
             pass: String(row[passIdx] || "").trim(),
             recovery: String(row[recoveryIdx] || "").trim(),
@@ -440,7 +506,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
             otpLink: String(row[otpLinkIdx] || "").trim(),
             type: targetType,
             status: "LIVE" as const,
-            workStatus: (targetType === "MONETIZED" ? "Chưa bán" : "Chưa làm") as any,
+            workStatus: targetType === "ROOT" ? undefined : (targetType === "MONETIZED" ? "Chưa bán" : "Chưa làm"),
+            verificationStatus: targetType === "ROOT" ? "Chưa xanh" : undefined,
+            cccdDate: targetType === "ROOT" ? "" : undefined,
             createdAt: new Date().toISOString().split("T")[0]
           });
           importedCount++;
@@ -517,7 +585,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         otpLink: String(parts[5] || "").trim(),
         type: targetType,
         status: "LIVE" as const,
-        workStatus: (targetType === "MONETIZED" ? "Chưa bán" : "Chưa làm") as any,
+        workStatus: (targetType === "MONETIZED" ? "Chưa bán" : "Chưa làm"),
         createdAt: new Date().toISOString().split("T")[0]
       });
       importedCount++;
@@ -584,13 +652,10 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     const updatedHistory = [historyEntry, ...currentHistory];
     localStorage.setItem("global_import_history", JSON.stringify(updatedHistory));
 
-    await saveMails([...mails, ...mappedMails]);
-
     setPendingMails(null);
     setImportBatchName("");
     setShowBatchNameModal(false);
     triggerToast(`Đang lưu ${(mappedMails || []).length} mail vào Lô "${batchNameInput}" trên Server...`);
-    window.dispatchEvent(new Event("storage"));
 
     try {
       // 1. Send all new mails to the database
@@ -615,6 +680,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           global_import_history: JSON.stringify(updatedHistory)
         })
       });
+
+      // TRIGGER RELOAD AFTER POST COMPLETE
+      window.dispatchEvent(new Event("storage"));
     } catch (err) {
       console.error("Lỗi khi gọi API POST mails:", err);
       triggerToast("Lỗi kết nối Server khi lưu mail!");
@@ -632,94 +700,96 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     triggerToast("Đã xuất Excel thành công!");
   };
 
-  const filteredMails = useMemo(() => {
-    const mailsOfType = (mails || []).filter(m => type === "ALL" || m.type === type);
+  const filteredMails: (MailData & { originalSTT: number })[] = (mails || [])
+    .filter((m) => type === "ALL" || m.type === type)
+    .map((m: MailData) => {
+      const globalSTT = m.type === "ROOT" ? m.id 
+                      : m.type === "SATELLITE" ? m.id - 1000 
+                      : m.id - 2000;
+      return {
+        ...m,
+        originalSTT: globalSTT
+      };
+    })
+    .filter((m: MailData & { originalSTT: number }) => {
+      if (isStaff && type === "SATELLITE") {
+        if (String(m.assigneeId) !== String(user?.id)) return false;
+        if (selectedBatch && m.batchName !== selectedBatch) return false;
+      }
 
-    return mailsOfType
-      .map((m: any) => {
-        const globalSTT = m.type === "ROOT" ? m.id 
-                        : m.type === "SATELLITE" ? m.id - 1000 
-                        : m.id - 2000;
-        return {
-          ...m,
-          originalSTT: globalSTT
-        };
-      })
-      .filter((m: any) => {
-        if (isStaff && type === "SATELLITE") {
-          if (String(m.assigneeId) !== String(user?.id)) return false;
-          if (selectedBatch && m.batchName !== selectedBatch) return false;
+      // Lọc theo Lô
+      if (selectedBatchFilter !== "ALL") {
+        if (m.batchId !== selectedBatchFilter && m.batchName !== selectedBatchFilter) {
+          return false;
         }
+      }
 
-        // Lọc theo Lô
-        if (selectedBatchFilter !== "ALL") {
-          if (m.batchId !== selectedBatchFilter && m.batchName !== selectedBatchFilter) {
+      const term = searchTerm.toLowerCase().trim();
+      const matchesSearch = m.email.toLowerCase().includes(term) ||
+        m.recovery.toLowerCase().includes(term) ||
+        m.pass.toLowerCase().includes(term) ||
+        (m.phone?.toLowerCase() || "").includes(term);
+
+      let matchesStatus = true;
+      if (statusFilter !== "ALL") {
+        if (type === "ROOT") {
+          const val = m.verificationStatus || "Chưa xanh";
+          matchesStatus = String(val).toLowerCase() === statusFilter.toLowerCase();
+        } else if (type === "MONETIZED") {
+          const val = m.workStatus || "Chưa bán";
+          matchesStatus = String(val).toLowerCase() === statusFilter.toLowerCase();
+        } else {
+          const val = m.workStatus || "Chưa làm";
+          matchesStatus = String(val).toLowerCase() === statusFilter.toLowerCase();
+        }
+      }
+
+      let matchesDate = true;
+      if (dateFilter !== "ALL") {
+        const isWithinTimeRange = (dateStr: string | undefined, filterType: "1_WEEK" | "1_MONTH" | "2_MONTH") => {
+          if (!dateStr) return false;
+          try {
+            const today = new Date("2026-05-18");
+            const targetDate = new Date(dateStr);
+            const diffTime = today.getTime() - targetDate.getTime();
+            const diffDays = diffTime / (1000 * 60 * 60 * 24);
+            
+            if (diffDays < 0) return true;
+            
+            let limitDays = 30;
+            if (filterType === "1_WEEK") limitDays = 7;
+            else if (filterType === "1_MONTH") limitDays = 30;
+            else if (filterType === "2_MONTH") limitDays = 60;
+            
+            return diffDays <= limitDays;
+          } catch {
             return false;
           }
+        };
+
+        const dateToFilter = (type === "ROOT" && m.verificationStatus === "Quét CCCD")
+          ? m.cccdDate
+          : (m.updatedAt || m.createdAt);
+
+        matchesDate = isWithinTimeRange(dateToFilter, dateFilter);
+      }
+
+      let matchesAssignment = true;
+      if (isAdminOrManager && (type === "SATELLITE" || type === "ROOT" || type === "MONETIZED") && assignmentFilter !== "ALL") {
+        if (assignmentFilter === "ASSIGNED") {
+          matchesAssignment = !!m.assigneeId;
+        } else if (assignmentFilter === "UNASSIGNED") {
+          matchesAssignment = !m.assigneeId;
         }
+      }
 
-        const term = searchTerm.toLowerCase().trim();
-        const matchesSearch = m.email.toLowerCase().includes(term) ||
-          m.recovery.toLowerCase().includes(term) ||
-          m.pass.toLowerCase().includes(term) ||
-          m.phone.toLowerCase().includes(term);
-
-        let matchesStatus = true;
-        if (statusFilter !== "ALL") {
-          if (type === "ROOT") {
-            const val = m.verificationStatus || "Chưa xanh";
-            matchesStatus = String(val).toLowerCase() === statusFilter.toLowerCase();
-          } else if (type === "MONETIZED") {
-            const val = m.workStatus || "Chưa bán";
-            matchesStatus = String(val).toLowerCase() === statusFilter.toLowerCase();
-          } else {
-            const val = m.workStatus || "Chưa làm";
-            matchesStatus = String(val).toLowerCase() === statusFilter.toLowerCase();
-          }
-        }
-
-        let matchesDate = true;
-        if (dateFilter !== "ALL") {
-          const isWithinTimeRange = (dateStr: string | undefined, filterType: "1_WEEK" | "1_MONTH" | "2_MONTH") => {
-            if (!dateStr) return false;
-            try {
-              const today = new Date("2026-05-18");
-              const targetDate = new Date(dateStr);
-              const diffTime = today.getTime() - targetDate.getTime();
-              const diffDays = diffTime / (1000 * 60 * 60 * 24);
-              
-              if (diffDays < 0) return true;
-              
-              let limitDays = 30;
-              if (filterType === "1_WEEK") limitDays = 7;
-              else if (filterType === "1_MONTH") limitDays = 30;
-              else if (filterType === "2_MONTH") limitDays = 60;
-              
-              return diffDays <= limitDays;
-            } catch (e) {
-              return false;
-            }
-          };
-
-          const dateToFilter = (type === "ROOT" && m.verificationStatus === "Quét CCCD")
-            ? m.cccdDate
-            : (m.updatedAt || m.createdAt);
-
-          matchesDate = isWithinTimeRange(dateToFilter, dateFilter as any);
-        }
-
-        let matchesAssignment = true;
-        if (isAdminOrManager && (type === "SATELLITE" || type === "ROOT" || type === "MONETIZED") && assignmentFilter !== "ALL") {
-          if (assignmentFilter === "ASSIGNED") {
-            matchesAssignment = !!m.assigneeId;
-          } else if (assignmentFilter === "UNASSIGNED") {
-            matchesAssignment = !m.assigneeId;
-          }
-        }
-
-        return matchesSearch && matchesStatus && matchesDate && matchesAssignment;
-      });
-  }, [mails, type, searchTerm, user, statusFilter, dateFilter, assignmentFilter, selectedBatch, selectedBatchFilter, isStaff, isAdminOrManager]);
+      return matchesSearch && matchesStatus && matchesDate && matchesAssignment;
+    })
+    .sort((a: MailData & { originalSTT: number }, b: MailData & { originalSTT: number }) => {
+      const aStt = a.stt || a.id || 0;
+      const bStt = b.stt || b.id || 0;
+      return aStt - bStt;
+    });
 
   const staffStats = useMemo(() => {
     const myMails = (mails || []).filter(m => String(m.assigneeId) === String(user?.id) && m.type === "SATELLITE");
@@ -851,10 +921,10 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
               {/* Filters */}
               <div className="flex items-center gap-2 mb-6 bg-gray-100 dark:bg-white/5 p-1 rounded-xl w-fit">
-                {["ALL", "MAIL", "SĐT"].map((tab) => (
+                {(["ALL", "MAIL", "SĐT"] as Array<"ALL" | "MAIL" | "SĐT">).map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => setHistoryTab(tab as any)}
+                    onClick={() => setHistoryTab(tab)}
                     className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
                       historyTab === tab
                         ? "bg-gold text-sidebar shadow-md"
@@ -877,7 +947,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                     <p className="text-[10px] text-gray-600 mt-1">Các lượt import mới sẽ tự động được ghi nhận tại đây.</p>
                   </div>
                 ) : (
-                  (filteredHistory || []).map((item: any) => (
+                  (filteredHistory || []).map((item: ImportHistoryItem) => (
                     <div
                       key={item.id}
                       className="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex items-center justify-between hover:border-gray-300 dark:hover:border-white/10 transition-all group"
@@ -1057,7 +1127,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               {isAdminOrManager && (type === "SATELLITE" || type === "ROOT" || type === "MONETIZED") && (
                 <select
                   value={assignmentFilter}
-                  onChange={(e) => setAssignmentFilter(e.target.value as any)}
+                  onChange={(e) => setAssignmentFilter(e.target.value as "ALL" | "ASSIGNED" | "UNASSIGNED")}
                   className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all animate-fade-in"
                 >
                   <option value="ALL" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Trạng thái gán</option>
@@ -1072,7 +1142,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                   className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all animate-fade-in"
                 >
                   <option value="ALL" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Lọc theo Lô</option>
-                  {(availableBatches || []).map((b: any) => (
+                  {(availableBatches || []).map((b: { id: string; name: string }) => (
                     <option key={b.id} value={b.id} className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">
                       {b.name}
                     </option>
@@ -1081,7 +1151,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               )}
               <select
                 value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value as any)}
+                onChange={(e) => setDateFilter(e.target.value as "ALL" | "1_WEEK" | "1_MONTH" | "2_MONTH")}
                 className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
               >
                 <option value="ALL" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Tất cả thời gian</option>
@@ -1119,12 +1189,12 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-gray-700 dark:text-gray-300">
-                  {(currentItems || []).length > 0 ? (currentItems || []).map((mail: any, index: number) => {
+                  {(currentItems || []).length > 0 ? (currentItems || []).map((mail: MailData & { originalSTT: number }, index: number) => {
                     const rowPadding = isStaff ? "py-1.5 px-6" : "py-3.5 px-6";
                     const textSize = isStaff ? "text-xs" : "text-sm";
                     return (
                       <tr key={mail._id || mail.id || index} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
-                        <td className={`${rowPadding} text-[10px] font-black text-gray-500 whitespace-nowrap`}>{mail.originalSTT}</td>
+                        <td className={`${rowPadding} text-[10px] font-black text-gray-500 whitespace-nowrap`}>{mail.stt || mail.originalSTT}</td>
                         <td className={`${rowPadding} cursor-pointer hover:text-gold transition-colors font-bold ${textSize} whitespace-nowrap`} onClick={() => copyToClipboard(mail.email, "Email")}>
                           {mail.type === "SATELLITE" && (() => {
                             const linksCount = (mail.links || []).filter((l: string) => typeof l === 'string' && l.trim() !== "").length;
@@ -1142,8 +1212,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                           })()}
                           {mail.email}
                         </td>
-                        <td className={`${rowPadding} cursor-pointer text-xs text-gray-600 dark:text-gray-400 hover:text-gold transition-colors whitespace-nowrap`} onClick={() => copyToClipboard(mail.recovery, "Mail KP")}>{mail.recovery}</td>
-                        <td className={`${rowPadding} cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono whitespace-nowrap`} onClick={() => copyToClipboard(mail.pass, "Mật khẩu")}>{mail.pass}</td>
+                        <td className={`${rowPadding} cursor-pointer text-xs text-gray-600 dark:text-gray-400 hover:text-gold transition-colors whitespace-nowrap`} onClick={() => copyToClipboard(mail.recoveryMail || mail.recovery, "Mail KP")}>{mail.recoveryMail || mail.recovery}</td>
+                        <td className={`${rowPadding} cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono whitespace-nowrap`} onClick={() => copyToClipboard(mail.password || mail.pass, "Mật khẩu")}>{mail.password || mail.pass}</td>
                         {/* 2FA - TOTP real-time */}
                         <td className={`${rowPadding} whitespace-nowrap`}>
                           {mail.twoFA ? (
@@ -1156,7 +1226,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                         <td className={`${rowPadding} whitespace-nowrap`}>
                           {mail.phone ? (
                             <button
-                              onClick={() => copyToClipboard(mail.phone, "SĐT")}
+                              onClick={() => copyToClipboard(mail.phone || "", "SĐT")}
                               className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 hover:text-gold transition-colors font-bold group/sdt"
                             >
                               <Phone size={12} className="text-gray-600 group-hover/sdt:text-gold" />
@@ -1169,9 +1239,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                         </td>
                         {/* Link OTP - click to open new tab */}
                         <td className={`${rowPadding} whitespace-nowrap`}>
-                          {mail.otpLink ? (
+                          {(mail.phoneLink || mail.otpLink) ? (
                             <a
-                              href={mail.otpLink}
+                              href={mail.phoneLink || mail.otpLink}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1.5 text-blue-400 hover:text-blue-300 transition-colors font-bold text-xs"
@@ -1197,7 +1267,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                           {type === "ROOT" ? (
                             <select
                               value={mail.verificationStatus || "Chưa xanh"}
-                              onChange={(e) => handleSaveUnifiedDetails(mail.id, { verificationStatus: e.target.value })}
+                              onChange={(e) => handleSaveUnifiedDetails(mail._id || mail.id, { verificationStatus: e.target.value })}
                               className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.verificationStatus || "Chưa xanh")}`}
                             >
                               <option value="Mail veri" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Mail veri</option>
@@ -1210,7 +1280,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                           ) : type === "MONETIZED" ? (
                             <select
                               value={mail.workStatus || "Chưa bán"}
-                              onChange={(e) => handleWorkStatusChange(mail.id, e.target.value)}
+                              onChange={(e) => handleWorkStatusChange(mail._id || mail.id, e.target.value)}
                               className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus || "Chưa bán")}`}
                             >
                               <option value="Chưa bán" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Chưa bán</option>
@@ -1219,7 +1289,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                           ) : (
                             <select
                               value={mail.workStatus || "Chưa làm"}
-                              onChange={(e) => handleWorkStatusChange(mail.id, e.target.value)}
+                              onChange={(e) => handleWorkStatusChange(mail._id || mail.id, e.target.value)}
                               className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus || "Chưa làm")}`}
                             >
                               {isStaff && type === "SATELLITE" ? (
@@ -1250,7 +1320,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                               Xem chi tiết
                             </button>
                             {isAdminOrManager && (
-                              <button onClick={() => deleteMail(mail.id)} className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all shadow-inner"><Trash2 size={16} /></button>
+                              <button onClick={() => deleteMail(mail._id || mail.id)} className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all shadow-inner"><Trash2 size={16} /></button>
                             )}
                           </div>
                         </td>
