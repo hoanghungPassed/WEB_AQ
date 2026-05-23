@@ -54,30 +54,30 @@ const getMailsForTask = (t: any, allMails: any[]) => {
   if (t.type === "MAIL_MONETIZED") mailType = "MONETIZED";
 
   if (t.selectedMailIds && Array.isArray(t.selectedMailIds)) {
-    return allMails.filter((m: any) => t.selectedMailIds.includes(m.id));
+    return (allMails || []).filter((m: any) => t.selectedMailIds.includes(m.id));
   }
   
-  let filtered = allMails.filter((m: any) => m.type === mailType && String(m.assigneeId) === String(t.assigneeId));
+  let filtered = (allMails || []).filter((m: any) => m.type === mailType && String(m.assigneeId) === String(t.assigneeId));
   if (t.title === "Check, xóa, tạo" || t.title === "Kênh bật kiếm tiền") {
     if (t.mailRange) {
       const parts = t.mailRange.split("-");
-      if (parts.length === 2) {
+      if ((parts || []).length === 2) {
         const start = parseInt(parts[0].trim());
         const end = parseInt(parts[1].trim());
-        const withSTT = allMails.filter((m: any) => m.type === mailType).map((m: any, idx: number) => ({ ...m, currentSTT: idx + 1 }));
-        const idsInRange = withSTT.filter((m: any) => m.currentSTT >= start && m.currentSTT <= end).map((m: any) => m.id);
-        filtered = filtered.filter((m: any) => idsInRange.includes(m.id));
+        const withSTT = (allMails || []).filter((m: any) => m.type === mailType).map((m: any, idx: number) => ({ ...m, currentSTT: idx + 1 }));
+        const idsInRange = (withSTT || []).filter((m: any) => m.currentSTT >= start && m.currentSTT <= end).map((m: any) => m.id);
+        filtered = (filtered || []).filter((m: any) => idsInRange.includes(m.id));
       }
     }
   } else if (t.title === "Làm kênh") {
     if (t.mailRange) {
       const cleanBatch = t.batch || t.mailRange.split(" (")[0];
-      filtered = filtered.filter((m: any) => m.batchName === cleanBatch);
+      filtered = (filtered || []).filter((m: any) => m.batchName === cleanBatch);
     }
   } else if (t.title === "Mời kênh" && t.mailRange) {
     const parts = t.mailRange.split("+");
     const loPart = parts.pop()?.trim();
-    filtered = allMails.filter((m: any) => 
+    filtered = (allMails || []).filter((m: any) => 
       (m.type === "SATELLITE" && m.batchName === loPart && String(m.assigneeId) === String(t.assigneeId)) ||
       (m.type === "ROOT" && t.note && t.note.includes(m.email))
     );
@@ -127,8 +127,8 @@ export default function AdminDashboard() {
     if (!user) return { total: 0, list: [] };
     
     // Filter satellite mails assigned to this employee
-    const myMails = mails.filter((m: any) => 
-      m.type === "SATELLITE" && String(m.assigneeId) === String(user.id)
+    const myMails = (mails || []).filter((m: any) => 
+      m.type === "SATELLITE" && String(m.assigneeId) === String(user?.id)
     );
 
     let total = 0;
@@ -136,7 +136,7 @@ export default function AdminDashboard() {
 
     myMails.forEach((m: any) => {
       const eligibleCount = Array.isArray(m.eligibleChannels) 
-        ? m.eligibleChannels.filter(Boolean).length 
+        ? (m.eligibleChannels || []).filter(Boolean).length 
         : 0;
       
       if (eligibleCount > 0) {
@@ -147,8 +147,8 @@ export default function AdminDashboard() {
     });
 
     // Also populate batches from tasks to make sure we show 0 for assigned batches with no eligible channels
-    const myTasks = tasksList.filter((t: any) => 
-      String(t.assigneeId) === String(user.id) && t.batch
+    const myTasks = (tasksList || []).filter((t: any) => 
+      String(t.assigneeId) === String(user?.id) && t.batch
     );
     myTasks.forEach((t: any) => {
       if (!batchCounts[t.batch]) {
@@ -233,7 +233,7 @@ export default function AdminDashboard() {
   };
 
   const handleLikePost = (postId: string) => {
-    const updated = posts.map(p => {
+    const updated = (posts || []).map(p => {
       if (p.id === postId) {
         const likedBy = Array.isArray(p.likedBy) ? p.likedBy : [];
         const userId = user?.id || "anon";
@@ -242,7 +242,7 @@ export default function AdminDashboard() {
         let newLikedBy;
         let newLikes = p.likes || 0;
         if (hasLiked) {
-          newLikedBy = likedBy.filter((id: string) => id !== userId);
+          newLikedBy = (likedBy || []).filter((id: string) => id !== userId);
           newLikes = Math.max(0, newLikes - 1);
         } else {
           newLikedBy = [...likedBy, userId];
@@ -263,7 +263,7 @@ export default function AdminDashboard() {
     const text = commentInputs[postId] || "";
     if (!text.trim()) return;
 
-    const updated = posts.map(p => {
+    const updated = (posts || []).map(p => {
       if (p.id === postId) {
         const comments = Array.isArray(p.comments) ? p.comments : [];
         const newCmt = {
@@ -299,7 +299,7 @@ export default function AdminDashboard() {
   const handleApproveRequest = (request: any) => {
     const saved = localStorage.getItem("pending_access_requests") || "[]";
     const reqs = JSON.parse(saved);
-    const updated = reqs.filter((r: any) => r.id !== request.id);
+    const updated = (reqs || []).filter((r: any) => r.id !== request.id);
     setPendingRequests(updated);
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     localStorage.setItem(`access_response_${request.staffName}`, "APPROVED");
@@ -310,7 +310,7 @@ export default function AdminDashboard() {
       const savedUsers = localStorage.getItem("global_users");
       if (savedUsers) {
         const allUsers = JSON.parse(savedUsers);
-        const updatedUsers = allUsers.map((u: any) =>
+        const updatedUsers = (allUsers || []).map((u: any) =>
           u.username === request.username || u.name === request.staffName
             ? { 
                 ...u, 
@@ -332,7 +332,7 @@ export default function AdminDashboard() {
   const handleDenyRequest = (request: any) => {
     const saved = localStorage.getItem("pending_access_requests") || "[]";
     const reqs = JSON.parse(saved);
-    const updated = reqs.filter((r: any) => r.id !== request.id);
+    const updated = (reqs || []).filter((r: any) => r.id !== request.id);
     setPendingRequests(updated);
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     localStorage.setItem(`access_response_${request.staffName}`, "DENIED");
@@ -342,7 +342,7 @@ export default function AdminDashboard() {
       const savedUsers = localStorage.getItem("global_users");
       if (savedUsers) {
         const allUsers = JSON.parse(savedUsers);
-        const updatedUsers = allUsers.map((u: any) =>
+        const updatedUsers = (allUsers || []).map((u: any) =>
           u.username === request.username || u.name === request.staffName
             ? { 
                 ...u, 
@@ -362,8 +362,8 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (user?.username) {
-      setCheckInTime(localStorage.getItem(`checkin_time_${user.username}`));
-      setCheckOutTime(localStorage.getItem(`checkout_time_${user.username}`));
+      setCheckInTime(localStorage.getItem(`checkin_time_${user?.username}`));
+      setCheckOutTime(localStorage.getItem(`checkout_time_${user?.username}`));
     }
   }, [user]);
 
@@ -423,7 +423,7 @@ export default function AdminDashboard() {
       };
     } else {
       if (!assignedItem) return null;
-      if (user && String(assignedItem.staffId) === String(user.id)) {
+      if (user && String(assignedItem.staffId) === String(user?.id)) {
         return {
           id: "duty_weekday",
           isForAll: false,
@@ -460,34 +460,34 @@ export default function AdminDashboard() {
     setTasksList(currentTasks);
     const eligibleCount = currentMails.reduce((sum: number, m: any) => {
       if (m.type === "SATELLITE" && Array.isArray(m.eligibleChannels)) {
-        return sum + m.eligibleChannels.filter(Boolean).length;
+        return sum + (m.eligibleChannels || []).filter(Boolean).length;
       }
       return sum;
     }, 0);
     if (isMinimalRole && currentUserObj) {
-      const myMails = currentMails.filter((m: any) => String(m.assigneeId) === String(currentUserObj?.id));
-      const myTasks = currentTasks.filter((t: any) => String(t.assigneeId) === String(currentUserObj?.id) && (t.status === "IN_PROGRESS" || t.status === "PENDING" || t.status === "COMPLETED"));
+      const myMails = (currentMails || []).filter((m: any) => String(m.assigneeId) === String(currentUserObj?.id));
+      const myTasks = (currentTasks || []).filter((t: any) => String(t.assigneeId) === String(currentUserObj?.id) && (t.status === "IN_PROGRESS" || t.status === "PENDING" || t.status === "COMPLETED"));
       setStats({
-        totalMail: myMails.length,
-        mailLive: myMails.filter((m: any) => m.status === "LIVE").length,
-        mailDie: myMails.filter((m: any) => m.status === "DIE").length,
+        totalMail: (myMails || []).length,
+        mailLive: (myMails || []).filter((m: any) => m.status === "LIVE").length,
+        mailDie: (myMails || []).filter((m: any) => m.status === "DIE").length,
         mailRoot: 0,
         mailSatellite: 0,
         mailMonetized: 0,
-        tasksToday: myTasks.filter((t: any) => t.status === "IN_PROGRESS" || t.status === "PENDING").length,
+        tasksToday: (myTasks || []).filter((t: any) => t.status === "IN_PROGRESS" || t.status === "PENDING").length,
         staffOnline: 0,
         mailWatchHours: eligibleCount
       });
     } else {
       setStats((prev: any) => ({
         ...prev,
-        totalMail: currentMails.length,
-        mailLive: currentMails.filter((m: any) => m.status === "LIVE").length,
-        mailDie: currentMails.filter((m: any) => m.status === "DIE").length,
-        mailRoot: currentMails.filter((m: any) => m.type === "ROOT").length,
-        mailSatellite: currentMails.filter((m: any) => m.type === "SATELLITE").length,
-        mailMonetized: currentMails.filter((m: any) => m.type === "MONETIZED").length,
-        tasksToday: currentTasks.filter((t: any) => t.status === "IN_PROGRESS" || t.status === "PENDING").length,
+        totalMail: (currentMails || []).length,
+        mailLive: (currentMails || []).filter((m: any) => m.status === "LIVE").length,
+        mailDie: (currentMails || []).filter((m: any) => m.status === "DIE").length,
+        mailRoot: (currentMails || []).filter((m: any) => m.type === "ROOT").length,
+        mailSatellite: (currentMails || []).filter((m: any) => m.type === "SATELLITE").length,
+        mailMonetized: (currentMails || []).filter((m: any) => m.type === "MONETIZED").length,
+        tasksToday: (currentTasks || []).filter((t: any) => t.status === "IN_PROGRESS" || t.status === "PENDING").length,
         mailWatchHours: eligibleCount
       }));
     }
@@ -498,12 +498,12 @@ export default function AdminDashboard() {
     const stored = localStorage.getItem("global_users");
     const allUsers = stored ? JSON.parse(stored) : [];
     
-    const unique = allUsers.filter((item: any, index: number, self: any[]) =>
+    const unique = (allUsers || []).filter((item: any, index: number, self: any[]) =>
       index === self.findIndex((t) => String(t.id) === String(item.id))
     );
     setStaffList(unique);
     
-    const onlineCount = unique.filter((u: any) => u.isOnline && u.role !== "01").length;
+    const onlineCount = (unique || []).filter((u: any) => u.isOnline && u.role !== "01").length;
     setStats((prev: any) => ({ ...prev, staffOnline: onlineCount }));
   };
 
@@ -568,7 +568,7 @@ export default function AdminDashboard() {
           const currentUserStr = sessionStorage.getItem("user") || localStorage.getItem("user");
           if (currentUserStr) {
             const currentUser = JSON.parse(currentUserStr);
-            if (String(toastData.userId) === String(currentUser.id)) {
+            if (String(toastData.userId) === String(currentUser?.id)) {
               setCopyToast(toastData.message);
               setTimeout(() => setCopyToast(null), 4000);
               localStorage.removeItem("realtime_toast");
@@ -618,7 +618,7 @@ export default function AdminDashboard() {
     if (!user) return;
     const timeStr = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     const fullISO = new Date().toISOString();
-    localStorage.setItem(`checkin_time_${user.username}`, fullISO);
+    localStorage.setItem(`checkin_time_${user?.username}`, fullISO);
     setCheckInTime(fullISO);
     
     // Trigger real-time modal
@@ -628,8 +628,8 @@ export default function AdminDashboard() {
     const savedUsers = localStorage.getItem("global_users");
     if (savedUsers) {
       const allUsers = JSON.parse(savedUsers);
-      const updated = allUsers.map((u: any) => 
-        u.username === user.username ? { ...u, checkInTime: timeStr, isOnline: true } : u
+      const updated = (allUsers || []).map((u: any) => 
+        u.username === user?.username ? { ...u, checkInTime: timeStr, isOnline: true } : u
       );
       localStorage.setItem("global_users", JSON.stringify(updated));
       window.dispatchEvent(new Event("storage"));
@@ -639,12 +639,12 @@ export default function AdminDashboard() {
 
   const handleCheckOut = async () => {
     if (!user) return;
-    const checkInISO = localStorage.getItem(`checkin_time_${user.username}`);
+    const checkInISO = localStorage.getItem(`checkin_time_${user?.username}`);
     if (!checkInISO) return;
     
     const timeStr = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     const fullISO = new Date().toISOString();
-    localStorage.setItem(`checkout_time_${user.username}`, fullISO);
+    localStorage.setItem(`checkout_time_${user?.username}`, fullISO);
     setCheckOutTime(fullISO);
     
     // Load config
@@ -688,8 +688,8 @@ export default function AdminDashboard() {
     const savedUsers = localStorage.getItem("global_users");
     if (savedUsers) {
       const allUsers = JSON.parse(savedUsers);
-      const updated = allUsers.map((u: any) => 
-        u.username === user.username ? { ...u, checkOutTime: timeStr, totalHours: (totalWorkingMins / 60).toFixed(2) } : u
+      const updated = (allUsers || []).map((u: any) => 
+        u.username === user?.username ? { ...u, checkOutTime: timeStr, totalHours: (totalWorkingMins / 60).toFixed(2) } : u
       );
       localStorage.setItem("global_users", JSON.stringify(updated));
       window.dispatchEvent(new Event("storage"));
@@ -722,7 +722,7 @@ export default function AdminDashboard() {
       }
     }
 
-    const updatedMails = currentMails.map((m: any) => {
+    const updatedMails = (currentMails || []).map((m: any) => {
       if (m.id === mailId) {
         let status = m.status;
         const norm = (newWorkStatus || "").toUpperCase();
@@ -746,54 +746,54 @@ export default function AdminDashboard() {
     localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
     setMails(updatedMails);
 
-    const myMails = updatedMails.filter((m: any) => String(m.assigneeId) === String(user?.id));
+    const myMails = (updatedMails || []).filter((m: any) => String(m.assigneeId) === String(user?.id));
     setStats((prev: any) => ({
       ...prev,
-      totalMail: myMails.length,
-      mailLive: myMails.filter((m: any) => m.status === "LIVE").length,
-      mailDie: myMails.filter((m: any) => m.status === "DIE").length,
+      totalMail: (myMails || []).length,
+      mailLive: (myMails || []).filter((m: any) => m.status === "LIVE").length,
+      mailDie: (myMails || []).filter((m: any) => m.status === "DIE").length,
     }));
 
     // Recalculate progress for all tasks that contain this mail
     const savedTasks = localStorage.getItem("global_tasks_data");
     let currentTasks = savedTasks ? JSON.parse(savedTasks) : [];
     
-    currentTasks = currentTasks.map((t: any) => {
+    currentTasks = (currentTasks || []).map((t: any) => {
       let mailType = "ROOT";
       if (t.type === "MAIL_VE_TINH") mailType = "SATELLITE";
       if (t.type === "MAIL_MONETIZED") mailType = "MONETIZED";
 
-      let filtered = updatedMails.filter((m: any) => m.type === mailType && String(m.assigneeId) === String(t.assigneeId));
+      let filtered = (updatedMails || []).filter((m: any) => m.type === mailType && String(m.assigneeId) === String(t.assigneeId));
       if (t.selectedMailIds && Array.isArray(t.selectedMailIds)) {
-        filtered = updatedMails.filter((m: any) => t.selectedMailIds?.includes(m.id));
+        filtered = (updatedMails || []).filter((m: any) => t.selectedMailIds?.includes(m.id));
       } else if (t.title === "Check, xóa, tạo" || t.title === "Kênh bật kiếm tiền") {
         if (t.mailRange) {
           const parts = t.mailRange.split("-");
-          if (parts.length === 2) {
+          if ((parts || []).length === 2) {
             const start = parseInt(parts[0].trim());
             const end = parseInt(parts[1].trim());
-            const withSTT = updatedMails.filter((m: any) => m.type === mailType).map((m: any, idx: number) => ({ ...m, currentSTT: idx + 1 }));
-            const idsInRange = withSTT.filter((m: any) => m.currentSTT >= start && m.currentSTT <= end).map((m: any) => m.id);
-            filtered = filtered.filter((m: any) => idsInRange.includes(m.id));
+            const withSTT = (updatedMails || []).filter((m: any) => m.type === mailType).map((m: any, idx: number) => ({ ...m, currentSTT: idx + 1 }));
+            const idsInRange = (withSTT || []).filter((m: any) => m.currentSTT >= start && m.currentSTT <= end).map((m: any) => m.id);
+            filtered = (filtered || []).filter((m: any) => idsInRange.includes(m.id));
           }
         }
       } else if (t.title === "Làm kênh") {
         if (t.mailRange) {
           const cleanBatch = t.batch || t.mailRange.split(" (")[0];
-          filtered = filtered.filter((m: any) => m.batchName === cleanBatch);
+          filtered = (filtered || []).filter((m: any) => m.batchName === cleanBatch);
         }
       } else if (t.title === "Mời kênh" && t.mailRange) {
         const parts = t.mailRange.split("+");
         const loPart = parts.pop()?.trim();
-        filtered = updatedMails.filter((m: any) => 
+        filtered = (updatedMails || []).filter((m: any) => 
           (m.type === "SATELLITE" && m.batchName === loPart && String(m.assigneeId) === String(t.assigneeId)) ||
           (m.type === "ROOT" && t.note && t.note.includes(m.email))
         );
       }
 
-      const totalTaskMails = filtered.length;
+      const totalTaskMails = (filtered || []).length;
       if (totalTaskMails > 0) {
-        const completedCount = filtered.filter((m: any) => {
+        const completedCount = (filtered || []).filter((m: any) => {
           const normStatus = (m.workStatus || "").toUpperCase();
           return normStatus === "ĐÃ LÀM" || normStatus === "ĐÃ BÁN" || normStatus === "HOÀN THÀNH" || normStatus === "ĐÃ LÀM KÊNH";
         }).length;
@@ -826,7 +826,7 @@ export default function AdminDashboard() {
         // Chỉ kiểm tra mail vừa được cập nhật
         const mailType = selectedStaffTask.type === "MAIL_VE_TINH" ? "SATELLITE" : "OTHER";
         if (mailType === "SATELLITE") {
-          const taskMails = updatedMails.filter((m: any) => {
+          const taskMails = (updatedMails || []).filter((m: any) => {
             const belongsToUser = String(m.assigneeId) === String(selectedStaffTask.assigneeId || user?.id);
             if (!belongsToUser) return false;
             if (selectedStaffTask.selectedMailIds && Array.isArray(selectedStaffTask.selectedMailIds))
@@ -884,13 +884,13 @@ export default function AdminDashboard() {
           errorMails.push(`- ${m.email} (thiếu ${3 - linksCount} kênh)`);
         }
       });
-      if (errorMails.length > 0) {
+      if ((errorMails || []).length > 0) {
         alert("KHÔNG THỂ HOÀN THÀNH!\nCác mail vệ tinh sau chưa nhập đủ 3 kênh:\n" + errorMails.join("\n"));
         return;
       }
     }
 
-    const updatedTasks = currentTasks.map((t: any) => {
+    const updatedTasks = (currentTasks || []).map((t: any) => {
       if (t.id === taskId) {
         return { ...t, status: newStatus, progress: newStatus === "COMPLETED" ? 100 : t.progress };
       }
@@ -911,14 +911,14 @@ export default function AdminDashboard() {
 
     // Xác định mail IDs thuộc task bằng helper 100% đồng bộ
     const taskMails = getMailsForTask(targetTask, currentMails);
-    const taskMailIds = taskMails.map((m: any) => m.id);
+    const taskMailIds = (taskMails || []).map((m: any) => m.id);
 
     // Khi COMPLETED và task SATELLITE: kiểm tra link từng mail
     // Đủ 3 link → "Đã làm"; thiếu bất kỳ link nào → "Lỗi"
     const isSatelliteTask = targetTask?.type === "MAIL_VE_TINH";
     const newWorkStatus = newStatus === "COMPLETED" ? "Đã làm" : "Đang xử lí";
 
-    const updatedMails = currentMails.map((m: any) => {
+    const updatedMails = (currentMails || []).map((m: any) => {
       if (!taskMailIds.includes(m.id)) return m;
       if (newStatus === "COMPLETED" && isSatelliteTask) {
         const links: string[] = m.links || [];
@@ -959,7 +959,7 @@ export default function AdminDashboard() {
       }
     }
 
-    setCopyToast(`✓ Đã cập nhật ${taskMailIds.length} mail sang "${newWorkStatus}"`);
+    setCopyToast(`✓ Đã cập nhật ${(taskMailIds || []).length} mail sang "${newWorkStatus}"`);
     setTimeout(() => setCopyToast(null), 3000);
 
     window.dispatchEvent(new Event("storage"));
@@ -983,7 +983,7 @@ export default function AdminDashboard() {
     const savedMails = localStorage.getItem("global_mails_data");
     const currentMails = savedMails ? JSON.parse(savedMails) : [];
 
-    const updatedMails = currentMails.map((m: any) => {
+    const updatedMails = (currentMails || []).map((m: any) => {
       if (m.id === mailId) {
         const inviteStatuses = m.inviteStatuses || ["Chưa mời", "Chưa mời", "Chưa mời"];
         inviteStatuses[chIdx] = newInviteStatus;
@@ -997,7 +997,7 @@ export default function AdminDashboard() {
 
     const eligibleCount = updatedMails.reduce((sum: number, m: any) => {
       if (m.type === "SATELLITE" && Array.isArray(m.eligibleChannels)) {
-        return sum + m.eligibleChannels.filter(Boolean).length;
+        return sum + (m.eligibleChannels || []).filter(Boolean).length;
       }
       return sum;
     }, 0);
@@ -1016,7 +1016,7 @@ export default function AdminDashboard() {
   const filteredMails = useMemo(() => {
     if (!selectedViewType || selectedViewType === "STAFF") return [];
     
-    return mails.filter(m => {
+    return (mails || []).filter(m => {
       let matchesType = true;
       if (selectedViewType === "LIVE") matchesType = m.status === "LIVE";
       else if (selectedViewType === "DIE") matchesType = m.status === "DIE";
@@ -1036,12 +1036,12 @@ export default function AdminDashboard() {
     });
   }, [selectedViewType, searchQuery, filterStatus, filterMailType, mails]);
 
-  const totalPages = Math.ceil(filteredMails.length / itemsPerPage);
+  const totalPages = Math.ceil((filteredMails || []).length / itemsPerPage);
   const currentItems = filteredMails.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const filteredTasks = useMemo(() => {
     if (selectedViewType !== "TASKS" || !isAdminOrManager) return [];
-    return tasksList.filter(t => {
+    return (tasksList || []).filter(t => {
       const titleMatch = t.title.toLowerCase().includes(searchQuery.toLowerCase());
       const noteMatch = t.note ? t.note.toLowerCase().includes(searchQuery.toLowerCase()) : false;
       const staffName = (() => {
@@ -1053,7 +1053,7 @@ export default function AdminDashboard() {
     });
   }, [selectedViewType, tasksList, searchQuery, isAdminOrManager, staffList]);
 
-  const totalTasksPages = Math.ceil(filteredTasks.length / itemsPerPage);
+  const totalTasksPages = Math.ceil((filteredTasks || []).length / itemsPerPage);
   const currentTasksItems = filteredTasks.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const getChannelStatusColor = (status: string) => {
@@ -1081,7 +1081,7 @@ export default function AdminDashboard() {
   }, [selectedStaffTask, user?.role]);
 
   if (selectedStaffTask && (user?.role === "03" || user?.role === "04")) {
-    const taskMails = mails.filter((m: any) => {
+    const taskMails = (mails || []).filter((m: any) => {
       const belongsToUser = String(m.assigneeId) === String(user?.id);
       if (!belongsToUser) return false;
       if (selectedStaffTask.selectedMailIds && Array.isArray(selectedStaffTask.selectedMailIds)) {
@@ -1131,7 +1131,7 @@ export default function AdminDashboard() {
                 const saved = localStorage.getItem("global_mails_data");
                 const all = saved ? JSON.parse(saved) : [];
                 const now = new Date().toISOString();
-                const updated = all.map((m: any) =>
+                const updated = (all || []).map((m: any) =>
                   m.id === selectedMailForModal.id ? { ...m, ...updatedFields, lastUpdated: now, updatedBy: user?.name || user?.id } : m
                 );
                 localStorage.setItem("global_mails_data", JSON.stringify(updated));
@@ -1155,7 +1155,7 @@ export default function AdminDashboard() {
               </button>
               <div>
                 <h1 className="text-xl font-black text-white uppercase tracking-tighter">
-                  Nhiệm vụ được giao: {selectedStaffTask.title} ({taskMails.length} mail)
+                  Nhiệm vụ được giao: {selectedStaffTask.title} ({(taskMails || []).length} mail)
                 </h1>
                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
                   {selectedStaffTask.note || "Xử lý danh sách mail được giao"}
@@ -1188,7 +1188,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Missing Links Warning Panel */}
-        {missingLinksWarning.length > 0 && (
+        {(missingLinksWarning || []).length > 0 && (
           <div className="flex-shrink-0 mx-4 mt-3">
             <div className="bg-gradient-to-r from-red-950/60 to-orange-950/40 border border-red-500/40 rounded-2xl overflow-hidden shadow-lg shadow-red-500/10">
               {/* Header */}
@@ -1199,7 +1199,7 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <p className="text-red-300 font-black text-sm uppercase tracking-widest">
-                      {missingLinksWarning.length} mail chưa điền đủ link kênh YouTube
+                      {(missingLinksWarning || []).length} mail chưa điền đủ link kênh YouTube
                     </p>
                     <p className="text-red-500/70 text-xs font-bold uppercase tracking-wider mt-1">
                       Các mail thiếu link sẽ bị đánh dấu Lỗi — bổ sung link trong popup "Xem chi tiết"
@@ -1216,7 +1216,7 @@ export default function AdminDashboard() {
               {/* STT Badges */}
               <div className="px-5 py-3 flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-black text-red-500/60 uppercase tracking-widest mr-2">STT thiếu link:</span>
-                {missingLinksWarning.map((w) => (
+                {(missingLinksWarning || []).map((w) => (
                   <span
                     key={w.stt}
                     title={`${w.email} - thiếu ${w.missing} link`}
@@ -1249,9 +1249,9 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-gray-300">
-              {taskMails.length === 0 ? (
+              {(taskMails || []).length === 0 ? (
                 <tr><td colSpan={9} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Không có mail nào</td></tr>
-              ) : taskMails.map((mail: any, idx: number) => (
+              ) : (taskMails || []).map((mail: any, idx: number) => (
                 <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
                   <td className="py-3 px-6 text-[10px] font-black text-gray-500 whitespace-nowrap">{idx + 1}</td>
                   <td className="py-3 px-6 font-bold text-white text-xs cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.email, "Email")}>
@@ -1419,7 +1419,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-gray-300">
-                  {currentTasksItems.map((task: any, index: number) => {
+                  {(currentTasksItems || []).map((task: any, index: number) => {
                     const assignee = staffList.find(s => String(s.id) === String(task.assigneeId));
                     const taskTypeLabel = task.type === "MAIL_GOC" ? "Mail Gốc" : (task.type === "MAIL_VE_TINH" ? "Mail Vệ Tinh" : "Mail BKT");
                     return (
@@ -1472,7 +1472,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-gray-300">
-                  {currentItems.map((mail: any, index: number) => {
+                  {(currentItems || []).map((mail: any, index: number) => {
                     const assignee = staffList.find(s => String(s.id) === String(mail.assigneeId));
                     return (
                       <tr key={`mail-${mail.id}`} className="hover:bg-white/[0.02] transition-colors group">
@@ -1694,9 +1694,9 @@ export default function AdminDashboard() {
                   
                   <div className="mt-4 flex-1 flex flex-col justify-center">
                     <div className="text-2xl font-black text-white">{eligibleBreakdown.total} <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">kênh đạt</span></div>
-                    {eligibleBreakdown.list.length > 0 ? (
+                    {(eligibleBreakdown.list || []).length > 0 ? (
                       <div className="mt-2 grid grid-cols-2 gap-2 max-h-[80px] overflow-y-auto custom-scrollbar">
-                        {eligibleBreakdown.list.map((b) => (
+                        {(eligibleBreakdown.list || []).map((b) => (
                           <div key={b.name} className="flex items-center gap-1.5 bg-white/5 border border-white/5 px-2 py-1 rounded-xl text-[10px] font-black text-gray-300 uppercase tracking-wide">
                             <span className="text-gold font-mono">{b.name}:</span>
                             <span>{b.count} kênh</span>
@@ -1752,8 +1752,8 @@ export default function AdminDashboard() {
                       </div>
                     )}
 
-                    {tasksList.filter(t => String(t.assigneeId) === String(user?.id)).length > 0 ? (
-                      tasksList.filter(t => String(t.assigneeId) === String(user?.id)).map((task: any) => (
+                    {(tasksList || []).filter(t => String(t.assigneeId) === String(user?.id)).length > 0 ? (
+                      (tasksList || []).filter(t => String(t.assigneeId) === String(user?.id)).map((task: any) => (
                         <div
                           key={task.id}
                           onClick={() => setSelectedStaffTask(task)}
@@ -1948,7 +1948,7 @@ export default function AdminDashboard() {
                               </td>
                             </tr>
                           ))}
-                        {mails.filter((m: any) => String(m.assigneeId) === String(user?.id)).length === 0 && (
+                        {(mails || []).filter((m: any) => String(m.assigneeId) === String(user?.id)).length === 0 && (
                           <tr><td colSpan={9} className="py-10 text-center text-gray-600 font-bold uppercase tracking-widest">Bạn chưa được gán tài khoản mail nào</td></tr>
                         )}
                       </tbody>
@@ -2024,7 +2024,7 @@ export default function AdminDashboard() {
                 <StatCard title="Số Task hôm nay" value={stats.tasksToday} icon={<ClipboardList size={32} />} color="blue" subtitle="Nhiệm vụ cần xử lý" onClick={() => setSelectedViewType("TASKS")} />
                 <StatCard title="Lô đang làm" value={selectedStaffTask?.mailRange || "---"} icon={<Database size={32} />} color="indigo" subtitle="Lô mail phân công" onClick={() => setSelectedViewType("TASKS")} />
                 <StatCard title="Số kênh đủ giờ" value={stats.mailWatchHours || 0} icon={<Target size={32} />} color="gold" subtitle="Đã đủ điều kiện" onClick={() => setIsEligibleChannelsModalOpen(true)} />
-                <StatCard title="Bảng Tin Nội Bộ" value={posts.length || 0} icon={<MessageSquare size={32} />} color="purple" subtitle="Cập nhật tin tức" onClick={() => router.push("/admin/newsfeed")} />
+                <StatCard title="Bảng Tin Nội Bộ" value={(posts || []).length || 0} icon={<MessageSquare size={32} />} color="purple" subtitle="Cập nhật tin tức" onClick={() => router.push("/admin/newsfeed")} />
               </>
             )}
           </div>
@@ -2061,7 +2061,7 @@ export default function AdminDashboard() {
                       <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Từ</span>
                       <input 
                         type="date" 
-                        value={kpi.startDate} 
+                        value={kpi.startDate || ""} 
                         disabled={!isAdminOrManager} 
                         onChange={(e) => setKpi({ ...kpi, startDate: e.target.value })} 
                         className="bg-black/40 text-white text-xs font-black p-2 rounded-xl outline-none border border-white/5 focus:border-gold/50 transition-all cursor-pointer" 
@@ -2072,7 +2072,7 @@ export default function AdminDashboard() {
                       <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Đến</span>
                       <input 
                         type="date" 
-                        value={kpi.endDate} 
+                        value={kpi.endDate || ""} 
                         disabled={!isAdminOrManager} 
                         onChange={(e) => setKpi({ ...kpi, endDate: e.target.value })} 
                         className="bg-black/40 text-white text-xs font-black p-2 rounded-xl outline-none border border-white/5 focus:border-gold/50 transition-all cursor-pointer" 
@@ -2110,13 +2110,13 @@ export default function AdminDashboard() {
                       Yêu cầu truy cập ngoài giờ
                     </h3>
                     <span className="bg-gold/10 text-gold border border-gold/30 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">
-                      {pendingRequests.length} Đang chờ
+                      {(pendingRequests || []).length} Đang chờ
                     </span>
                   </div>
 
                   <div className="space-y-4 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
-                    {pendingRequests.length > 0 ? (
-                      pendingRequests.map((req: any) => (
+                    {(pendingRequests || []).length > 0 ? (
+                      (pendingRequests || []).map((req: any) => (
                         <div key={`req-card-${req.id}`} className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex flex-col gap-3 hover:border-gold/30 transition-all">
                           <div className="flex items-start justify-between">
                             <div>
@@ -2197,8 +2197,8 @@ export default function AdminDashboard() {
 
               <div className="overflow-auto flex-1 custom-scrollbar relative z-10 space-y-6">
                 {(() => {
-                  const eligibleMails = mails.filter((m: any) => m.type === "SATELLITE" && Array.isArray(m.eligibleChannels) && m.eligibleChannels.some(Boolean));
-                  if (eligibleMails.length === 0) {
+                  const eligibleMails = (mails || []).filter((m: any) => m.type === "SATELLITE" && Array.isArray(m.eligibleChannels) && m.eligibleChannels.some(Boolean));
+                  if ((eligibleMails || []).length === 0) {
                      return <div className="p-12 text-center text-gray-500 font-bold uppercase tracking-widest bg-black/10 rounded-3xl border border-white/5">Không có kênh nào đủ điều kiện hiện tại</div>;
                   }
                   
@@ -2244,7 +2244,7 @@ export default function AdminDashboard() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5 text-gray-300">
-                              {channelsInBatch.map((row: any, idx: number) => (
+                              {(channelsInBatch || []).map((row: any, idx: number) => (
                                 <tr key={`${row.mailId}-${row.chIdx}-${idx}`} className="hover:bg-white/[0.02] transition-colors group">
                                   <td className="py-3 px-6 text-[10px] font-black text-gray-500">{row.stt}</td>
                                   <td className="py-3 px-6 text-xs text-white font-bold">{row.mailEmail}</td>
@@ -2258,7 +2258,7 @@ export default function AdminDashboard() {
                                       rel="noreferrer" 
                                       className="inline-flex items-center gap-1.5 text-blue-400 hover:text-blue-300 underline font-bold"
                                     >
-                                      <span>{row.link.length > 25 ? `${row.link.substring(0, 25)}...` : row.link}</span>
+                                      <span>{(row.link || []).length > 25 ? `${row.link.substring(0, 25)}...` : row.link}</span>
                                       <ExternalLink size={12} />
                                     </a>
                                   </td>
@@ -2283,7 +2283,7 @@ export default function AdminDashboard() {
                               <tr>
                                 <td colSpan={5} className="py-4 px-6 text-right">
                                   <span className="text-xs font-black text-gray-400 uppercase tracking-widest">
-                                    Tổng kênh đủ giờ của lô: <span className="text-gold text-sm">{channelsInBatch.length} kênh</span>
+                                    Tổng kênh đủ giờ của lô: <span className="text-gold text-sm">{(channelsInBatch || []).length} kênh</span>
                                   </span>
                                 </td>
                               </tr>
@@ -2327,10 +2327,10 @@ function StatCard({ title, value, icon, color, subtitle, onClick }: any) {
       className={`group rounded-2xl border border-zinc-800 bg-zinc-900/80 backdrop-blur-md p-6 transition-all hover:shadow-2xl hover:border-zinc-700/80 ${onClick ? 'cursor-pointer hover:bg-zinc-800/60' : ''}`}
     >
       <div className="flex items-center justify-between mb-4">
-        <div className={`p-4 rounded-xl border transition-all ${colors[color] || colors.blue}`}>{icon}</div>
-        <div className="text-right">
-          <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">{title}</p>
-          <h3 className="text-3xl font-black text-zinc-50 tracking-tighter">{value?.toLocaleString() || 0}</h3>
+        <div className={`p-4 rounded-xl border transition-all shrink-0 ${colors[color] || colors.blue}`}>{icon}</div>
+        <div className="text-right min-w-0 flex-1 ml-4">
+          <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1 truncate" title={title}>{title}</p>
+          <h3 className="text-2xl xl:text-3xl font-black text-zinc-50 tracking-tighter truncate" title={String(value)}>{typeof value === "number" ? value.toLocaleString() : value}</h3>
         </div>
       </div>
       <div className="flex items-center justify-between pt-4 border-t border-zinc-800/50 mt-4">

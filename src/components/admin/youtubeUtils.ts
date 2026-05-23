@@ -14,7 +14,7 @@ export const cleanYouTubeUrl = (url: string): string => {
   const subTabs = ["/videos", "/shorts", "/streams", "/playlists", "/community", "/featured", "/about"];
   for (const tab of subTabs) {
     if (cleaned.toLowerCase().endsWith(tab)) {
-      cleaned = cleaned.substring(0, cleaned.length - tab.length);
+      cleaned = cleaned.substring(0, (cleaned || []).length - (tab || []).length);
     }
   }
   
@@ -50,13 +50,13 @@ export const parseFallbackName = (url: string): string => {
   try {
     let cleanUrl = cleanYouTubeUrl(url);
     const parts = cleanUrl.split("/");
-    const lastPart = parts[parts.length - 1];
+    const lastPart = parts[(parts || []).length - 1];
     
     if (lastPart.startsWith("@")) {
       return formatName(lastPart.substring(1));
     }
     
-    if (parts[parts.length - 2] === "c" || parts[parts.length - 2] === "user" || parts[parts.length - 2] === "channel") {
+    if (parts[(parts || []).length - 2] === "c" || parts[(parts || []).length - 2] === "user" || parts[(parts || []).length - 2] === "channel") {
       return formatName(lastPart);
     }
     

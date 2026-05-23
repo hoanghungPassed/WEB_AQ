@@ -17,8 +17,8 @@ function base32ToBytes(base32: string): Uint8Array {
     if (idx === -1) continue;
     for (let i = 4; i >= 0; i--) bits.push((idx >> i) & 1);
   }
-  const bytes = new Uint8Array(Math.floor(bits.length / 8));
-  for (let i = 0; i < bytes.length; i++) {
+  const bytes = new Uint8Array(Math.floor((bits || []).length / 8));
+  for (let i = 0; i < (bytes || []).length; i++) {
     for (let j = 0; j < 8; j++) {
       bytes[i] = (bytes[i] << 1) | bits[i * 8 + j];
     }
@@ -43,7 +43,7 @@ async function computeTOTP(secret: string, timeStep = 30): Promise<{ code: strin
 
   const sig = await hmacSha1(keyBytes, msgBytes);
   const arr = new Uint8Array(sig);
-  const offset = arr[arr.length - 1] & 0x0f;
+  const offset = arr[(arr || []).length - 1] & 0x0f;
   const code = ((arr[offset] & 0x7f) << 24 | arr[offset + 1] << 16 | arr[offset + 2] << 8 | arr[offset + 3]) % 1_000_000;
 
   return { code: String(code).padStart(6, "0"), remaining };

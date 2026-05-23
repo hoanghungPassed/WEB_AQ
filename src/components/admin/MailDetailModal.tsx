@@ -64,7 +64,7 @@ export default function MailDetailModal({
     const savedMails = typeof window !== "undefined" ? localStorage.getItem("global_mails_data") : null;
     const allMails = savedMails ? JSON.parse(savedMails) : [];
 
-    return initLinks.map((link: string, i: number) => {
+    return (initLinks || []).map((link: string, i: number) => {
       if (!link || link.trim() === "") return false;
       
       const cleaned = cleanYouTubeUrl(link);

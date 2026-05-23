@@ -27,7 +27,7 @@ export default function RegisterPage() {
     const pass = formData.password;
     if (!pass) return { score: 0, label: "", color: "" };
     let score = 0;
-    if (pass.length >= 6) score += 1;
+    if ((pass || []).length >= 6) score += 1;
     if (/[!@#$%^&*(),.?":{}|<>]/.test(pass)) score += 1;
     if (/[A-Z]/.test(pass) && /[0-9]/.test(pass)) score += 1;
     if (score === 1) return { score: 1, label: "Yếu", color: "bg-red-500" };
@@ -43,13 +43,13 @@ export default function RegisterPage() {
       if (!phoneRegex.test(value)) error = "Số điện thoại không hợp lệ";
     }
     if (name === "password") {
-      if (value.length < 6) error = "Tối thiểu 6 ký tự";
+      if ((value || []).length < 6) error = "Tối thiểu 6 ký tự";
       else if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) error = "Cần 1 ký tự đặc biệt";
     }
     if (name === "confirmPassword") {
       if (value !== formData.password) error = "Mật khẩu không khớp";
     }
-    if (name === "username" && value.length < 3) error = "Tối thiểu 3 ký tự";
+    if (name === "username" && (value || []).length < 3) error = "Tối thiểu 3 ký tự";
     if (!value) error = "Không được để trống";
     setErrors(prev => ({ ...prev, [name]: error }));
     return !error;
@@ -76,7 +76,7 @@ export default function RegisterPage() {
       if (key === "phone") {
         if (!/^(0|84)(3|5|7|8|9)([0-9]{8})$/.test(val)) newErrors[key] = "SĐT không hợp lệ";
       } else if (key === "password") {
-        if (val.length < 6 || !/[!@#$%^&*(),.?":{}|<>]/.test(val)) newErrors[key] = "Mật khẩu không đủ mạnh";
+        if ((val || []).length < 6 || !/[!@#$%^&*(),.?":{}|<>]/.test(val)) newErrors[key] = "Mật khẩu không đủ mạnh";
       } else if (key === "confirmPassword") {
         if (val !== formData.password) newErrors[key] = "Mật khẩu không khớp";
       } else if (!val) {
@@ -226,7 +226,7 @@ export default function RegisterPage() {
                   <Calendar className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.birthYear ? "text-red-500" : "text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
                   <select name="birthYear" required value={formData.birthYear} onChange={handleInputChange} className={`${inputClass("birthYear")} appearance-none cursor-pointer`}>
                     <option value="" disabled>Chọn năm</option>
-                    {years.map(y => <option key={y} value={y}>{y}</option>)}
+                    {(years || []).map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </div>
               </div>

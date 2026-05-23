@@ -156,7 +156,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
     if (isCollapsed) return;
     setOpenMenus((prev) =>
       prev.includes(title)
-        ? prev.filter((item) => item !== title)
+        ? (prev || []).filter((item) => item !== title)
         : [...prev, title]
     );
   };
@@ -249,8 +249,8 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
 
       {/* Menu */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1.5 custom-scrollbar">
-        {dynamicMenuItems.map((item) => {
-          const hasSubItems = item.subItems && item.subItems.length > 0;
+        {(dynamicMenuItems || []).map((item) => {
+          const hasSubItems = item.subItems && (item.subItems || []).length > 0;
           const isOpen = openMenus.includes(item.title);
           const isActive = pathname === item.href || (hasSubItems && item.subItems?.some((sub: any) => sub.href === pathname));
 
@@ -358,7 +358,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
           <div className="flex items-center gap-4 overflow-hidden">
             <div className="h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gold/10 text-gold border border-gold/20 group-hover:border-gold transition-all overflow-hidden shadow-lg">
               {user?.avatar ? (
-                <img src={user.avatar} className="h-full w-full object-cover" />
+                <img src={user?.avatar} className="h-full w-full object-cover" onError={(e) => e.currentTarget.src = "https://ui-avatars.com/api/?name=" + (user?.name || "U") + "&background=d4af37&color=000"} />
               ) : (
                 <UserCircle size={28} />
               )}

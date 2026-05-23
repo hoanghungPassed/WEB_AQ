@@ -54,7 +54,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
       let accessNotifs: any[] = [];
       if (isAuthorizedManager) {
         const accessReqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
-        accessNotifs = accessReqs.map((req: any) => ({
+        accessNotifs = (accessReqs || []).map((req: any) => ({
           id: `access-${req.id}`,
           title: "Yêu cầu truy cập ngoài giờ",
           message: `Nhân viên ${req.staffName} đang xin phép vào hệ thống.`,
@@ -81,7 +81,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
     };
   }, [user?.role]);
 
-  const filteredNotifications = notifications.filter(n => {
+  const filteredNotifications = (notifications || []).filter(n => {
     if (n.type === "REGISTRATION") {
       const roleUpper = String(user?.role || "").toUpperCase();
       return roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
@@ -89,34 +89,34 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
     return !n.targetUsername || n.targetUsername?.toLowerCase() === user?.username?.toLowerCase();
   });
 
-  const uniqueNotifications = filteredNotifications.filter((n, index, self) =>
+  const uniqueNotifications = (filteredNotifications || []).filter((n, index, self) =>
     index === self.findIndex((t) => t.id === n.id)
   );
 
-  const unreadCount = uniqueNotifications.filter(n => !n.read).length;
+  const unreadCount = (uniqueNotifications || []).filter(n => !n.read).length;
 
   const markAllRead = () => {
-    const updated = notifications.map(n => {
+    const updated = (notifications || []).map(n => {
       if (!n.targetUsername || n.targetUsername.toLowerCase() === user?.username?.toLowerCase()) {
         return { ...n, read: true };
       }
       return n;
     });
     setNotifications(updated);
-    const persistable = updated.filter(n => !String(n.id).startsWith("access-"));
+    const persistable = (updated || []).filter(n => !String(n.id).startsWith("access-"));
     localStorage.setItem("admin_notifications", JSON.stringify(persistable));
     window.dispatchEvent(new Event("storage"));
   };
 
   const markSingleAsRead = (id: string) => {
-    const updated = notifications.map(n => {
+    const updated = (notifications || []).map(n => {
       if (n.id === id) {
         return { ...n, read: true };
       }
       return n;
     });
     setNotifications(updated);
-    const persistable = updated.filter(n => !String(n.id).startsWith("access-"));
+    const persistable = (updated || []).filter(n => !String(n.id).startsWith("access-"));
     localStorage.setItem("admin_notifications", JSON.stringify(persistable));
     window.dispatchEvent(new Event("storage"));
   };
@@ -254,8 +254,8 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                     </div>
                     
                     <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
-                      {uniqueNotifications.length > 0 ? (
-                        uniqueNotifications.map((n) => (
+                      {(uniqueNotifications || []).length > 0 ? (
+                        (uniqueNotifications || []).map((n) => (
                           <div 
                             key={n.id} 
                             onClick={() => {
@@ -317,7 +317,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
               className="h-11 w-11 rounded-xl border border-white/10 bg-white/[0.05] p-0.5 flex items-center justify-center overflow-hidden cursor-pointer hover:border-gold/50 hover:bg-gold/5 transition-all shadow-xl active:scale-95"
             >
               {user?.avatar ? (
-                <img src={user.avatar} className="h-full w-full object-cover rounded-lg" />
+                <img src={user?.avatar} className="h-full w-full object-cover rounded-lg" onError={(e) => e.currentTarget.src = "https://ui-avatars.com/api/?name=" + (user?.name || "U") + "&background=d4af37&color=000"} />
               ) : (
                 <div className="h-full w-full rounded-lg bg-sidebar flex items-center justify-center text-gold">
                    <User size={20} />
@@ -415,7 +415,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                       : "text-gray-400 hover:text-white"
                   }`}
                 >
-                  Chưa đọc ({uniqueNotifications.filter(n => !n.read).length})
+                  Chưa đọc ({(uniqueNotifications || []).filter(n => !n.read).length})
                 </button>
                 <button
                   onClick={() => setNotifTab("READ")}
@@ -425,19 +425,19 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                       : "text-gray-400 hover:text-white"
                   }`}
                 >
-                  Đã đọc ({uniqueNotifications.filter(n => n.read).length})
+                  Đã đọc ({(uniqueNotifications || []).filter(n => n.read).length})
                 </button>
               </div>
 
               {/* Notifications List */}
               <div className="space-y-3 overflow-y-auto custom-scrollbar pr-2 flex-1 min-h-0">
                 {(notifTab === "UNREAD"
-                  ? uniqueNotifications.filter(n => !n.read)
-                  : uniqueNotifications.filter(n => n.read)
+                  ? (uniqueNotifications || []).filter(n => !n.read)
+                  : (uniqueNotifications || []).filter(n => n.read)
                 ).length > 0 ? (
                   (notifTab === "UNREAD"
-                    ? uniqueNotifications.filter(n => !n.read)
-                    : uniqueNotifications.filter(n => n.read)
+                    ? (uniqueNotifications || []).filter(n => !n.read)
+                    : (uniqueNotifications || []).filter(n => n.read)
                   ).map((n) => (
                     <div
                       key={n.id}

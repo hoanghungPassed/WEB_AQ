@@ -87,7 +87,7 @@ export default function ReportsPage() {
     
     // Simulate File Download
     const element = document.createElement("a");
-    const file = new Blob(["BÁO CÁO THỐNG KÊ AQ MEDIA\n\nTổng Số Lượng: " + mails.length + " tài khoản."], {type: 'text/plain'});
+    const file = new Blob(["BÁO CÁO THỐNG KÊ AQ MEDIA\n\nTổng Số Lượng: " + (mails || []).length + " tài khoản."], {type: 'text/plain'});
     element.href = URL.createObjectURL(file);
     element.download = "AQ_MEDIA_REPORT_SUMMARY.txt";
     document.body.appendChild(element);
@@ -97,27 +97,27 @@ export default function ReportsPage() {
 
   // 1. CALCULATE HIGH LEVEL STATS
   const stats = useMemo(() => {
-    const total = mails.length || 300;
-    const roots = mails.filter(m => m.type === "ROOT");
-    const satellites = mails.filter(m => m.type === "SATELLITE");
-    const monetized = mails.filter(m => m.type === "MONETIZED");
+    const total = (mails || []).length || 300;
+    const roots = (mails || []).filter(m => m.type === "ROOT");
+    const satellites = (mails || []).filter(m => m.type === "SATELLITE");
+    const monetized = (mails || []).filter(m => m.type === "MONETIZED");
 
-    const rootDone = roots.filter(m => m.verificationStatus === "Quét CCCD").length;
-    const satelliteDone = satellites.filter(m => m.workStatus === "Đã làm").length;
-    const monetizedDone = monetized.filter(m => m.workStatus === "Đã bán").length;
+    const rootDone = (roots || []).filter(m => m.verificationStatus === "Quét CCCD").length;
+    const satelliteDone = (satellites || []).filter(m => m.workStatus === "Đã làm").length;
+    const monetizedDone = (monetized || []).filter(m => m.workStatus === "Đã bán").length;
 
     const totalDone = rootDone + satelliteDone + monetizedDone;
     const completionRate = total > 0 ? ((totalDone / total) * 100).toFixed(1) : "0.0";
     
-    const liveMails = mails.filter(m => m.status === "LIVE").length;
-    const dieMails = mails.filter(m => m.status === "DIE").length;
+    const liveMails = (mails || []).filter(m => m.status === "LIVE").length;
+    const dieMails = (mails || []).filter(m => m.status === "DIE").length;
     const liveRatio = total > 0 ? ((liveMails / total) * 100).toFixed(1) : "100.0";
 
     return {
       total,
-      roots: roots.length,
-      satellites: satellites.length,
-      monetized: monetized.length,
+      roots: (roots || []).length,
+      satellites: (satellites || []).length,
+      monetized: (monetized || []).length,
       totalDone,
       completionRate,
       liveRatio,
@@ -127,16 +127,16 @@ export default function ReportsPage() {
 
   // 2. CALCULATE STAFF LEADERBOARDS
   const staffLeaderboard = useMemo<StaffPerformance[]>(() => {
-    const list = staffList.filter((s: any) => s.role === "04" || s.role === "NHÂN VIÊN");
+    const list = (staffList || []).filter((s: any) => s.role === "04" || s.role === "NHÂN VIÊN");
     
-    const calculated = list.map((staff: any, idx: number) => {
-      const myMails = mails.filter(m => String(m.assigneeId) === String(staff.id));
-      // TODO: Đổi logic đếm KPI từ đếm số lượng Mail (myMails.length) sang đếm tổng số Kênh Đủ Giờ (eligibleChannels) khi kết nối API thật. Mục tiêu: 50 kênh/ngày.
-      const completed = myMails.filter(m => m.workStatus === "Đã làm" || m.workStatus === "Đã bán").length;
-      const failed = myMails.filter(m => m.workStatus === "Lỗi").length;
+    const calculated = (list || []).map((staff: any, idx: number) => {
+      const myMails = (mails || []).filter(m => String(m.assigneeId) === String(staff.id));
+      // TODO: Đổi logic đếm KPI từ đếm số lượng Mail ((myMails || []).length) sang đếm tổng số Kênh Đủ Giờ (eligibleChannels) khi kết nối API thật. Mục tiêu: 50 kênh/ngày.
+      const completed = (myMails || []).filter(m => m.workStatus === "Đã làm" || m.workStatus === "Đã bán").length;
+      const failed = (myMails || []).filter(m => m.workStatus === "Lỗi").length;
       
-      const errorPercent = myMails.length > 0 ? Math.round((failed / myMails.length) * 100) : 0;
-      const progress = myMails.length > 0 ? Math.round((completed / myMails.length) * 100) : 0;
+      const errorPercent = (myMails || []).length > 0 ? Math.round((failed / (myMails || []).length) * 100) : 0;
+      const progress = (myMails || []).length > 0 ? Math.round((completed / (myMails || []).length) * 100) : 0;
       
       // Compute efficiency rating
       let efficiency = "C";
@@ -148,7 +148,7 @@ export default function ReportsPage() {
         rank: 0, // Placeholder
         name: staff.name,
         username: staff.username,
-        assigned: myMails.length,
+        assigned: (myMails || []).length,
         completed: completed,
         errorRate: errorPercent,
         kpiProgress: progress,
@@ -158,7 +158,7 @@ export default function ReportsPage() {
 
     // Sort by KPI progress descending
     const sorted = [...calculated].sort((a, b) => b.kpiProgress - a.kpiProgress);
-    return sorted.map((s, idx) => ({ ...s, rank: idx + 1, efficiency: idx === 0 ? "A+" : idx === 1 ? "A" : s.efficiency }));
+    return (sorted || []).map((s, idx) => ({ ...s, rank: idx + 1, efficiency: idx === 0 ? "A+" : idx === 1 ? "A" : s.efficiency }));
   }, [staffList, mails]);
 
   // 3. PAYROLL LOGIC
@@ -211,7 +211,7 @@ export default function ReportsPage() {
       timestamp: new Date().toISOString()
     };
 
-    const updated = [...payrollRecords.filter(r => r.id !== recordId), newRecord];
+    const updated = [...(payrollRecords || []).filter(r => r.id !== recordId), newRecord];
     setPayrollRecords(updated);
     localStorage.setItem("payroll_records", JSON.stringify(updated));
     triggerToast("Đã lưu bảng lương thành công!");
@@ -458,8 +458,8 @@ export default function ReportsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-gray-300">
-              {staffLeaderboard.length > 0 ? (
-                staffLeaderboard.map((staff, idx) => (
+              {(staffLeaderboard || []).length > 0 ? (
+                (staffLeaderboard || []).map((staff, idx) => (
                   <tr key={staff.username} className="hover:bg-white/[0.02] transition-colors group">
                     <td className="py-4.5 px-6 text-center">
                       <span className={`h-6 w-6 rounded-lg font-black text-xs inline-flex items-center justify-center border ${
@@ -534,7 +534,7 @@ export default function ReportsPage() {
                   onChange={(e) => setSelectedStaffId(e.target.value)}
                 >
                   <option value="" className="bg-sidebar text-gray-400">-- Nhấp để chọn --</option>
-                  {staffList.map(s => (
+                  {(staffList || []).map(s => (
                     <option key={s.id} value={s.id} className="bg-sidebar">{s.name} (@{s.username})</option>
                   ))}
                 </select>
@@ -605,8 +605,8 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-gray-300">
-                  {payrollRecords.length > 0 ? (
-                    payrollRecords.map((record) => (
+                  {(payrollRecords || []).length > 0 ? (
+                    (payrollRecords || []).map((record) => (
                       <tr key={record.id} className="hover:bg-white/[0.02] transition-colors group">
                         <td className="py-4.5 px-6 font-black text-white text-xs">{record.name}</td>
                         <td className="py-4.5 px-6 text-xs text-gray-400 font-bold">

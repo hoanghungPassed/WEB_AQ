@@ -36,20 +36,20 @@ const _UNUSED = ({
 }: any) => null;
 
 const normalizeAndFixStoredMails = (mails: MailData[]): MailData[] => {
-  if (!mails || mails.length === 0) return [];
-  const rootMails = mails.filter(m => m.type === "ROOT");
-  const satMails = mails.filter(m => m.type === "SATELLITE");
-  const monMails = mails.filter(m => m.type === "MONETIZED");
+  if (!mails || (mails || []).length === 0) return [];
+  const rootMails = (mails || []).filter(m => m.type === "ROOT");
+  const satMails = (mails || []).filter(m => m.type === "SATELLITE");
+  const monMails = (mails || []).filter(m => m.type === "MONETIZED");
 
   const fixSequences = (items: MailData[], startOffset: number) => {
-    const cleanItems = items.filter(m => m.id < startOffset + 1000 && m.id >= startOffset);
-    const dirtyItems = items.filter(m => m.id >= 1000000000000 || m.id < startOffset || m.id >= startOffset + 1000);
+    const cleanItems = (items || []).filter(m => m.id < startOffset + 1000 && m.id >= startOffset);
+    const dirtyItems = (items || []).filter(m => m.id >= 1000000000000 || m.id < startOffset || m.id >= startOffset + 1000);
 
     let nextId = cleanItems.reduce((max, m) => m.id > max ? m.id : max, startOffset - 1) + 1;
     
     return [
       ...cleanItems,
-      ...dirtyItems.map((m) => {
+      ...(dirtyItems || []).map((m) => {
         const fixedId = nextId++;
         return { ...m, id: fixedId };
       })
@@ -85,12 +85,12 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
   const filteredHistory = useMemo(() => {
     if (historyTab === "ALL") return importHistory;
-    return importHistory.filter((item) => item.type === historyTab);
+    return (importHistory || []).filter((item) => item.type === historyTab);
   }, [importHistory, historyTab]);
 
   const handleDeleteHistoryRow = async (id: string) => {
     if (!confirm("Bạn có chắc chắn muốn xóa dòng lịch sử import này? (Không ảnh hưởng đến dữ liệu đã import)")) return;
-    const updated = importHistory.filter((item) => item.id !== id);
+    const updated = (importHistory || []).filter((item) => item.id !== id);
     setImportHistory(updated);
     localStorage.setItem("global_import_history", JSON.stringify(updated));
     window.dispatchEvent(new Event("storage"));
@@ -198,11 +198,11 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   const availableBatches = useMemo(() => {
     const saved = localStorage.getItem("global_batches");
     const list = saved ? JSON.parse(saved) : [];
-    const filtered = list.filter((b: any) => type === "ALL" || b.type === type);
+    const filtered = (list || []).filter((b: any) => type === "ALL" || b.type === type);
 
-    if (filtered.length === 0) {
+    if ((filtered || []).length === 0) {
       const scannedNames = new Set(
-        mails.filter(m => (type === "ALL" || m.type === type) && m.batchName).map(m => m.batchName)
+        (mails || []).filter(m => (type === "ALL" || m.type === type) && m.batchName).map(m => m.batchName)
       );
       return Array.from(scannedNames).map(name => ({ id: name as string, name: name as string }));
     }
@@ -242,7 +242,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
   const handleWorkStatusChange = (mailId: number, newStatus: string) => {
     const now = new Date().toISOString();
-    const updated = mails.map(m => {
+    const updated = (mails || []).map(m => {
       if (m.id === mailId) {
         let status = m.status;
         if (newStatus === "Đã làm" || newStatus === "Đã bán" || newStatus === "Chưa làm") {
@@ -267,7 +267,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
   const handleSaveUnifiedDetails = (mailId: number, updatedFields: any) => {
     const now = new Date().toISOString();
-    const updated = mails.map(m => {
+    const updated = (mails || []).map(m => {
       if (m.id === mailId) {
         return {
           ...m,
@@ -299,7 +299,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       title: "Xác nhận xóa",
       msg: "Bạn có chắc chắn muốn xóa mail này?",
       onConfirm: () => {
-        const finalMails = mails.filter(m => m.id !== id);
+        const finalMails = (mails || []).filter(m => m.id !== id);
         saveMails(finalMails);
         setShowConfirm(false);
         triggerToast("Đã xóa mail thành công!");
@@ -321,7 +321,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
 
-        if (rawRows.length === 0) {
+        if ((rawRows || []).length === 0) {
           triggerToast("Không tìm thấy dữ liệu mail hợp lệ!");
           return;
         }
@@ -398,9 +398,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               }
             } else if (val.startsWith("http") || val.includes("?token=")) {
               otpLinkIdx = idx;
-            } else if (/^[0-9]+$/.test(val) && val.length >= 8) {
+            } else if (/^[0-9]+$/.test(val) && (val || []).length >= 8) {
               phoneIdx = idx;
-            } else if (val.length >= 30 && /^[a-z0-9]+$/i.test(val)) {
+            } else if ((val || []).length >= 30 && /^[a-z0-9]+$/i.test(val)) {
               twoFAIdx = idx;
             }
           });
@@ -414,15 +414,15 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         let startId = 1;
         const targetType = (type === "ALL" ? "SATELLITE" : type) as "ROOT" | "SATELLITE" | "MONETIZED";
         if (targetType === "ROOT") {
-          const rootMails = mails.filter(m => m.type === "ROOT");
+          const rootMails = (mails || []).filter(m => m.type === "ROOT");
           const maxId = rootMails.reduce((max, m) => m.id > max ? m.id : max, 0);
           startId = maxId > 0 ? maxId + 1 : 1;
         } else if (targetType === "SATELLITE") {
-          const satMails = mails.filter(m => m.type === "SATELLITE");
+          const satMails = (mails || []).filter(m => m.type === "SATELLITE");
           const maxId = satMails.reduce((max, m) => m.id > max ? m.id : max, 1000);
           startId = maxId > 1000 ? maxId + 1 : 1001;
         } else if (targetType === "MONETIZED") {
-          const monMails = mails.filter(m => m.type === "MONETIZED");
+          const monMails = (mails || []).filter(m => m.type === "MONETIZED");
           const maxId = monMails.reduce((max, m) => m.id > max ? m.id : max, 2000);
           startId = maxId > 2000 ? maxId + 1 : 2001;
         }
@@ -430,9 +430,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         const importedMails: MailData[] = [];
         let importedCount = 0;
         let duplicateCount = 0;
-        for (let r = startIndex; r < rawRows.length; r++) {
+        for (let r = startIndex; r < (rawRows || []).length; r++) {
           const row = rawRows[r];
-          if (!row || row.length === 0) continue;
+          if (!row || (row || []).length === 0) continue;
           const email = String(row[emailIdx] || "").trim();
           if (!email) continue;
 
@@ -460,7 +460,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           importedCount++;
         }
 
-        if (importedMails.length === 0) {
+        if ((importedMails || []).length === 0) {
           if (duplicateCount > 0) {
             triggerToast(`Bỏ qua tất cả ${duplicateCount} mail do bị trùng lặp!`);
           } else {
@@ -491,15 +491,15 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     let startId = 1;
     const targetType = (type === "ALL" ? "SATELLITE" : type) as "ROOT" | "SATELLITE" | "MONETIZED";
     if (targetType === "ROOT") {
-      const rootMails = mails.filter(m => m.type === "ROOT");
+      const rootMails = (mails || []).filter(m => m.type === "ROOT");
       const maxId = rootMails.reduce((max, m) => m.id > max ? m.id : max, 0);
       startId = maxId > 0 ? maxId + 1 : 1;
     } else if (targetType === "SATELLITE") {
-      const satMails = mails.filter(m => m.type === "SATELLITE");
+      const satMails = (mails || []).filter(m => m.type === "SATELLITE");
       const maxId = satMails.reduce((max, m) => m.id > max ? m.id : max, 1000);
       startId = maxId > 1000 ? maxId + 1 : 1001;
     } else if (targetType === "MONETIZED") {
-      const monMails = mails.filter(m => m.type === "MONETIZED");
+      const monMails = (mails || []).filter(m => m.type === "MONETIZED");
       const maxId = monMails.reduce((max, m) => m.id > max ? m.id : max, 2000);
       startId = maxId > 2000 ? maxId + 1 : 2001;
     }
@@ -508,7 +508,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     let importedCount = 0;
     let duplicateCount = 0;
 
-    lines.filter(l => l.trim()).forEach((line) => {
+    (lines || []).filter(l => l.trim()).forEach((line) => {
       const parts = line.split(/[\t|]|\s{2,}/);
       const email = String(parts[0] || "").trim();
       if (!email) return;
@@ -537,7 +537,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       importedCount++;
     });
 
-    if (newItems.length === 0) {
+    if ((newItems || []).length === 0) {
       if (duplicateCount > 0) {
         triggerToast(`Bỏ qua tất cả ${duplicateCount} mail thủ công do trùng lặp!`);
       } else {
@@ -558,12 +558,12 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   };
 
   const handleConfirmBatchImport = async () => {
-    if (!pendingMails || pendingMails.length === 0) return;
+    if (!pendingMails || (pendingMails || []).length === 0) return;
     const batchNameInput = importBatchName.trim() || `Lô ngày ${new Date().toLocaleDateString("vi-VN")}`;
     const batchId = `batch-${Date.now()}`;
     const targetType = (type === "ALL" ? "SATELLITE" : type) as "ROOT" | "SATELLITE" | "MONETIZED";
 
-    const mappedMails = pendingMails.map(m => ({
+    const mappedMails = (pendingMails || []).map(m => ({
       ...m,
       batchId,
       batchName: batchNameInput
@@ -574,7 +574,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       name: batchNameInput,
       type: targetType,
       importedAt: new Date().toISOString().split("T")[0],
-      mailCount: pendingMails.length,
+      mailCount: (pendingMails || []).length,
       importedBy: user?.name || user?.username || "Admin"
     };
 
@@ -588,7 +588,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       id: `import-${Date.now()}`,
       type: "MAIL" as const,
       fileName: importFileName || `Lô mail: ${batchNameInput}`,
-      quantity: pendingMails.length,
+      quantity: (pendingMails || []).length,
       importedAt: new Date().toLocaleString("vi-VN"),
       importedBy: user?.name || user?.username || "Admin"
     };
@@ -603,7 +603,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     setPendingMails(null);
     setImportBatchName("");
     setShowBatchNameModal(false);
-    triggerToast(`Đã import thành công ${mappedMails.length} mail vào Lô "${batchNameInput}"!`);
+    triggerToast(`Đã import thành công ${(mappedMails || []).length} mail vào Lô "${batchNameInput}"!`);
     window.dispatchEvent(new Event("storage"));
 
     try {
@@ -621,7 +621,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   };
 
   const handleExport = () => {
-    const data = filteredMails.map((m, i) => ({
+    const data = (filteredMails || []).map((m, i) => ({
       "STT": i + 1, "Email": m.email, "Mail KP": m.recovery, "Pass": m.pass, "2FA": m.twoFA, "SĐT": m.phone, "Link SĐT": m.otpLink
     }));
     const ws = XLSX.utils.json_to_sheet(data);
@@ -632,7 +632,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   };
 
   const filteredMails = useMemo(() => {
-    const mailsOfType = mails.filter(m => type === "ALL" || m.type === type);
+    const mailsOfType = (mails || []).filter(m => type === "ALL" || m.type === type);
 
     return mailsOfType
       .map((m: any) => {
@@ -721,20 +721,20 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   }, [mails, type, searchTerm, user, statusFilter, dateFilter, assignmentFilter, selectedBatch, selectedBatchFilter, isStaff, isAdminOrManager]);
 
   const staffStats = useMemo(() => {
-    const myMails = mails.filter(m => String(m.assigneeId) === String(user?.id) && m.type === "SATELLITE");
+    const myMails = (mails || []).filter(m => String(m.assigneeId) === String(user?.id) && m.type === "SATELLITE");
     return {
-      totalAssigned: myMails.length,
-      doneChannel: myMails.filter(m => (m.workStatus as string) === "Đã làm").length,
-      failed: myMails.filter(m => (m.workStatus as string) === "Lỗi").length,
+      totalAssigned: (myMails || []).length,
+      doneChannel: (myMails || []).filter(m => (m.workStatus as string) === "Đã làm").length,
+      failed: (myMails || []).filter(m => (m.workStatus as string) === "Lỗi").length,
     };
   }, [mails, user]);
 
-  const totalPages = isStaff && type === "SATELLITE" ? 1 : Math.ceil(filteredMails.length / itemsPerPage);
+  const totalPages = isStaff && type === "SATELLITE" ? 1 : Math.ceil((filteredMails || []).length / itemsPerPage);
   const currentItems = isStaff && type === "SATELLITE" ? filteredMails : filteredMails.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const staffBatches = useMemo(() => {
     if (!isStaff || type !== "SATELLITE") return [];
-    const mySats = mails.filter(m => String(m.assigneeId) === String(user?.id) && m.type === "SATELLITE");
+    const mySats = (mails || []).filter(m => String(m.assigneeId) === String(user?.id) && m.type === "SATELLITE");
     const counts: Record<string, number> = {};
     mySats.forEach(m => {
       const b = m.batchName || "Lô chưa phân loại";
@@ -831,7 +831,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  {importHistory.length > 0 && (
+                  {(importHistory || []).length > 0 && (
                     <button
                       onClick={handleClearAllHistory}
                       className="h-9 px-3.5 bg-red-500/10 border border-red-500/25 hover:bg-red-500/25 rounded-xl text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all"
@@ -867,7 +867,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
               {/* List Content */}
               <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1 scrollbar-hide">
-                {filteredHistory.length === 0 ? (
+                {(filteredHistory || []).length === 0 ? (
                   <div className="py-16 text-center">
                     <div className="h-16 w-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
                       <FileText className="text-gray-600" size={28} />
@@ -876,7 +876,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                     <p className="text-[10px] text-gray-600 mt-1">Các lượt import mới sẽ tự động được ghi nhận tại đây.</p>
                   </div>
                 ) : (
-                  filteredHistory.map((item: any) => (
+                  (filteredHistory || []).map((item: any) => (
                     <div
                       key={item.id}
                       className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between hover:border-white/10 transition-all group"
@@ -1022,7 +1022,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
       {isStaff && type === "SATELLITE" && !selectedBatch ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {staffBatches.map(([batchName, count]) => (
+          {(staffBatches || []).map(([batchName, count]) => (
             <button
               key={batchName}
               onClick={() => setSelectedBatch(batchName)}
@@ -1107,7 +1107,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                   className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all animate-fade-in"
                 >
                   <option value="ALL" className="bg-sidebar text-white">Lọc theo Lô</option>
-                  {availableBatches.map((b: any) => (
+                  {(availableBatches || []).map((b: any) => (
                     <option key={b.id} value={b.id} className="bg-sidebar text-white">
                       {b.name}
                     </option>
@@ -1127,7 +1127,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               <div className="hidden xl:flex items-center gap-3 px-5 py-2 bg-gold/10 border-2 border-gold/20 rounded-2xl shadow-lg shadow-gold/5 group">
                 <Mail size={18} className="text-gold animate-pulse" />
                 <span className="text-sm font-black text-white uppercase tracking-widest">
-                  Tổng cộng: <span className="text-gold text-base ml-1">{filteredMails.length}</span> <span className="text-gold/60 text-[10px] ml-1">Mail</span>
+                  Tổng cộng: <span className="text-gold text-base ml-1">{(filteredMails || []).length}</span> <span className="text-gold/60 text-[10px] ml-1">Mail</span>
                 </span>
               </div>
             </div>
@@ -1154,7 +1154,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-gray-300">
-                  {currentItems.length > 0 ? currentItems.map((mail: any) => {
+                  {(currentItems || []).length > 0 ? (currentItems || []).map((mail: any) => {
                     const rowPadding = isStaff ? "py-1.5 px-6" : "py-3.5 px-6";
                     const textSize = isStaff ? "text-xs" : "text-sm";
                     return (

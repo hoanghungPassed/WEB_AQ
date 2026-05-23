@@ -101,12 +101,12 @@ export default function PhoneBatchesPage() {
 
   const filteredHistory = useMemo(() => {
     if (historyTab === "ALL") return importHistory;
-    return importHistory.filter((item) => item.type === historyTab);
+    return (importHistory || []).filter((item) => item.type === historyTab);
   }, [importHistory, historyTab]);
 
   const handleDeleteHistoryRow = async (id: string) => {
     if (!confirm("Bạn có chắc chắn muốn xóa dòng lịch sử import này? (Không ảnh hưởng đến dữ liệu đã import)")) return;
-    const updated = importHistory.filter((item) => item.id !== id);
+    const updated = (importHistory || []).filter((item) => item.id !== id);
     setImportHistory(updated);
     localStorage.setItem("global_import_history", JSON.stringify(updated));
     window.dispatchEvent(new Event("storage"));
@@ -175,7 +175,7 @@ export default function PhoneBatchesPage() {
       if (raw) {
         const all = JSON.parse(raw);
         setEmployees(
-          all.filter((u: any) =>
+          (all || []).filter((u: any) =>
             u.role === "03" || u.role === "04" || u.role === "NHÂN VIÊN" || u.role === "QUẢN LÝ NHÂN SỰ"
           )
         );
@@ -190,24 +190,24 @@ export default function PhoneBatchesPage() {
 
   // ─── Stats ────────────────────────────────────────────────
   const globalStats = useMemo(() => {
-    const total = phones.length;
-    const unassigned = phones.filter((p) => !p.assigneeId).length;
+    const total = (phones || []).length;
+    const unassigned = (phones || []).filter((p) => !p.assigneeId).length;
     const assigned = total - unassigned;
-    const xm1 = phones.filter((p) => p.status === "XM lần 1").length;
-    const xm2 = phones.filter((p) => p.status === "XM lần 2").length;
-    const err = phones.filter((p) => p.status === "Lỗi").length;
+    const xm1 = (phones || []).filter((p) => p.status === "XM lần 1").length;
+    const xm2 = (phones || []).filter((p) => p.status === "XM lần 2").length;
+    const err = (phones || []).filter((p) => p.status === "Lỗi").length;
     return { total, unassigned, assigned, xm1, xm2, err };
   }, [phones]);
 
   // ─── Warehouse (unassigned) ───────────────────────────────
   const warehousePhones = useMemo(() => {
-    return phones.filter((p) => !p.assigneeId);
+    return (phones || []).filter((p) => !p.assigneeId);
   }, [phones]);
 
   const filteredWarehouse = useMemo(() => {
     if (!searchTerm) return warehousePhones;
     const q = searchTerm.toLowerCase();
-    return warehousePhones.filter(
+    return (warehousePhones || []).filter(
       (p) => p.number.includes(q) || p.otpLink.toLowerCase().includes(q)
     );
   }, [warehousePhones, searchTerm]);
@@ -260,7 +260,7 @@ export default function PhoneBatchesPage() {
         });
       }
 
-      if (newItems.length === 0) {
+      if ((newItems || []).length === 0) {
         if (duplicateCount > 0) {
           triggerToast(`Bỏ qua tất cả ${duplicateCount} SĐT do bị trùng lặp!`);
         } else {
@@ -282,7 +282,7 @@ export default function PhoneBatchesPage() {
         id: `import-${Date.now()}`,
         type: "SĐT" as const,
         fileName: file.name,
-        quantity: newItems.length,
+        quantity: (newItems || []).length,
         importedAt: new Date().toLocaleString("vi-VN"),
         importedBy: user?.name || user?.username || "Admin"
       };
@@ -292,8 +292,8 @@ export default function PhoneBatchesPage() {
       const updatedHistory = [historyEntry, ...currentHistory];
       localStorage.setItem("global_import_history", JSON.stringify(updatedHistory));
 
-      pushLog(user, `Import thành công ${newItems.length} SĐT từ file ${file.name}`);
-      triggerToast(`Đã import ${newItems.length} SĐT mới vào Tổng kho!`);
+      pushLog(user, `Import thành công ${(newItems || []).length} SĐT từ file ${file.name}`);
+      triggerToast(`Đã import ${(newItems || []).length} SĐT mới vào Tổng kho!`);
       window.dispatchEvent(new Event("storage"));
 
       // Push history update to server
@@ -317,7 +317,7 @@ export default function PhoneBatchesPage() {
 
   const empPhones = useMemo(() => {
     if (!selectedEmpUsername) return [];
-    return phones.filter((p) => 
+    return (phones || []).filter((p) => 
       p.assigneeId && (
         p.assigneeId.toLowerCase() === selectedEmpUsername.toLowerCase() ||
         (selectedEmp?.id && String(p.assigneeId) === String(selectedEmp.id))
@@ -326,27 +326,27 @@ export default function PhoneBatchesPage() {
   }, [phones, selectedEmpUsername, selectedEmp]);
 
   const empStats = useMemo(() => {
-    const total = empPhones.length;
-    const pending = empPhones.filter((p) => p.status === "Chưa làm").length;
-    const xm1 = empPhones.filter((p) => p.status === "XM lần 1").length;
-    const xm2 = empPhones.filter((p) => p.status === "XM lần 2").length;
-    const err = empPhones.filter((p) => p.status === "Lỗi").length;
+    const total = (empPhones || []).length;
+    const pending = (empPhones || []).filter((p) => p.status === "Chưa làm").length;
+    const xm1 = (empPhones || []).filter((p) => p.status === "XM lần 1").length;
+    const xm2 = (empPhones || []).filter((p) => p.status === "XM lần 2").length;
+    const err = (empPhones || []).filter((p) => p.status === "Lỗi").length;
     return { total, pending, xm1, xm2, err };
   }, [empPhones]);
 
   // Assign 25 phones to employee from warehouse
   const handleAssign25 = () => {
     if (!selectedEmp) return;
-    const unassigned = phones.filter((p) => !p.assigneeId);
-    if (unassigned.length < STANDARD_QUOTA) {
-      triggerToast(`Kho chỉ còn ${unassigned.length} SĐT trống, không đủ ${STANDARD_QUOTA}!`);
+    const unassigned = (phones || []).filter((p) => !p.assigneeId);
+    if ((unassigned || []).length < STANDARD_QUOTA) {
+      triggerToast(`Kho chỉ còn ${(unassigned || []).length} SĐT trống, không đủ ${STANDARD_QUOTA}!`);
       return;
     }
     const toAssign = unassigned.slice(0, STANDARD_QUOTA);
-    const ids = new Set(toAssign.map((p) => p.id));
+    const ids = new Set((toAssign || []).map((p) => p.id));
     const now = new Date().toISOString().split("T")[0];
 
-    const updated = phones.map((p) =>
+    const updated = (phones || []).map((p) =>
       ids.has(p.id)
         ? { ...p, assigneeId: selectedEmp.username, assignedTo: selectedEmp.name, assignedAt: now }
         : p
@@ -376,10 +376,10 @@ export default function PhoneBatchesPage() {
     if (!selectedEmpUsername || !selectedEmp) return;
 
     // Step 1: Find phones with status "Lỗi" or "XM lần 2" for this employee
-    const toRemovePhones = empPhones.filter(
+    const toRemovePhones = (empPhones || []).filter(
       (p) => p.status === "Lỗi" || p.status === "XM lần 2"
     );
-    const toRemoveIds = new Set(toRemovePhones.map((p) => p.id));
+    const toRemoveIds = new Set((toRemovePhones || []).map((p) => p.id));
 
     if (toRemoveIds.size === 0) {
       triggerToast("Không có SĐT nào cần thay thế (Lỗi hoặc XM lần 2)!");
@@ -387,10 +387,10 @@ export default function PhoneBatchesPage() {
     }
 
     // Step 2: Clean up (completely delete) these phones from the global list
-    let working = phones.filter((p) => !toRemoveIds.has(p.id));
+    let working = (phones || []).filter((p) => !toRemoveIds.has(p.id));
 
     // Step 3: Count how many active phones the employee has remaining (Chưa làm or XM lần 1)
-    const currentActiveCount = empPhones.length - toRemoveIds.size;
+    const currentActiveCount = (empPhones || []).length - toRemoveIds.size;
     const deficit = STANDARD_QUOTA - currentActiveCount;
 
     if (deficit <= 0) {
@@ -402,11 +402,11 @@ export default function PhoneBatchesPage() {
     }
 
     // Step 4: Extract brand new phone numbers (status "Chưa làm" and unassigned) from warehouse
-    const unassignedNewStock = working.filter(
+    const unassignedNewStock = (working || []).filter(
       (p) => !p.assigneeId && p.status === "Chưa làm"
     );
 
-    const canFill = Math.min(deficit, unassignedNewStock.length);
+    const canFill = Math.min(deficit, (unassignedNewStock || []).length);
     if (canFill === 0) {
       savePhones(working);
       setPhones(working);
@@ -416,10 +416,10 @@ export default function PhoneBatchesPage() {
     }
 
     const refillSlice = unassignedNewStock.slice(0, canFill);
-    const refillIds = new Set(refillSlice.map((p) => p.id));
+    const refillIds = new Set((refillSlice || []).map((p) => p.id));
     const now = new Date().toISOString().split("T")[0];
 
-    working = working.map((p) =>
+    working = (working || []).map((p) =>
       refillIds.has(p.id)
         ? {
             ...p,
@@ -442,8 +442,8 @@ export default function PhoneBatchesPage() {
 
   // ─── Employee list stats ──────────────────────────────────
   const employeeBreakdown = useMemo(() => {
-    return employees.map((emp) => {
-      const ep = phones.filter((p) => 
+    return (employees || []).map((emp) => {
+      const ep = (phones || []).filter((p) => 
         p.assigneeId && emp.username && (
           p.assigneeId.toLowerCase() === emp.username.toLowerCase() ||
           (emp.id && String(p.assigneeId) === String(emp.id))
@@ -451,11 +451,11 @@ export default function PhoneBatchesPage() {
       );
       return {
         ...emp,
-        total: ep.length,
-        pending: ep.filter((p) => p.status === "Chưa làm").length,
-        xm1: ep.filter((p) => p.status === "XM lần 1").length,
-        xm2: ep.filter((p) => p.status === "XM lần 2").length,
-        err: ep.filter((p) => p.status === "Lỗi").length,
+        total: (ep || []).length,
+        pending: (ep || []).filter((p) => p.status === "Chưa làm").length,
+        xm1: (ep || []).filter((p) => p.status === "XM lần 1").length,
+        xm2: (ep || []).filter((p) => p.status === "XM lần 2").length,
+        err: (ep || []).filter((p) => p.status === "Lỗi").length,
       };
     });
   }, [employees, phones]);
@@ -561,7 +561,7 @@ export default function PhoneBatchesPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h3 className="text-md font-black text-white uppercase tracking-tight flex items-center gap-2">
               <Warehouse size={18} className="text-gold" />
-              Kho SĐT trống ({warehousePhones.length} số)
+              Kho SĐT trống ({(warehousePhones || []).length} số)
             </h3>
 
             <div className="flex items-center gap-3">
@@ -605,7 +605,7 @@ export default function PhoneBatchesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-gray-300">
-                {filteredWarehouse.map((p, idx) => (
+                {(filteredWarehouse || []).map((p, idx) => (
                   <tr key={p.id} className="hover:bg-white/[0.01]">
                     <td className="py-3 px-4 text-gray-500 font-bold">{idx + 1}</td>
                     <td className="py-3 px-4 font-bold text-white font-mono text-sm">{p.number}</td>
@@ -624,10 +624,10 @@ export default function PhoneBatchesPage() {
                     </td>
                   </tr>
                 ))}
-                {filteredWarehouse.length === 0 && (
+                {(filteredWarehouse || []).length === 0 && (
                   <tr>
                     <td colSpan={5} className="py-12 text-center text-gray-600 font-bold uppercase tracking-widest">
-                      {warehousePhones.length === 0
+                      {(warehousePhones || []).length === 0
                         ? "Kho trống — Hãy import file .txt để bắt đầu"
                         : "Không tìm thấy kết quả"}
                     </td>
@@ -677,7 +677,7 @@ export default function PhoneBatchesPage() {
             </div>
 
             <div className="space-y-2 max-h-[500px] overflow-y-auto custom-scrollbar">
-              {employeeBreakdown.filter((e) => {
+              {(employeeBreakdown || []).filter((e) => {
                 if (!e.isOnline) return false;
                 if (!staffSearch.trim()) return true;
                 const q = staffSearch.toLowerCase();
@@ -837,7 +837,7 @@ export default function PhoneBatchesPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5 text-gray-300">
-                        {empPhones.map((p, idx) => (
+                        {(empPhones || []).map((p, idx) => (
                           <tr
                             key={p.id}
                             className={`hover:bg-white/[0.01] transition-colors ${
@@ -865,7 +865,7 @@ export default function PhoneBatchesPage() {
                             </td>
                           </tr>
                         ))}
-                        {empPhones.length === 0 && (
+                        {(empPhones || []).length === 0 && (
                           <tr>
                             <td colSpan={5} className="py-12 text-center text-gray-600 font-bold uppercase tracking-widest">
                               Nhân viên chưa được bàn giao SĐT nào
@@ -909,7 +909,7 @@ export default function PhoneBatchesPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  {importHistory.length > 0 && (
+                  {(importHistory || []).length > 0 && (
                     <button
                       onClick={handleClearAllHistory}
                       className="h-9 px-3.5 bg-red-500/10 border border-red-500/25 hover:bg-red-500/25 rounded-xl text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all"
@@ -945,7 +945,7 @@ export default function PhoneBatchesPage() {
 
               {/* List Content */}
               <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1 scrollbar-hide">
-                {filteredHistory.length === 0 ? (
+                {(filteredHistory || []).length === 0 ? (
                   <div className="py-16 text-center">
                     <div className="h-16 w-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
                       <FileText className="text-gray-600" size={28} />
@@ -954,7 +954,7 @@ export default function PhoneBatchesPage() {
                     <p className="text-[10px] text-gray-600 mt-1">Các lượt import mới sẽ tự động được ghi nhận tại đây.</p>
                   </div>
                 ) : (
-                  filteredHistory.map((item: any) => (
+                  (filteredHistory || []).map((item: any) => (
                     <div
                       key={item.id}
                       className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between hover:border-white/10 transition-all group"

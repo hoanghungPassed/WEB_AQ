@@ -101,7 +101,7 @@ export default function StaffManagementPage() {
       const stored = localStorage.getItem("global_users");
       if (stored) {
         const parsed: StaffData[] = JSON.parse(stored);
-        const unique = parsed.filter((item, index, self) =>
+        const unique = (parsed || []).filter((item, index, self) =>
           index === self.findIndex((t) => t.id === item.id)
         );
         // Chỉ cập nhật nếu thực sự có thay đổi (tránh loop vô tận với useEffect save)
@@ -161,16 +161,16 @@ export default function StaffManagementPage() {
   // Stats calculation
   const stats = useMemo(() => {
     return {
-      total: staffList.filter(s => s.status === "ACTIVE").length,
-      online: staffList.filter(s => s.isOnline && s.status === "ACTIVE").length,
-      offline: staffList.filter(s => !s.isOnline && s.status === "ACTIVE").length,
-      pending: staffList.filter(s => s.status === "PENDING").length
+      total: (staffList || []).filter(s => s.status === "ACTIVE").length,
+      online: (staffList || []).filter(s => s.isOnline && s.status === "ACTIVE").length,
+      offline: (staffList || []).filter(s => !s.isOnline && s.status === "ACTIVE").length,
+      pending: (staffList || []).filter(s => s.status === "PENDING").length
     };
   }, [staffList]);
 
   // Filtered staff list
   const filteredStaff = useMemo(() => {
-    const filtered = staffList.filter((s) => {
+    const filtered = (staffList || []).filter((s) => {
       // Logic tìm kiếm
       const matchesSearch = 
         s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -196,7 +196,7 @@ export default function StaffManagementPage() {
   }, [staffList, searchQuery, roleFilter, statusFilter, activeTab]);
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredStaff.length / itemsPerPage);
+  const totalPages = Math.ceil((filteredStaff || []).length / itemsPerPage);
   const currentStaff = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredStaff.slice(startIndex, startIndex + itemsPerPage);
@@ -236,7 +236,7 @@ export default function StaffManagementPage() {
       return;
     }
     
-    const updatedStaffList: StaffData[] = staffList.map(s => {
+    const updatedStaffList: StaffData[] = (staffList || []).map(s => {
       if (s.id === id) {
         const newStatus = s.status === "ACTIVE" ? "LOCKED" : "ACTIVE";
         return { ...s, status: newStatus as any } as StaffData;
@@ -277,7 +277,7 @@ export default function StaffManagementPage() {
     const updatedNotifs = [newNotif, ...existingNotifs];
     localStorage.setItem("admin_notifications", JSON.stringify(updatedNotifs));
     
-    const updatedStaffList: StaffData[] = staffList.map(s => {
+    const updatedStaffList: StaffData[] = (staffList || []).map(s => {
       if (s.id === id) {
         return { ...s, role } as StaffData;
       }
@@ -301,7 +301,7 @@ export default function StaffManagementPage() {
   };
 
   const handleApproveUser = (id: string, role: any) => {
-    const updatedStaffList: StaffData[] = staffList.map(s => {
+    const updatedStaffList: StaffData[] = (staffList || []).map(s => {
       if (s.id === id) {
         return { ...s, status: "ACTIVE", role: role, lastActive: "Vừa kích hoạt" } as StaffData;
       }
@@ -318,7 +318,7 @@ export default function StaffManagementPage() {
 
   const handleDenyUser = (id: string) => {
     showConfirm("Xác nhận xóa", "Bạn có chắc chắn muốn xóa tài khoản này?", () => {
-      const updatedStaffList = staffList.filter(s => s.id !== id);
+      const updatedStaffList = (staffList || []).filter(s => s.id !== id);
       localStorage.setItem("global_users", JSON.stringify(updatedStaffList));
       setStaffList(updatedStaffList);
       setSelectedStaff(null);
@@ -328,7 +328,7 @@ export default function StaffManagementPage() {
   };
 
   const handleDenyAccess = (id: number, name: string) => {
-    const updated = accessRequests.filter(r => r.id !== id);
+    const updated = (accessRequests || []).filter(r => r.id !== id);
     const req = accessRequests.find(r => r.id === id);
     setAccessRequests(updated);
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
@@ -339,7 +339,7 @@ export default function StaffManagementPage() {
       const savedUsers = localStorage.getItem("global_users");
       if (savedUsers) {
         const allUsers = JSON.parse(savedUsers);
-        const updatedUsers = allUsers.map((u: any) =>
+        const updatedUsers = (allUsers || []).map((u: any) =>
           u.username === req.username || u.name === req.staffName
             ? { 
                 ...u, 
@@ -373,7 +373,7 @@ export default function StaffManagementPage() {
   };
 
   const handleApproveAccess = (id: number, name: string) => {
-    const updated = accessRequests.filter(r => r.id !== id);
+    const updated = (accessRequests || []).filter(r => r.id !== id);
     const req = accessRequests.find(r => r.id === id);
     setAccessRequests(updated);
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
@@ -385,7 +385,7 @@ export default function StaffManagementPage() {
       const savedUsers = localStorage.getItem("global_users");
       if (savedUsers) {
         const allUsers = JSON.parse(savedUsers);
-        const updatedUsers = allUsers.map((u: any) =>
+        const updatedUsers = (allUsers || []).map((u: any) =>
           u.username === req.username || u.name === req.staffName
             ? { 
                 ...u, 
@@ -438,20 +438,20 @@ export default function StaffManagementPage() {
 
   const handleToggleDutyStaff = (id: string) => {
     setDutySelectedStaff(prev => 
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+      prev.includes(id) ? (prev || []).filter(x => x !== id) : [...prev, id]
     );
   };
 
   const handleGenerateRoster = () => {
-    if (dutySelectedStaff.length === 0) {
+    if ((dutySelectedStaff || []).length === 0) {
       showAlert("Lỗi", "Vui lòng chọn ít nhất 1 nhân viên để phân lịch!");
       return;
     }
     
     // Rotate logic: assign one staff per day from Mon to Sat
     const days = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
-    const roster = days.map((dayName, idx) => {
-      const staffId = dutySelectedStaff[idx % dutySelectedStaff.length];
+    const roster = (days || []).map((dayName, idx) => {
+      const staffId = dutySelectedStaff[idx % (dutySelectedStaff || []).length];
       const staff = staffList.find(s => s.id === staffId);
       return {
         day: dayName,
@@ -507,7 +507,7 @@ export default function StaffManagementPage() {
       } else {
         let hash = 0;
         const combined = selectedStaff.username + dateKey;
-        for (let charIdx = 0; charIdx < combined.length; charIdx++) {
+        for (let charIdx = 0; charIdx < (combined || []).length; charIdx++) {
           hash = combined.charCodeAt(charIdx) + ((hash << 5) - hash);
         }
         hasCheckedIn = Math.abs(hash % 100) < 85;
@@ -540,8 +540,8 @@ export default function StaffManagementPage() {
           "Rà soát dữ liệu doanh thu Lô Mail Vệ Tinh quý trước"
         ];
         
-        const task1 = tasks[(Math.abs(dayNum * 3) + selectedStaff.name.length) % tasks.length];
-        const task2 = tasks[(Math.abs(dayNum * 7) + selectedStaff.name.length + 2) % tasks.length];
+        const task1 = tasks[(Math.abs(dayNum * 3) + (selectedStaff.name || []).length) % (tasks || []).length];
+        const task2 = tasks[(Math.abs(dayNum * 7) + (selectedStaff.name || []).length + 2) % (tasks || []).length];
         
         workLog = [
           { time: actualTime, title: "Điểm danh ca sáng (Check-in)", desc: "Bắt đầu ca làm việc đúng giờ và thực hiện đồng bộ hóa hệ thống." },
@@ -605,7 +605,7 @@ export default function StaffManagementPage() {
                   onClick={() => { setActiveTab("PENDING"); setPendingSubTab("ACCESS"); }}
                   className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab === "PENDING" && pendingSubTab === "ACCESS" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "text-gray-500 hover:text-white"}`}
                 >
-                  Duyệt truy cập ({accessRequests.length})
+                  Duyệt truy cập ({(accessRequests || []).length})
                 </button>
               </div>
             )}
@@ -657,17 +657,17 @@ export default function StaffManagementPage() {
               <div className="flex-1 mt-4">
                 <div className="flex items-center justify-between mb-4">
                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                    Nhân viên tham gia xoay vòng ({dutySelectedStaff.length})
+                    Nhân viên tham gia xoay vòng ({(dutySelectedStaff || []).length})
                   </label>
                   <button 
-                    onClick={() => setDutySelectedStaff(staffList.filter(s => s.status === "ACTIVE").map(s => s.id))}
+                    onClick={() => setDutySelectedStaff((staffList || []).filter(s => s.status === "ACTIVE").map(s => s.id))}
                     className="text-[10px] text-gold hover:text-yellow-400 font-bold uppercase tracking-widest"
                   >
                     Chọn tất cả
                   </button>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-60 overflow-y-auto custom-scrollbar p-2 bg-black/20 rounded-2xl border border-white/5">
-                  {staffList.filter(s => s.status === "ACTIVE").map(staff => (
+                  {(staffList || []).filter(s => s.status === "ACTIVE").map(staff => (
                     <div 
                       key={staff.id} 
                       onClick={() => handleToggleDutyStaff(staff.id)}
@@ -703,7 +703,7 @@ export default function StaffManagementPage() {
               </div>
               
               <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-2">
-                {dutyRoster.length > 0 ? dutyRoster.map((item, idx) => (
+                {(dutyRoster || []).length > 0 ? (dutyRoster || []).map((item, idx) => (
                   <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
                     <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex flex-col items-center justify-center text-blue-400 border border-blue-500/20 flex-shrink-0">
                       <span className="text-[10px] font-black uppercase tracking-tighter">Thứ</span>
@@ -794,7 +794,7 @@ export default function StaffManagementPage() {
             </thead>
             <tbody className="divide-y divide-white/5">
               {activeTab === "PENDING" && pendingSubTab === "ACCESS" ? (
-                accessRequests.length > 0 ? accessRequests.map((req) => (
+                (accessRequests || []).length > 0 ? (accessRequests || []).map((req) => (
                   <tr key={req.id} className="group hover:bg-white/[0.02] transition-all">
                     <td className="px-10 py-7">
                       <div className="flex items-center gap-6">
@@ -844,12 +844,12 @@ export default function StaffManagementPage() {
                   </tr>
                 )
               ) : (
-                currentStaff.length > 0 ? currentStaff.map((staff) => (
+                (currentStaff || []).length > 0 ? (currentStaff || []).map((staff) => (
                 <tr key={`${staff.id}-${staff.username}`} className="group hover:bg-white/[0.02] transition-all cursor-pointer" onClick={() => setSelectedStaff(staff)}>
                   <td className="px-10 py-7">
                     <div className="flex items-center gap-6">
                       <div className="h-16 w-16 rounded-[24px] bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center text-2xl text-gold font-black border border-gold/10 shadow-xl group-hover:scale-110 transition-all">
-                        {staff.avatar ? <img src={staff.avatar} className="w-full h-full object-cover rounded-[24px]" /> : staff.name.charAt(0)}
+                        {staff.avatar ? <img src={staff.avatar} className="w-full h-full object-cover rounded-[24px]" onError={(e) => e.currentTarget.src = "https://ui-avatars.com/api/?name=" + (staff.name || "U") + "&background=d4af37&color=000"} /> : staff.name.charAt(0)}
                       </div>
                       <div className="whitespace-nowrap">
                         <p className="text-lg font-black text-white group-hover:text-gold transition-colors">{staff.name}</p>
@@ -958,10 +958,10 @@ export default function StaffManagementPage() {
         </div>
 
         {/* Pagination Footer */}
-        {filteredStaff.length > 0 && (
+        {(filteredStaff || []).length > 0 && (
           <div className="bg-white/[0.02] border-t border-white/5 px-10 py-6 flex items-center justify-between">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-              Hiển thị <span className="text-white">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="text-white">{Math.min(currentPage * itemsPerPage, filteredStaff.length)}</span> trên <span className="text-white">{filteredStaff.length}</span> nhân sự
+              Hiển thị <span className="text-white">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="text-white">{Math.min(currentPage * itemsPerPage, (filteredStaff || []).length)}</span> trên <span className="text-white">{(filteredStaff || []).length}</span> nhân sự
             </p>
             <div className="flex items-center gap-2">
               <button 
@@ -1028,7 +1028,7 @@ export default function StaffManagementPage() {
                 <div className="md:col-span-4 p-12 bg-gradient-to-b from-white/[0.03] to-transparent border-r border-white/5 flex flex-col items-center text-center md:max-h-[90vh] md:overflow-y-auto custom-scrollbar">
                   <div className="relative group">
                     <div className="h-32 w-32 rounded-[40px] bg-gold/10 border border-gold/20 flex items-center justify-center text-5xl text-gold font-black shadow-2xl group-hover:scale-105 transition-all">
-                      {selectedStaff.avatar ? <img src={selectedStaff.avatar} className="w-full h-full object-cover rounded-[40px]" /> : selectedStaff.name.charAt(0)}
+                      {selectedStaff.avatar ? <img src={selectedStaff.avatar} className="w-full h-full object-cover rounded-[40px]" onError={(e) => e.currentTarget.src = "https://ui-avatars.com/api/?name=" + (selectedStaff.name || "U") + "&background=d4af37&color=000"} /> : selectedStaff.name.charAt(0)}
                     </div>
                     <div className={`absolute -bottom-2 -right-2 h-8 w-8 rounded-full border-4 border-sidebar shadow-xl ${selectedStaff.isOnline ? "bg-green-500" : "bg-red-500"}`} />
                   </div>
@@ -1192,7 +1192,7 @@ export default function StaffManagementPage() {
 
                     {/* Interactive 26-Day Grid */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 bg-black/20 border border-white/5 rounded-3xl p-5">
-                      {attendanceData.list.map((day) => {
+                      {(attendanceData.list || []).map((day) => {
                         const isToday = day.isToday;
                         return (
                           <button 
@@ -1310,13 +1310,13 @@ export default function StaffManagementPage() {
                   Nhật Ký Ca Làm Việc Chi Tiết
                 </h4>
                 <div className="space-y-5 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
-                  {activeDetailDay.workLog.map((log: any, idx: number) => (
+                  {(activeDetailDay.workLog || []).map((log: any, idx: number) => (
                     <div key={`log-timeline-${idx}`} className="flex gap-5 group/item">
                       <div className="flex flex-col items-center">
                         <div className="h-11 px-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-sm font-black text-gold group-hover/item:bg-gold/10 group-hover/item:border-gold/20 transition-all shrink-0 shadow-lg">
                           {log.time !== "N/A" ? log.time.slice(0, 5) : "!"}
                         </div>
-                        {idx < activeDetailDay.workLog.length - 1 && (
+                        {idx < (activeDetailDay.workLog || []).length - 1 && (
                           <div className="w-0.5 h-16 bg-white/5 group-hover/item:bg-gold/20 transition-colors my-2" />
                         )}
                       </div>

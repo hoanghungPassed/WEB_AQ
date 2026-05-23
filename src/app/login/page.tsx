@@ -40,8 +40,10 @@ function RealTimeClock() {
   );
 }
 
+import { useAuth } from "@/contexts/AuthContext";
+
 function LoginForm() {
-  // TODO: Move authentication to Backend API to prevent exposing passwords to client
+  const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [username, setUsername] = useState("");
@@ -64,67 +66,26 @@ function LoginForm() {
     setMessage("");
     setIsLoading(true);
 
-
-
-    // Giả lập độ trễ mạng ngắn
-    await new Promise((resolve) => setTimeout(resolve, 600));
-
-    // Lấy dữ liệu từ localStorage (đã được đồng bộ với server)
-    const allUsers: StaffData[] = JSON.parse(localStorage.getItem("global_users") || "[]");
-
-    const user = allUsers.find(
-      (u) => u.username === username && u.password === password
-    );
-
-    if (user) {
-      if (user.status === "PENDING") {
-        setError("Tài khoản của bạn đang chờ Admin cấp quyền. Vui lòng liên hệ quản trị viên.");
-        setIsLoading(false);
-        return;
-      }
-
-      if (user.status === "LOCKED") {
-        setError("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin.");
-        setIsLoading(false);
-        return;
-      }
-
-
-      // Tự động Check-in ngay khi đăng nhập thành công
-      const today = new Date();
-      const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      let checkInISO = localStorage.getItem(`checkin_time_${user.username}_${dateKey}`);
-      if (!checkInISO) {
-        checkInISO = today.toISOString();
-        localStorage.setItem(`checkin_time_${user.username}_${dateKey}`, checkInISO);
-      }
-      const timeStr = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-
-      // Cập nhật trạng thái isOnline trong global_users
-      const freshUsers: StaffData[] = JSON.parse(localStorage.getItem("global_users") || "[]");
-
-      const updatedUsers = freshUsers.map((u) => {
-        if (u.id === user.id) {
-          return { 
-            ...u, 
-            isOnline: true, 
-            lastActive: "Vừa xong",
-            checkInTime: u.checkInTime || timeStr
-          };
-        }
-        return u;
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
       });
-      localStorage.setItem("global_users", JSON.stringify(updatedUsers));
 
+      const data = await res.json();
 
-
-      // Lưu session giả lập với isOnline = true
-      const onlineUser = { ...user, isOnline: true, lastActive: "Vừa xong" };
-      sessionStorage.setItem("user", JSON.stringify(onlineUser));
-      localStorage.setItem("user", JSON.stringify(onlineUser));
-      router.push("/admin");
-    } else {
-      setError("Tên đăng nhập hoặc mật khẩu không đúng!");
+      if (res.ok) {
+        // Lưu thông tin user vào context
+        login(data.user);
+        router.push("/admin");
+      } else {
+        setError(data.error || "Đăng nhập thất bại");
+      }
+    } catch (err: any) {
+      setError("Lỗi kết nối máy chủ");
+      console.error(err);
+    } finally {
       setIsLoading(false);
     }
   };

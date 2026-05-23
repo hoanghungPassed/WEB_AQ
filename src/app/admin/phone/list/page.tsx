@@ -41,10 +41,10 @@ export default function EmployeePhoneListPage() {
       const savedPhones = localStorage.getItem("global_phones_data");
       const phonesList: PhoneItem[] = savedPhones ? JSON.parse(savedPhones) : [];
       
-      const assignedToMe = phonesList.filter(p => 
+      const assignedToMe = (phonesList || []).filter(p => 
         p.assigneeId &&
         currentUser?.username &&
-        (p.assigneeId.toLowerCase() === currentUser.username.toLowerCase() ||
+        (p.assigneeId.toLowerCase() === currentUser?.username.toLowerCase() ||
           (currentUser.id && String(p.assigneeId) === String(currentUser.id)))
       );
       setMyPhones(assignedToMe);
@@ -65,7 +65,7 @@ export default function EmployeePhoneListPage() {
     const phonesList: PhoneItem[] = savedPhones ? JSON.parse(savedPhones) : [];
     
     let targetNumber = "";
-    const updated = phonesList.map(p => {
+    const updated = (phonesList || []).map(p => {
       if (p.id === phoneId) {
         targetNumber = p.number;
         return { ...p, status: newStatus };
@@ -74,10 +74,10 @@ export default function EmployeePhoneListPage() {
     });
 
     localStorage.setItem("global_phones_data", JSON.stringify(updated));
-    setMyPhones(updated.filter(p => 
+    setMyPhones((updated || []).filter(p => 
       p.assigneeId &&
       user?.username &&
-      (p.assigneeId.toLowerCase() === user.username.toLowerCase() ||
+      (p.assigneeId.toLowerCase() === user?.username.toLowerCase() ||
         (user.id && String(p.assigneeId) === String(user.id)))
     ));
     window.dispatchEvent(new Event("storage"));
@@ -108,16 +108,16 @@ export default function EmployeePhoneListPage() {
 
   // Compute stats for current employee's assigned phones
   const stats = useMemo(() => {
-    const total = myPhones.length;
-    const pending = myPhones.filter(p => p.status === "Chưa làm" || p.status === ("Chưa verify" as any)).length;
-    const xm1 = myPhones.filter(p => p.status === "XM lần 1").length;
-    const xm2 = myPhones.filter(p => p.status === "XM lần 2").length;
-    const errorCount = myPhones.filter(p => p.status === "Lỗi").length;
+    const total = (myPhones || []).length;
+    const pending = (myPhones || []).filter(p => p.status === "Chưa làm" || p.status === ("Chưa verify" as any)).length;
+    const xm1 = (myPhones || []).filter(p => p.status === "XM lần 1").length;
+    const xm2 = (myPhones || []).filter(p => p.status === "XM lần 2").length;
+    const errorCount = (myPhones || []).filter(p => p.status === "Lỗi").length;
     const progress = total > 0 ? Math.round(((total - pending) / total) * 100) : 0;
     return { total, pending, xm1, xm2, errorCount, progress };
   }, [myPhones]);
 
-  const filteredPhones = myPhones.filter(p => {
+  const filteredPhones = (myPhones || []).filter(p => {
     const matchesSearch = p.number.includes(searchTerm) || p.importBatch?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "ALL" || p.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -258,7 +258,7 @@ export default function EmployeePhoneListPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-gray-300">
-              {filteredPhones.map((p, idx) => (
+              {(filteredPhones || []).map((p, idx) => (
                 <tr key={p.id} className="hover:bg-white/[0.01] transition-colors">
                   <td className="py-4 px-6 text-gray-500 font-bold">{idx + 1}</td>
                   <td className="py-4 px-6 font-bold text-white font-mono text-sm tracking-wide">{p.number}</td>
@@ -318,7 +318,7 @@ export default function EmployeePhoneListPage() {
                   </td>
                 </tr>
               ))}
-              {filteredPhones.length === 0 && (
+              {(filteredPhones || []).length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-gray-600 font-bold uppercase tracking-widest">
                     Chưa được bàn giao số điện thoại nào trong hôm nay hoặc không khớp tìm kiếm

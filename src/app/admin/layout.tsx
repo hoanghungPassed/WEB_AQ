@@ -173,10 +173,10 @@ export default function AdminLayout({
     if (!user) return;
 
     if (chatTab === "COMPANY") {
-      const key = `chat_typing_company_${user.username}`;
+      const key = `chat_typing_company_${user?.username}`;
       localStorage.setItem(key, Date.now().toString());
     } else if (chatTab === "PRIVATE" && activeChatUser) {
-      const key = `chat_typing_private_${user.username}_${activeChatUser.username}`;
+      const key = `chat_typing_private_${user?.username}_${activeChatUser.username}`;
       localStorage.setItem(key, Date.now().toString());
     }
   };
@@ -190,7 +190,7 @@ export default function AdminLayout({
       const toastDataStr = localStorage.getItem("realtime_toast");
       if (toastDataStr) {
         const toastData = JSON.parse(toastDataStr);
-        if (String(toastData.userId) === String(currentUser.id)) {
+        if (String(toastData.userId) === String(currentUser?.id)) {
           setRealtimeToast(toastData.message || "Bạn nhận được công việc mới");
           localStorage.removeItem("realtime_toast");
           setTimeout(() => setRealtimeToast(null), 5000);
@@ -248,7 +248,7 @@ export default function AdminLayout({
     const raw = localStorage.getItem("global_phones_data");
     if (!raw) return;
     const phones = JSON.parse(raw);
-    const updated = phones.map((p: any) =>
+    const updated = (phones || []).map((p: any) =>
       p.id === phoneId ? { ...p, status: newStatus } : p
     );
     localStorage.setItem("global_phones_data", JSON.stringify(updated));
@@ -297,7 +297,13 @@ export default function AdminLayout({
         }
       }
 
-      const res = await fetch(`/api/sync?t=${Date.now()}`, { cache: "no-store", headers: { 'Cache-Control': 'no-cache' } });
+      let res;
+      try {
+        res = await fetch(`/api/sync?t=${Date.now()}`, { cache: "no-store", headers: { 'Cache-Control': 'no-cache' } });
+      } catch (error) {
+        console.debug("Sync tạm thời gián đoạn:", error);
+        return;
+      }
       if (!res.ok) return;
       const serverStore = await res.json();
 
@@ -376,7 +382,7 @@ export default function AdminLayout({
         window.dispatchEvent(new Event("storage"));
       }
     } catch (err) {
-      console.error("Sync error:", err);
+      console.debug("Sync tạm thời gián đoạn:", err);
     }
   }, []);
 
@@ -399,8 +405,8 @@ export default function AdminLayout({
     } else {
       // Khởi tạo thông tin user & kiểm tra quyền truy cập ban đầu khi load trang
       const currentUser = JSON.parse(storedUserStr);
-      const emergencyAccess = localStorage.getItem(`access_${getStableDateString()}_${currentUser.name}`);
-      const accessResponse = localStorage.getItem(`access_response_${currentUser.name}`);
+      const emergencyAccess = localStorage.getItem(`access_${getStableDateString()}_${currentUser?.name}`);
+      const accessResponse = localStorage.getItem(`access_response_${currentUser?.name}`);
       if (emergencyAccess === "true" || accessResponse === "APPROVED") {
         setIsAccessGranted(true);
       }
@@ -439,7 +445,11 @@ export default function AdminLayout({
           ) {
             setUser(storedUser);
           }
+        } else {
+          if (!user) setUser(storedUser);
         }
+      } else {
+        if (!user) setUser(storedUser);
       }
     };
 
@@ -449,22 +459,22 @@ export default function AdminLayout({
       const currentUser = JSON.parse(activeUserStr);
 
       const allNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
-      const myNotifs = allNotifs.filter((n: any) => n.targetUsername === currentUser.username);
+      const myNotifs = (allNotifs || []).filter((n: any) => n.targetUsername === currentUser?.username);
 
       if (!isNotifInitializedRef.current) {
-        lastNotifCountRef.current = myNotifs.length;
+        lastNotifCountRef.current = (myNotifs || []).length;
         isNotifInitializedRef.current = true;
         return;
       }
 
-      if (myNotifs.length > lastNotifCountRef.current) {
+      if ((myNotifs || []).length > lastNotifCountRef.current) {
         const latest = myNotifs[0];
         setRoleUpdateNotif({ title: latest.title, message: latest.message });
         setTimeout(() => setRoleUpdateNotif(null), 5000);
       }
-      lastNotifCountRef.current = myNotifs.length;
+      lastNotifCountRef.current = (myNotifs || []).length;
 
-      const isAuthorized = currentUser.role === "ADMIN" || currentUser.role === "01" || currentUser.role === "02";
+      const isAuthorized = currentUser?.role === "ADMIN" || currentUser?.role === "01" || currentUser?.role === "02";
       if (isAuthorized) {
         const savedRequests = localStorage.getItem("pending_access_requests");
         if (savedRequests) {
@@ -494,7 +504,7 @@ export default function AdminLayout({
       const activeUserStr = getActiveUserStr();
       if (!activeUserStr) return;
       const currentUser = JSON.parse(activeUserStr);
-      const isStaff = currentUser.role === "04" || currentUser.role === "NHÂN VIÊN" || String(currentUser.role).includes("04");
+      const isStaff = currentUser?.role === "04" || currentUser?.role === "NHÂN VIÊN" || String(currentUser?.role).includes("04");
       if (!isStaff) {
         setIsLate(false);
         return;
@@ -502,9 +512,9 @@ export default function AdminLayout({
 
       const savedUsersStr = localStorage.getItem("global_users");
       const allUsers = savedUsersStr ? JSON.parse(savedUsersStr) : [];
-      const userProfile = allUsers.find((u: any) => u.username === currentUser.username);
+      const userProfile = allUsers.find((u: any) => u.username === currentUser?.username);
 
-      let checkInISO = localStorage.getItem(`checkin_time_${currentUser.username}`);
+      let checkInISO = localStorage.getItem(`checkin_time_${currentUser?.username}`);
       let isCheckedInToday = false;
       if (checkInISO) {
         const d = new Date(checkInISO);
@@ -516,10 +526,10 @@ export default function AdminLayout({
 
       if (!isCheckedInToday) {
         const fullISO = new Date().toISOString();
-        localStorage.setItem(`checkin_time_${currentUser.username}`, fullISO);
+        localStorage.setItem(`checkin_time_${currentUser?.username}`, fullISO);
         const timeStr = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-        const updatedUsers = allUsers.map((u: any) =>
-          u.username === currentUser.username ? { ...u, checkInTime: timeStr, isOnline: true } : u
+        const updatedUsers = (allUsers || []).map((u: any) =>
+          u.username === currentUser?.username ? { ...u, checkInTime: timeStr, isOnline: true } : u
         );
         localStorage.setItem("global_users", JSON.stringify(updatedUsers));
         window.dispatchEvent(new Event("storage"));
@@ -542,7 +552,7 @@ export default function AdminLayout({
 
           // If they are late and user profile isLateLocked hasn't been set yet
           if (userProfile && userProfile.isLateLocked === undefined) {
-            const updatedUsers = allUsers.map((u: any) => u.username === currentUser.username ? { ...u, isLateLocked: true } : u);
+            const updatedUsers = (allUsers || []).map((u: any) => u.username === currentUser?.username ? { ...u, isLateLocked: true } : u);
             localStorage.setItem("global_users", JSON.stringify(updatedUsers));
             window.dispatchEvent(new Event("storage"));
           }
@@ -589,7 +599,7 @@ export default function AdminLayout({
       if (currentTotalMinutes >= closeTimeMins) {
         const todayStr = getStableDateString();
         let changed = false;
-        const updatedUsers = allUsers.map((u: any) => {
+        const updatedUsers = (allUsers || []).map((u: any) => {
           const isStaffUser = u.role === "03" || u.role === "04" || u.role === "NHÂN VIÊN" || String(u.role).includes("03") || String(u.role).includes("04");
           if (!isStaffUser) return u;
 
@@ -650,7 +660,7 @@ export default function AdminLayout({
           try {
             const tasksArr = JSON.parse(savedTasks);
             let tasksChanged = false;
-            const updatedTasks = tasksArr.map((t: any) => {
+            const updatedTasks = (tasksArr || []).map((t: any) => {
               if (t.status !== "COMPLETED" && t.status !== "PENDING") {
                 tasksChanged = true;
                 return { ...t, status: "PENDING" };
@@ -682,8 +692,8 @@ export default function AdminLayout({
       const activeUserStr = getActiveUserStr();
       if (activeUserStr) {
         const currentUser = JSON.parse(activeUserStr);
-        const emergencyAccess = localStorage.getItem(`access_${getStableDateString()}_${currentUser.name}`);
-        const accessResponse = localStorage.getItem(`access_response_${currentUser.name}`);
+        const emergencyAccess = localStorage.getItem(`access_${getStableDateString()}_${currentUser?.name}`);
+        const accessResponse = localStorage.getItem(`access_response_${currentUser?.name}`);
         if (emergencyAccess === "true" || accessResponse === "APPROVED") {
           setIsAccessGranted(true);
         } else {
@@ -704,7 +714,7 @@ export default function AdminLayout({
           const savedUsersStr = localStorage.getItem("global_users");
           if (savedUsersStr) {
             const allUsers = JSON.parse(savedUsersStr);
-            const userProfile = allUsers.find((u: any) => u.username === user.username);
+            const userProfile = allUsers.find((u: any) => u.username === user?.username);
             if (userProfile && userProfile.isLateLocked === false && isCurrentlyLockedRef.current) {
               window.location.reload();
             }
@@ -718,7 +728,7 @@ export default function AdminLayout({
         const activeUserStr = getActiveUserStr();
         if (activeUserStr) {
           const currentUser = JSON.parse(activeUserStr);
-          const isAuthorized = currentUser.role === "ADMIN" || currentUser.role === "01" || currentUser.role === "02";
+          const isAuthorized = currentUser?.role === "ADMIN" || currentUser?.role === "01" || currentUser?.role === "02";
           if (isAuthorized) {
             setPendingRequests(JSON.parse(e.newValue || "[]"));
           } else {
@@ -731,8 +741,8 @@ export default function AdminLayout({
         const activeUserStr = getActiveUserStr();
         if (activeUserStr) {
           const currentUser = JSON.parse(activeUserStr);
-          const emergencyAccess = localStorage.getItem(`access_${getStableDateString()}_${currentUser.name}`);
-          const accessResponse = localStorage.getItem(`access_response_${currentUser.name}`);
+          const emergencyAccess = localStorage.getItem(`access_${getStableDateString()}_${currentUser?.name}`);
+          const accessResponse = localStorage.getItem(`access_response_${currentUser?.name}`);
           if (emergencyAccess === "true" || accessResponse === "APPROVED") {
             setIsAccessGranted(true);
           } else {
@@ -756,7 +766,7 @@ export default function AdminLayout({
       const savedUsersStr = localStorage.getItem("global_users");
       if (savedUsersStr && user) {
         const allUsers = JSON.parse(savedUsersStr);
-        const userProfile = allUsers.find((u: any) => u.username === user.username);
+        const userProfile = allUsers.find((u: any) => u.username === user?.username);
         if (userProfile && userProfile.isLateLocked === false) {
           window.location.reload();
         }
@@ -774,12 +784,12 @@ export default function AdminLayout({
 
   const getUnreadCountForUser = (senderUsername: string) => {
     if (!user) return 0;
-    const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user.username}_${senderUsername}`);
+    const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}_${senderUsername}`);
     const lastReadTime = lastReadTimeStr ? Number(lastReadTimeStr) : 0;
 
     let count = 0;
     privateMessages.forEach((msg: any) => {
-      if (msg.sender === senderUsername && msg.receiver === user.username) {
+      if (msg.sender === senderUsername && msg.receiver === user?.username) {
         const msgTime = Number(msg.id.split("_")[1]) || 0;
         if (msgTime > 0 && msgTime > lastReadTime) {
           count++;
@@ -791,12 +801,12 @@ export default function AdminLayout({
 
   const getCompanyUnreadCount = () => {
     if (!user) return 0;
-    const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user.username}`);
+    const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}`);
     const lastReadTime = lastReadTimeStr ? Number(lastReadTimeStr) : 0;
 
     let count = 0;
     companyMessages.forEach((msg: any) => {
-      const isMe = msg.senderName === (user.name || user.username);
+      const isMe = msg.senderName === (user?.name || user?.username);
       const msgTime = Number(msg.id.split("_")[1]) || 0;
       if (!isMe && msgTime > 0 && msgTime > lastReadTime) {
         count++;
@@ -842,15 +852,15 @@ export default function AdminLayout({
       }
 
       // Track received timestamps for incoming messages
-      if (user && privateArr.length > 0) {
+      if (user && (privateArr || []).length > 0) {
         const senders = new Set<string>();
         privateArr.forEach((msg: any) => {
-          if (msg.receiver === user.username) {
+          if (msg.receiver === user?.username) {
             senders.add(msg.sender);
           }
         });
         senders.forEach((sender) => {
-          const key = `chat_last_received_time_${user.username}_${sender}`;
+          const key = `chat_last_received_time_${user?.username}_${sender}`;
           const currentVal = localStorage.getItem(key);
           if (!currentVal || Number(currentVal) < Date.now() - 5000) {
             localStorage.setItem(key, Date.now().toString());
@@ -862,7 +872,7 @@ export default function AdminLayout({
       if (savedUsers) {
         const allUsers = JSON.parse(savedUsers);
         if (user) {
-          setChatUsers(allUsers.filter((u: any) => u.username !== user.username));
+          setChatUsers((allUsers || []).filter((u: any) => u.username !== user?.username));
         } else {
           setChatUsers(allUsers);
         }
@@ -871,11 +881,11 @@ export default function AdminLayout({
       // Calculate unread count
       let unread = 0;
       if (user) {
-        const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user.username}`);
+        const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}`);
         const lastReadTime = lastReadTimeStr ? Number(lastReadTimeStr) : 0;
 
         companyArr.forEach((msg: any) => {
-          const isMe = msg.senderName === (user.name || user.username);
+          const isMe = msg.senderName === (user?.name || user?.username);
           const msgTime = Number(msg.id.split("_")[1]) || 0;
           if (!isMe && msgTime > 0 && msgTime > lastReadTime) {
             unread++;
@@ -883,11 +893,11 @@ export default function AdminLayout({
         });
 
         privateArr.forEach((msg: any) => {
-          const isMe = msg.sender === user.username;
-          const isForMe = msg.receiver === user.username;
+          const isMe = msg.sender === user?.username;
+          const isForMe = msg.receiver === user?.username;
           const msgTime = Number(msg.id.split("_")[1]) || 0;
           if (!isMe && isForMe && msgTime > 0) {
-            const senderReadTimeStr = localStorage.getItem(`chat_last_read_time_${user.username}_${msg.sender}`);
+            const senderReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}_${msg.sender}`);
             const senderReadTime = senderReadTimeStr ? Number(senderReadTimeStr) : 0;
             if (msgTime > senderReadTime) {
               unread++;
@@ -918,26 +928,26 @@ export default function AdminLayout({
   useEffect(() => {
     if (!user) return;
     if (isInitialLoadRef.current) {
-      prevCompanyLengthRef.current = companyMessages.length;
-      prevPrivateLengthRef.current = privateMessages.length;
+      prevCompanyLengthRef.current = (companyMessages || []).length;
+      prevPrivateLengthRef.current = (privateMessages || []).length;
       isInitialLoadRef.current = false;
       return;
     }
 
-    if (companyMessages.length > prevCompanyLengthRef.current) {
-      const last = companyMessages[companyMessages.length - 1];
-      if (last && last.senderName !== (user.name || user.username)) {
+    if ((companyMessages || []).length > prevCompanyLengthRef.current) {
+      const last = companyMessages[(companyMessages || []).length - 1];
+      if (last && last.senderName !== (user?.name || user?.username)) {
         playChatChime();
       }
-      prevCompanyLengthRef.current = companyMessages.length;
+      prevCompanyLengthRef.current = (companyMessages || []).length;
     }
 
-    if (privateMessages.length > prevPrivateLengthRef.current) {
-      const last = privateMessages[privateMessages.length - 1];
-      if (last && last.sender !== user.username && last.receiver === user.username) {
+    if ((privateMessages || []).length > prevPrivateLengthRef.current) {
+      const last = privateMessages[(privateMessages || []).length - 1];
+      if (last && last.sender !== user?.username && last.receiver === user?.username) {
         playChatChime();
       }
-      prevPrivateLengthRef.current = privateMessages.length;
+      prevPrivateLengthRef.current = (privateMessages || []).length;
     }
   }, [companyMessages, privateMessages, user]);
 
@@ -946,7 +956,7 @@ export default function AdminLayout({
     const checkTyping = () => {
       // Private typing check
       if (chatTab === "PRIVATE" && activeChatUser) {
-        const key = `chat_typing_private_${activeChatUser.username}_${user.username}`;
+        const key = `chat_typing_private_${activeChatUser.username}_${user?.username}`;
         const val = localStorage.getItem(key);
         if (val) {
           const diff = Date.now() - Number(val);
@@ -961,7 +971,7 @@ export default function AdminLayout({
       // Company typing check
       const typingList: string[] = [];
       chatUsers.forEach((u: any) => {
-        if (u.username !== user.username) {
+        if (u.username !== user?.username) {
           const key = `chat_typing_company_${u.username}`;
           const val = localStorage.getItem(key);
           if (val && (Date.now() - Number(val)) < 3000) {
@@ -979,11 +989,11 @@ export default function AdminLayout({
   // Update last read time when chat is open or when new message is loaded
   useEffect(() => {
     if (isChatOpen && user) {
-      localStorage.setItem(`chat_last_read_time_${user.username}`, Date.now().toString());
+      localStorage.setItem(`chat_last_read_time_${user?.username}`, Date.now().toString());
 
       // If we are actively chatting with a private partner
       if (chatTab === "PRIVATE" && activeChatUser) {
-        localStorage.setItem(`chat_last_read_time_${user.username}_${activeChatUser.username}`, Date.now().toString());
+        localStorage.setItem(`chat_last_read_time_${user?.username}_${activeChatUser.username}`, Date.now().toString());
       }
 
       // Trigger a local state recalculation to instantly clear badge
@@ -993,7 +1003,7 @@ export default function AdminLayout({
 
       const companyArr = savedCompany ? JSON.parse(savedCompany) : [];
       companyArr.forEach((msg: any) => {
-        const isMe = msg.senderName === (user.name || user.username);
+        const isMe = msg.senderName === (user?.name || user?.username);
         const msgTime = Number(msg.id.split("_")[1]) || 0;
         if (!isMe && msgTime > 0 && msgTime > Date.now()) {
           unread++;
@@ -1002,11 +1012,11 @@ export default function AdminLayout({
 
       const privateArr = savedPrivate ? JSON.parse(savedPrivate) : [];
       privateArr.forEach((msg: any) => {
-        const isMe = msg.sender === user.username;
-        const isForMe = msg.receiver === user.username;
+        const isMe = msg.sender === user?.username;
+        const isForMe = msg.receiver === user?.username;
         const msgTime = Number(msg.id.split("_")[1]) || 0;
         if (!isMe && isForMe && msgTime > 0) {
-          const senderReadTimeStr = localStorage.getItem(`chat_last_read_time_${user.username}_${msg.sender}`);
+          const senderReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}_${msg.sender}`);
           const senderReadTime = senderReadTimeStr ? Number(senderReadTimeStr) : 0;
           if (msgTime > senderReadTime) {
             unread++;
@@ -1110,8 +1120,8 @@ export default function AdminLayout({
 
     const newMsg = {
       id: `company_${Date.now()}`,
-      senderName: user.name || user.username,
-      senderRole: user.role,
+      senderName: user?.name || user?.username,
+      senderRole: user?.role,
       text: chatMessage,
       time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
       fileName: selectedChatFile?.name,
@@ -1141,7 +1151,7 @@ export default function AdminLayout({
 
     const newMsg = {
       id: `private_${Date.now()}`,
-      sender: user.username,
+      sender: user?.username,
       receiver: activeChatUser.username,
       text: chatMessage,
       time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
@@ -1199,7 +1209,7 @@ export default function AdminLayout({
     if (!user) return;
     const newRequest = {
       id: Date.now(),
-      staffName: user.name,
+      staffName: user?.name,
       time: new Date().toLocaleTimeString(),
       reason: "Xin phép vào hệ thống làm việc ngoài giờ",
       status: "PENDING"
@@ -1216,7 +1226,7 @@ export default function AdminLayout({
   };
 
   const handleApprove = (request: any) => {
-    const updated = pendingRequests.filter(r => r.id !== request.id);
+    const updated = (pendingRequests || []).filter(r => r.id !== request.id);
     setPendingRequests(updated);
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     // Cấp quyền và thông báo cho nhân viên
@@ -1228,7 +1238,7 @@ export default function AdminLayout({
       const savedUsers = localStorage.getItem("global_users");
       if (savedUsers) {
         const allUsers = JSON.parse(savedUsers);
-        const updatedUsers = allUsers.map((u: any) =>
+        const updatedUsers = (allUsers || []).map((u: any) =>
           u.username === request.username || u.name === request.staffName
             ? { 
                 ...u, 
@@ -1249,7 +1259,7 @@ export default function AdminLayout({
   };
 
   const handleDeny = (request: any) => {
-    const updated = pendingRequests.filter(r => r.id !== request.id);
+    const updated = (pendingRequests || []).filter(r => r.id !== request.id);
     setPendingRequests(updated);
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     // Thông báo từ chối cho nhân viên
@@ -1260,7 +1270,7 @@ export default function AdminLayout({
       const savedUsers = localStorage.getItem("global_users");
       if (savedUsers) {
         const allUsers = JSON.parse(savedUsers);
-        const updatedUsers = allUsers.map((u: any) =>
+        const updatedUsers = (allUsers || []).map((u: any) =>
           u.username === request.username || u.name === request.staffName
             ? { 
                 ...u, 
@@ -1288,15 +1298,26 @@ export default function AdminLayout({
 
   if (!user) return <div className="min-h-screen bg-[#0a0a0a]" />;
 
-  const myAssignedPhones = phoneList.filter(
+  const myAssignedPhones = (phoneList || []).filter(
     (p: any) =>
       p.assigneeId &&
       user?.username &&
-      (p.assigneeId.toLowerCase() === user.username.toLowerCase() ||
-        (user.id && String(p.assigneeId) === String(user.id))) &&
+      (p.assigneeId.toLowerCase() === user?.username.toLowerCase() ||
+        (user?.id && String(p.assigneeId) === String(user?.id))) &&
       p.status !== "XM lần 2" &&
       p.status !== "Lỗi"
   );
+
+  if (!user) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background text-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-gold border-t-transparent"></div>
+          <p className="font-black uppercase tracking-widest text-gold text-sm">Đang tải thông tin...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-background text-xl overflow-hidden">
@@ -1364,7 +1385,7 @@ export default function AdminLayout({
             </AnimatePresence>
 
             {/* Manager Approval Notification */}
-            {(user?.role === "ADMIN" || user?.role === "01" || user?.role === "02" || String(user?.role).toUpperCase().includes("QUẢN LÝ")) && pendingRequests.length > 0 && (
+            {(user?.role === "ADMIN" || user?.role === "01" || user?.role === "02" || String(user?.role).toUpperCase().includes("QUẢN LÝ")) && (pendingRequests || []).length > 0 && (
               <div className="fixed bottom-10 right-10 z-50">
                 <div className="bg-sidebar border border-gold/30 p-6 rounded-[32px] shadow-2xl w-96">
                   <div className="flex items-center gap-3 mb-4">
@@ -1439,7 +1460,7 @@ export default function AdminLayout({
                 const savedUsers = localStorage.getItem("global_users");
                 if (savedUsers) {
                   const allUsers = JSON.parse(savedUsers);
-                  const u = allUsers.find((u: any) => u.username === user.username);
+                  const u = allUsers.find((u: any) => u.username === user?.username);
                   if (u && (u.finePaymentStatus === "DENIED" || u.lateExcuseStatus === "DENIED")) {
                     isDeniedApproval = true;
                   }
@@ -1463,8 +1484,8 @@ export default function AdminLayout({
                             const savedUsers = localStorage.getItem("global_users");
                             if (savedUsers) {
                               const allUsers = JSON.parse(savedUsers);
-                              const updated = allUsers.map((u: any) => 
-                                u.username === user.username ? {
+                              const updated = (allUsers || []).map((u: any) => 
+                                u.username === user?.username ? {
                                   ...u,
                                   finePaymentStatus: u.finePaymentStatus === "DENIED" ? null : u.finePaymentStatus,
                                   lateExcuseStatus: u.lateExcuseStatus === "DENIED" ? null : u.lateExcuseStatus
@@ -1501,7 +1522,7 @@ export default function AdminLayout({
                 <h2 className="text-3xl font-black uppercase tracking-tighter text-white mb-2">Báo cáo đi muộn</h2>
                 <p className="text-gray-400 text-sm font-medium max-w-md mx-auto leading-relaxed mb-6">
                   Hôm nay bạn check-in lúc <span className="text-red-400 font-bold font-mono">
-                    {user ? new Date(localStorage.getItem(`checkin_time_${user.username}`) || "").toLocaleTimeString("vi-VN") : "---"}
+                    {user ? new Date(localStorage.getItem(`checkin_time_${user?.username}`) || "").toLocaleTimeString("vi-VN") : "---"}
                   </span>, đi muộn <span className="text-red-400 font-bold font-mono">{formatLateMins(lateMins)}</span> so với giờ quy định (8:00 AM).
                 </p>
 
@@ -1565,8 +1586,8 @@ export default function AdminLayout({
                       if (user) {
                         const newRequest = {
                           id: Date.now(),
-                          staffName: user.name,
-                          username: user.username,
+                          staffName: user?.name,
+                          username: user?.username,
                           time: new Date().toLocaleTimeString(),
                           reason: `Nộp phạt đi muộn: ${formatLateMins(lateMins)} (${fineAmount.toLocaleString("vi-VN")} VND)`,
                           status: "PENDING",
@@ -1580,8 +1601,8 @@ export default function AdminLayout({
                         const savedUsers = localStorage.getItem("global_users");
                         if (savedUsers) {
                           const allUsers = JSON.parse(savedUsers);
-                          const updated = allUsers.map((u: any) =>
-                            u.username === user.username ? { 
+                          const updated = (allUsers || []).map((u: any) =>
+                            u.username === user?.username ? { 
                               ...u, 
                               isLateLocked: true, 
                               finePaymentStatus: "PENDING_APPROVAL",
@@ -1610,8 +1631,8 @@ export default function AdminLayout({
                       if (user) {
                         const newRequest = {
                           id: Date.now(),
-                          staffName: user.name,
-                          username: user.username,
+                          staffName: user?.name,
+                          username: user?.username,
                           time: new Date().toLocaleTimeString(),
                           reason: `Giải trình đi muộn: ${excuseReason}`,
                           status: "PENDING",
@@ -1625,8 +1646,8 @@ export default function AdminLayout({
                         const savedUsers = localStorage.getItem("global_users");
                         if (savedUsers) {
                           const allUsers = JSON.parse(savedUsers);
-                          const updated = allUsers.map((u: any) =>
-                            u.username === user.username ? { 
+                          const updated = (allUsers || []).map((u: any) =>
+                            u.username === user?.username ? { 
                               ...u, 
                               isLateLocked: true, 
                               lateExcuseStatus: "PENDING_APPROVAL",
@@ -1790,7 +1811,7 @@ export default function AdminLayout({
                     <div className="flex-1 flex flex-col overflow-hidden">
                       {/* Messages Area */}
                       <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar flex flex-col">
-                        {companyMessages.map((msg: any) => {
+                        {(companyMessages || []).map((msg: any) => {
                           const isMe = msg.senderName === (user?.name || user?.username);
                           return (
                             <div key={msg.id} className={`flex flex-col max-w-[80%] ${isMe ? "self-end items-end" : "self-start items-start"}`}>
@@ -1833,7 +1854,7 @@ export default function AdminLayout({
                             </div>
                           );
                         })}
-                        {companyTypingUsers.length > 0 && (
+                        {(companyTypingUsers || []).length > 0 && (
                           <TypingBubble senderName={companyTypingUsers.join(", ") + " đang soạn tin..."} />
                         )}
                         <div ref={companyMessagesEndRef} />
@@ -1893,7 +1914,7 @@ export default function AdminLayout({
                       {!activeChatUser ? (
                         <div className="flex-1 flex flex-col overflow-y-auto p-2 divide-y divide-gray-200 dark:divide-white/5 custom-scrollbar">
                           <div className="text-[9px] font-black text-gray-500 uppercase tracking-widest p-2">Chọn nhân sự</div>
-                          {chatUsers.map((u: any) => (
+                          {(chatUsers || []).map((u: any) => (
                             <button
                               key={u.id}
                               onClick={() => setActiveChatUser(u)}
@@ -1901,7 +1922,7 @@ export default function AdminLayout({
                             >
                               <div className="relative">
                                 <div className="h-8 w-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-xs text-gold font-black group-hover:scale-105 transition-all">
-                                  {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover rounded-lg" /> : u.name.charAt(0)}
+                                  {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover rounded-lg" onError={(e) => e.currentTarget.src = "https://ui-avatars.com/api/?name=" + (u.name || "U") + "&background=d4af37&color=000"} /> : u.name.charAt(0)}
                                 </div>
                                 <div className={`absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-[#161616] ${u.isOnline ? "bg-green-500" : "bg-red-500"}`} />
                               </div>
@@ -2068,7 +2089,7 @@ export default function AdminLayout({
       )}
 
       {/* Floating Phone Widget */}
-      {user && (user.role === "03" || user.role === "04" || String(user.role).includes("03") || String(user.role).includes("04") || user.role === "NHÂN VIÊN" || String(user.role).includes("NHÂN VIÊN")) && (
+      {user && (user?.role === "03" || user?.role === "04" || String(user?.role).includes("03") || String(user?.role).includes("04") || user?.role === "NHÂN VIÊN" || String(user?.role).includes("NHÂN VIÊN")) && (
         <div className="fixed bottom-6 right-28 z-50 flex flex-col items-end">
           <AnimatePresence>
             {isPhonePanelOpen && (
@@ -2082,7 +2103,7 @@ export default function AdminLayout({
                 <div className="p-4 border-b border-gray-200 dark:border-white/5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Phone size={16} className="text-gold animate-pulse shrink-0" />
-                    <h3 className="text-xs font-black text-gray-800 dark:text-white uppercase tracking-widest">Danh sách SĐT ({myAssignedPhones.length})</h3>
+                    <h3 className="text-xs font-black text-gray-800 dark:text-white uppercase tracking-widest">Danh sách SĐT ({(myAssignedPhones || []).length})</h3>
                   </div>
                   <button
                     onClick={() => setIsPhonePanelOpen(false)}
@@ -2094,14 +2115,14 @@ export default function AdminLayout({
 
                 {/* Phone List */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                  {myAssignedPhones.length === 0 ? (
+                  {(myAssignedPhones || []).length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6">
                       <Phone size={48} className="text-gold/20 mb-4 stroke-1" />
                       <p className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">Không có SĐT</p>
                       <p className="text-xs text-gray-500 mt-1 max-w-[200px]">Hiện không có số điện thoại nào hoạt động được gán cho bạn.</p>
                     </div>
                   ) : (
-                    myAssignedPhones.map((p: any) => (
+                    (myAssignedPhones || []).map((p: any) => (
                       <div
                         key={p.id}
                         className="p-4 bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 hover:border-gold/30 dark:hover:border-gold/30 rounded-2xl transition-all duration-300 flex flex-col gap-3 group relative overflow-hidden"
@@ -2173,9 +2194,9 @@ export default function AdminLayout({
             className="h-16 w-16 bg-gradient-to-br from-[#161616] to-[#0a0a0a] border-2 border-gold/30 hover:border-gold text-gold rounded-full flex items-center justify-center shadow-[0_10px_40px_rgba(212,175,55,0.2)] hover:shadow-[0_10px_50px_rgba(212,175,55,0.4)] transition-all duration-300 relative group backdrop-blur-xl"
           >
             <Phone size={28} className="group-hover:scale-110 transition-transform duration-300" />
-            {myAssignedPhones.length > 0 && (
+            {(myAssignedPhones || []).length > 0 && (
               <span className="absolute -top-1 -right-1 bg-gold text-[#0a0a0a] font-mono text-[11px] font-black h-6 w-6 rounded-full flex items-center justify-center border-2 border-[#161616] shadow-[0_0_15px_rgba(212,175,55,0.5)] animate-bounce">
-                {myAssignedPhones.length}
+                {(myAssignedPhones || []).length}
               </span>
             )}
           </motion.button>

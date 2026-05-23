@@ -49,7 +49,7 @@ export default function NewsfeedPage() {
   // Set up notifications trigger
   const triggerNotification = ({ id, title, message, postId, targetUsername }: any) => {
     if (!targetUsername || !user) return;
-    if (String(targetUsername).toLowerCase() === String(user.username || "").toLowerCase()) return;
+    if (String(targetUsername).toLowerCase() === String(user?.username || "").toLowerCase()) return;
 
     const stored = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
     const newNotif = {
@@ -148,7 +148,7 @@ export default function NewsfeedPage() {
 
   // Handle post highlight scroll trigger
   useEffect(() => {
-    if (posts.length > 0) {
+    if ((posts || []).length > 0) {
       const targetPostId = localStorage.getItem("highlighted_post_id");
       if (targetPostId) {
         localStorage.removeItem("highlighted_post_id");
@@ -209,7 +209,7 @@ export default function NewsfeedPage() {
   };
 
   const handleLikePost = (postId: string) => {
-    const updated = posts.map(p => {
+    const updated = (posts || []).map(p => {
       if (p.id === postId) {
         const likedBy = Array.isArray(p.likedBy) ? p.likedBy : [];
         const userId = user?.id || "anon";
@@ -218,7 +218,7 @@ export default function NewsfeedPage() {
         let newLikedBy;
         let newLikes = p.likes || 0;
         if (hasLiked) {
-          newLikedBy = likedBy.filter((id: string) => id !== userId);
+          newLikedBy = (likedBy || []).filter((id: string) => id !== userId);
           newLikes = Math.max(0, newLikes - 1);
         } else {
           newLikedBy = [...likedBy, userId];
@@ -249,7 +249,7 @@ export default function NewsfeedPage() {
     const text = commentInputs[postId] || "";
     if (!text.trim()) return;
 
-    const updated = posts.map(p => {
+    const updated = (posts || []).map(p => {
       if (p.id === postId) {
         const comments = Array.isArray(p.comments) ? p.comments : [];
         const newCmt = {
@@ -289,9 +289,9 @@ export default function NewsfeedPage() {
     const text = replyInputs[commentId] || "";
     if (!text.trim()) return;
 
-    const updated = posts.map(p => {
+    const updated = (posts || []).map(p => {
       if (p.id === postId) {
-        const comments = p.comments.map((cmt: any) => {
+        const comments = (p.comments || []).map((cmt: any) => {
           if (cmt.id === commentId) {
             const replies = Array.isArray(cmt.replies) ? cmt.replies : [];
             const newReply = {
@@ -332,7 +332,7 @@ export default function NewsfeedPage() {
   };
 
   const handleTogglePinPost = (postId: string) => {
-    const updated = posts.map(p => {
+    const updated = (posts || []).map(p => {
       if (p.id === postId) {
         const nextPinned = !p.isPinned;
         setSuccessToast(nextPinned ? "Đã ghim bài viết lên đầu trang!" : "Đã bỏ ghim bài viết!");
@@ -347,7 +347,7 @@ export default function NewsfeedPage() {
 
   const handleDeletePost = (postId: string) => {
     if (confirm("Bạn có chắc chắn muốn xóa bài viết này?")) {
-      const updated = posts.filter(p => p.id !== postId);
+      const updated = (posts || []).filter(p => p.id !== postId);
       setPosts(updated);
       syncPosts(updated);
       setSuccessToast("Đã xóa bài viết thành công!");
@@ -358,7 +358,7 @@ export default function NewsfeedPage() {
   // Clipboard paste support for copying images
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const items = e.clipboardData.items;
-    for (let i = 0; i < items.length; i++) {
+    for (let i = 0; i < (items || []).length; i++) {
       if (items[i].type.indexOf("image") !== -1) {
         const file = items[i].getAsFile();
         if (file) {
@@ -392,7 +392,7 @@ export default function NewsfeedPage() {
     e.preventDefault();
     setIsDragging(false);
     const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
+    if (files && (files || []).length > 0) {
       const file = files[0];
       if (file.type.indexOf("image") !== -1) {
         const reader = new FileReader();
@@ -452,7 +452,7 @@ export default function NewsfeedPage() {
 
         <div className="flex items-center gap-2 relative z-10">
           <span className="bg-gold/10 text-gold border border-gold/30 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-            {posts.length} BÀI ĐĂNG
+            {(posts || []).length} BÀI ĐĂNG
           </span>
         </div>
       </div>
@@ -556,7 +556,7 @@ export default function NewsfeedPage() {
                   if (aPinned !== bPinned) return bPinned - aPinned;
                   return 0;
                 });
-                return sortedPosts.map((post) => {
+                return (sortedPosts || []).map((post) => {
                   const userId = user?.id || "anon";
                   const hasLiked = Array.isArray(post.likedBy) && post.likedBy.includes(userId);
                   return (
@@ -654,9 +654,9 @@ export default function NewsfeedPage() {
                     </div>
 
                     {/* Threaded Nested Comments list box */}
-                    {post.comments && post.comments.length > 0 && (
+                    {post.comments && (post.comments || []).length > 0 && (
                       <div className="space-y-3 bg-black/20 border border-white/5 rounded-xl p-3 mt-1">
-                        {post.comments.map((cmt: any) => (
+                        {(post.comments || []).map((cmt: any) => (
                           <div key={cmt.id} className="space-y-2 border-b border-white/5 last:border-none pb-3 last:pb-0">
                             {/* Main Comment */}
                             <div className="text-xs">
@@ -682,9 +682,9 @@ export default function NewsfeedPage() {
                             </div>
 
                             {/* Nested Replies Rendering */}
-                            {cmt.replies && cmt.replies.length > 0 && (
+                            {cmt.replies && (cmt.replies || []).length > 0 && (
                               <div className="ml-6 pl-4 border-l border-white/10 space-y-2 mt-2">
-                                {cmt.replies.map((reply: any) => (
+                                {(cmt.replies || []).map((reply: any) => (
                                   <div key={reply.id} className="text-[11px]">
                                     <div className="flex items-center gap-2 mb-0.5">
                                       <CornerDownRight size={10} className="text-gold" />
@@ -746,7 +746,7 @@ export default function NewsfeedPage() {
               })()}
             </AnimatePresence>
 
-            {posts.length === 0 && (
+            {(posts || []).length === 0 && (
               <div className="h-40 rounded-2xl border border-white/5 bg-sidebar/50 flex flex-col items-center justify-center text-center p-4">
                 <MessageSquare size={32} className="text-gray-600 mb-2" />
                 <h4 className="text-white font-black uppercase tracking-tight text-[11px]">Chưa có bài viết nào</h4>

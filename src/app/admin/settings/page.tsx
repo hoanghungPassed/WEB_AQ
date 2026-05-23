@@ -158,7 +158,7 @@ export default function SettingsPage() {
 
   // Account holder simulated lookup triggered manually
   const handleLookupAccount = () => {
-    if (!bankAccountNumber || bankAccountNumber.length < 6) {
+    if (!bankAccountNumber || (bankAccountNumber || []).length < 6) {
       triggerToast("Vui lòng nhập STK hợp lệ để tra cứu!");
       return;
     }
@@ -172,13 +172,13 @@ export default function SettingsPage() {
       const firstNamePool = ["HUNG", "DUNG", "LAN", "MAI", "PHONG", "NAM", "LONG", "VY", "LINH", "TRANG", "THANG", "TUAN", "MINH", "THAO", "TUNG"];
       
       let hash = 0;
-      for (let i = 0; i < bankAccountNumber.length; i++) {
+      for (let i = 0; i < (bankAccountNumber || []).length; i++) {
         hash += bankAccountNumber.charCodeAt(i) * (i + 1);
       }
       
-      const ln = lastNamePool[hash % lastNamePool.length];
-      const mn = middleNamePool[(hash >> 2) % middleNamePool.length];
-      const fn = firstNamePool[(hash >> 4) % firstNamePool.length];
+      const ln = lastNamePool[hash % (lastNamePool || []).length];
+      const mn = middleNamePool[(hash >> 2) % (middleNamePool || []).length];
+      const fn = firstNamePool[(hash >> 4) % (firstNamePool || []).length];
       
       const simulatedName = `${ln} ${mn} ${fn}`;
       setBankAccountHolder(simulatedName);
@@ -255,7 +255,7 @@ export default function SettingsPage() {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key) {
-        totalLength += (localStorage.getItem(key) || "").length + key.length;
+        totalLength += (localStorage.getItem(key) || "").length + (key || []).length;
       }
     }
     // Convert to KB
@@ -339,7 +339,7 @@ export default function SettingsPage() {
 
   const getPasswordStrength = (pwd: string) => {
     let score = 0;
-    if (pwd.length > 6) score++;
+    if ((pwd || []).length > 6) score++;
     if (/[A-Z]/.test(pwd)) score++;
     if (/[0-9]/.test(pwd)) score++;
     if (/[^A-Za-z0-9]/.test(pwd)) score++;
@@ -348,7 +348,7 @@ export default function SettingsPage() {
 
   const validateNewPassword = (pwd: string) => {
     if (!pwd) return "";
-    if (pwd.length <= 6) return "Mật khẩu phải dài hơn 6 kí tự";
+    if ((pwd || []).length <= 6) return "Mật khẩu phải dài hơn 6 kí tự";
     if (!/[A-Z]/.test(pwd)) return "Phải có ít nhất 1 chữ viết hoa";
     if (!/[0-9]/.test(pwd)) return "Phải có ít nhất 1 chữ số";
     if (!/[^A-Za-z0-9]/.test(pwd)) return "Phải có ít nhất 1 kí tự đặc biệt";
@@ -453,57 +453,34 @@ export default function SettingsPage() {
   };
 
   // UPGRADED HARD WIPE & RESET DATABASE - requires typing "XÓA"
-  const handleHardResetDatabase = () => {
+  const handleHardResetDatabase = async () => {
     if (safetyPhrase !== "XÓA") {
       return;
     }
 
-    // Selectively clear all app-related localStorage keys
-    const keysToRemove = [
-      "global_users",
-      "global_mails_data",
-      "global_tasks_data",
-      "global_kpi_data",
-      "global_phones_data",
-      "global_import_history",
-      "global_company_chat",
-      "global_private_messages",
-      "global_newsfeed_posts",
-      "pending_access_requests",
-      "admin_notifications",
-      "global_system_settings",
-      "global_system_logs",
-      "global_bank_config",
-      "global_work_config",
-      "global_agency_config",
-    ];
-
-    // Remove known keys
-    keysToRemove.forEach(key => localStorage.removeItem(key));
-
-    // Remove dynamic prefix keys
-    const prefixes = ["checkin_time_", "access_", "chat_last_read_"];
-    const allKeys: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key) allKeys.push(key);
-    }
-    allKeys.forEach(key => {
-      if (prefixes.some(prefix => key.startsWith(prefix))) {
-        localStorage.removeItem(key);
-      }
-    });
-
-    sessionStorage.clear();
-    
-    setShowResetConfirm(false);
-    setSafetyPhrase("");
-
-    // Trigger complete redirect to login to seed data freshly on reload
     triggerToast("Hệ thống đang tiến hành hard-reset toàn bộ dữ liệu...");
-    setTimeout(() => {
-      window.location.reload();
-    }, 1500);
+    try {
+      const res = await fetch("/api/admin/reset-db", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        triggerToast(data.error || "Lỗi khi reset database");
+        return;
+      }
+      
+      triggerToast(data.message || "Đã reset database thành công!");
+      
+      sessionStorage.clear();
+      localStorage.clear();
+      
+      setShowResetConfirm(false);
+      setSafetyPhrase("");
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      triggerToast("Lỗi kết nối API reset-db");
+    }
   };
 
   // SAVE WORK CONFIG
@@ -574,12 +551,12 @@ export default function SettingsPage() {
       return;
     }
 
-    const formatLength = (value: string) => value.length.toString().padStart(2, "0");
+    const formatLength = (value: string) => (value || []).length.toString().padStart(2, "0");
     const formatTag = (id: string, value: string) => `${id}${formatLength(value)}${value}`;
 
     const crc16 = (input: string) => {
       let crc = 0xFFFF;
-      for (let i = 0; i < input.length; i++) {
+      for (let i = 0; i < (input || []).length; i++) {
         crc ^= input.charCodeAt(i) << 8;
         for (let j = 0; j < 8; j++) {
           crc = (crc & 0x8000) !== 0 ? ((crc << 1) ^ 0x1021) : (crc << 1);
@@ -1162,14 +1139,14 @@ export default function SettingsPage() {
                               />
                             </div>
                             <div className="overflow-y-auto custom-scrollbar flex-1">
-                              {banksList.filter((b: any) => 
+                              {(banksList || []).filter((b: any) => 
                                 b.shortName?.toLowerCase().includes(bankSearchTerm.toLowerCase()) ||
                                 b.name?.toLowerCase().includes(bankSearchTerm.toLowerCase()) ||
                                 b.code?.toLowerCase().includes(bankSearchTerm.toLowerCase())
                               ).length === 0 ? (
                                 <div className="p-4 text-center text-xs text-gray-500 font-bold">Không tìm thấy ngân hàng</div>
                               ) : (
-                                banksList.filter((b: any) => 
+                                (banksList || []).filter((b: any) => 
                                   b.shortName?.toLowerCase().includes(bankSearchTerm.toLowerCase()) ||
                                   b.name?.toLowerCase().includes(bankSearchTerm.toLowerCase()) ||
                                   b.code?.toLowerCase().includes(bankSearchTerm.toLowerCase())

@@ -69,7 +69,7 @@ const UnifiedMailDetailModal = ({
     const savedMails = typeof window !== "undefined" ? localStorage.getItem("global_mails_data") : null;
     const allMails = savedMails ? JSON.parse(savedMails) : [];
 
-    return initLinks.map((link: string, i: number) => {
+    return (initLinks || []).map((link: string, i: number) => {
       if (!link || link.trim() === "") return false;
       
       const cleaned = cleanYouTubeUrl(link);
@@ -190,7 +190,7 @@ const UnifiedMailDetailModal = ({
       }
 
       onSave({ 
-        links: links.map(l => cleanYouTubeUrl(l)), 
+        links: (links || []).map(l => cleanYouTubeUrl(l)), 
         channelNames: names,
         eligibleChannels
       });
@@ -456,7 +456,7 @@ export default function TaskManagementPage() {
 
     const stored = localStorage.getItem("global_users");
     const allUsers = stored ? JSON.parse(stored) : [];
-    setStaffList(allUsers.filter((u: StaffData) => u.status === "ACTIVE" && u.role !== "01"));
+    setStaffList((allUsers || []).filter((u: StaffData) => u.status === "ACTIVE" && u.role !== "01"));
 
     const savedMails = localStorage.getItem("global_mails_data");
     setMails(savedMails ? JSON.parse(savedMails) : []);
@@ -513,14 +513,14 @@ export default function TaskManagementPage() {
 
   const inventory = useMemo(() => {
     return {
-      root: mails.filter((m: any) => m.type === "ROOT" && !m.assigneeId).length,
-      satellite: mails.filter((m: any) => m.type === "SATELLITE" && !m.assigneeId).length,
-      monetized: mails.filter((m: any) => m.type === "MONETIZED" && !m.assigneeId).length,
+      root: (mails || []).filter((m: any) => m.type === "ROOT" && !m.assigneeId).length,
+      satellite: (mails || []).filter((m: any) => m.type === "SATELLITE" && !m.assigneeId).length,
+      monetized: (mails || []).filter((m: any) => m.type === "MONETIZED" && !m.assigneeId).length,
     };
   }, [mails]);
 
   const typeMaxTotal = useMemo(() => {
-    return mails.filter((m: any) => m.type === mailTypeSelection).length;
+    return (mails || []).filter((m: any) => m.type === mailTypeSelection).length;
   }, [mails, mailTypeSelection]);
 
   const selectTemplateAndPreset = (title: string) => {
@@ -548,42 +548,42 @@ export default function TaskManagementPage() {
     if (!targetStaffId) return [];
     
     // Find all satellite mails assigned to this employee
-    const allSatellites = mails.filter((m: any) => m.type === "SATELLITE");
-    const theirSatellites = allSatellites.filter((m: any) => String(m.assigneeId) === String(targetStaffId));
+    const allSatellites = (mails || []).filter((m: any) => m.type === "SATELLITE");
+    const theirSatellites = (allSatellites || []).filter((m: any) => String(m.assigneeId) === String(targetStaffId));
     
     // Extract unique batchNames
-    const batchNames = Array.from(new Set(theirSatellites.map((m: any) => m.batchName).filter(Boolean))) as string[];
+    const batchNames = Array.from(new Set((theirSatellites || []).map((m: any) => m.batchName).filter(Boolean))) as string[];
     
     // For each batch name, find the range in allSatellites
-    return batchNames.map(bName => {
+    return (batchNames || []).map(bName => {
       // Check if this batch is already assigned as a task to this user
       const isAlreadyTask = tasks.some(
         (t: any) => t.type === "MAIL_VE_TINH" && t.mailRange === bName && String(t.assigneeId) === String(targetStaffId)
       );
       if (isAlreadyTask) return null;
 
-      const batchMails = theirSatellites.filter((m: any) => m.batchName === bName);
-      if (batchMails.length === 0) return null;
+      const batchMails = (theirSatellites || []).filter((m: any) => m.batchName === bName);
+      if ((batchMails || []).length === 0) return null;
       
       const hasChuaLam = batchMails.some((m: any) => m.workStatus === "Chưa làm");
       if (!hasChuaLam) return null;
 
       const firstIdx = allSatellites.findIndex((m: any) => m.id === batchMails[0].id) + 1;
-      const lastIdx = allSatellites.findIndex((m: any) => m.id === batchMails[batchMails.length - 1].id) + 1;
+      const lastIdx = allSatellites.findIndex((m: any) => m.id === batchMails[(batchMails || []).length - 1].id) + 1;
       return {
         name: bName,
         range: `${firstIdx}-${lastIdx}`,
-        mailIds: batchMails.map((m: any) => m.id)
+        mailIds: (batchMails || []).map((m: any) => m.id)
       };
     }).filter(Boolean) as any[];
   }, [targetStaffId, mails, tasks]);
 
   const targetStaffBatches = useMemo(() => {
-    return dynamicStaffBatches.map(b => b.name);
+    return (dynamicStaffBatches || []).map(b => b.name);
   }, [dynamicStaffBatches]);
 
   useEffect(() => {
-    if (dynamicStaffBatches.length > 0) {
+    if ((dynamicStaffBatches || []).length > 0) {
       setSelectedLo(dynamicStaffBatches[0].name);
     } else {
       setSelectedLo("");
@@ -592,10 +592,10 @@ export default function TaskManagementPage() {
 
   const eligibleStaff = useMemo(() => {
     if (!user) return [];
-    const is01 = user.role === "01" || user.role === "ADMIN";
-    const is02 = user.role === "02" || user.role === "QUẢN LÝ CÔNG VIỆC";
+    const is01 = user?.role === "01" || user?.role === "ADMIN";
+    const is02 = user?.role === "02" || user?.role === "QUẢN LÝ CÔNG VIỆC";
 
-    return staffList.filter((s: StaffData) => {
+    return (staffList || []).filter((s: StaffData) => {
       // 1. Must be ONLINE
       if (!s.isOnline) return false;
 
@@ -616,7 +616,7 @@ export default function TaskManagementPage() {
   }, [staffList, user, selectedTemplate]);
 
   const filteredStaff = useMemo(() => {
-    return staffList.filter(staff => {
+    return (staffList || []).filter(staff => {
       const matchesSearch =
         staff.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         staff.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -633,7 +633,7 @@ export default function TaskManagementPage() {
     setCurrentPage(1);
   }, [searchQuery, roleFilter]);
 
-  const totalPages = Math.ceil(filteredStaff.length / itemsPerPage);
+  const totalPages = Math.ceil((filteredStaff || []).length / itemsPerPage);
   const paginatedStaff = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredStaff.slice(start, start + itemsPerPage);
@@ -643,16 +643,16 @@ export default function TaskManagementPage() {
     if (isAdminOrManager) {
       if (adminTab === "TASKS") {
         const todayStr = new Date().toISOString().slice(0, 10);
-        return tasks.filter(t => t.assignedAt && t.assignedAt.startsWith(todayStr));
+        return (tasks || []).filter(t => t.assignedAt && t.assignedAt.startsWith(todayStr));
       }
       return tasks;
     }
-    return tasks.filter(t => String(t.assigneeId) === String(user?.id));
+    return (tasks || []).filter(t => String(t.assigneeId) === String(user?.id));
   }, [tasks, user, isAdminOrManager, adminTab]);
 
   const filteredTasks = useMemo(() => {
     let result = userTasks;
-    if (taskFilter !== "ALL") result = result.filter(t => t.status === taskFilter);
+    if (taskFilter !== "ALL") result = (result || []).filter(t => t.status === taskFilter);
     return result;
   }, [taskFilter, userTasks]);
 
@@ -666,38 +666,38 @@ export default function TaskManagementPage() {
     if (selectedTask.type === "MAIL_MONETIZED") mailType = "MONETIZED";
 
     if (selectedTask.selectedMailIds && Array.isArray(selectedTask.selectedMailIds)) {
-      return mails.filter(m => selectedTask.selectedMailIds?.includes(m.id));
+      return (mails || []).filter(m => selectedTask.selectedMailIds?.includes(m.id));
     }
 
-    let filtered = mails.filter(m => m.type === mailType && String(m.assigneeId) === String(selectedTask.assigneeId));
+    let filtered = (mails || []).filter(m => m.type === mailType && String(m.assigneeId) === String(selectedTask.assigneeId));
 
     if (selectedTask.title === "Check, xóa, tạo" || selectedTask.title === "Kênh bật kiếm tiền") {
       if (selectedTask.mailRange) {
         const parts = selectedTask.mailRange.split("-");
-        if (parts.length === 2) {
+        if ((parts || []).length === 2) {
           const start = parseInt(parts[0].trim());
           const end = parseInt(parts[1].trim());
-          const withSTT = mails.filter(m => m.type === mailType).map((m, idx) => ({ ...m, currentSTT: idx + 1 }));
-          const idsInRange = withSTT.filter(m => m.currentSTT >= start && m.currentSTT <= end).map(m => m.id);
-          filtered = filtered.filter(m => idsInRange.includes(m.id));
+          const withSTT = (mails || []).filter(m => m.type === mailType).map((m, idx) => ({ ...m, currentSTT: idx + 1 }));
+          const idsInRange = (withSTT || []).filter(m => m.currentSTT >= start && m.currentSTT <= end).map(m => m.id);
+          filtered = (filtered || []).filter(m => idsInRange.includes(m.id));
         }
       }
     } else if (selectedTask.title === "Làm kênh") {
       if (selectedTask.mailRange) {
         const cleanBatch = (selectedTask as any).batch || selectedTask.mailRange.split(" (")[0];
-        filtered = filtered.filter(m => m.batchName === cleanBatch);
+        filtered = (filtered || []).filter(m => m.batchName === cleanBatch);
       }
     } else if (selectedTask.title === "Mời kênh" && selectedTask.mailRange) {
       const parts = selectedTask.mailRange.split("+");
       const loPart = parts.pop()?.trim();
-      filtered = mails.filter(m => 
+      filtered = (mails || []).filter(m => 
         (m.type === "SATELLITE" && m.batchName === loPart && String(m.assigneeId) === String(selectedTask.assigneeId)) ||
         (m.type === "ROOT" && selectedTask.note && selectedTask.note.includes(m.email))
       );
     }
 
     if (user?.role === "04") {
-      filtered = filtered.filter(m => String(m.assigneeId) === String(user.id));
+      filtered = (filtered || []).filter(m => String(m.assigneeId) === String(user.id));
     }
 
     return filtered;
@@ -707,7 +707,7 @@ export default function TaskManagementPage() {
     const savedMails = localStorage.getItem("global_mails_data");
     let allMails = savedMails ? JSON.parse(savedMails) : [];
 
-    allMails = allMails.map((m: any) => {
+    allMails = (allMails || []).map((m: any) => {
       if (m.id === mailId) {
         return { ...m, ...updatedFields };
       }
@@ -722,43 +722,43 @@ export default function TaskManagementPage() {
       if (selectedTask.type === "MAIL_VE_TINH") mailType = "SATELLITE";
       if (selectedTask.type === "MAIL_MONETIZED") mailType = "MONETIZED";
 
-      let filtered = allMails.filter((m: any) => m.type === mailType && String(m.assigneeId) === String(selectedTask.assigneeId));
+      let filtered = (allMails || []).filter((m: any) => m.type === mailType && String(m.assigneeId) === String(selectedTask.assigneeId));
       if (selectedTask.selectedMailIds && Array.isArray(selectedTask.selectedMailIds)) {
-        filtered = allMails.filter((m: any) => selectedTask.selectedMailIds?.includes(m.id));
+        filtered = (allMails || []).filter((m: any) => selectedTask.selectedMailIds?.includes(m.id));
       } else if (selectedTask.title === "Check, xóa, tạo" || selectedTask.title === "Kênh bật kiếm tiền") {
         if (selectedTask.mailRange) {
           const parts = selectedTask.mailRange.split("-");
-          if (parts.length === 2) {
+          if ((parts || []).length === 2) {
             const start = parseInt(parts[0].trim());
             const end = parseInt(parts[1].trim());
-            const withSTT = allMails.filter((m: any) => m.type === mailType).map((m: any, idx: number) => ({ ...m, currentSTT: idx + 1 }));
-            const idsInRange = withSTT.filter((m: any) => m.currentSTT >= start && m.currentSTT <= end).map((m: any) => m.id);
-            filtered = filtered.filter((m: any) => idsInRange.includes(m.id));
+            const withSTT = (allMails || []).filter((m: any) => m.type === mailType).map((m: any, idx: number) => ({ ...m, currentSTT: idx + 1 }));
+            const idsInRange = (withSTT || []).filter((m: any) => m.currentSTT >= start && m.currentSTT <= end).map((m: any) => m.id);
+            filtered = (filtered || []).filter((m: any) => idsInRange.includes(m.id));
           }
         }
       } else if (selectedTask.title === "Làm kênh") {
         if (selectedTask.mailRange) {
           const cleanBatch = (selectedTask as any).batch || selectedTask.mailRange.split(" (")[0];
-          filtered = filtered.filter((m: any) => m.batchName === cleanBatch);
+          filtered = (filtered || []).filter((m: any) => m.batchName === cleanBatch);
         }
       } else if (selectedTask.title === "Mời kênh" && selectedTask.mailRange) {
         const parts = selectedTask.mailRange.split("+");
         const loPart = parts.pop()?.trim();
-        filtered = allMails.filter((m: any) => 
+        filtered = (allMails || []).filter((m: any) => 
           (m.type === "SATELLITE" && m.batchName === loPart && String(m.assigneeId) === String(selectedTask.assigneeId)) ||
           (m.type === "ROOT" && selectedTask.note && selectedTask.note.includes(m.email))
         );
       }
 
-      const totalTaskMails = filtered.length;
+      const totalTaskMails = (filtered || []).length;
       if (totalTaskMails > 0) {
-        const completedCount = filtered.filter((m: any) => m.workStatus === "Đã làm" || m.workStatus === "Đã bán").length;
+        const completedCount = (filtered || []).filter((m: any) => m.workStatus === "Đã làm" || m.workStatus === "Đã bán").length;
         const progressPercent = Math.round((completedCount / totalTaskMails) * 100);
 
         const savedTasks = localStorage.getItem("global_tasks_data");
         let allTasks = savedTasks ? JSON.parse(savedTasks) : [];
 
-        allTasks = allTasks.map((t: any) => {
+        allTasks = (allTasks || []).map((t: any) => {
           if (t.id === selectedTask.id) {
             return { 
               ...t, 
@@ -801,17 +801,17 @@ export default function TaskManagementPage() {
     if (selectedTemplate === "Check, xóa, tạo") {
       typeLabel = "ROOT";
       taskType = "MAIL_GOC";
-      if (selectedMailIdsForTask.length === 0) {
+      if ((selectedMailIdsForTask || []).length === 0) {
         alert("Vui lòng click chọn ít nhất 1 mail gốc khả dụng trong popup trước!");
         return;
       }
       assignedIds = [...selectedMailIdsForTask];
-      mailCount = assignedIds.length;
+      mailCount = (assignedIds || []).length;
       
-      const mailsOfType = allMails.filter((m: any) => m.type === "ROOT");
-      const indices = assignedIds.map(id => mailsOfType.findIndex((m: any) => m.id === id) + 1).filter(idx => idx > 0).sort((a, b) => a - b);
-      if (indices.length > 0) {
-        mailRangeStr = `${indices[0]}-${indices[indices.length - 1]}`;
+      const mailsOfType = (allMails || []).filter((m: any) => m.type === "ROOT");
+      const indices = (assignedIds || []).map(id => mailsOfType.findIndex((m: any) => m.id === id) + 1).filter(idx => idx > 0).sort((a, b) => a - b);
+      if ((indices || []).length > 0) {
+        mailRangeStr = `${indices[0]}-${indices[(indices || []).length - 1]}`;
       } else {
         mailRangeStr = `${mailCount} mail`;
       }
@@ -827,24 +827,24 @@ export default function TaskManagementPage() {
       }
       
       assignedIds = selectedBatchObj.mailIds || [];
-      mailCount = assignedIds.length;
+      mailCount = (assignedIds || []).length;
       mailRangeStr = `${selectedLo} (STT ${selectedBatchObj.range})`;
       note = `${note} - Lô gán: ${selectedLo} (STT ${selectedBatchObj.range})`;
     } 
     else if (selectedTemplate === "Kênh bật kiếm tiền") {
       typeLabel = "MONETIZED";
       taskType = "MAIL_MONETIZED";
-      const mailsOfType = allMails.filter((m: any) => m.type === "MONETIZED");
-      const mailsWithSTT = mailsOfType.map((m: any, idx: number) => ({ ...m, currentSTT: idx + 1 }));
+      const mailsOfType = (allMails || []).filter((m: any) => m.type === "MONETIZED");
+      const mailsWithSTT = (mailsOfType || []).map((m: any, idx: number) => ({ ...m, currentSTT: idx + 1 }));
       assignedIds = mailsWithSTT
         .filter((m: any) => m.currentSTT >= mailRangeStart && m.currentSTT <= mailRangeEnd && !m.assigneeId)
         .map((m: any) => m.id);
 
-      if (assignedIds.length === 0) {
+      if ((assignedIds || []).length === 0) {
         alert("Không tìm thấy mail bật kiếm tiền khả dụng trong dải STT này.");
         return;
       }
-      mailCount = assignedIds.length;
+      mailCount = (assignedIds || []).length;
       mailRangeStr = `${mailRangeStart} - ${mailRangeEnd}`;
 
       const is01 = user?.role === "01";
@@ -865,24 +865,24 @@ export default function TaskManagementPage() {
       const rootMail = allMails.find((m: any) => String(m.id) === String(selectedRootMailId));
       if (!rootMail) return;
 
-      const targetMails = allMails.filter((m: any) => 
+      const targetMails = (allMails || []).filter((m: any) => 
         m.type === "SATELLITE" && 
         String(m.assigneeId) === String(targetStaffId) && 
         m.batchName === selectedMoiKenhLo
       );
 
-      if (targetMails.length === 0) {
+      if ((targetMails || []).length === 0) {
         alert(`Không tìm thấy mail vệ tinh thuộc ${selectedMoiKenhLo} của nhân sự này.`);
         return;
       }
 
-      assignedIds = [rootMail.id, ...targetMails.map((m: any) => m.id)];
-      mailCount = assignedIds.length;
+      assignedIds = [rootMail.id, ...(targetMails || []).map((m: any) => m.id)];
+      mailCount = (assignedIds || []).length;
       mailRangeStr = `Ghép cặp: Mail gốc (${rootMail.email}) + ${selectedMoiKenhLo}`;
       note = `${note} (Ghép cặp Mail Gốc: ${rootMail.email} với ${selectedMoiKenhLo} vệ tinh)`;
     }
 
-    allMails = allMails.map((m: any) => {
+    allMails = (allMails || []).map((m: any) => {
       if (assignedIds.includes(m.id)) {
         return {
           ...m,
@@ -966,7 +966,7 @@ export default function TaskManagementPage() {
       let errorMails: string[] = [];
       taskMails.forEach((m: any) => {
         const activeLinks = (m.links || []).filter((l: string) => typeof l === 'string' && l.trim() !== "");
-        const linksCount = activeLinks.length;
+        const linksCount = (activeLinks || []).length;
         
         if (linksCount < 3) {
           errorMails.push(`- ${m.email} (thiếu ${3 - linksCount} kênh)`);
@@ -978,7 +978,7 @@ export default function TaskManagementPage() {
         }
       });
 
-      if (errorMails.length > 0) {
+      if ((errorMails || []).length > 0) {
         alert("KHÔNG THỂ HOÀN THÀNH!\nCác mail vệ tinh sau chưa đúng yêu cầu:\n" + errorMails.join("\n"));
         return;
       }
@@ -987,7 +987,7 @@ export default function TaskManagementPage() {
     const savedTasks = localStorage.getItem("global_tasks_data");
     let allTasks = savedTasks ? JSON.parse(savedTasks) : [];
 
-    allTasks = allTasks.map((t: any) => {
+    allTasks = (allTasks || []).map((t: any) => {
       if (t.id === selectedTaskId) {
         return {
           ...t,
@@ -1135,7 +1135,7 @@ export default function TaskManagementPage() {
                         className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 cursor-pointer transition-all"
                       >
                         <option value="" className="bg-sidebar text-white">-- Chọn nhân sự ONLINE thực hiện --</option>
-                        {eligibleStaff.map((staff: any) => (
+                        {(eligibleStaff || []).map((staff: any) => (
                           <option key={staff.id} value={staff.id} className="bg-sidebar text-white">
                             🟢 {staff.name} ({staff.role === "02" ? "Quản lý công việc" : staff.role === "03" ? "Quản lý nhân sự" : "Nhân viên"})
                           </option>
@@ -1158,8 +1158,8 @@ export default function TaskManagementPage() {
                           className="w-full h-14 bg-[#0a0a0a] hover:bg-gold/5 text-gold border border-gold/20 hover:border-gold/50 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg"
                         >
                           <Mail size={16} />
-                          {selectedMailIdsForTask.length > 0 
-                            ? `Đã chọn: ${selectedMailIdsForTask.length} mail gốc (Nhấn để thay đổi)` 
+                          {(selectedMailIdsForTask || []).length > 0 
+                            ? `Đã chọn: ${(selectedMailIdsForTask || []).length} mail gốc (Nhấn để thay đổi)` 
                             : "Chọn mail"}
                         </button>
                       </div>
@@ -1175,13 +1175,13 @@ export default function TaskManagementPage() {
                             className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 cursor-pointer transition-all"
                           >
                             <option value="" className="bg-sidebar text-white">-- Chọn Lô --</option>
-                            {dynamicStaffBatches.map(b => (
+                            {(dynamicStaffBatches || []).map(b => (
                               <option key={b.name} value={b.name} className="bg-sidebar text-white">
                                 {b.name} (STT {b.range})
                               </option>
                             ))}
                           </select>
-                          {dynamicStaffBatches.length === 0 && (
+                          {(dynamicStaffBatches || []).length === 0 && (
                             <p className="text-[10px] text-red-400 font-bold uppercase tracking-wider mt-1">Nhân sự này chưa được gán lô vệ tinh nào ở bước 1!</p>
                           )}
                         </div>
@@ -1245,7 +1245,7 @@ export default function TaskManagementPage() {
                             className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 cursor-pointer transition-all"
                           >
                             <option value="" className="bg-sidebar text-white">-- Chọn Mail Gốc trong DB --</option>
-                            {mails.filter((m: any) => m.type === "ROOT" && m.verificationStatus === "Đã xanh" && !m.assigneeId).map((m: any) => (
+                            {(mails || []).filter((m: any) => m.type === "ROOT" && m.verificationStatus === "Đã xanh" && !m.assigneeId).map((m: any) => (
                               <option key={m.id} value={m.id} className="bg-sidebar text-white">
                                 {m.email}
                               </option>
@@ -1261,7 +1261,7 @@ export default function TaskManagementPage() {
                             className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-sm outline-none focus:border-gold/50 cursor-pointer transition-all"
                           >
                             <option value="" className="bg-sidebar text-white">-- Chọn Lô Vệ Tinh --</option>
-                            {targetStaffBatches.length > 0 ? targetStaffBatches.map(b => (
+                            {(targetStaffBatches || []).length > 0 ? (targetStaffBatches || []).map(b => (
                               <option key={b} value={b} className="bg-sidebar text-white">{b}</option>
                             )) : (
                               <option disabled className="bg-sidebar text-white">Nhân viên này chưa có lô vệ tinh nào</option>
@@ -1296,8 +1296,8 @@ export default function TaskManagementPage() {
               // Staff task listing
               <motion.div key="staff-grid" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1 overflow-y-auto custom-scrollbar pr-2">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pb-10">
-                  {filteredTasks.length > 0 ? (
-                    filteredTasks.map(task => <TaskCard key={task.id} task={task} onClick={() => setSelectedTaskId(task.id)} />)
+                  {(filteredTasks || []).length > 0 ? (
+                    (filteredTasks || []).map(task => <TaskCard key={task.id} task={task} onClick={() => setSelectedTaskId(task.id)} />)
                   ) : (
                     <div className="col-span-full py-20 text-center text-gray-500 font-bold uppercase tracking-widest">Không có nhiệm vụ được giao</div>
                   )}
@@ -1371,8 +1371,8 @@ export default function TaskManagementPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
-                        {taskMails.length > 0 ? (
-                          taskMails.map((mail, i) => {
+                        {(taskMails || []).length > 0 ? (
+                          (taskMails || []).map((mail, i) => {
                             const rowPadding = !isAdminOrManager ? "py-1 px-6" : "py-2.5 px-6";
                             const textSize = !isAdminOrManager ? "text-xs" : "text-sm";
                             return (
@@ -1504,7 +1504,7 @@ export default function TaskManagementPage() {
               {/* Table wrapper */}
               <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-6 relative z-10 min-h-[250px]">
                 {(() => {
-                  const availableMails = mails.filter((m: any) => 
+                  const availableMails = (mails || []).filter((m: any) => 
                     m.type === "ROOT" && 
                     m.verificationStatus === "Đã xanh" && 
                     (m.workStatus === "Chưa làm" || !m.workStatus) &&
@@ -1514,13 +1514,13 @@ export default function TaskManagementPage() {
                   );
 
                   // Calculate master checkbox state
-                  const allSelected = availableMails.length > 0 && availableMails.every((m: any) => selectedMailIdsForTask.includes(m.id));
+                  const allSelected = (availableMails || []).length > 0 && availableMails.every((m: any) => selectedMailIdsForTask.includes(m.id));
                   const someSelected = availableMails.some((m: any) => selectedMailIdsForTask.includes(m.id)) && !allSelected;
 
                   const handleSelectAll = () => {
                     if (allSelected) {
                       // Remove all available from selection
-                      setSelectedMailIdsForTask(prev => prev.filter(id => !availableMails.some((m: any) => m.id === id)));
+                      setSelectedMailIdsForTask(prev => (prev || []).filter(id => !availableMails.some((m: any) => m.id === id)));
                     } else {
                       // Add all available to selection
                       const newIds = [...selectedMailIdsForTask];
@@ -1533,7 +1533,7 @@ export default function TaskManagementPage() {
 
                   const handleToggleRow = (id: number) => {
                     setSelectedMailIdsForTask(prev => 
-                      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                      prev.includes(id) ? (prev || []).filter(x => x !== id) : [...prev, id]
                     );
                   };
 
@@ -1560,8 +1560,8 @@ export default function TaskManagementPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5 text-gray-300">
-                        {availableMails.length > 0 ? (
-                          availableMails.map((mail: any, index: number) => (
+                        {(availableMails || []).length > 0 ? (
+                          (availableMails || []).map((mail: any, index: number) => (
                             <tr key={mail.id} className="hover:bg-white/[0.02] transition-colors group">
                               <td className="py-3 px-6 text-center">
                                 <input
@@ -1602,7 +1602,7 @@ export default function TaskManagementPage() {
               {/* Bottom bar */}
               <div className="flex items-center justify-between pt-6 border-t border-white/5 relative z-10">
                 <span className="text-sm font-black text-gold uppercase tracking-wider">
-                  Đã chọn: {selectedMailIdsForTask.length} mail
+                  Đã chọn: {(selectedMailIdsForTask || []).length} mail
                 </span>
                 <div className="flex gap-4">
                   <button

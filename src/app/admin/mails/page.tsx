@@ -42,7 +42,7 @@ function MailTableContent() {
   ];
 
   // Lọc dữ liệu dựa trên type (LIVE, DIE, MONETIZED, ALL) và search và channelStatus
-  const filteredMails = mails.filter(mail => {
+  const filteredMails = (mails || []).filter(mail => {
     let matchesType = true;
     if (type === "live") matchesType = mail.status === "LIVE";
     else if (type === "die") matchesType = mail.status === "DIE";
@@ -54,7 +54,7 @@ function MailTableContent() {
     return matchesType && matchesChannelStatus && matchesSearch;
   });
 
-  const totalPages = Math.ceil(filteredMails.length / itemsPerPage);
+  const totalPages = Math.ceil((filteredMails || []).length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentItems = filteredMails.slice(startIndex, startIndex + itemsPerPage);
 
@@ -81,7 +81,7 @@ function MailTableContent() {
             exit={{ opacity: 0, y: -20 }}
             className="fixed top-10 left-1/2 -translate-x-1/2 z-[100] bg-gold px-6 py-2 rounded-full text-sidebar font-black text-sm shadow-2xl"
           >
-            Đã sao chép: {copiedText.length > 20 ? copiedText.substring(0, 20) + "..." : copiedText}
+            Đã sao chép: {(copiedText || []).length > 20 ? copiedText.substring(0, 20) + "..." : copiedText}
           </motion.div>
         )}
       </AnimatePresence>
@@ -100,7 +100,7 @@ function MailTableContent() {
               <Mail className="text-gold" size={24} />
               {type === "live" ? "Mail Live" : type === "die" ? "Mail Die" : type === "monetized" ? "Mail Kiếm Tiền" : "Tổng Mail"}
             </h1>
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Tổng cộng: {filteredMails.length}</p>
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Tổng cộng: {(filteredMails || []).length}</p>
           </div>
         </div>
 
@@ -114,7 +114,7 @@ function MailTableContent() {
               className="h-10 pl-9 pr-4 rounded-lg bg-sidebar border border-border-custom text-xs text-white focus:border-gold/50 focus:outline-none appearance-none cursor-pointer transition-all"
             >
               <option value="all">Tất cả trạng thái</option>
-              {CHANNEL_STATUS_OPTIONS.map(status => (
+              {(CHANNEL_STATUS_OPTIONS || []).map(status => (
                 <option key={status} value={status}>{status}</option>
               ))}
             </select>
@@ -153,7 +153,7 @@ function MailTableContent() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border-custom">
-              {currentItems.map((mail, idx) => (
+              {(currentItems || []).map((mail, idx) => (
                 <tr key={mail.id} className="hover:bg-white/[0.03] transition-colors group animate-fade-in">
                   <td className="px-2 py-2 text-[10px] font-bold text-gray-600 border-r border-border-custom text-center whitespace-nowrap">
                     {startIndex + idx + 1}

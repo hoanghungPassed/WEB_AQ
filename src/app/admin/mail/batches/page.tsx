@@ -101,11 +101,11 @@ export default function BatchesManagementPage() {
       } else {
         const parsedBatches = JSON.parse(savedBatches);
         // Sync counting to ensure accurate display
-        const updated = parsedBatches.map((b: BatchItem) => {
-          const batchMails = mails.filter((m: any) => m.batchId === b.id || m.batchName === b.name);
-          const count = batchMails.length;
-          const assignedUsernames = Array.from(new Set(batchMails.map((m: any) => m.assignedTo).filter(Boolean)));
-          const assignedTo = assignedUsernames.length > 0 ? assignedUsernames.join(", ") : "Chưa phân công";
+        const updated = (parsedBatches || []).map((b: BatchItem) => {
+          const batchMails = (mails || []).filter((m: any) => m.batchId === b.id || m.batchName === b.name);
+          const count = (batchMails || []).length;
+          const assignedUsernames = Array.from(new Set((batchMails || []).map((m: any) => m.assignedTo).filter(Boolean)));
+          const assignedTo = (assignedUsernames || []).length > 0 ? assignedUsernames.join(", ") : "Chưa phân công";
           return { ...b, mailCount: count, assignedTo };
         });
         setBatches(updated);
@@ -114,7 +114,7 @@ export default function BatchesManagementPage() {
       // Load Staff
       const savedUsers = localStorage.getItem("global_users");
       const list = savedUsers ? JSON.parse(savedUsers) : [];
-      const filtered = list.filter((u: any) => u.role === "04" || u.role === "03" || u.role === "NHÂN VIÊN" || u.role === "QUẢN LÝ NHÂN SỰ");
+      const filtered = (list || []).filter((u: any) => u.role === "04" || u.role === "03" || u.role === "NHÂN VIÊN" || u.role === "QUẢN LÝ NHÂN SỰ");
       setStaffList(filtered);
     };
 
@@ -128,14 +128,14 @@ export default function BatchesManagementPage() {
     const savedMails = localStorage.getItem("global_mails_data");
     const allMails = savedMails ? JSON.parse(savedMails) : [];
     // Filter satellite mails only
-    const satelliteMails = allMails.filter((m: any) => m.type === "SATELLITE");
+    const satelliteMails = (allMails || []).filter((m: any) => m.type === "SATELLITE");
     
     // Find first block of 17 unassigned mails
-    const unassigned = satelliteMails.filter((m: any) => !m.assigneeId);
+    const unassigned = (satelliteMails || []).filter((m: any) => !m.assigneeId);
     
     // Take first 17
     const range = unassigned.slice(0, 17);
-    if (range.length === 0) {
+    if ((range || []).length === 0) {
       return {
         mailsToAssign: [],
         displayText: "Kho mail vệ tinh không còn mail nào trống!",
@@ -144,12 +144,12 @@ export default function BatchesManagementPage() {
     }
     
     const firstSTT = range[0].id - 1000;
-    const lastSTT = range[range.length - 1].id - 1000;
+    const lastSTT = range[(range || []).length - 1].id - 1000;
     
     return {
       mailsToAssign: range,
-      displayText: `Chọn mail: ${range.length} mail (${firstSTT} đến ${lastSTT})`,
-      count: range.length
+      displayText: `Chọn mail: ${(range || []).length} mail (${firstSTT} đến ${lastSTT})`,
+      count: (range || []).length
     };
   }, [showAssignModal, batches]);
 
@@ -172,10 +172,10 @@ export default function BatchesManagementPage() {
     const savedMails = localStorage.getItem("global_mails_data");
     const allMails = savedMails ? JSON.parse(savedMails) : [];
     
-    const targetIds = new Set(assignmentPreview.mailsToAssign.map((m: any) => m.id));
+    const targetIds = new Set((assignmentPreview.mailsToAssign || []).map((m: any) => m.id));
     const now = new Date().toISOString();
     
-    const updatedMails = allMails.map((m: any) => {
+    const updatedMails = (allMails || []).map((m: any) => {
       if (targetIds.has(m.id)) {
         return {
           ...m,
@@ -281,7 +281,7 @@ export default function BatchesManagementPage() {
     const loadDetailMails = () => {
       const savedMails = localStorage.getItem("global_mails_data");
       const mails = savedMails ? JSON.parse(savedMails) : [];
-      const filtered = mails.filter((m: any) => m.batchId === selectedBatchForDetail.id || m.batchName === selectedBatchForDetail.name);
+      const filtered = (mails || []).filter((m: any) => m.batchId === selectedBatchForDetail.id || m.batchName === selectedBatchForDetail.name);
       setDetailMails(filtered);
     };
     loadDetailMails();
@@ -298,14 +298,14 @@ export default function BatchesManagementPage() {
     if (!batchToDelete) return;
 
     // Filter out deleted batch from local state and storage
-    const updatedBatches = batches.filter(b => b.id !== batchToDelete.id);
+    const updatedBatches = (batches || []).filter(b => b.id !== batchToDelete.id);
     setBatches(updatedBatches);
     localStorage.setItem("global_batches", JSON.stringify(updatedBatches));
 
     // Cascade delete mails matching this batchId or batchName
     const savedMails = localStorage.getItem("global_mails_data");
     const allMails = savedMails ? JSON.parse(savedMails) : [];
-    const remainingMails = allMails.filter((m: any) => 
+    const remainingMails = (allMails || []).filter((m: any) => 
       m.batchId !== batchToDelete.id && m.batchName !== batchToDelete.name
     );
 
@@ -344,7 +344,7 @@ export default function BatchesManagementPage() {
     triggerToast(`Đã xóa Lô "${batchToDelete.name}" và toàn bộ ${batchToDelete.mailCount} mail thuộc lô thành công!`);
   };
 
-  const filteredBatches = batches.filter(b => {
+  const filteredBatches = (batches || []).filter(b => {
     const matchesSearch = b.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (b.importedBy || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (b.assignedTo || "").toLowerCase().includes(searchTerm.toLowerCase());
@@ -373,10 +373,10 @@ export default function BatchesManagementPage() {
 
   // High-level statistics counts
   const stats = useMemo(() => {
-    const total = batches.length;
-    const rootCount = batches.filter(b => b.type === "ROOT").length;
-    const satelliteCount = batches.filter(b => b.type === "SATELLITE").length;
-    const monetizedCount = batches.filter(b => b.type === "MONETIZED").length;
+    const total = (batches || []).length;
+    const rootCount = (batches || []).filter(b => b.type === "ROOT").length;
+    const satelliteCount = (batches || []).filter(b => b.type === "SATELLITE").length;
+    const monetizedCount = (batches || []).filter(b => b.type === "MONETIZED").length;
     const totalMails = batches.reduce((sum, b) => sum + b.mailCount, 0);
 
     return { total, rootCount, satelliteCount, monetizedCount, totalMails };
@@ -528,13 +528,13 @@ export default function BatchesManagementPage() {
 
       {/* Grid view of Batch Cards ("Dạng ô") */}
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1">
-        {filteredBatches.length > 0 ? (
+        {(filteredBatches || []).length > 0 ? (
           <motion.div 
             layout
             className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6"
           >
             <AnimatePresence>
-              {filteredBatches.map((batch, index) => (
+              {(filteredBatches || []).map((batch, index) => (
                 <motion.div
                   key={batch.id}
                   layout
@@ -732,7 +732,7 @@ export default function BatchesManagementPage() {
                           </tr>
                         );
                       })}
-                    {detailMails.length === 0 && (
+                    {(detailMails || []).length === 0 && (
                       <tr>
                         <td colSpan={9} className="py-10 text-center text-gray-600 font-bold uppercase tracking-widest">Không có mail nào trong lô này</td>
                       </tr>
@@ -805,7 +805,7 @@ export default function BatchesManagementPage() {
                     className="w-full bg-black/40 border border-white/10 rounded-xl px-4 h-12 text-xs text-gold font-bold uppercase tracking-wider focus:border-gold/50 outline-none transition-all cursor-pointer"
                   >
                     <option value="" className="bg-sidebar text-white">-- Click chọn nhân viên --</option>
-                    {staffList.map((s) => (
+                    {(staffList || []).map((s) => (
                       <option key={s.id} value={s.id} className="bg-sidebar text-white">
                         {s.name} ({s.username})
                       </option>

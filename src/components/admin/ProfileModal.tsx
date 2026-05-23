@@ -104,9 +104,9 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
     setIsSaving(true);
     // Lưu vào localStorage Mock DB
     const allUsers = JSON.parse(localStorage.getItem("global_users") || "[]");
-    const updatedUsers = allUsers.map((u: any) => {
+    const updatedUsers = (allUsers || []).map((u: any) => {
       // Dọn dẹp avatar cũ bị phình to (nếu có) để tránh lỗi API Limit 1MB
-      if (u.avatar && u.avatar.length > 50000) {
+      if (u.avatar && (u.avatar || []).length > 50000) {
         u.avatar = null;
       }
       return String(u.id) === String(formData.id) ? { ...u, ...formData, avatar: avatarPreview } : u;
@@ -116,7 +116,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
     // Cập nhật session (cả localStorage và sessionStorage)
     const updatedUserData = { ...formData, avatar: avatarPreview };
     const currentUser = JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}");
-    if (String(currentUser.id) === String(formData.id) || currentUser.username === formData.username) {
+    if (String(currentUser.id) === String(formData.id) || currentUser?.username === formData.username) {
       const mergedUser = { ...currentUser, ...updatedUserData };
       localStorage.setItem("user", JSON.stringify(mergedUser));
       sessionStorage.setItem("user", JSON.stringify(mergedUser));
@@ -165,7 +165,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
       setPasswordError("Mật khẩu mới không khớp");
       return;
     }
-    if (newPassword.length < 6) {
+    if ((newPassword || []).length < 6) {
       setPasswordError("Mật khẩu mới phải có ít nhất 6 ký tự");
       return;
     }

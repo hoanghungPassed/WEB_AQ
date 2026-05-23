@@ -55,13 +55,13 @@ export default function FinesReportPage() {
 
     // Filter by status
     if (filterStatus !== "ALL") {
-      result = result.filter(r => r.status === filterStatus);
+      result = (result || []).filter(r => r.status === filterStatus);
     }
 
     // Search by staff name or reason
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(r => 
+      result = (result || []).filter(r => 
         r.staffName.toLowerCase().includes(query) || 
         r.reason.toLowerCase().includes(query)
       );
@@ -75,7 +75,7 @@ export default function FinesReportPage() {
 
   // Statistics
   const stats = useMemo(() => {
-    const totalFines = fineReports.length;
+    const totalFines = (fineReports || []).length;
     const totalAmount = fineReports.reduce((sum, r) => sum + r.amount, 0);
     const paidAmount = fineReports
       .filter(r => r.status === "PAID")
@@ -83,16 +83,16 @@ export default function FinesReportPage() {
     const pendingAmount = fineReports
       .filter(r => r.status === "PENDING" || r.status === "OVERDUE")
       .reduce((sum, r) => sum + r.amount, 0);
-    const paidCount = fineReports.filter(r => r.status === "PAID").length;
-    const pendingCount = fineReports.filter(r => r.status === "PENDING").length;
-    const overdueCount = fineReports.filter(r => r.status === "OVERDUE").length;
+    const paidCount = (fineReports || []).filter(r => r.status === "PAID").length;
+    const pendingCount = (fineReports || []).filter(r => r.status === "PENDING").length;
+    const overdueCount = (fineReports || []).filter(r => r.status === "OVERDUE").length;
 
     return { totalFines, totalAmount, paidAmount, pendingAmount, paidCount, pendingCount, overdueCount };
   }, [fineReports]);
 
   // Handle mark as paid
   const handleMarkAsPaid = (id: string) => {
-    const updated = fineReports.map(r => {
+    const updated = (fineReports || []).map(r => {
       if (r.id === id) {
         return {
           ...r,
@@ -123,7 +123,7 @@ export default function FinesReportPage() {
   };
 
   const handleDeleteFine = (id: string) => {
-    const updated = fineReports.filter(r => r.id !== id);
+    const updated = (fineReports || []).filter(r => r.id !== id);
     setFineReports(updated);
     localStorage.setItem("global_fine_reports", JSON.stringify(updated));
     triggerToast("Đã xóa báo cáo phạt");
@@ -131,7 +131,7 @@ export default function FinesReportPage() {
 
   const handleExportCSV = () => {
     const headers = ["Nhân viên", "Lí do", "Số tiền", "Ngày lập", "Trạng thái", "Ghi chú"];
-    const rows = filteredReports.map(r => [
+    const rows = (filteredReports || []).map(r => [
       r.staffName,
       r.reason,
       `${r.amount.toLocaleString("vi-VN")} ₫`,
@@ -142,7 +142,7 @@ export default function FinesReportPage() {
 
     const csvContent = [
       headers.join(","),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+      ...(rows || []).map(row => (row || []).map(cell => `"${cell}"`).join(","))
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -383,7 +383,7 @@ export default function FinesReportPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredReports.length === 0 ? (
+              {(filteredReports || []).length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center gap-3">
@@ -393,7 +393,7 @@ export default function FinesReportPage() {
                   </td>
                 </tr>
               ) : (
-                filteredReports.map((report, idx) => (
+                (filteredReports || []).map((report, idx) => (
                   <motion.tr
                     key={report.id}
                     initial={{ opacity: 0, y: 10 }}

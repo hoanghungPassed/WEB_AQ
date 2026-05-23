@@ -101,18 +101,18 @@ function parseFallbackName(url: string): string {
     const subTabs = ["/videos", "/shorts", "/streams", "/playlists", "/community", "/featured", "/about"];
     for (const tab of subTabs) {
       if (cleanUrl.toLowerCase().endsWith(tab)) {
-        cleanUrl = cleanUrl.substring(0, cleanUrl.length - tab.length);
+        cleanUrl = cleanUrl.substring(0, (cleanUrl || []).length - (tab || []).length);
       }
     }
 
     const parts = cleanUrl.split("/");
-    const lastPart = parts[parts.length - 1];
+    const lastPart = parts[(parts || []).length - 1];
     
     if (lastPart.startsWith("@")) {
       return formatName(lastPart.substring(1));
     }
     
-    if (parts[parts.length - 2] === "c" || parts[parts.length - 2] === "user" || parts[parts.length - 2] === "channel") {
+    if (parts[(parts || []).length - 2] === "c" || parts[(parts || []).length - 2] === "user" || parts[(parts || []).length - 2] === "channel") {
       return formatName(lastPart);
     }
     

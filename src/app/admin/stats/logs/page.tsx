@@ -166,7 +166,7 @@ export default function SystemLogsPage() {
     return "text-gray-400";
   };
 
-  const filteredLogs = logs.filter(l => {
+  const filteredLogs = (logs || []).filter(l => {
     const matchesSearch = l.action.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           l.user.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === "ALL" || l.type === typeFilter;
@@ -307,7 +307,7 @@ export default function SystemLogsPage() {
         </select>
 
         <span className="text-[10px] font-black text-gold/80 bg-gold/10 px-3 py-1 rounded-full border border-gold/20 ml-auto uppercase tracking-widest">
-          Tổng log: {filteredLogs.length}
+          Tổng log: {(filteredLogs || []).length}
         </span>
       </div>
 
@@ -333,8 +333,8 @@ export default function SystemLogsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-gray-300">
-              {filteredLogs.length > 0 ? (
-                filteredLogs.map((log) => (
+              {(filteredLogs || []).length > 0 ? (
+                (filteredLogs || []).map((log) => (
                   <tr key={log.id} className="hover:bg-white/[0.02] transition-colors group">
                     <td className="py-4 px-6 text-xs text-gray-400 font-mono font-bold">{log.timestamp}</td>
                     <td className="py-4 px-6 text-xs">
