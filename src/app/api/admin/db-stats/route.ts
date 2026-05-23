@@ -7,6 +7,9 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     await dbConnect();
+    if (!mongoose.connection.db) {
+      throw new Error("Không thể kết nối đến database command");
+    }
     const stats = await mongoose.connection.db.command({ dbStats: 1 });
     
     return NextResponse.json({

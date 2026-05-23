@@ -589,10 +589,24 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     setPendingMails(null);
     setImportBatchName("");
     setShowBatchNameModal(false);
-    triggerToast(`Đã import thành công ${(mappedMails || []).length} mail vào Lô "${batchNameInput}"!`);
+    triggerToast(`Đang lưu ${(mappedMails || []).length} mail vào Lô "${batchNameInput}" trên Server...`);
     window.dispatchEvent(new Event("storage"));
 
     try {
+      // 1. Send all new mails to the database
+      const res = await fetch("/api/admin/mails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mappedMails)
+      });
+      const data = await res.json();
+      if (data.success) {
+         triggerToast(`Đã lưu thành công ${(mappedMails || []).length} mail vào Lô "${batchNameInput}"!`);
+      } else {
+         triggerToast(`Có lỗi xảy ra: ${data.error}`);
+      }
+
+      // 2. Also keep syncing batches and history via old sync for now
       await fetch("/api/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -602,7 +616,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         })
       });
     } catch (err) {
-      console.error("Sync batches error:", err);
+      console.error("Lỗi khi gọi API POST mails:", err);
+      triggerToast("Lỗi kết nối Server khi lưu mail!");
     }
   };
 
@@ -931,43 +946,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
             </h2>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={async () => {
-                if (confirm("Xác nhận khôi phục toàn bộ dữ liệu về trạng thái ban đầu?")) {
-                  try {
-                    const resetPayload = {
-                      global_users: JSON.stringify([]),
-                      global_mails_data: JSON.stringify([]),
-                      global_tasks_data: JSON.stringify([]),
-                      global_kpi_data: JSON.stringify([]),
-                      admin_notifications: JSON.stringify([]),
-                      realtime_toast: JSON.stringify({ userId: "all", message: "Hệ thống đã được khôi phục dữ liệu gốc!" }),
-                      pending_access_requests: JSON.stringify([])
-                    };
 
-                    Object.entries(resetPayload).forEach(([k, v]) => {
-                      localStorage.setItem(k, v);
-                    });
-
-                    await fetch("/api/sync", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify(resetPayload)
-                    });
-
-                    window.dispatchEvent(new Event("storage"));
-                    alert("Khôi phục dữ liệu gốc thành công! Toàn bộ hệ thống đã được đồng bộ lại.");
-                    window.location.reload();
-                  } catch (err) {
-                    console.error("Reset error:", err);
-                    alert("Đã xảy ra lỗi khi khôi phục dữ liệu.");
-                  }
-                }
-              }}
-              className="h-10 px-4 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 rounded-xl text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"
-            >
-              <RefreshCcw size={14} /> Khôi phục dữ liệu gốc
-            </button>
             {isAdminOrManager && (
               <>
                 <button onClick={() => setShowHistoryModal(true)} className="h-10 px-4 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 hover:border-gold/50 rounded-xl text-gray-900 dark:text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><FileText size={14} className="text-gold" /> Lịch sử Import</button>
@@ -1140,11 +1119,11 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-gray-700 dark:text-gray-300">
-                  {(currentItems || []).length > 0 ? (currentItems || []).map((mail: any) => {
+                  {(currentItems || []).length > 0 ? (currentItems || []).map((mail: any, index: number) => {
                     const rowPadding = isStaff ? "py-1.5 px-6" : "py-3.5 px-6";
                     const textSize = isStaff ? "text-xs" : "text-sm";
                     return (
-                      <tr key={mail.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+                      <tr key={mail._id || mail.id || index} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
                         <td className={`${rowPadding} text-[10px] font-black text-gray-500 whitespace-nowrap`}>{mail.originalSTT}</td>
                         <td className={`${rowPadding} cursor-pointer hover:text-gold transition-colors font-bold ${textSize} whitespace-nowrap`} onClick={() => copyToClipboard(mail.email, "Email")}>
                           {mail.type === "SATELLITE" && (() => {

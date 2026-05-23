@@ -1078,22 +1078,6 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    {/* Hard Wipe Danger Zone */}
-                    <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-5 space-y-4">
-                      <div className="flex items-center gap-2 border-b border-red-500/10 pb-3">
-                        <AlertTriangle className="text-red-500" size={16} />
-                        <h4 className="text-xs font-black text-red-500 uppercase tracking-tight">Khu vực nguy hiểm</h4>
-                      </div>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed font-bold">
-                        Khôi phục toàn bộ cơ sở dữ liệu về trạng thái ban đầu của nhà phát triển. Mọi thay đổi sẽ mất.
-                      </p>
-                      <button 
-                        onClick={() => setShowResetConfirm(true)}
-                        className="h-11 rounded-xl bg-red-500 text-gray-900 dark:text-white font-black uppercase text-xs tracking-widest hover:bg-red-600 transition-all flex items-center gap-2 w-full justify-center shadow-lg shadow-red-500/15"
-                      >
-                        <RefreshCw size={14} /> Reset Database gốc
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>

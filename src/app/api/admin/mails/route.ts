@@ -24,26 +24,13 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    await dbConnect(); // Kết nối DB
+    await dbConnect();
     const body = await req.json();
-    
-    // 1. Log dữ liệu để chắc chắn Frontend đã gửi đúng
-    console.log("Dữ liệu nhận được từ FE:", body);
-
-    // 2. ÉP BUỘC PHẢI DÙNG AWAIT
-    // Nếu thiếu "await", Node.js sẽ chạy tiếp mà không đợi ghi xong
-    const newMail = await Mail.create(body); 
-
-    // 3. Log sau khi lưu
-    console.log("DB đã lưu bản ghi:", newMail._id);
-
+    const newMail = await Mail.create(body); // Bắt buộc phải AWAIT
+    if (!newMail) throw new Error("Không thể tạo bản ghi");
     return NextResponse.json({ success: true, data: newMail }, { status: 201 });
   } catch (error: any) {
-    // 4. BẮT BUỘC LOG LỖI MÀU ĐỎ ĐỂ TÔI THẤY
-    console.error("LỖI LƯU DB:", error.message);
-    return NextResponse.json(
-      { success: false, error: error.message || "Lỗi không xác định" },
-      { status: 500 }
-    );
+    console.error("LỖI API:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

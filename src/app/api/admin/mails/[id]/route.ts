@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import { Mail } from "@/models/Mail";
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
     const body = await req.json();
-    const mail = await Mail.findByIdAndUpdate(params.id, body, { new: true, runValidators: true });
+    const { id } = await params;
+    const mail = await Mail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
     if (!mail) {
       return NextResponse.json({ success: false, error: "Mail not found" }, { status: 404 });
     }
@@ -16,10 +17,11 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
-    const mail = await Mail.findByIdAndDelete(params.id);
+    const { id } = await params;
+    const mail = await Mail.findByIdAndDelete(id);
     if (!mail) {
       return NextResponse.json({ success: false, error: "Mail not found" }, { status: 404 });
     }
