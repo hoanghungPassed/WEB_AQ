@@ -79,6 +79,41 @@ type NewsfeedNotificationItem = {
  createdAt?: string | number | Date;
 };
 
+interface ApiUser {
+  _id?: string;
+  name?: string;
+  role?: string;
+  username?: string;
+  avatar?: string;
+}
+
+interface ApiReply {
+  _id: string;
+  userId?: ApiUser;
+  content: string;
+  createdAt: string | number | Date;
+}
+
+interface ApiComment {
+  _id: string;
+  userId?: ApiUser;
+  content: string;
+  createdAt: string | number | Date;
+  replies?: ApiReply[];
+}
+
+interface ApiPost {
+  _id: string;
+  author?: ApiUser;
+  title?: string;
+  message?: string;
+  imageUrl?: string;
+  likes?: any[];
+  comments?: ApiComment[];
+  createdAt?: string | number | Date;
+  isPinned?: boolean;
+}
+
 export default function NewsfeedPage() {
  const router = useRouter();
  const [user] = useState<NewsfeedUser>(() => {
@@ -102,64 +137,71 @@ export default function NewsfeedPage() {
  
  const [successToast, setSuccessToast] = useState<string | null>(null);
 
- const loadPosts = async () => {
- try {
- const response = await fetch("/api/admin/notifications");
- if (response.ok) {
- const data = await response.json();
- if (Array.isArray(data)) {
- setPosts(data.map((item: any) => ({
- id: item._id,
- authorName: item.author?.name ||"Hệ thống",
- authorRole: item.author?.role ==="01" ?"ADMIN" : item.author?.role ==="02" ?"QL CÔNG VIỆC" : item.author?.role ==="03" ?"QL NHÂN SỰ" :"NHÂN VIÊN",
- authorUsername: item.author?.username ||"system",
- authorAvatar: item.author?.avatar || null,
- text: item.message || item.title ||"",
- imageUrl: item.imageUrl || null,
- likes: (item.likes || []).length,
- likedBy: (item.likes || []).map((l: any) => l._id || l),
- comments: (item.comments || []).map((c: any) => ({
- id: c._id,
- authorName: c.userId?.name ||"Người dùng",
- authorRole: c.userId?.role ==="01" ?"ADMIN" : c.userId?.role ==="02" ?"QL CÔNG VIỆC" : c.userId?.role ==="03" ?"QL NHÂN SỰ" :"NHÂN VIÊN",
- authorUsername: c.userId?.username ||"user",
- authorAvatar: c.userId?.avatar || null,
- text: c.content,
- timestamp: new Date(c.createdAt).toLocaleString("vi-VN"),
- replies: (c.replies || []).map((r: any) => ({
- id: r._id,
- authorName: r.userId?.name ||"Người dùng",
- authorRole: r.userId?.role ==="01" ?"ADMIN" : r.userId?.role ==="02" ?"QL CÔNG VIỆC" : r.userId?.role ==="03" ?"QL NHÂN SỰ" :"NHÂN VIÊN",
- authorUsername: r.userId?.username ||"user",
- authorAvatar: r.userId?.avatar || null,
- text: r.content,
- timestamp: new Date(r.createdAt).toLocaleString("vi-VN"),
- }))
- })),
- timestamp: item.createdAt ? new Date(item.createdAt).toLocaleString("vi-VN") :"",
- isPinned: item.isPinned || false
- })));
- return;
- }
- }
- } catch (err) {
- console.error("Error loading newsfeed posts:", err);
- }
- setPosts([]);
- };
+  const loadPosts = async (isSilent = false) => {
+    try {
+      const response = await fetch("/api/admin/notifications");
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          const formattedPosts: NewsfeedPost[] = data.map((item: ApiPost) => ({
+            id: item._id,
+            authorName: item.author?.name || "Hệ thống",
+            authorRole: item.author?.role === "01" ? "ADMIN" : item.author?.role === "02" ? "QL CÔNG VIỆC" : item.author?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
+            authorUsername: item.author?.username || "system",
+            authorAvatar: item.author?.avatar || null,
+            text: item.message || item.title || "",
+            imageUrl: item.imageUrl || null,
+            likes: (item.likes || []).length,
+            likedBy: (item.likes || []).map((l: any) => l._id || l),
+            comments: (item.comments || []).map((c: ApiComment) => ({
+              id: c._id,
+              authorName: c.userId?.name || "Người dùng",
+              authorRole: c.userId?.role === "01" ? "ADMIN" : c.userId?.role === "02" ? "QL CÔNG VIỆC" : c.userId?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
+              authorUsername: c.userId?.username || "user",
+              authorAvatar: c.userId?.avatar || null,
+              text: c.content,
+              timestamp: new Date(c.createdAt || Date.now()).toLocaleString("vi-VN"),
+              replies: (c.replies || []).map((r: ApiReply) => ({
+                id: r._id,
+                authorName: r.userId?.name || "Người dùng",
+                authorRole: r.userId?.role === "01" ? "ADMIN" : r.userId?.role === "02" ? "QL CÔNG VIỆC" : r.userId?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
+                authorUsername: r.userId?.username || "user",
+                authorAvatar: r.userId?.avatar || null,
+                text: r.content,
+                timestamp: new Date(r.createdAt || Date.now()).toLocaleString("vi-VN"),
+              }))
+            })),
+            timestamp: item.createdAt ? new Date(item.createdAt).toLocaleString("vi-VN") : "",
+            isPinned: item.isPinned || false
+          }));
+          setPosts(formattedPosts);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Error loading newsfeed posts:", err);
+    }
+    if (!isSilent && posts.length === 0) {
+      setPosts([]);
+    }
+  };
 
- useEffect(() => {
- const fetchPosts = async () => {
- await loadPosts();
- };
- void fetchPosts();
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPosts = async () => {
+      await loadPosts();
+    };
+    if (isMounted) fetchPosts();
 
- const interval = setInterval(() => {
- void loadPosts();
- }, 10000);
+    const intervalId = setInterval(() => {
+      if (isMounted) void loadPosts(true);
+    }, 10000);
 
- return () => clearInterval(interval);
- }, []);
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, []);
 
  const handleCreatePost = async () => {
  if (!newPostText.trim() && !selectedMockImage) return;

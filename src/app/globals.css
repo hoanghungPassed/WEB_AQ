@@ -1,6 +1,17 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --color-gold: #a07800;
+}
+
+body {
+  @apply bg-[var(--background)] text-[var(--foreground)] transition-colors duration-200;
+}
+
+:root { --background: #ffffff; --foreground: #171717; }
+.dark { --background: #09090b; --foreground: #fafafa; }
+
 /* =============================================
    SMOOTH TRANSITION
    ============================================= */
