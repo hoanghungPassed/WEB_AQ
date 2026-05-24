@@ -501,17 +501,22 @@ export default function AdminDashboard() {
     }
   };
 
-  const loadStaff = () => {
-    const stored = localStorage.getItem("global_users");
-    const allUsers = stored ? JSON.parse(stored) : [];
-    
-    const unique = (allUsers || []).filter((item: any, index: number, self: any[]) =>
-      index === self.findIndex((t) => String(t.id) === String(item.id))
-    );
-    setStaffList(unique);
-    
-    const onlineCount = (unique || []).filter((u: any) => u.isOnline && u.role !== "01").length;
-    setStats((prev: any) => ({ ...prev, staffOnline: onlineCount }));
+  const loadStaff = async () => {
+    try {
+      const res = await fetch("/api/admin/users");
+      const data = await res.json();
+      if (data.success) {
+        const allUsers = data.data;
+        const unique = (allUsers || []).filter((item: any, index: number, self: any[]) =>
+          index === self.findIndex((t: any) => String(t.id) === String(item.id))
+        );
+        setStaffList(unique);
+        const onlineCount = (unique || []).filter((u: any) => u.isOnline && u.role !== "01").length;
+        setStats((prev: any) => ({ ...prev, staffOnline: onlineCount }));
+      }
+    } catch (error) {
+      console.error("Error loading staff", error);
+    }
   };
 
   useEffect(() => {
@@ -631,16 +636,15 @@ export default function AdminDashboard() {
     // Trigger real-time modal
     setTimekeepingModal({ type: "in", time: timeStr });
     
-    // Sync with online status or user info
-    const savedUsers = localStorage.getItem("global_users");
-    if (savedUsers) {
-      const allUsers = JSON.parse(savedUsers);
-      const updated = (allUsers || []).map((u: any) => 
-        u.username === user?.username ? { ...u, checkInTime: timeStr, isOnline: true } : u
-      );
-      localStorage.setItem("global_users", JSON.stringify(updated));
-      window.dispatchEvent(new Event("storage"));
-      await syncDatabase();
+    try {
+      await fetch("/api/admin/attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user?.id, type: "CHECK_IN", time: timeStr, isoTime: fullISO })
+      });
+      await loadStaff();
+    } catch (err) {
+      console.error("Check in error", err);
     }
   };
 
@@ -691,16 +695,15 @@ export default function AdminDashboard() {
     // Trigger real-time modal
     setTimekeepingModal({ type: "out", time: timeStr, warning });
     
-    // Sync with online status or user info
-    const savedUsers = localStorage.getItem("global_users");
-    if (savedUsers) {
-      const allUsers = JSON.parse(savedUsers);
-      const updated = (allUsers || []).map((u: any) => 
-        u.username === user?.username ? { ...u, checkOutTime: timeStr, totalHours: (totalWorkingMins / 60).toFixed(2) } : u
-      );
-      localStorage.setItem("global_users", JSON.stringify(updated));
-      window.dispatchEvent(new Event("storage"));
-      await syncDatabase();
+    try {
+      await fetch("/api/admin/attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user?.id, type: "CHECK_OUT", time: timeStr, isoTime: fullISO, totalHours: (totalWorkingMins / 60).toFixed(2) })
+      });
+      await loadStaff();
+    } catch (err) {
+      console.error("Check out error", err);
     }
   };
 
@@ -710,14 +713,11 @@ export default function AdminDashboard() {
     setTimeout(() => setShowSuccess(false), 3000);
   };
 
-  const handleStaffMailStatusChange = async (mailId: number, newWorkStatus: string) => {
-    const savedMails = localStorage.getItem("global_mails_data");
-    const currentMails = savedMails ? JSON.parse(savedMails) : [];
-
+  const handleStaffMailStatusChange = async (mailId: string, newWorkStatus: string) => {
     // Phase 3.1: Validate 3 links before allowing "Đã làm" for SATELLITE mails (Role 03, 04 only)
-    const norm = (newWorkStatus || "").toUpperCase();
-    if (norm === "ĐÃ LÀM" && (user?.role === "03" || user?.role === "04" || user?.role === "05")) {
-      const targetMail = currentMails.find((m: any) => m.id === mailId);
+    const normNew = (newWorkStatus || "").toUpperCase();
+    if (normNew === "ĐÃ LÀM" && (user?.role === "03" || user?.role === "04" || user?.role === "05")) {
+      const targetMail = mails.find((m: any) => m.id === mailId || m._id === mailId);
       if (targetMail && targetMail.type === "SATELLITE") {
         const links: string[] = targetMail.links || [];
         const filledCount = [0, 1, 2].filter(i => links[i] && links[i].trim() !== "").length;
@@ -729,102 +729,92 @@ export default function AdminDashboard() {
       }
     }
 
-    const updatedMails = (currentMails || []).map((m: any) => {
-      if (m.id === mailId) {
-        let status = m.status;
-        const norm = (newWorkStatus || "").toUpperCase();
-        if (norm === "ĐÃ LÀM KÊNH" || norm === "HOÀN THÀNH" || norm === "ĐÃ LÀM" || norm === "CHƯA LÀM" || norm === "ĐANG XỬ LÍ") {
-          status = "LIVE";
-        } else if (norm === "LỖI") {
-          status = "DIE";
-        }
-        return { 
-          ...m, 
-          workStatus: newWorkStatus, 
-          status,
-          lastUpdated: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+    let nextStatus = "DIE";
+    if (normNew === "ĐÃ LÀM KÊNH" || normNew === "HOÀN THÀNH" || normNew === "ĐÃ LÀM" || normNew === "CHƯA LÀM" || normNew === "ĐANG XỬ LÍ") {
+      nextStatus = "LIVE";
+    }
+
+    try {
+      await fetch(`/api/admin/mails/${mailId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workStatus: newWorkStatus,
+          status: nextStatus,
           updatedBy: user?.name || user?.username || "Hệ thống"
-        };
-      }
-      return m;
-    });
+        })
+      });
 
-    localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
-    setMails(updatedMails);
+      // Update mails locally to recalculate tasks
+      const updatedMails = mails.map((m: any) => {
+        if (m.id === mailId || m._id === mailId) {
+          return { ...m, workStatus: newWorkStatus, status: nextStatus };
+        }
+        return m;
+      });
+      
+      const changedTasks: any[] = [];
+      const updatedTasks = tasksList.map((t: any) => {
+        let mailType = "ROOT";
+        if (t.type === "MAIL_VE_TINH") mailType = "SATELLITE";
+        if (t.type === "MAIL_MONETIZED") mailType = "MONETIZED";
 
-    const myMails = (updatedMails || []).filter((m: any) => String(m.assigneeId) === String(user?.id));
-    setStats((prev: any) => ({
-      ...prev,
-      totalMail: (myMails || []).length,
-      mailLive: (myMails || []).filter((m: any) => m.status === "LIVE").length,
-      mailDie: (myMails || []).filter((m: any) => m.status === "DIE").length,
-    }));
+        let filtered = (updatedMails || []).filter((m: any) => m.type === mailType && String(m.assigneeId) === String(t.assigneeId));
+        if (t.selectedMailIds && Array.isArray(t.selectedMailIds)) {
+          filtered = (updatedMails || []).filter((m: any) => t.selectedMailIds?.includes(m.id || m._id));
+        } else if (t.title === "Check, xóa, tạo" || t.title === "Kênh bật kiếm tiền") {
+          if (t.mailRange) {
+            const parts = t.mailRange.split("-");
+            if ((parts || []).length === 2) {
+              const start = parseInt(parts[0].trim());
+              const end = parseInt(parts[1].trim());
+              const withSTT = (updatedMails || []).filter((m: any) => m.type === mailType).map((m: any, idx: number) => ({ ...m, currentSTT: idx + 1 }));
+              const idsInRange = (withSTT || []).filter((m: any) => m.currentSTT >= start && m.currentSTT <= end).map((m: any) => m.id || m._id);
+              filtered = (filtered || []).filter((m: any) => idsInRange.includes(m.id || m._id));
+            }
+          }
+        } else if (t.title === "Làm kênh") {
+          if (t.mailRange) {
+            const cleanBatch = t.batch || t.mailRange.split(" (")[0];
+            filtered = (filtered || []).filter((m: any) => m.batchName === cleanBatch);
+          }
+        } else if (t.title === "Mời kênh" && t.mailRange) {
+          const parts = t.mailRange.split("+");
+          const loPart = parts.pop()?.trim();
+          filtered = (updatedMails || []).filter((m: any) => 
+            (m.type === "SATELLITE" && m.batchName === loPart && String(m.assigneeId) === String(t.assigneeId)) ||
+            (m.type === "ROOT" && t.note && t.note.includes(m.email))
+          );
+        }
 
-    // Recalculate progress for all tasks that contain this mail
-    const savedTasks = localStorage.getItem("global_tasks_data");
-    let currentTasks = savedTasks ? JSON.parse(savedTasks) : [];
-    
-    currentTasks = (currentTasks || []).map((t: any) => {
-      let mailType = "ROOT";
-      if (t.type === "MAIL_VE_TINH") mailType = "SATELLITE";
-      if (t.type === "MAIL_MONETIZED") mailType = "MONETIZED";
-
-      let filtered = (updatedMails || []).filter((m: any) => m.type === mailType && String(m.assigneeId) === String(t.assigneeId));
-      if (t.selectedMailIds && Array.isArray(t.selectedMailIds)) {
-        filtered = (updatedMails || []).filter((m: any) => t.selectedMailIds?.includes(m.id));
-      } else if (t.title === "Check, xóa, tạo" || t.title === "Kênh bật kiếm tiền") {
-        if (t.mailRange) {
-          const parts = t.mailRange.split("-");
-          if ((parts || []).length === 2) {
-            const start = parseInt(parts[0].trim());
-            const end = parseInt(parts[1].trim());
-            const withSTT = (updatedMails || []).filter((m: any) => m.type === mailType).map((m: any, idx: number) => ({ ...m, currentSTT: idx + 1 }));
-            const idsInRange = (withSTT || []).filter((m: any) => m.currentSTT >= start && m.currentSTT <= end).map((m: any) => m.id);
-            filtered = (filtered || []).filter((m: any) => idsInRange.includes(m.id));
+        const totalTaskMails = (filtered || []).length;
+        if (totalTaskMails > 0) {
+          const completedCount = (filtered || []).filter((m: any) => {
+            const normStatus = (m.workStatus || "").toUpperCase();
+            return normStatus === "ĐÃ LÀM" || normStatus === "ĐÃ BÁN" || normStatus === "HOÀN THÀNH" || normStatus === "ĐÃ LÀM KÊNH";
+          }).length;
+          const progressPercent = Math.round((completedCount / totalTaskMails) * 100);
+          const newStatus = progressPercent === 100 ? "COMPLETED" : (progressPercent > 0 ? "IN_PROGRESS" : "PENDING");
+          
+          if (t.progress !== progressPercent || t.status !== newStatus) {
+            const updatedTask = { ...t, progress: progressPercent, status: newStatus };
+            changedTasks.push(updatedTask);
+            return updatedTask;
           }
         }
-      } else if (t.title === "Làm kênh") {
-        if (t.mailRange) {
-          const cleanBatch = t.batch || t.mailRange.split(" (")[0];
-          filtered = (filtered || []).filter((m: any) => m.batchName === cleanBatch);
-        }
-      } else if (t.title === "Mời kênh" && t.mailRange) {
-        const parts = t.mailRange.split("+");
-        const loPart = parts.pop()?.trim();
-        filtered = (updatedMails || []).filter((m: any) => 
-          (m.type === "SATELLITE" && m.batchName === loPart && String(m.assigneeId) === String(t.assigneeId)) ||
-          (m.type === "ROOT" && t.note && t.note.includes(m.email))
-        );
+        return t;
+      });
+
+      // Update tasks via API
+      for (const t of changedTasks) {
+        await fetch(`/api/admin/tasks/${t.id || t._id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ progress: t.progress, status: t.status })
+        });
       }
 
-      const totalTaskMails = (filtered || []).length;
-      if (totalTaskMails > 0) {
-        const completedCount = (filtered || []).filter((m: any) => {
-          const normStatus = (m.workStatus || "").toUpperCase();
-          return normStatus === "ĐÃ LÀM" || normStatus === "ĐÃ BÁN" || normStatus === "HOÀN THÀNH" || normStatus === "ĐÃ LÀM KÊNH";
-        }).length;
-        const progressPercent = Math.round((completedCount / totalTaskMails) * 100);
-        return {
-          ...t,
-          progress: progressPercent,
-          status: progressPercent === 100 ? "COMPLETED" : (progressPercent > 0 ? "IN_PROGRESS" : "PENDING")
-        };
-      }
-      return t;
-    });
-
-    localStorage.setItem("global_tasks_data", JSON.stringify(currentTasks));
-    setTasksList(currentTasks);
-
-    // Sync selectedStaffTask if active
-    setSelectedStaffTask((prev: any) => {
-      if (!prev) return null;
-      const found = currentTasks.find((t: any) => t.id === prev.id);
-      return found || prev;
-    });
-
-    window.dispatchEvent(new Event("storage"));
+      await refreshStats();
 
     // Kiểm tra link bị thiếu: chỉ khi chọn "Đã làm" cho mail đó
     if (selectedStaffTask) {
@@ -857,18 +847,8 @@ export default function AdminDashboard() {
         setMissingLinksWarning([]);
       }
     }
-
-    try {
-      await fetch("/api/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          global_mails_data: JSON.stringify(updatedMails),
-          global_tasks_data: JSON.stringify(currentTasks)
-        })
-      });
     } catch (err) {
-      console.error("Sync error:", err);
+      console.error("Error in handleStaffMailStatusChange", err);
     }
   };
 

@@ -12,7 +12,13 @@ export interface INotification extends Document {
     userId: mongoose.Types.ObjectId | string;
     content: string;
     createdAt: Date;
+    replies?: {
+      userId: mongoose.Types.ObjectId | string;
+      content: string;
+      createdAt: Date;
+    }[];
   }[];
+  isPinned?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,9 +36,17 @@ const NotificationSchema: Schema = new Schema(
       {
         userId: { type: Schema.Types.ObjectId, ref: 'User' },
         content: { type: String },
-        createdAt: { type: Date, default: Date.now }
+        createdAt: { type: Date, default: Date.now },
+        replies: [
+          {
+            userId: { type: Schema.Types.ObjectId, ref: 'User' },
+            content: { type: String },
+            createdAt: { type: Date, default: Date.now }
+          }
+        ]
       }
-    ]
+    ],
+    isPinned: { type: Boolean, default: false }
   },
   { timestamps: true }
 );

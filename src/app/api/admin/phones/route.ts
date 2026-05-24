@@ -83,6 +83,38 @@ export async function POST(req: Request) {
   }
 }
 
+export async function PUT(req: Request) {
+  try {
+    await dbConnect();
+    const body = await req.json();
+    const { ids, update } = body;
+
+    // Bulk update: cập nhật nhiều phone cùng lúc (assign, status change)
+    if (ids && Array.isArray(ids) && update) {
+      const result = await Phone.updateMany(
+        { _id: { $in: ids } },
+        { $set: update }
+      );
+      return NextResponse.json({ success: true, modifiedCount: result.modifiedCount });
+    }
+
+    // Single update by id
+    const { id, ...updateData } = body;
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Thiếu ID phone" }, { status: 400 });
+    }
+
+    const phone = await Phone.findByIdAndUpdate(id, updateData, { new: true });
+    if (!phone) {
+      return NextResponse.json({ success: false, error: "Không tìm thấy SĐT" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, data: phone });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
 export async function DELETE(req: Request) {
   try {
     await dbConnect();
@@ -93,7 +125,8 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ success: false, error: "Thiếu lô cần xóa" }, { status: 400 });
     }
     
-    const result = await Phone.deleteMany({ batch });
+    // Tìm theo cả field 'batch' và 'importBatch' để tương thích
+    const result = await Phone.deleteMany({ $or: [{ batch }, { importBatch: batch }] });
     
     if (username) {
       const adminUser = await User.findOne({ username });
@@ -113,3 +146,4 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+

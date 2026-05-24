@@ -9,6 +9,7 @@ export async function GET() {
     const notifications = await Notification.find({})
       .populate('author', 'name username role avatar')
       .populate('comments.userId', 'name username role avatar')
+      .populate('comments.replies.userId', 'name username role avatar')
       .sort({ createdAt: -1 });
     return NextResponse.json(notifications || []);
   } catch (error: unknown) {
@@ -33,7 +34,7 @@ export async function PUT(req: Request) {
   try {
     await dbConnect();
     const body = await req.json();
-    const { id, action, userId, content } = body;
+    const { id, action, userId, content, commentId } = body;
     
     const post = await Notification.findById(id);
     if (!post) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
@@ -49,12 +50,23 @@ export async function PUT(req: Request) {
     } else if (action === "COMMENT") {
       if (!post.comments) post.comments = [];
       post.comments.push({ userId, content, createdAt: new Date() });
+    } else if (action === "REPLY") {
+      if (post.comments) {
+        const comment = post.comments.find(c => String((c as any)._id) === commentId);
+        if (comment) {
+          if (!comment.replies) comment.replies = [];
+          comment.replies.push({ userId, content, createdAt: new Date() });
+        }
+      }
+    } else if (action === "TOGGLE_PIN") {
+      post.isPinned = !post.isPinned;
     }
 
     await post.save();
     const populated = await Notification.findById(id)
       .populate('author', 'name username role avatar')
-      .populate('comments.userId', 'name username role avatar');
+      .populate('comments.userId', 'name username role avatar')
+      .populate('comments.replies.userId', 'name username role avatar');
       
     return NextResponse.json({ success: true, data: populated });
   } catch (error: any) {

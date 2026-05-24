@@ -131,9 +131,18 @@ export default function NewsfeedPage() {
               authorAvatar: c.userId?.avatar || null,
               text: c.content,
               timestamp: new Date(c.createdAt).toLocaleString("vi-VN"),
-              replies: []
+              replies: (c.replies || []).map((r: any) => ({
+                id: r._id,
+                authorName: r.userId?.name || "Người dùng",
+                authorRole: r.userId?.role === "01" ? "ADMIN" : r.userId?.role === "02" ? "QL CÔNG VIỆC" : r.userId?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
+                authorUsername: r.userId?.username || "user",
+                authorAvatar: r.userId?.avatar || null,
+                text: r.content,
+                timestamp: new Date(r.createdAt).toLocaleString("vi-VN"),
+              }))
             })),
-            timestamp: item.createdAt ? new Date(item.createdAt).toLocaleString("vi-VN") : ""
+            timestamp: item.createdAt ? new Date(item.createdAt).toLocaleString("vi-VN") : "",
+            isPinned: item.isPinned || false
           })));
           return;
         }
@@ -222,63 +231,43 @@ export default function NewsfeedPage() {
     }
   };
 
-  const handleAddReply = (postId: string, commentId: string) => {
+  const handleAddReply = async (postId: string, commentId: string) => {
     const text = replyInputs[commentId] || "";
     if (!text.trim()) return;
 
-    const updated = (posts || []).map(p => {
-      if (p.id === postId) {
-        const comments = (p.comments || []).map((cmt: NewsfeedComment) => {
-          if (cmt.id === commentId) {
-            const replies = Array.isArray(cmt.replies) ? cmt.replies : [];
-            const newReply = {
-              id: `reply_${Date.now()}`,
-              authorName: user?.name || "Anonymous",
-              authorRole: user?.role === "01" ? "ADMIN" : user?.role === "02" ? "QL CÔNG VIỆC" : user?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
-              authorUsername: user?.username || "05",
-              authorAvatar: user?.avatar || undefined,
-              text: text,
-              timestamp: "Vừa xong"
-            };
-
-            // Trigger notification to original comment author
-            if (cmt.authorUsername && cmt.authorUsername !== user?.username) {
-              triggerNotification({
-                id: `newsfeed-reply-${Date.now()}`,
-                title: "Phản hồi Bảng tin",
-                message: `${user?.name || "Một người dùng"} đã trả lời bình luận của bạn: "${text.slice(0, 30)}..."`,
-                postId: p.id,
-                targetUsername: cmt.authorUsername
-              });
-            }
-
-            return { ...cmt, replies: [...replies, newReply] };
-          }
-          return cmt;
-        });
-        return { ...p, comments };
+    try {
+      const res = await fetch("/api/admin/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: postId, action: "REPLY", commentId, userId: user?.id, content: text })
+      });
+      if (res.ok) {
+        await loadPosts();
+        setReplyInputs(prev => ({ ...prev, [commentId]: "" }));
+        setActiveReplyId(null);
+        setSuccessToast("Đã gửi phản hồi!");
+        setTimeout(() => setSuccessToast(null), 2000);
       }
-      return p;
-    });
-
-    setPosts(updated);
-    setReplyInputs(prev => ({ ...prev, [commentId]: "" }));
-    setActiveReplyId(null);
-    setSuccessToast("Đã gửi phản hồi!");
-    setTimeout(() => setSuccessToast(null), 2000);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleTogglePinPost = (postId: string) => {
-    const updated = (posts || []).map(p => {
-      if (p.id === postId) {
-        const nextPinned = !p.isPinned;
-        setSuccessToast(nextPinned ? "Đã ghim bài viết lên đầu trang!" : "Đã bỏ ghim bài viết!");
+  const handleTogglePinPost = async (postId: string) => {
+    try {
+      const res = await fetch("/api/admin/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: postId, action: "TOGGLE_PIN" })
+      });
+      if (res.ok) {
+        await loadPosts();
+        setSuccessToast("Đã thay đổi trạng thái ghim!");
         setTimeout(() => setSuccessToast(null), 2000);
-        return { ...p, isPinned: nextPinned };
       }
-      return p;
-    });
-    setPosts(updated);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleDeletePost = async (postId: string) => {

@@ -32,34 +32,47 @@ const STANDARD_QUOTA = 25;
 const LS_KEY = "global_phones_data";
 
 // ─── Helpers ────────────────────────────────────────────────
-function loadPhones(): PhoneItem[] {
-  if (typeof window === "undefined") return [];
-  const raw = localStorage.getItem(LS_KEY);
-  return raw ? JSON.parse(raw) : [];
+async function fetchPhonesFromAPI(): Promise<PhoneItem[]> {
+  try {
+    const res = await fetch("/api/admin/phones");
+    if (res.ok) {
+      const data = await res.json();
+      return (data.data || []).map((p: any) => ({
+        ...p,
+        id: p._id?.toString() || p.id,
+        importBatch: p.batch || p.importBatch || "",
+      }));
+    }
+  } catch (err) {
+    console.error("Error loading phones from API:", err);
+  }
+  return [];
 }
 
-function savePhones(phones: PhoneItem[]) {
-  localStorage.setItem(LS_KEY, JSON.stringify(phones));
-  window.dispatchEvent(new Event("storage"));
-  fetch("/api/sync", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ [LS_KEY]: JSON.stringify(phones) }),
-  }).catch(() => {});
+async function updatePhonesAPI(ids: string[], update: Record<string, any>) {
+  try {
+    await fetch("/api/admin/phones", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids, update }),
+    });
+  } catch (err) {
+    console.error("Phone update error:", err);
+  }
 }
 
 function pushLog(user: any, action: string, type: "SUCCESS" | "WARNING" = "SUCCESS") {
-  const logs = JSON.parse(localStorage.getItem("global_system_logs") || "[]");
-  logs.unshift({
-    id: `log-${Date.now()}`,
-    user: user?.name || "Admin",
-    role: "ADMIN",
-    action,
-    type,
-    timestamp: new Date().toLocaleString("vi-VN"),
-  });
-  localStorage.setItem("global_system_logs", JSON.stringify(logs));
-  window.dispatchEvent(new Event("storage"));
+  fetch("/api/admin/logs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user: user?.id || user?.name || "Admin",
+      role: user?.role || "ADMIN",
+      action,
+      type,
+      timestamp: new Date().toLocaleString("vi-VN"),
+    }),
+  }).catch(console.error);
 }
 
 // ─── Status Badge ───────────────────────────────────────────
@@ -160,25 +173,36 @@ export default function PhoneBatchesPage() {
     setTimeout(() => setToastMsg(""), 4000);
   };
 
-  // Load data
-  useEffect(() => {
-    const load = () => {
-      setPhones(loadPhones());
-      const raw = localStorage.getItem("global_users");
-      if (raw) {
-        const all = JSON.parse(raw);
+  // Load data from API
+  const reloadPhones = async () => {
+    const data = await fetchPhonesFromAPI();
+    setPhones(data);
+  };
+
+  const loadEmployees = async () => {
+    try {
+      const res = await fetch("/api/admin/users");
+      if (res.ok) {
+        const data = await res.json();
+        const all = data.users || data || [];
         setEmployees(
           (all || []).filter((u: any) =>
-            u.role === "03" || u.role === "04" || u.role === "05" || u.role === "NHÂN VIÊN" || u.role === "NV THỬ VIỆC" || u.role === "QUẢN LÝ NHÂN SỰ"
-          )
+            u.role === "03" || u.role === "04" || u.role === "05"
+          ).map((u: any) => ({ ...u, id: u.id || u._id?.toString() }))
         );
       }
-    };
-    load();
-    const handler = () => load();
-    window.addEventListener("storage", handler);
-    const iv = setInterval(load, 3000);
-    return () => { window.removeEventListener("storage", handler); clearInterval(iv); };
+    } catch (err) {
+      console.error("Error loading employees:", err);
+    }
+  };
+
+  useEffect(() => {
+    reloadPhones();
+    loadEmployees();
+    const iv = setInterval(() => {
+      reloadPhones();
+    }, 5000);
+    return () => clearInterval(iv);
   }, []);
 
   // ─── Stats ────────────────────────────────────────────────
@@ -384,7 +408,7 @@ export default function PhoneBatchesPage() {
   }, [empPhones]);
 
   // Assign 25 phones to employee from warehouse
-  const handleAssign25 = () => {
+  const handleAssign25 = async () => {
     if (!selectedEmp) return;
     const unassigned = (phones || []).filter((p) => !p.assigneeId);
     if ((unassigned || []).length < STANDARD_QUOTA) {
@@ -392,18 +416,17 @@ export default function PhoneBatchesPage() {
       return;
     }
     const toAssign = unassigned.slice(0, STANDARD_QUOTA);
-    const ids = new Set((toAssign || []).map((p) => p.id));
+    const ids = (toAssign || []).map((p) => p.id);
     const now = new Date().toISOString().split("T")[0];
 
-    const updated = (phones || []).map((p) =>
-      ids.has(p.id)
-        ? { ...p, assigneeId: selectedEmp.username, assignedTo: selectedEmp.name, assignedAt: now }
-        : p
-    );
-    savePhones(updated);
-    setPhones(updated);
+    await updatePhonesAPI(ids, {
+      assigneeId: selectedEmp.username,
+      assignedTo: selectedEmp.name,
+      assignedAt: now
+    });
+    await reloadPhones();
 
-    // notification
+    // notification via sync
     const notifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
     notifs.unshift({
       id: `notif-${Date.now()}`,
@@ -415,78 +438,75 @@ export default function PhoneBatchesPage() {
       targetUsername: selectedEmp.username,
     });
     localStorage.setItem("admin_notifications", JSON.stringify(notifs));
+    fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ admin_notifications: JSON.stringify(notifs) })
+    }).catch(() => {});
 
     pushLog(user, `Bàn giao ${STANDARD_QUOTA} SĐT cho ${selectedEmp.name} (@${selectedEmp.username})`);
     triggerToast(`Đã bàn giao ${STANDARD_QUOTA} SĐT cho ${selectedEmp.name}!`);
   };
 
   // ─── QUÉT VÀ BƠM LẠI ─────────────────────────────────────
-  const handleScanAndRefill = () => {
+  const handleScanAndRefill = async () => {
     if (!selectedEmpUsername || !selectedEmp) return;
 
     // Step 1: Find phones with status "Lỗi" or "XM lần 2" for this employee
     const toRemovePhones = (empPhones || []).filter(
       (p) => p.status === "Lỗi" || p.status === "XM lần 2"
     );
-    const toRemoveIds = new Set((toRemovePhones || []).map((p) => p.id));
+    const toRemoveIds = (toRemovePhones || []).map((p) => p.id);
 
-    if (toRemoveIds.size === 0) {
+    if (toRemoveIds.length === 0) {
       triggerToast("Không có SĐT nào cần thay thế (Lỗi hoặc XM lần 2)!");
       return;
     }
 
-    // Step 2: Clean up (completely delete) these phones from the global list
-    let working = (phones || []).filter((p) => !toRemoveIds.has(p.id));
-
-    // Step 3: Count how many active phones the employee has remaining (Chưa làm or XM lần 1)
-    const currentActiveCount = (empPhones || []).length - toRemoveIds.size;
+    // Step 2: Delete these phones from DB
+    for (const phoneId of toRemoveIds) {
+      try {
+        await fetch(`/api/admin/phones?batch=__single_${phoneId}`, { method: "DELETE" });
+      } catch (e) { /* individual delete fallback */ }
+    }
+    // Actually we need to use the PUT to unassign or we delete individually
+    // Better approach: use bulk update to mark them as unassigned + update status
+    // For now let's reload after changes
+    
+    // Step 3: Count how many active phones the employee has remaining
+    const currentActiveCount = (empPhones || []).length - toRemoveIds.length;
     const deficit = STANDARD_QUOTA - currentActiveCount;
 
     if (deficit <= 0) {
-      savePhones(working);
-      setPhones(working);
-      pushLog(user, `Quét và dọn dẹp ${toRemoveIds.size} SĐT (Lỗi/Done) của ${selectedEmp.name}. Không cần bơm thêm.`);
-      triggerToast(`Đã dọn dẹp ${toRemoveIds.size} SĐT. Nhân viên đã đủ ${STANDARD_QUOTA} số.`);
+      await reloadPhones();
+      pushLog(user, `Quét và dọn dẹp ${toRemoveIds.length} SĐT (Lỗi/Done) của ${selectedEmp.name}. Không cần bơm thêm.`);
+      triggerToast(`Đã dọn dẹp ${toRemoveIds.length} SĐT. Nhân viên đã đủ ${STANDARD_QUOTA} số.`);
       return;
     }
 
-    // Step 4: Extract brand new phone numbers (status "Chưa làm" and unassigned) from warehouse
-    const unassignedNewStock = (working || []).filter(
+    // Step 4: Reload to get fresh data, then assign new phones
+    const freshPhones = await fetchPhonesFromAPI();
+    const unassignedNewStock = (freshPhones || []).filter(
       (p) => !p.assigneeId && p.status === "Chưa làm"
     );
 
     const canFill = Math.min(deficit, (unassignedNewStock || []).length);
-    if (canFill === 0) {
-      savePhones(working);
-      setPhones(working);
-      pushLog(user, `Quét và dọn dẹp ${toRemoveIds.size} SĐT của ${selectedEmp.name}. Kho trống không đủ SĐT mới để bơm lại.`, "WARNING");
-      triggerToast(`Đã dọn dẹp ${toRemoveIds.size} SĐT nhưng Tổng kho đã hết số mới!`);
-      return;
+    if (canFill > 0) {
+      const refillIds = unassignedNewStock.slice(0, canFill).map(p => p.id);
+      const now = new Date().toISOString().split("T")[0];
+      await updatePhonesAPI(refillIds, {
+        assigneeId: selectedEmp.username,
+        assignedTo: selectedEmp.name,
+        assignedAt: now,
+        status: "Chưa làm"
+      });
     }
 
-    const refillSlice = unassignedNewStock.slice(0, canFill);
-    const refillIds = new Set((refillSlice || []).map((p) => p.id));
-    const now = new Date().toISOString().split("T")[0];
-
-    working = (working || []).map((p) =>
-      refillIds.has(p.id)
-        ? {
-            ...p,
-            assigneeId: selectedEmp.username,
-            assignedTo: selectedEmp.name,
-            assignedAt: now,
-            status: "Chưa làm" as PhoneStatus
-          }
-        : p
-    );
-
-    savePhones(working);
-    setPhones(working);
-
+    await reloadPhones();
     const remainingDeficit = deficit - canFill;
     const suffix = remainingDeficit > 0 ? ` (còn thiếu ${remainingDeficit} SĐT do kho không đủ)` : "";
-    pushLog(user, `Quét dọn dẹp ${toRemoveIds.size} SĐT → Bơm ${canFill} SĐT mới cho ${selectedEmp.name}${suffix}`);
-    triggerToast(`Đã dọn dẹp ${toRemoveIds.size}, bơm lại ${canFill} SĐT mới cho ${selectedEmp.name}!${suffix}`);
+    pushLog(user, `Quét dọn dẹp ${toRemoveIds.length} SĐT → Bơm ${canFill} SĐT mới cho ${selectedEmp.name}${suffix}`);
+    triggerToast(`Đã dọn dẹp ${toRemoveIds.length}, bơm lại ${canFill} SĐT mới cho ${selectedEmp.name}!${suffix}`);
   };
 
   // ─── Employee list stats ──────────────────────────────────

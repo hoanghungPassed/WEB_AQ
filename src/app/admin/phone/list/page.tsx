@@ -35,24 +35,33 @@ export default function EmployeePhoneListPage() {
       window.location.href = "/login";
     }
 
-    const loadPhones = () => {
+    const loadPhones = async () => {
       if (!storedUser) return;
       const currentUser = JSON.parse(storedUser);
-      const savedPhones = localStorage.getItem("global_phones_data");
-      const phonesList: PhoneItem[] = savedPhones ? JSON.parse(savedPhones) : [];
-      
-      const assignedToMe = (phonesList || []).filter(p => 
-        p.assigneeId &&
-        currentUser?.username &&
-        (p.assigneeId.toLowerCase() === currentUser?.username.toLowerCase() ||
-          (currentUser.id && String(p.assigneeId) === String(currentUser.id)))
-      );
-      setMyPhones(assignedToMe);
+      try {
+        const res = await fetch("/api/admin/phones");
+        if (res.ok) {
+          const data = await res.json();
+          const phonesList: PhoneItem[] = (data.data || []).map((p: any) => ({
+             ...p,
+             id: p._id?.toString() || p.id,
+          }));
+          const assignedToMe = phonesList.filter(p => 
+            p.assigneeId &&
+            currentUser?.username &&
+            (p.assigneeId.toLowerCase() === currentUser?.username.toLowerCase() ||
+              (currentUser.id && String(p.assigneeId) === String(currentUser.id)))
+          );
+          setMyPhones(assignedToMe);
+        }
+      } catch(err) {
+        console.error(err);
+      }
     };
 
     loadPhones();
-    window.addEventListener("storage", loadPhones);
-    return () => window.removeEventListener("storage", loadPhones);
+    const interval = setInterval(loadPhones, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const triggerToast = (msg: string) => {
@@ -60,50 +69,40 @@ export default function EmployeePhoneListPage() {
     setTimeout(() => setToastMsg(""), 3000);
   };
 
-  const handleUpdateStatus = (phoneId: string, newStatus: PhoneStatus) => {
-    const savedPhones = localStorage.getItem("global_phones_data");
-    const phonesList: PhoneItem[] = savedPhones ? JSON.parse(savedPhones) : [];
-    
-    let targetNumber = "";
-    const updated = (phonesList || []).map(p => {
-      if (p.id === phoneId) {
-        targetNumber = p.number;
-        return { ...p, status: newStatus };
+  const handleUpdateStatus = async (phoneId: string, newStatus: PhoneStatus) => {
+    try {
+      const res = await fetch("/api/admin/phones", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: phoneId,
+          status: newStatus
+        })
+      });
+      if (res.ok) {
+        const targetNumber = myPhones.find(p => p.id === phoneId)?.number || "";
+        
+        // System Log via API
+        fetch("/api/admin/logs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user: user?.id || user?.name || "Employee",
+            role: "NHÂN VIÊN",
+            action: `Cập nhật trạng thái SĐT ${targetNumber} thành "${newStatus}"`,
+            type: newStatus === "Lỗi" ? "WARNING" : "SUCCESS",
+            timestamp: new Date().toLocaleString("vi-VN")
+          })
+        }).catch(console.error);
+
+        // Update local state without waiting for next poll
+        setMyPhones(prev => prev.map(p => p.id === phoneId ? { ...p, status: newStatus } : p));
+        triggerToast(`Đã lưu trạng thái "${newStatus}" cho số ${targetNumber}!`);
       }
-      return p;
-    });
-
-    localStorage.setItem("global_phones_data", JSON.stringify(updated));
-    setMyPhones((updated || []).filter(p => 
-      p.assigneeId &&
-      user?.username &&
-      (p.assigneeId.toLowerCase() === user?.username.toLowerCase() ||
-        (user.id && String(p.assigneeId) === String(user.id)))
-    ));
-    window.dispatchEvent(new Event("storage"));
-
-    // Sync to API
-    fetch("/api/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ global_phones_data: JSON.stringify(updated) })
-    }).catch(() => {});
-
-    // System Log
-    const existingLogs = localStorage.getItem("global_system_logs");
-    const logsList = existingLogs ? JSON.parse(existingLogs) : [];
-    const newLog = {
-      id: `log-${Date.now()}`,
-      user: user?.name || "Employee",
-      role: "NHÂN VIÊN",
-      action: `Cập nhật trạng thái SĐT ${targetNumber} thành "${newStatus}"`,
-      type: newStatus === "Lỗi" ? "WARNING" : "SUCCESS",
-      timestamp: new Date().toLocaleString("vi-VN")
-    };
-    localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
-    window.dispatchEvent(new Event("storage"));
-
-    triggerToast(`Đã lưu trạng thái "${newStatus}" cho số ${targetNumber}!`);
+    } catch(err) {
+      console.error(err);
+      triggerToast("Lỗi cập nhật!");
+    }
   };
 
   // Compute stats for current employee's assigned phones
