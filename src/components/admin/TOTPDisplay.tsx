@@ -108,7 +108,7 @@ export default function TOTPDisplay({ secret, compact = false, onCopy }: TOTPDis
         className="flex items-center gap-2 group/totp cursor-pointer"
         title="Bấm để sao chép mã 2FA"
       >
-        <span className={`font-mono font-black text-sm tracking-[0.15em] ${loading ? "text-gray-600" : copied ? "text-gold" : urgency} transition-colors`}>
+        <span className={`font-mono font-black text-base tracking-[0.15em] ${loading ? "text-gray-600" : copied ? "text-gold" : urgency} transition-colors`}>
           {loading ? "···" : copied ? "Copied!" : code}
         </span>
         <span className={`text-[10px] font-black ${secondsColor} min-w-[22px] text-right`}>
@@ -129,7 +129,7 @@ export default function TOTPDisplay({ secret, compact = false, onCopy }: TOTPDis
           {loading ? "------" : copied ? "Copied!" : `${code.slice(0, 3)} ${code.slice(3)}`}
         </div>
       </button>
-      <p className="text-center text-xs text-gray-500">
+      <p className="text-center text-sm text-gray-500">
         Mã mới sau <span className={`font-black ${secondsColor}`}>{remaining}s</span> · Bấm mã để sao chép
       </p>
     </div>

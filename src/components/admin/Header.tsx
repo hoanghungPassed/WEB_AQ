@@ -191,7 +191,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                <span className="text-[10px] font-black text-gold uppercase tracking-[0.2em] leading-none mb-1">Thời gian hệ thống</span>
                <div className="flex items-center gap-2">
                  <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                 <span className="text-sm font-black text-gray-900 dark:text-white font-mono tracking-wider">{dateTimeStr}</span>
+                 <span className="text-base font-black text-gray-900 dark:text-white font-mono tracking-wider">{dateTimeStr}</span>
                </div>
              </div>
           </div>
@@ -200,7 +200,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           <button
             onClick={toggleTheme}
             title={theme === "dark" ? "Chuyển Light Mode" : "Chuyển Dark Mode"}
-            className="relative flex h-11 w-11 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gold border border-transparent hover:border-gray-200 dark:hover:border-white/5 overflow-hidden"
+            className="relative flex h-11 w-11 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-gray-100 dark:hover:bg-white dark:bg-zinc-900/5 hover:text-gold border border-transparent hover:border-gray-200 dark:hover:border-white/5 overflow-hidden"
           >
             <AnimatePresence mode="wait" initial={false}>
               {theme === "dark" ? (
@@ -235,7 +235,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
               onClick={() => {
                 setIsNotifOpen(!isNotifOpen);
               }}
-              className="relative flex h-11 w-11 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gold border border-transparent hover:border-gray-200 dark:hover:border-white/5"
+              className="relative flex h-11 w-11 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-gray-100 dark:hover:bg-white dark:bg-zinc-900/5 hover:text-gold border border-transparent hover:border-gray-200 dark:hover:border-white/5"
             >
               <Bell size={20} />
               {unreadCount > 0 && (
@@ -253,10 +253,10 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 top-full mt-4 z-20 w-80 rounded-[32px] border border-gray-300 dark:border-white/10 bg-white dark:bg-gray-900 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl animate-fade-in"
+                    className="absolute right-0 top-full mt-4 z-20 w-80 rounded-[32px] border border-gray-300 dark:border-white/10 bg-white dark:bg-gray-900 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl animate-fade-in"
                   >
                     <div className="flex items-center justify-between mb-4 px-2">
-                      <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-900 dark:text-white">Thông báo</p>
+                      <p className="text-sm font-black uppercase tracking-[0.2em] text-gray-900 dark:text-white">Thông báo</p>
                       <button onClick={markAllRead} className="text-[10px] font-black text-gold hover:underline uppercase">Đọc tất cả</button>
                     </div>
                     
@@ -269,7 +269,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                               markSingleAsRead(n.id);
                               handleNotificationClick(n);
                             }}
-                            className={`p-4 rounded-2xl border transition-all cursor-pointer group flex flex-col ${
+                            className={`p-6 rounded-2xl border transition-all cursor-pointer group flex flex-col ${
                               !n.read 
                                 ? "bg-gold/5 border-gold/20 hover:bg-gold/10" 
                                 : "bg-gray-50 dark:bg-white/[0.02] border-gray-200 dark:border-white/5 hover:bg-gray-100 dark:hover:bg-white/[0.05]"
@@ -289,7 +289,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                         ))
                       ) : (
                         <div className="py-10 text-center text-gray-600">
-                          <p className="text-xs font-bold italic">Không có thông báo mới</p>
+                          <p className="text-sm font-bold italic">Không có thông báo mới</p>
                         </div>
                       )}
                     </div>
@@ -301,7 +301,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                           setIsNotifOpen(false);
                           setShowAllNotificationsModal(true);
                         }}
-                        className="w-full h-11 rounded-xl bg-gold/10 border border-gold/20 text-gold text-xs font-black uppercase tracking-widest hover:bg-gold/20 transition-all flex items-center justify-center gap-2"
+                        className="w-full h-11 rounded-xl bg-gold/10 border border-gold/20 text-gold text-sm font-black uppercase tracking-widest hover:bg-gold/20 transition-all flex items-center justify-center gap-2"
                       >
                         Xem tất cả thông báo
                       </button>
@@ -315,7 +315,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           {/* User Profile */}
           <div className="relative flex items-center gap-4 pl-8 border-l border-gray-200 dark:border-white/5">
             <div className="text-right hidden lg:block overflow-hidden">
-              <p className="text-sm font-black text-gray-900 dark:text-white leading-none uppercase tracking-tighter">{user?.name || "Người dùng"}</p>
+              <p className="text-base font-black text-gray-900 dark:text-white leading-none uppercase tracking-tighter">{user?.name || "Người dùng"}</p>
               <p className="text-[10px] font-black text-gold mt-1.5 uppercase tracking-[0.2em]">{getRoleLabel(user?.role)}</p>
             </div>
             
@@ -344,7 +344,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                   >
                     <div className="p-4 border-b border-gray-200 dark:border-white/5 mb-2">
                       <p className="text-[10px] font-black text-gold uppercase tracking-[0.3em]">{getRoleLabel(user?.role)}</p>
-                      <p className="text-sm font-black text-gray-900 dark:text-white mt-1 uppercase truncate">{user?.name}</p>
+                      <p className="text-base font-black text-gray-900 dark:text-white mt-1 uppercase truncate">{user?.name}</p>
                       <p className="text-[10px] font-bold text-gray-600 mt-0.5 tracking-wider truncate">@{user?.username}</p>
                     </div>
 
@@ -353,7 +353,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                         onOpenProfile();
                         setIsProfileOpen(false);
                       }}
-                      className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-widest text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gold"
+                      className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black uppercase tracking-widest text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-white dark:bg-zinc-900/5 hover:text-gold"
                     >
                       <UserSearch size={18} />
                       Hồ sơ chi tiết
@@ -363,7 +363,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                     
                     <button 
                       onClick={handleLogout}
-                      className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-widest text-red-500 transition-colors hover:bg-red-500/10"
+                      className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black uppercase tracking-widest text-red-500 transition-colors hover:bg-red-500/10"
                     >
                       <LogOut size={18} />
                       Đăng xuất hệ thống
@@ -399,7 +399,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                 <div className="flex items-center gap-4">
                   <button
                     onClick={markAllRead}
-                    className="text-xs font-black text-gold hover:underline uppercase tracking-wider flex items-center gap-2 bg-gold/10 px-4 py-2 rounded-xl border border-gold/20 hover:bg-gold/20 transition-all"
+                    className="text-sm font-black text-gold hover:underline uppercase tracking-wider flex items-center gap-2 bg-gold/10 px-4 py-2 rounded-xl border border-gold/20 hover:bg-gold/20 transition-all"
                   >
                     Đọc tất cả
                   </button>
@@ -416,7 +416,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
               <div className="flex gap-4 mb-6 bg-black/30 p-1.5 rounded-2xl border border-gray-200 dark:border-white/5">
                 <button
                   onClick={() => setNotifTab("UNREAD")}
-                  className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                  className={`flex-1 py-3 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
                     notifTab === "UNREAD"
                       ? "bg-gold text-sidebar shadow-lg shadow-gold/20 font-black"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"
@@ -426,7 +426,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                 </button>
                 <button
                   onClick={() => setNotifTab("READ")}
-                  className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                  className={`flex-1 py-3 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
                     notifTab === "READ"
                       ? "bg-gold text-sidebar shadow-lg shadow-gold/20 font-black"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"
@@ -468,10 +468,10 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <p className="text-xs font-black text-gray-900 dark:text-white group-hover:text-gold transition-colors">{n.title}</p>
+                          <p className="text-sm font-black text-gray-900 dark:text-white group-hover:text-gold transition-colors">{n.title}</p>
                           <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{n.time}</span>
                         </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1.5 leading-relaxed font-medium">{n.message}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1.5 leading-relaxed font-medium">{n.message}</p>
                         {!n.read && (
                           <button
                             onClick={(e) => {
@@ -489,7 +489,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                 ) : (
                   <div className="py-16 text-center text-gray-600 border border-dashed border-gray-200 dark:border-white/5 rounded-2xl bg-black/10">
                     <Bell className="mx-auto text-gray-700 mb-3" size={40} />
-                    <p className="text-sm font-bold italic">Không có thông báo nào trong mục này</p>
+                    <p className="text-base font-bold italic">Không có thông báo nào trong mục này</p>
                   </div>
                 )}
               </div>

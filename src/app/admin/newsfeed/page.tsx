@@ -24,6 +24,7 @@ type NewsfeedUser = {
   name?: string;
   username?: string;
   role?: string;
+  avatar?: string;
 };
 
 type NewsfeedReply = {
@@ -31,6 +32,7 @@ type NewsfeedReply = {
   authorName: string;
   authorRole: string;
   authorUsername: string;
+  authorAvatar?: string;
   text: string;
   timestamp: string;
 };
@@ -40,6 +42,7 @@ type NewsfeedComment = {
   authorName: string;
   authorRole: string;
   authorUsername: string;
+  authorAvatar?: string;
   text: string;
   timestamp: string;
   replies: NewsfeedReply[];
@@ -50,6 +53,7 @@ type NewsfeedPost = {
   authorName: string;
   authorRole: string;
   authorUsername: string;
+  authorAvatar?: string;
   text: string;
   imageUrl?: string | null;
   likes: number;
@@ -65,6 +69,7 @@ type NewsfeedNotificationItem = {
   authorName?: string;
   authorRole?: string;
   authorUsername?: string;
+  authorAvatar?: string;
   message?: string;
   title?: string;
   imageUrl?: string;
@@ -113,6 +118,7 @@ export default function NewsfeedPage() {
             authorName: item.author?.name || "Hệ thống",
             authorRole: item.author?.role === "01" ? "ADMIN" : item.author?.role === "02" ? "QL CÔNG VIỆC" : item.author?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
             authorUsername: item.author?.username || "system",
+            authorAvatar: item.author?.avatar || null,
             text: item.message || item.title || "",
             imageUrl: item.imageUrl || null,
             likes: (item.likes || []).length,
@@ -122,6 +128,7 @@ export default function NewsfeedPage() {
               authorName: c.userId?.name || "Người dùng",
               authorRole: c.userId?.role === "01" ? "ADMIN" : c.userId?.role === "02" ? "QL CÔNG VIỆC" : c.userId?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
               authorUsername: c.userId?.username || "user",
+              authorAvatar: c.userId?.avatar || null,
               text: c.content,
               timestamp: new Date(c.createdAt).toLocaleString("vi-VN"),
               replies: []
@@ -229,6 +236,7 @@ export default function NewsfeedPage() {
               authorName: user?.name || "Anonymous",
               authorRole: user?.role === "01" ? "ADMIN" : user?.role === "02" ? "QL CÔNG VIỆC" : user?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
               authorUsername: user?.username || "05",
+              authorAvatar: user?.avatar || undefined,
               text: text,
               timestamp: "Vừa xong"
             };
@@ -361,7 +369,7 @@ export default function NewsfeedPage() {
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
-            className="fixed top-24 left-1/2 -translate-x-1/2 z-[500] bg-green-500 text-gray-900 dark:text-white px-6 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-black uppercase tracking-wider border border-gray-300 dark:border-white/10"
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-[500] bg-green-500 text-gray-900 dark:text-white px-6 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-sm font-black uppercase tracking-wider border border-gray-300 dark:border-white/10"
           >
             <Check size={16} /> {successToast}
           </motion.div>
@@ -369,7 +377,7 @@ export default function NewsfeedPage() {
       </AnimatePresence>
 
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-4 shadow-lg relative overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-6 shadow-lg relative overflow-hidden">
         <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[60px] -mr-16 -mt-16 pointer-events-none" />
         
         <div className="flex items-center gap-3 relative z-10">
@@ -402,11 +410,11 @@ export default function NewsfeedPage() {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`bg-white dark:bg-sidebar border rounded-2xl p-4 shadow-lg relative overflow-hidden transition-all duration-300 ${
+            className={`bg-white dark:bg-sidebar border rounded-2xl p-6 shadow-lg relative overflow-hidden transition-all duration-300 ${
               isDragging ? "border-gold bg-gold/5 scale-[1.01]" : "border-border-custom"
             }`}
           >
-            <h3 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+            <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider mb-3 flex items-center gap-2">
               <Send size={14} className="text-gold" /> Tạo bài viết mới
             </h3>
 
@@ -415,7 +423,7 @@ export default function NewsfeedPage() {
               value={newPostText}
               onChange={(e) => setNewPostText(e.target.value)}
               onPaste={handlePaste}
-              className="w-full h-24 bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl p-3 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all resize-none custom-scrollbar font-bold"
+              className="w-full h-24 bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all resize-none custom-scrollbar font-bold"
             />
 
             {/* Selected Preset Image Preview */}
@@ -454,7 +462,7 @@ export default function NewsfeedPage() {
 
             {/* Presets Grid */}
             {showImagePresets && (
-              <div className="mt-4 p-4 bg-black/30 border border-gray-200 dark:border-white/5 rounded-2xl space-y-3">
+              <div className="mt-4 p-6 bg-black/30 border border-gray-200 dark:border-white/5 rounded-2xl space-y-3">
                 <p className="text-[10px] text-gray-600 dark:text-gray-400 font-black uppercase tracking-wider flex items-center gap-1">
                   <Info size={12} className="text-gold" /> Chọn ảnh minh họa:
                 </p>
@@ -504,17 +512,21 @@ export default function NewsfeedPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
-                      className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-4 shadow-lg space-y-3 text-left relative transition-all duration-500 overflow-hidden"
+                      className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-6 shadow-lg space-y-3 text-left relative transition-all duration-500 overflow-hidden"
                     >
                       {/* Post Header */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 bg-gold/15 text-gold border border-gold/20 rounded-full flex items-center justify-center font-black text-xs uppercase">
-                            {post.authorName.charAt(0)}
-                          </div>
+                          {post.authorAvatar ? (
+                            <img src={post.authorAvatar} alt={post.authorName} className="h-8 w-8 rounded-full object-cover border border-gold/20 shadow-sm" />
+                          ) : (
+                            <div className="h-8 w-8 bg-gold/15 text-gold border border-gold/20 rounded-full flex items-center justify-center font-black text-sm uppercase shadow-sm">
+                              {post.authorName.charAt(0)}
+                            </div>
+                          )}
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-black text-gray-900 dark:text-white">{post.authorName}</span>
+                              <span className="text-sm font-black text-gray-900 dark:text-white">{post.authorName}</span>
                               <span className="px-2 py-0.5 rounded text-[7px] font-black tracking-widest uppercase border bg-gold/5 text-gold border-gold/20">{post.authorRole}</span>
                               {post.isPinned && (
                                 <span className="px-2 py-0.5 rounded text-[7px] font-black tracking-widest uppercase bg-gold text-sidebar flex items-center gap-0.5">
@@ -553,7 +565,7 @@ export default function NewsfeedPage() {
                       </div>
 
                       <div className="space-y-2">
-                      <p className="text-xs text-gray-700 dark:text-gray-300 font-bold leading-relaxed whitespace-pre-wrap">{post.text}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 font-bold leading-relaxed whitespace-pre-wrap">{post.text}</p>
                       {post.imageUrl && (
                         <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-white/5 max-h-[280px] relative h-72">
                           <Image src={post.imageUrl} alt={`${post.authorName} post`} fill className="object-cover" />
@@ -562,7 +574,7 @@ export default function NewsfeedPage() {
                     </div>
 
                     {/* Footer reaction stats */}
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-white/5 text-gray-500 text-xs">
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-white/5 text-gray-500 text-sm">
                       <div className="flex items-center gap-1">
                         <Heart size={14} className="text-red-500" fill="currentColor" />
                         <span className="font-bold text-[11px]">{post.likes || 0} lượt thích</span>
@@ -576,7 +588,7 @@ export default function NewsfeedPage() {
                     <div className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-white/5">
                       <button 
                         onClick={() => handleLikePost(post.id)}
-                        className={`flex-1 h-9 rounded-xl flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-wider transition-all bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 ${
+                        className={`flex-1 h-9 rounded-xl flex items-center justify-center gap-1.5 text-sm font-black uppercase tracking-wider transition-all bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 ${
                           hasLiked ? "text-red-500 bg-red-500/5 border-red-500/20" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"
                         }`}
                       >
@@ -584,7 +596,7 @@ export default function NewsfeedPage() {
                         <span>Thích</span>
                       </button>
 
-                      <div className="flex-1 h-9 rounded-xl flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-wider text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5">
+                      <div className="flex-1 h-9 rounded-xl flex items-center justify-center gap-1.5 text-sm font-black uppercase tracking-wider text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5">
                         <MessageSquare size={14} />
                         <span>Bình luận</span>
                       </div>
@@ -596,8 +608,15 @@ export default function NewsfeedPage() {
                         {(post.comments || []).map((cmt: NewsfeedComment) => (
                           <div key={cmt.id} className="space-y-2 border-b border-gray-200 dark:border-white/5 last:border-none pb-3 last:pb-0">
                             {/* Main Comment */}
-                            <div className="text-xs">
+                            <div className="text-sm">
                               <div className="flex items-center gap-2 mb-1">
+                                {cmt.authorAvatar ? (
+                                  <img src={cmt.authorAvatar} alt={cmt.authorName} className="w-5 h-5 rounded-full object-cover border border-gold/20" />
+                                ) : (
+                                  <div className="w-5 h-5 rounded-full bg-gold/10 text-gold flex items-center justify-center text-[10px] font-black border border-gold/20">
+                                    {cmt.authorName.charAt(0)}
+                                  </div>
+                                )}
                                 <span className="font-black text-gray-900 dark:text-white text-[11px]">{cmt.authorName}</span>
                                 <span className="text-[7px] font-bold bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-white/10 px-1 py-0.5 rounded uppercase">{cmt.authorRole}</span>
                                 <span className="text-[8px] text-gray-600 font-mono ml-auto">{cmt.timestamp}</span>
@@ -625,6 +644,13 @@ export default function NewsfeedPage() {
                                   <div key={reply.id} className="text-[11px]">
                                     <div className="flex items-center gap-2 mb-0.5">
                                       <CornerDownRight size={10} className="text-gold" />
+                                      {reply.authorAvatar ? (
+                                        <img src={reply.authorAvatar} alt={reply.authorName} className="w-4 h-4 rounded-full object-cover border border-gold/20" />
+                                      ) : (
+                                        <div className="w-4 h-4 rounded-full bg-gold/10 text-gold flex items-center justify-center text-[8px] font-black border border-gold/20">
+                                          {reply.authorName.charAt(0)}
+                                        </div>
+                                      )}
                                       <span className="font-black text-gray-900 dark:text-white">{reply.authorName}</span>
                                       <span className="text-[6px] font-bold bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-white/10 px-1 rounded uppercase">{reply.authorRole}</span>
                                       <span className="text-[8px] text-gray-600 font-mono ml-auto">{reply.timestamp}</span>
@@ -684,7 +710,7 @@ export default function NewsfeedPage() {
             </AnimatePresence>
 
             {(posts || []).length === 0 && (
-              <div className="h-40 rounded-2xl border border-gray-200 dark:border-white/5 bg-white dark:bg-sidebar/50 flex flex-col items-center justify-center text-center p-4">
+              <div className="h-40 rounded-2xl border border-gray-200 dark:border-white/5 bg-white dark:bg-sidebar/50 flex flex-col items-center justify-center text-center p-6">
                 <MessageSquare size={32} className="text-gray-600 mb-2" />
                 <h4 className="text-gray-900 dark:text-white font-black uppercase tracking-tight text-[11px]">Chưa có dữ liệu</h4>
                 <p className="text-[9px] text-gray-500 mt-1">Hãy đăng bài chia sẻ đầu tiên trên Bảng tin nội bộ nhé!</p>
@@ -696,15 +722,19 @@ export default function NewsfeedPage() {
         {/* Right Side: Profile Card & Quick Stats */}
         <div className="lg:col-span-4 space-y-4 hidden lg:block">
           {/* User profile details */}
-          <div className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-4 shadow-lg relative overflow-hidden group text-center">
+          <div className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-6 shadow-lg relative overflow-hidden group text-center">
             <div className="absolute top-0 left-0 right-0 h-14 bg-gradient-to-r from-indigo-500/20 to-purple-500/20" />
             
             <div className="relative mt-6 flex flex-col items-center">
-              <div className="h-14 w-14 bg-gold/10 border-2 border-gold text-gold rounded-full flex items-center justify-center font-black text-lg uppercase shadow-lg shadow-gold/10">
-                {user?.name?.charAt(0) || "U"}
-              </div>
+              {user?.avatar ? (
+                <img src={user.avatar} alt="User Avatar" className="h-14 w-14 rounded-full object-cover border-2 border-gold shadow-lg shadow-gold/10" />
+              ) : (
+                <div className="h-14 w-14 bg-gold/10 border-2 border-gold text-gold rounded-full flex items-center justify-center font-black text-lg uppercase shadow-lg shadow-gold/10">
+                  {user?.name?.charAt(0) || "U"}
+                </div>
+              )}
               
-              <h3 className="text-sm font-black text-gray-900 dark:text-white mt-3">{user?.name || "Người dùng"}</h3>
+              <h3 className="text-base font-black text-gray-900 dark:text-white mt-3">{user?.name || "Người dùng"}</h3>
               <p className="text-[8px] font-black tracking-widest uppercase text-gold bg-gold/5 border border-gold/20 px-2 py-0.5 rounded-full mt-1">
                 {getRoleLabel(user?.role)}
               </p>
@@ -723,7 +753,7 @@ export default function NewsfeedPage() {
           </div>
 
           {/* Quick instructions & guidelines */}
-          <div className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-4 shadow-lg space-y-3">
+          <div className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-6 shadow-lg space-y-3">
             <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2 border-b border-gray-200 dark:border-white/5 pb-2">
               <ShieldCheck size={12} className="text-gold" /> Quy tắc ứng xử
             </h3>

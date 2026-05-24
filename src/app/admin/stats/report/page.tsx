@@ -29,6 +29,8 @@ interface StaffPerformance {
   errorRate: number;
   kpiProgress: number;
   efficiency: string;
+  weeklyChannels: number;
+  monthlyChannels: number;
 }
 
 export default function ReportsPage() {
@@ -166,6 +168,20 @@ export default function ReportsPage() {
          return new Date(m.updatedAt) >= monday;
       });
 
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+
+      const monthlyMails = (mails || []).filter(m => {
+         if (String(m.assigneeId) !== String(staff.id)) return false;
+         if (!m.updatedAt) return false;
+         const d = new Date(m.updatedAt);
+         return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      });
+
+      const eligibleChannelsMonthly = monthlyMails.filter(m => m.type === "SATELLITE").reduce((sum, m) => {
+         return sum + (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0);
+      }, 0);
+
       const eligibleChannelsWeekly = (myMails || []).filter(m => m.type === "SATELLITE").reduce((sum, m) => {
          return sum + (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0);
       }, 0);
@@ -191,7 +207,9 @@ export default function ReportsPage() {
         completed: completed, // We can reuse this or show channels
         errorRate: errorPercent,
         kpiProgress: progress, // Percentage
-        efficiency
+        efficiency,
+        weeklyChannels: eligibleChannelsWeekly,
+        monthlyChannels: eligibleChannelsMonthly
       };
     });
 
@@ -267,7 +285,7 @@ export default function ReportsPage() {
             initial={{ opacity: 0, y: -20, x: "-50%" }} 
             animate={{ opacity: 1, y: 30, x: "-50%" }} 
             exit={{ opacity: 0, y: -20, x: "-50%" }}
-            className="fixed top-0 left-1/2 z-[200] bg-gold px-6 py-3 rounded-full text-sidebar font-black text-sm shadow-2xl flex items-center gap-2"
+            className="fixed top-0 left-1/2 z-[200] bg-gold px-6 py-3 rounded-full text-sidebar font-black text-base shadow-2xl flex items-center gap-2"
           >
             <CheckCircle2 size={18} /> {toastMsg}
           </motion.div>
@@ -288,7 +306,7 @@ export default function ReportsPage() {
               <BarChart3 className="text-gold" size={28} />
               Thống Kê & Nhân Sự (Reports & Payroll)
             </h2>
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mt-1">
+            <p className="text-sm text-gray-500 font-medium uppercase tracking-widest mt-1">
               Phân tích hiệu suất làm việc và quản lý bảng lương tự động
             </p>
           </div>
@@ -315,7 +333,7 @@ export default function ReportsPage() {
           {activeTab === "STATS" && (
             <button 
               onClick={handleExportReport}
-              className="h-10 px-6 rounded-xl bg-gold text-sidebar font-black uppercase text-xs tracking-widest hover:bg-yellow-500 transition-all flex items-center gap-2 shadow-lg shadow-gold/5"
+              className="h-10 px-6 rounded-xl bg-gold text-sidebar font-black uppercase text-sm tracking-widest hover:bg-yellow-500 transition-all flex items-center gap-2 shadow-lg shadow-gold/5"
             >
               <Download size={14} /> Xuất Báo Cáo
             </button>
@@ -341,7 +359,7 @@ export default function ReportsPage() {
         <div className="bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-indigo-500/30 transition-all">
           <div className="space-y-1">
             <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest block">Watch Hours lũy kế</span>
-            <span className="text-3xl font-black text-indigo-400 block">450 / 2K<span className="text-xs text-gray-500"> Hrs</span></span>
+            <span className="text-3xl font-black text-indigo-400 block">450 / 2K<span className="text-sm text-gray-500"> Hrs</span></span>
             <span className="text-[10px] text-indigo-400/80 font-bold block">Quarter target progress: 22.5%</span>
           </div>
           <div className="h-14 w-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
@@ -363,7 +381,7 @@ export default function ReportsPage() {
         <div className="bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-sky-500/30 transition-all">
           <div className="space-y-1">
             <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest block">Tổng Sản Lượng Mail</span>
-            <span className="text-3xl font-black text-sky-400 block">{stats.total} <span className="text-xs text-gray-500">Accounts</span></span>
+            <span className="text-3xl font-black text-sky-400 block">{stats.total} <span className="text-sm text-gray-500">Accounts</span></span>
             <span className="text-[10px] text-sky-400/80 font-bold block">{stats.roots} Gốc | {stats.satellites} Vệ tinh | {stats.monetized} BKT</span>
           </div>
           <div className="h-14 w-14 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
@@ -384,9 +402,9 @@ export default function ReportsPage() {
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-white/5 pb-4 mb-4">
             <h3 className="text-md font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
               <TrendingUp size={16} className="text-gold" />
-              Sản lượng tích lũy tuần này
+              Sản lượng tích lũy tháng này (Tính theo Kênh đủ giờ)
             </h3>
-            <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Đơn vị: tài khoản mail</span>
+            <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Đơn vị: Kênh</span>
           </div>
 
           <div className="flex-1 h-56 relative flex items-end">
@@ -443,7 +461,7 @@ export default function ReportsPage() {
         </div>
 
         <div className="flex-1 overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left text-sm whitespace-nowrap min-w-[1000px]">
+          <table className="w-full text-left text-base whitespace-nowrap min-w-[1000px]">
             <thead className="bg-white dark:bg-[#0a0a0a] text-gray-500 border-b border-gray-200 dark:border-white/5 sticky top-0 z-10">
               <tr>
                 <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center w-16">Hạng</th>
@@ -451,17 +469,18 @@ export default function ReportsPage() {
                 <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Tài khoản</th>
                 <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Tổng mail gán</th>
                 <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Hoàn thành</th>
-                <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Tỷ lệ lỗi</th>
-                <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">KPI Đạt được</th>
+                <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Kênh đủ giờ (Tuần)</th>
+                <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Kênh đủ giờ (Tháng)</th>
+                <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">KPI Tuần</th>
                 <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Xếp loại</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-gray-700 dark:text-gray-300">
               {(staffLeaderboard || []).length > 0 ? (
                 (staffLeaderboard || []).map((staff, idx) => (
-                  <tr key={staff.username} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+                  <tr key={staff.username} className="hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02] transition-colors group">
                     <td className="py-4.5 px-6 text-center">
-                      <span className={`h-6 w-6 rounded-lg font-black text-xs inline-flex items-center justify-center border ${
+                      <span className={`h-6 w-6 rounded-lg font-black text-sm inline-flex items-center justify-center border ${
                         staff.rank === 1 ? "bg-gold/20 border-gold/50 text-gold" : 
                         staff.rank === 2 ? "bg-gray-400/20 border-gray-400/30 text-gray-700 dark:text-gray-300" :
                         staff.rank === 3 ? "bg-amber-700/20 border-amber-700/30 text-amber-500" :
@@ -470,15 +489,12 @@ export default function ReportsPage() {
                         {staff.rank}
                       </span>
                     </td>
-                    <td className="py-4.5 px-6 font-black text-gray-900 dark:text-white text-xs">{staff.name}</td>
-                    <td className="py-4.5 px-6 text-xs text-gray-600 dark:text-gray-400 font-mono">{staff.username}</td>
+                    <td className="py-4.5 px-6 font-black text-gray-900 dark:text-white text-sm">{staff.name}</td>
+                    <td className="py-4.5 px-6 text-sm text-gray-600 dark:text-gray-400 font-mono">{staff.username}</td>
                     <td className="py-4.5 px-6 text-center font-bold">{staff.assigned} Mail</td>
                     <td className="py-4.5 px-6 text-center text-green-400 font-bold">{staff.completed} Mail</td>
-                    <td className="py-4.5 px-6 text-center font-mono font-bold">
-                      <span className={staff.errorRate > 0 ? "text-red-400" : "text-gray-500"}>
-                        {staff.errorRate}%
-                      </span>
-                    </td>
+                    <td className="py-4.5 px-6 text-center font-bold text-blue-500">{staff.weeklyChannels}</td>
+                    <td className="py-4.5 px-6 text-center font-bold text-purple-500">{staff.monthlyChannels}</td>
                     <td className="py-4.5 px-6">
                       <div className="flex items-center gap-3 w-40">
                         <div className="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden">
@@ -528,7 +544,7 @@ export default function ReportsPage() {
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Chọn nhân viên</label>
                 <select 
-                  className="h-12 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 text-sm focus:outline-none focus:border-gold/50 cursor-pointer"
+                  className="h-12 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 text-base focus:outline-none focus:border-gold/50 cursor-pointer"
                   value={selectedStaffId}
                   onChange={(e) => setSelectedStaffId(e.target.value)}
                 >
@@ -550,7 +566,7 @@ export default function ReportsPage() {
                          staffList.find(s => s.id === selectedStaffId)?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN")
                       : ""
                   }
-                  className="h-12 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 text-sm font-bold" 
+                  className="h-12 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 text-base font-bold" 
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -559,7 +575,7 @@ export default function ReportsPage() {
                   type="text" 
                   value={baseSalary ? Number(baseSalary).toLocaleString("vi-VN") : ""}
                   onChange={(e) => setBaseSalary(e.target.value.replace(/\D/g, ""))}
-                  className="h-12 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 text-sm focus:outline-none focus:border-gold/50 font-bold" 
+                  className="h-12 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 text-base focus:outline-none focus:border-gold/50 font-bold" 
                   placeholder="Ví dụ: 5.000.000"
                 />
               </div>
@@ -569,7 +585,7 @@ export default function ReportsPage() {
                   type="text" 
                   value={allowance ? Number(allowance).toLocaleString("vi-VN") : ""}
                   onChange={(e) => setAllowance(e.target.value.replace(/\D/g, ""))}
-                  className="h-12 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 text-sm focus:outline-none focus:border-gold/50 font-bold" 
+                  className="h-12 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 text-base focus:outline-none focus:border-gold/50 font-bold" 
                   placeholder="Ví dụ: 500.000"
                 />
               </div>
@@ -591,7 +607,7 @@ export default function ReportsPage() {
               <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">Bảng Tổng Hợp Lương (Payroll Table)</h3>
             </div>
             <div className="flex-1 overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left text-sm whitespace-nowrap min-w-[1000px]">
+              <table className="w-full text-left text-base whitespace-nowrap min-w-[1000px]">
                 <thead className="bg-white dark:bg-[#0a0a0a] text-gray-500 border-b border-gray-200 dark:border-white/5 sticky top-0 z-10">
                   <tr>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Nhân viên</th>
@@ -606,9 +622,9 @@ export default function ReportsPage() {
                 <tbody className="divide-y divide-white/5 text-gray-700 dark:text-gray-300">
                   {(payrollRecords || []).length > 0 ? (
                     (payrollRecords || []).map((record) => (
-                      <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
-                        <td className="py-4.5 px-6 font-black text-gray-900 dark:text-white text-xs">{record.name}</td>
-                        <td className="py-4.5 px-6 text-xs text-gray-600 dark:text-gray-400 font-bold">
+                      <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02] transition-colors group">
+                        <td className="py-4.5 px-6 font-black text-gray-900 dark:text-white text-sm">{record.name}</td>
+                        <td className="py-4.5 px-6 text-sm text-gray-600 dark:text-gray-400 font-bold">
                           {record.role === "01" ? "ADMIN" : record.role === "02" ? "QL CÔNG VIỆC" : record.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN"}
                         </td>
                         <td className="py-4.5 px-6 text-right font-mono text-gray-600 dark:text-gray-400">{formatVND(record.baseSalary)}</td>
@@ -618,7 +634,7 @@ export default function ReportsPage() {
                           </span>
                         </td>
                         <td className="py-4.5 px-6 text-right font-mono text-gray-600 dark:text-gray-400">{formatVND(record.allowance)}</td>
-                        <td className="py-4.5 px-6 text-right font-mono font-black text-gold text-sm">{formatVND(record.totalReceived)}</td>
+                        <td className="py-4.5 px-6 text-right font-mono font-black text-gold text-base">{formatVND(record.totalReceived)}</td>
                         <td className="py-4.5 px-6 text-right text-[10px] text-gray-500 font-bold">{new Date(record.timestamp).toLocaleString("vi-VN")}</td>
                       </tr>
                     ))

@@ -633,14 +633,14 @@ export default function SatelliteBatchesPage() {
               <Layers className="text-gold" size={28} />
               Lô Mail Vệ Tinh - Chọn Nhân Sự
             </h2>
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mt-1">
+            <p className="text-sm text-gray-500 font-medium uppercase tracking-widest mt-1">
               Phân phối lô mail và gán cho nhân sự xử lý kênh vệ tinh
             </p>
           </div>
         </div>
 
         {/* Filter Bar */}
-        <div className="flex bg-white dark:bg-sidebar/50 border border-gray-200 dark:border-white/5 p-4 rounded-[20px] flex-shrink-0 items-center">
+        <div className="flex bg-white dark:bg-sidebar/50 border border-gray-200 dark:border-white/5 p-6 rounded-[20px] flex-shrink-0 items-center">
           {/* Filters */}
           <div className="flex items-center gap-3">
             <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">Lọc Trạng Thái:</span>
@@ -703,15 +703,15 @@ export default function SatelliteBatchesPage() {
                     setSelectedStaff(staff);
                     setSelectedStaffToAssign(staff.id);
                   }}
-                  className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.01] hover:bg-gray-50 dark:hover:bg-white/[0.03] border border-gray-200 dark:border-white/5 hover:border-gold/30 transition-all cursor-pointer group px-4"
+                  className="flex items-center justify-between p-6 rounded-2xl bg-white dark:bg-zinc-900/[0.01] hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.03] border border-gray-200 dark:border-white/5 hover:border-gold/30 transition-all cursor-pointer group px-4"
                 >
                   {/* Column 1: Info */}
                   <div className="w-1/3 flex items-center gap-3">
-                    <div className="h-10 w-10 bg-gold/15 text-gold border border-gold/20 rounded-xl flex items-center justify-center font-black text-sm uppercase shrink-0">
+                    <div className="h-10 w-10 bg-gold/15 text-gold border border-gold/20 rounded-xl flex items-center justify-center font-black text-base uppercase shrink-0">
                       {staff.name.charAt(0)}
                     </div>
                     <div className="truncate">
-                      <p className="text-sm font-black text-gray-900 dark:text-white group-hover:text-gold transition-colors truncate uppercase">{staff.name}</p>
+                      <p className="text-base font-black text-gray-900 dark:text-white group-hover:text-gold transition-colors truncate uppercase">{staff.name}</p>
                       <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
                         @{staff.username} {hasAssignment ? `(${(uniqueBatches || []).length} lô - ${(staffMails || []).length} mail)` : "(Chưa gán)"}
                       </p>
@@ -788,7 +788,7 @@ export default function SatelliteBatchesPage() {
                 <Layers className="text-gold" size={28} />
                 Lô Mail - {selectedStaff.name}
               </h2>
-              <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mt-1">
+              <p className="text-sm text-gray-500 font-medium uppercase tracking-widest mt-1">
                 Nhân sự: <span className="text-gray-900 dark:text-white font-black">{selectedStaff.name} ({selectedStaff.username})</span> | Trạng thái: <span className={isOnline ? "text-green-500 font-bold" : "text-gray-500 font-bold"}>{isOnline ? "🟢 Online" : "🔴 Offline"}</span>
               </p>
             </div>
@@ -799,7 +799,7 @@ export default function SatelliteBatchesPage() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={16} />
               <input 
                 placeholder="Tìm kiếm Lô..."
-                className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl pl-10 pr-4 h-10 text-xs text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-48"
+                className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl pl-10 pr-4 h-10 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-48"
                 type="text" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -808,7 +808,7 @@ export default function SatelliteBatchesPage() {
 
             <button
               onClick={handleCreateBatch}
-              className="bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-xs tracking-widest px-5 h-10 rounded-xl transition-all shadow-lg shadow-gold/25 flex items-center gap-2 shrink-0"
+              className="bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest px-5 h-10 rounded-xl transition-all shadow-lg shadow-gold/25 flex items-center gap-2 shrink-0"
             >
               <PlusCircle size={16} />
               Tạo thêm lô
@@ -893,7 +893,7 @@ export default function SatelliteBatchesPage() {
             initial={{ opacity: 0, y: -20, x: "-50%" }} 
             animate={{ opacity: 1, y: 30, x: "-50%" }} 
             exit={{ opacity: 0, y: -20, x: "-50%" }}
-            className="fixed top-0 left-1/2 z-[200] bg-gold px-6 py-3 rounded-full text-sidebar font-black text-sm shadow-2xl flex items-center gap-2"
+            className="fixed top-0 left-1/2 z-[200] bg-gold px-6 py-3 rounded-full text-sidebar font-black text-base shadow-2xl flex items-center gap-2"
           >
             <CheckCircle2 size={18} /> {toastMsg}
           </motion.div>
@@ -935,7 +935,7 @@ export default function SatelliteBatchesPage() {
                     setSelectedBatch(null);
                     setSelectedChunkId("");
                   }}
-                  className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all border border-gray-300 dark:border-white/10"
+                  className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white dark:bg-zinc-900/5 text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all border border-gray-300 dark:border-white/10"
                 >
                   <X size={20} />
                 </button>
@@ -948,7 +948,7 @@ export default function SatelliteBatchesPage() {
                 <div className="lg:col-span-5 flex flex-col justify-between bg-white dark:bg-sidebar/30 border border-gray-200 dark:border-white/5 rounded-3xl p-6">
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-sm font-black text-gold uppercase tracking-widest mb-1">Gán Phân Phối Mail Cuốn Chiếu</h4>
+                      <h4 className="text-base font-black text-gold uppercase tracking-widest mb-1">Gán Phân Phối Mail Cuốn Chiếu</h4>
                       <p className="text-[10px] text-gray-500 font-medium">Giao gói 17 mail cuốn chiếu từ kho unassigned cho nhân sự</p>
                     </div>
 
@@ -956,11 +956,11 @@ export default function SatelliteBatchesPage() {
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">Nhân sự nhận việc</label>
                       <div className="flex items-center gap-3 bg-black/40 border border-gray-200 dark:border-white/5 rounded-2xl h-14 px-4">
-                        <div className="h-7 w-7 bg-gold/15 text-gold border border-gold/20 rounded-lg flex items-center justify-center font-black text-xs uppercase shrink-0">
+                        <div className="h-7 w-7 bg-gold/15 text-gold border border-gold/20 rounded-lg flex items-center justify-center font-black text-sm uppercase shrink-0">
                           {selectedStaff.name.charAt(0)}
                         </div>
                         <div className="truncate">
-                          <p className="text-xs font-black text-gray-900 dark:text-white uppercase truncate">{selectedStaff.name}</p>
+                          <p className="text-sm font-black text-gray-900 dark:text-white uppercase truncate">{selectedStaff.name}</p>
                           <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">@{selectedStaff.username}</p>
                         </div>
                       </div>
@@ -972,7 +972,7 @@ export default function SatelliteBatchesPage() {
                       <select
                         value={selectedChunkId}
                         onChange={(e) => setSelectedChunkId(e.target.value)}
-                        className="w-full bg-black/40 border border-gray-300 dark:border-white/10 rounded-2xl h-14 px-4 text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider outline-none focus:border-gold/50 cursor-pointer transition-all"
+                        className="w-full bg-black/40 border border-gray-300 dark:border-white/10 rounded-2xl h-14 px-4 text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider outline-none focus:border-gold/50 cursor-pointer transition-all"
                       >
                         <option value="" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">--- Chọn dải mail ---</option>
                         {(unassignedMailChunks || []).map((chunk) => (
@@ -989,7 +989,7 @@ export default function SatelliteBatchesPage() {
                     <button
                       onClick={handleAssignBatchCuonChieu}
                       disabled={!selectedStaffToAssign || !selectedChunkId}
-                      className="w-full h-14 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-xs tracking-widest rounded-2xl transition-all shadow-xl shadow-gold/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="w-full h-14 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest rounded-2xl transition-all shadow-xl shadow-gold/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       <UserCheck size={16} />
                       Xác nhận gán cuốn chiếu
@@ -999,13 +999,13 @@ export default function SatelliteBatchesPage() {
                   {/* If batch already has assignments, allow release */}
                   {(batchMails || []).length > 0 && (
                     <div className="pt-6 mt-6 border-t border-gray-200 dark:border-white/5 space-y-3">
-                      <div className="flex items-center justify-between text-xs font-bold">
+                      <div className="flex items-center justify-between text-sm font-bold">
                         <span className="text-gray-500">Đang xử lý:</span>
                         <span className="text-gold font-black uppercase">{batchMails[0].assignedTo || "---"}</span>
                       </div>
                       <button
                         onClick={handleUnassignBatch}
-                        className="w-full h-12 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white border border-red-500/20 font-black uppercase text-xs tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2"
+                        className="w-full h-12 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white border border-red-500/20 font-black uppercase text-sm tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2"
                       >
                         <Trash2 size={16} />
                         Hủy gán & giải phóng lô
@@ -1017,12 +1017,12 @@ export default function SatelliteBatchesPage() {
                 {/* Right Column: Mail list inside batch */}
                 <div className="lg:col-span-7 flex flex-col justify-between bg-black/20 border border-gray-200 dark:border-white/5 rounded-3xl p-6 min-h-0">
                   <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                    <span className="text-xs font-black text-gray-600 dark:text-gray-400 uppercase tracking-widest">
+                    <span className="text-sm font-black text-gray-600 dark:text-gray-400 uppercase tracking-widest">
                       Danh sách tài khoản ({(batchMails || []).length} mail)
                     </span>
                     <button
                       onClick={() => setShowAddMailModal(true)}
-                      className="text-xs font-black text-gold hover:underline flex items-center gap-1.5"
+                      className="text-sm font-black text-gold hover:underline flex items-center gap-1.5"
                     >
                       + Gán lẻ thủ công
                     </button>
@@ -1034,7 +1034,7 @@ export default function SatelliteBatchesPage() {
                         <div className="flex items-center gap-3">
                           <span className="text-[10px] text-gray-600 font-bold font-mono">STT #{mail.id - 1000}</span>
                           <div>
-                            <p className="text-xs font-black text-gray-900 dark:text-white">{mail.email}</p>
+                            <p className="text-sm font-black text-gray-900 dark:text-white">{mail.email}</p>
                             <p className="text-[9px] text-gray-500">Recovery: {mail.recovery || "---"}</p>
                           </div>
                         </div>
@@ -1054,7 +1054,7 @@ export default function SatelliteBatchesPage() {
                     {(batchMails || []).length === 0 && (
                       <div className="h-full flex flex-col items-center justify-center text-center py-20">
                         <Mail className="text-gray-600 mb-3 animate-pulse" size={32} />
-                        <p className="text-xs text-gray-500 uppercase font-black tracking-widest">
+                        <p className="text-sm text-gray-500 uppercase font-black tracking-widest">
                           Lô trống, hãy gán cuốn chiếu ở bên trái
                         </p>
                       </div>
@@ -1071,7 +1071,7 @@ export default function SatelliteBatchesPage() {
                     setSelectedBatch(null);
                     setSelectedChunkId("");
                   }}
-                  className="h-12 px-8 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 hover:border-gold/50 text-gray-900 dark:text-white text-xs font-black uppercase tracking-widest rounded-2xl transition-all"
+                  className="h-12 px-8 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 hover:border-gold/50 text-gray-900 dark:text-white text-sm font-black uppercase tracking-widest rounded-2xl transition-all"
                 >
                   Đóng cấu hình
                 </button>
@@ -1098,7 +1098,7 @@ export default function SatelliteBatchesPage() {
             >
               <div>
                 <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight mb-2">Thêm Mail Từ Kho Vệ Tinh</h3>
-                <p className="text-xs text-gray-500 mb-6">Chọn các mail chưa được gán vào lô nào dưới đây:</p>
+                <p className="text-sm text-gray-500 mb-6">Chọn các mail chưa được gán vào lô nào dưới đây:</p>
 
                 <div className="space-y-2 overflow-y-auto max-h-[40vh] pr-2 custom-scrollbar">
                   {(unassignedSats || []).map((m) => {
@@ -1126,7 +1126,7 @@ export default function SatelliteBatchesPage() {
                             className="accent-gold h-4 w-4"
                           />
                           <div>
-                            <p className="text-xs font-black">{m.email}</p>
+                            <p className="text-sm font-black">{m.email}</p>
                             <p className="text-[9px] opacity-60">STT: #{m.id - 1000}</p>
                           </div>
                         </div>
@@ -1134,7 +1134,7 @@ export default function SatelliteBatchesPage() {
                     );
                   })}
                   {(unassignedSats || []).length === 0 && (
-                    <p className="text-center py-10 text-xs text-gray-600 uppercase font-black tracking-widest">Không còn mail trống nào trong kho</p>
+                    <p className="text-center py-10 text-sm text-gray-600 uppercase font-black tracking-widest">Không còn mail trống nào trong kho</p>
                   )}
                 </div>
               </div>
@@ -1145,14 +1145,14 @@ export default function SatelliteBatchesPage() {
                     setShowAddMailModal(false);
                     setSelectedMailsToAdd([]);
                   }}
-                  className="flex-1 h-12 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white font-bold uppercase text-xs tracking-widest rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                  className="flex-1 h-12 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white font-bold uppercase text-sm tracking-widest rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
                 >
                   Hủy
                 </button>
                 <button
                   onClick={handleAddMailsToBatch}
                   disabled={(selectedMailsToAdd || []).length === 0}
-                  className="flex-1 h-12 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-xs tracking-widest rounded-xl transition-all shadow-xl shadow-gold/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex-1 h-12 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest rounded-xl transition-all shadow-xl shadow-gold/20 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Xác nhận thêm
                 </button>
@@ -1189,11 +1189,11 @@ export default function SatelliteBatchesPage() {
                 </div>
               </div>
 
-              <div className="space-y-4 mb-8 text-sm text-gray-700 dark:text-gray-300 font-medium relative z-10 leading-relaxed">
+              <div className="space-y-4 mb-8 text-base text-gray-700 dark:text-gray-300 font-medium relative z-10 leading-relaxed">
                 <p>
                   Bạn có chắc chắn muốn xóa Lô <span className="text-gold font-black uppercase">"{batchToDelete.name}"</span>?
                 </p>
-                <p className="text-xs text-red-400 bg-red-500/5 border border-red-500/10 rounded-xl p-3">
+                <p className="text-sm text-red-400 bg-red-500/5 border border-red-500/10 rounded-xl p-3">
                   ⚠️ Tất cả các tài khoản mail trong lô này sẽ ngay lập tức được giải phóng và trả về kho vệ tinh unassigned.
                 </p>
               </div>
@@ -1201,13 +1201,13 @@ export default function SatelliteBatchesPage() {
               <div className="flex gap-4 relative z-10">
                 <button
                   onClick={() => setBatchToDelete(null)}
-                  className="flex-1 h-12 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white font-bold uppercase text-xs tracking-widest rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                  className="flex-1 h-12 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white font-bold uppercase text-sm tracking-widest rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
                 >
                   Hủy bỏ
                 </button>
                 <button
                   onClick={confirmDeleteBatch}
-                  className="flex-1 h-12 bg-red-500 hover:bg-red-600 text-gray-900 dark:text-white font-black uppercase text-xs tracking-widest rounded-xl transition-all shadow-lg shadow-red-500/25"
+                  className="flex-1 h-12 bg-red-500 hover:bg-red-600 text-gray-900 dark:text-white font-black uppercase text-sm tracking-widest rounded-xl transition-all shadow-lg shadow-red-500/25"
                 >
                   Xác nhận xóa
                 </button>
@@ -1243,11 +1243,11 @@ export default function SatelliteBatchesPage() {
                 </div>
               </div>
 
-              <div className="space-y-4 mb-8 text-sm text-gray-700 dark:text-gray-300 font-medium relative z-10 leading-relaxed">
+              <div className="space-y-4 mb-8 text-base text-gray-700 dark:text-gray-300 font-medium relative z-10 leading-relaxed">
                 <p>
                   Bạn có chắc muốn xóa toàn bộ link kênh của các mail vệ tinh trong Lô <span className="text-gold font-black uppercase">"{batchToReset.name}"</span> không?
                 </p>
-                <p className="text-xs text-blue-400 bg-blue-500/5 border border-blue-500/10 rounded-xl p-3">
+                <p className="text-sm text-blue-400 bg-blue-500/5 border border-blue-500/10 rounded-xl p-3">
                   ℹ️ Tất cả link kênh, tên kênh, trạng thái đủ giờ của mail trong lô này sẽ bị xóa trắng và đưa về trạng thái "Chưa làm".
                 </p>
               </div>
@@ -1255,13 +1255,13 @@ export default function SatelliteBatchesPage() {
               <div className="flex gap-4 relative z-10">
                 <button
                   onClick={() => setBatchToReset(null)}
-                  className="flex-1 h-12 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white font-bold uppercase text-xs tracking-widest rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                  className="flex-1 h-12 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white font-bold uppercase text-sm tracking-widest rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
                 >
                   Hủy bỏ
                 </button>
                 <button
                   onClick={confirmResetBatchLinks}
-                  className="flex-1 h-12 bg-blue-500 hover:bg-blue-600 text-gray-900 dark:text-white font-black uppercase text-xs tracking-widest rounded-xl transition-all shadow-lg shadow-blue-500/25"
+                  className="flex-1 h-12 bg-blue-500 hover:bg-blue-600 text-gray-900 dark:text-white font-black uppercase text-sm tracking-widest rounded-xl transition-all shadow-lg shadow-blue-500/25"
                 >
                   Xác nhận Reset
                 </button>

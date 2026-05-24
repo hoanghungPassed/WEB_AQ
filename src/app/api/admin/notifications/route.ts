@@ -7,8 +7,8 @@ export async function GET() {
   try {
     await dbConnect();
     const notifications = await Notification.find({})
-      .populate('author', 'name username role')
-      .populate('comments.userId', 'name username role')
+      .populate('author', 'name username role avatar')
+      .populate('comments.userId', 'name username role avatar')
       .sort({ createdAt: -1 });
     return NextResponse.json(notifications || []);
   } catch (error: unknown) {
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     await dbConnect();
     const body = await req.json();
     const newPost = await Notification.create(body);
-    const populated = await newPost.populate('author', 'name username role');
+    const populated = await newPost.populate('author', 'name username role avatar');
     return NextResponse.json({ success: true, data: populated }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -53,8 +53,8 @@ export async function PUT(req: Request) {
 
     await post.save();
     const populated = await Notification.findById(id)
-      .populate('author', 'name username role')
-      .populate('comments.userId', 'name username role');
+      .populate('author', 'name username role avatar')
+      .populate('comments.userId', 'name username role avatar');
       
     return NextResponse.json({ success: true, data: populated });
   } catch (error: any) {

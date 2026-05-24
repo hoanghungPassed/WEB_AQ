@@ -143,7 +143,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
       icon: <BarChart3 size={24} />,
       subItems: [
         { title: "Nhật ký hoạt động", href: "/admin/stats/logs" },
-        { title: "Thống kê", href: "/admin/stats/report" },
+        { title: "Thống Kê & Nhân Sự", href: "/admin/stats/report" },
       ],
     });
   }
@@ -217,7 +217,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
                 <button
                   onClick={() => toggleMenu(item.title)}
                   className={cn(
-                    "group flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-sm font-black uppercase tracking-widest transition-all hover:bg-gray-50 dark:hover:bg-white/[0.03]",
+                    "group flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-base font-black uppercase tracking-widest transition-all hover:bg-gray-50 dark:hover:bg-white/[0.03]",
                     (isOpen || isActive) && !isCollapsed ? "text-gold bg-gray-50 dark:bg-white/[0.03]" : "text-gray-500"
                   )}
                 >
@@ -237,7 +237,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
                 <Link
                   href={item.href || "#"}
                   className={cn(
-                    "group flex items-center gap-4 rounded-2xl px-4 py-3.5 text-sm font-black uppercase tracking-widest transition-all hover:bg-gray-50 dark:hover:bg-white/[0.03]",
+                    "group flex items-center gap-4 rounded-2xl px-4 py-3.5 text-base font-black uppercase tracking-widest transition-all hover:bg-gray-50 dark:hover:bg-white/[0.03]",
                     pathname === item.href ? "bg-gold/5 text-gold shadow-lg shadow-gold/5" : "text-gray-500"
                   )}
                 >
@@ -267,7 +267,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
                             key={sub.title} href={sub.href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all hover:text-gold text-gray-600 hover:bg-gray-50 dark:hover:bg-white/[0.02] flex items-center"
+                            className="block rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all hover:text-gold text-gray-600 hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02] flex items-center"
                           >
                             {subContent}
                           </a>
@@ -294,7 +294,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
       </nav>
 
       {/* User Profile at bottom */}
-      <div className="border-t border-gray-200 dark:border-white/5 p-4 bg-white/[0.01] space-y-3">
+      <div className="border-t border-gray-200 dark:border-white/5 p-4 bg-white dark:bg-zinc-900/[0.01] space-y-3">
 
         <div className={cn(
           "flex items-center justify-between rounded-3xl p-3 transition-colors hover:bg-gray-100 dark:hover:bg-white/5 group",
@@ -311,7 +311,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
             {!isCollapsed && (
               <div className="flex flex-col overflow-hidden">
                 <span className="text-[10px] font-black text-gold uppercase tracking-[0.2em]">{getRoleLabel(user?.role)}</span>
-                <span className="text-sm font-black text-gray-900 dark:text-white truncate">{user?.name || "GUEST"}</span>
+                <span className="text-base font-black text-gray-900 dark:text-white truncate">{user?.name || "GUEST"}</span>
                 <span className="text-[9px] text-gray-600 font-bold uppercase tracking-tighter truncate">@{user?.username || "unknown"}</span>
               </div>
             )}

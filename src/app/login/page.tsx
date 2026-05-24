@@ -64,6 +64,12 @@ function LoginForm() {
     e.preventDefault();
     setError("");
     setMessage("");
+
+    if (localStorage.getItem(`access_response_${username}`) === "DENIED") {
+      setError("Yêu cầu đăng nhập đã bị từ chối");
+      return;
+    }
+
     setIsLoading(true);
 
     try {

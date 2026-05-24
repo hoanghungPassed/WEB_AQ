@@ -626,11 +626,19 @@ export default function AdminLayout({
       const nowTime = new Date();
       const currentTotalMinutes = nowTime.getHours() * 60 + nowTime.getMinutes();
       
-      // We are now doing auto-checkout via the API (e.g. cron or /api/admin/attendance)
-      // and login blocking via /api/auth/login, so we don't modify localStorage here.
-      if (currentTotalMinutes >= closeTimeMins) {
-         // Optionally you could call fetch('/api/admin/attendance', { method: 'POST' }) here,
-         // but a cron job is better for production. 
+      if (currentTotalMinutes >= 1050) {
+        const todayStr = nowTime.toISOString().split("T")[0];
+        const doneFlag = localStorage.getItem(`auto_checkout_done_${todayStr}`);
+        if (!doneFlag) {
+          fetch('/api/admin/attendance/auto-checkout', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                localStorage.setItem(`auto_checkout_done_${todayStr}`, "true");
+              }
+            })
+            .catch(console.error);
+        }
       }
     };
 
@@ -1272,7 +1280,7 @@ export default function AdminLayout({
       <div className="flex h-screen w-screen items-center justify-center bg-background text-gray-900 dark:text-white">
         <div className="flex flex-col items-center gap-4">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-gold border-t-transparent"></div>
-          <p className="font-black uppercase tracking-widest text-gold text-sm">Đang tải thông tin...</p>
+          <p className="font-black uppercase tracking-widest text-gold text-base">Đang tải thông tin...</p>
         </div>
       </div>
     );
@@ -1310,7 +1318,7 @@ export default function AdminLayout({
                   initial={{ opacity: 0, y: -100, x: "-50%" }}
                   animate={{ opacity: 1, y: 30, x: "-50%" }}
                   exit={{ opacity: 0, y: -100, x: "-50%" }}
-                  className="fixed top-0 left-1/2 z-[9999] bg-gold text-sidebar px-8 py-4 rounded-[24px] shadow-2xl flex items-center gap-4 font-black text-sm uppercase tracking-widest border border-gray-400 dark:border-white/20"
+                  className="fixed top-0 left-1/2 z-[9999] bg-gold text-sidebar px-8 py-4 rounded-[24px] shadow-2xl flex items-center gap-4 font-black text-base uppercase tracking-widest border border-gray-400 dark:border-white/20"
                 >
                   <Bell size={24} className="animate-bounce" /> {realtimeToast}
                 </motion.div>
@@ -1335,7 +1343,7 @@ export default function AdminLayout({
                       <h4 className="text-lg font-black text-gray-900 dark:text-white leading-tight">{roleUpdateNotif.title}</h4>
                     </div>
                   </div>
-                  <p className="mt-4 text-gray-600 dark:text-gray-400 text-sm font-medium leading-relaxed">{roleUpdateNotif.message}</p>
+                  <p className="mt-4 text-gray-600 dark:text-gray-400 text-base font-medium leading-relaxed">{roleUpdateNotif.message}</p>
                   <div className="mt-4 h-1 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
                     <motion.div initial={{ width: "100%" }} animate={{ width: 0 }} transition={{ duration: 5 }} className="h-full bg-gold" />
                   </div>
@@ -1356,7 +1364,7 @@ export default function AdminLayout({
                       <p className="text-lg font-black text-gray-900 dark:text-white">{pendingRequests[0].staffName}</p>
                     </div>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-6 font-medium">Nhân viên này đang xin phép truy cập hệ thống ngoài giờ làm việc.</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-base mb-6 font-medium">Nhân viên này đang xin phép truy cập hệ thống ngoài giờ làm việc.</p>
                   <div className="flex gap-3">
                     <button
                       onClick={() => handleApprove(pendingRequests[0])}
@@ -1400,13 +1408,13 @@ export default function AdminLayout({
                   <Clock size={40} className="animate-pulse" />
                 </div>
                 <h2 className="text-3xl font-black uppercase tracking-tighter text-gray-900 dark:text-white">Đang chờ phê duyệt</h2>
-                <p className="text-gray-700 dark:text-gray-300 text-sm font-medium max-w-md mx-auto leading-relaxed">
+                <p className="text-gray-700 dark:text-gray-300 text-base font-medium max-w-md mx-auto leading-relaxed">
                   Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.
                 </p>
                 <div className="pt-6">
                   <button
                     onClick={handleLogout}
-                    className="px-8 h-12 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white text-red-500 font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg shadow-red-500/5"
+                    className="px-8 h-12 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white text-red-500 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg shadow-red-500/5"
                   >
                     Đăng xuất
                   </button>
@@ -1433,7 +1441,7 @@ export default function AdminLayout({
                       <ShieldAlert size={40} className="animate-pulse" />
                     </div>
                     <h2 className="text-3xl font-black uppercase tracking-tighter text-red-500">Yêu cầu bị từ chối</h2>
-                    <p className="text-gray-700 dark:text-gray-300 text-sm font-medium max-w-md mx-auto leading-relaxed">
+                    <p className="text-gray-700 dark:text-gray-300 text-base font-medium max-w-md mx-auto leading-relaxed">
                       Yêu cầu giải trình hoặc nộp phạt của bạn đã bị Admin/Quản lý từ chối. Vui lòng kiểm tra lại thông tin và thử gửi lại.
                     </p>
                     <div className="pt-6 flex gap-3 justify-center">
@@ -1456,13 +1464,13 @@ export default function AdminLayout({
                             }
                           }
                         }}
-                        className="px-8 h-12 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 hover:border-gold hover:text-gold text-gray-900 dark:text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg"
+                        className="px-8 h-12 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 hover:border-gold hover:text-gold text-gray-900 dark:text-white font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg"
                       >
                         Thử gửi lại
                       </button>
                       <button
                         onClick={handleLogout}
-                        className="px-8 h-12 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white text-red-500 font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg shadow-red-500/5"
+                        className="px-8 h-12 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white text-red-500 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg shadow-red-500/5"
                       >
                         Đăng xuất
                       </button>
@@ -1479,7 +1487,7 @@ export default function AdminLayout({
                 </div>
 
                 <h2 className="text-3xl font-black uppercase tracking-tighter text-gray-900 dark:text-white mb-2">Báo cáo đi muộn</h2>
-                <p className="text-gray-600 dark:text-gray-400 text-sm font-medium max-w-md mx-auto leading-relaxed mb-6">
+                <p className="text-gray-600 dark:text-gray-400 text-base font-medium max-w-md mx-auto leading-relaxed mb-6">
                   Hôm nay bạn check-in lúc <span className="text-red-400 font-bold font-mono">
                     {user ? new Date(localStorage.getItem(`checkin_time_${user?.username}`) || "").toLocaleTimeString("vi-VN") : "---"}
                   </span>, đi muộn <span className="text-red-400 font-bold font-mono">{formatLateMins(lateMins)}</span> so với giờ quy định (8:00 AM).
@@ -1488,7 +1496,7 @@ export default function AdminLayout({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center border-t border-b border-gray-200 dark:border-white/5 py-8 my-6 text-left">
                   {/* QR Code and Payment details */}
                   <div className="flex flex-col items-center justify-center border-r border-gray-200 dark:border-white/5 pr-0 md:pr-6 pb-6 md:pb-0">
-                    <div className="bg-white p-4 rounded-2xl shadow-xl border-2 border-gold/40 relative">
+                    <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-xl border-2 border-gold/40 relative">
                       <img
                         src={`https://img.vietqr.io/image/${bankConfig?.bankBin || bankConfig?.bankName || "MB"}-${bankConfig?.accountNumber || "686820388888"}-compact2.png?amount=${fineAmount}&addInfo=${user?.username || 'Guest'}_Nop_Phat&accountName=${encodeURIComponent(bankConfig?.accountHolder || "CÔNG TY TNHH AQ MEDIA")}`}
                         alt="VietQR Fine Code"
@@ -1501,15 +1509,15 @@ export default function AdminLayout({
                   <div className="space-y-4">
                     <div>
                       <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Ngân hàng thụ hưởng</span>
-                      <span className="text-sm font-black text-gray-900 dark:text-white">{bankConfig?.bankFullName || `${bankConfig?.bankName || "MB"} Bank`}</span>
+                      <span className="text-base font-black text-gray-900 dark:text-white">{bankConfig?.bankFullName || `${bankConfig?.bankName || "MB"} Bank`}</span>
                     </div>
                     <div>
                       <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Số tài khoản</span>
-                      <span className="text-sm font-black text-gold font-mono">{bankConfig?.accountNumber || "686820388888"}</span>
+                      <span className="text-base font-black text-gold font-mono">{bankConfig?.accountNumber || "686820388888"}</span>
                     </div>
                     <div>
                       <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Tên người nhận</span>
-                      <span className="text-sm font-black text-gray-900 dark:text-white">{bankConfig?.accountHolder || "CÔNG TY TNHH AQ MEDIA"}</span>
+                      <span className="text-base font-black text-gray-900 dark:text-white">{bankConfig?.accountHolder || "CÔNG TY TNHH AQ MEDIA"}</span>
                     </div>
                     <div>
                       <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Số tiền nộp phạt</span>
@@ -1519,7 +1527,7 @@ export default function AdminLayout({
                     </div>
                     <div>
                       <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Nội dung chuyển khoản</span>
-                      <span className="text-xs font-bold text-gray-700 dark:text-gray-300 font-mono bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 px-3 py-1.5 rounded-lg block overflow-hidden text-ellipsis whitespace-nowrap">
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300 font-mono bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 px-3 py-1.5 rounded-lg block overflow-hidden text-ellipsis whitespace-nowrap">
                         {user?.username.toUpperCase()}_NOP_PHAT
                       </span>
                     </div>
@@ -1533,7 +1541,7 @@ export default function AdminLayout({
                     value={excuseReason}
                     onChange={(e) => setExcuseReason(e.target.value)}
                     placeholder="Nhập lý do đi muộn của bạn tại đây (ví dụ: tắc đường, hỏng xe, việc gia đình đột xuất...)"
-                    className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl p-4 text-xs text-gray-900 dark:text-white placeholder:text-gray-600 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/5 transition-all resize-none"
+                    className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl p-6 text-sm text-gray-900 dark:text-white placeholder:text-gray-600 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/5 transition-all resize-none"
                     rows={3}
                   />
                 </div>
@@ -1576,7 +1584,7 @@ export default function AdminLayout({
                         setTimeout(() => setFineSuccessToast(null), 5000);
                       }
                     }}
-                    className={`flex-1 h-14 font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-lg ${finePaymentPending ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 cursor-not-allowed" : "bg-gold text-sidebar hover:bg-white hover:text-sidebar shadow-gold/25"}`}
+                    className={`flex-1 h-14 font-black text-base uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-lg ${finePaymentPending ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 cursor-not-allowed" : "bg-gold text-sidebar hover:bg-white dark:bg-zinc-900 hover:text-sidebar shadow-gold/25"}`}
                   >
                     {finePaymentPending ? "Chờ duyệt..." : "Đã chuyển khoản"}
                   </button>
@@ -1622,14 +1630,14 @@ export default function AdminLayout({
                         setTimeout(() => setFineSuccessToast(null), 5000);
                       }
                     }}
-                    className="flex-1 h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 hover:border-gold/50 text-gray-900 dark:text-white font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300"
+                    className="flex-1 h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 hover:border-gold/50 text-gray-900 dark:text-white font-black text-base uppercase tracking-widest rounded-2xl transition-all duration-300"
                   >
                     Gửi yêu cầu
                   </button>
 
                   <button
                     onClick={handleLogout}
-                    className="h-14 px-6 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white text-red-500 font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300"
+                    className="h-14 px-6 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white text-red-500 font-black text-base uppercase tracking-widest rounded-2xl transition-all duration-300"
                   >
                     Đăng xuất
                   </button>
@@ -1648,7 +1656,7 @@ export default function AdminLayout({
             initial={{ opacity: 0, y: -100, x: "-50%" }}
             animate={{ opacity: 1, y: 30, x: "-50%" }}
             exit={{ opacity: 0, y: -100, x: "-50%" }}
-            className="fixed top-0 left-1/2 z-[9999] bg-green-500 text-gray-900 dark:text-white px-8 py-4 rounded-[24px] shadow-2xl flex items-center gap-4 font-black text-sm uppercase tracking-widest border border-gray-400 dark:border-white/20"
+            className="fixed top-0 left-1/2 z-[9999] bg-green-500 text-gray-900 dark:text-white px-8 py-4 rounded-[24px] shadow-2xl flex items-center gap-4 font-black text-base uppercase tracking-widest border border-gray-400 dark:border-white/20"
           >
             <CheckCircle2 size={24} className="animate-bounce" /> {fineSuccessToast}
           </motion.div>
@@ -1662,7 +1670,7 @@ export default function AdminLayout({
             initial={{ opacity: 0, y: -100, x: "-50%" }}
             animate={{ opacity: 1, y: 30, x: "-50%" }}
             exit={{ opacity: 0, y: -100, x: "-50%" }}
-            className="fixed top-0 left-1/2 z-[9999] bg-gold text-sidebar px-8 py-4 rounded-[24px] shadow-2xl flex items-center gap-4 font-black text-sm uppercase tracking-widest border border-gray-400 dark:border-white/20"
+            className="fixed top-0 left-1/2 z-[9999] bg-gold text-sidebar px-8 py-4 rounded-[24px] shadow-2xl flex items-center gap-4 font-black text-base uppercase tracking-widest border border-gray-400 dark:border-white/20"
           >
             <CheckCircle2 size={24} className="animate-bounce" /> {copiedPhoneToast}
           </motion.div>
@@ -1708,7 +1716,7 @@ export default function AdminLayout({
               <p className="text-gray-600 dark:text-gray-400 font-medium leading-relaxed mb-8">{accessSuccessMsg}</p>
               <button
                 onClick={() => setAccessSuccessMsg(null)}
-                className="w-full h-14 bg-gold text-sidebar font-black text-sm uppercase tracking-widest rounded-2xl hover:bg-white hover:text-sidebar transition-all duration-300 shadow-lg shadow-gold/20"
+                className="w-full h-14 bg-gold text-sidebar font-black text-base uppercase tracking-widest rounded-2xl hover:bg-white dark:bg-zinc-900 hover:text-sidebar transition-all duration-300 shadow-lg shadow-gold/20"
               >
                 Đồng ý & Đóng
               </button>
@@ -1717,10 +1725,12 @@ export default function AdminLayout({
         )}
       </AnimatePresence>
 
-      {/* Floating Chat Widget */}
-      {user && (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-          <AnimatePresence>
+      {/* Floating Chat & Phone Widgets Wrapper */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-row items-center gap-4">
+        {/* Floating Chat Widget */}
+        {user && (
+          <div className="relative flex flex-col items-end">
+            <AnimatePresence>
             {isChatOpen && (
               <motion.div
                 initial={{ opacity: 0, y: 50, scale: 0.95 }}
@@ -1731,7 +1741,7 @@ export default function AdminLayout({
                 {/* Header */}
                 <div className="p-4 border-b border-gray-200 dark:border-white/5 flex items-center justify-between">
                   <div className="flex flex-col">
-                    <h3 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                    <h3 className="text-base font-black text-gray-800 dark:text-white uppercase tracking-widest flex items-center gap-2">
                       <MessageCircle size={16} className="text-gold" />
                       {chatTab === "COMPANY" ? "Nội Bộ Công Ty" : "Tin Nhắn Tự Động"}
                     </h3>
@@ -1752,13 +1762,13 @@ export default function AdminLayout({
                       setChatTab("COMPANY");
                       setActiveChatUser(null);
                     }}
-                    className={`flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${chatTab === "COMPANY" ? "bg-gold text-sidebar" : "text-gray-500 hover:text-gray-800 dark:hover:hover:text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/5"}`}
+                    className={`flex-1 py-2 text-sm font-black uppercase tracking-widest rounded-xl transition-all ${chatTab === "COMPANY" ? "bg-gold text-sidebar" : "text-gray-500 hover:text-gray-800 dark:hover:hover:text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white dark:bg-zinc-900/5"}`}
                   >
                     Công ty
                   </button>
                   <button
                     onClick={() => setChatTab("PRIVATE")}
-                    className={`flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${chatTab === "PRIVATE" ? "bg-gold text-sidebar" : "text-gray-500 hover:text-gray-800 dark:hover:hover:text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/5"}`}
+                    className={`flex-1 py-2 text-sm font-black uppercase tracking-widest rounded-xl transition-all ${chatTab === "PRIVATE" ? "bg-gold text-sidebar" : "text-gray-500 hover:text-gray-800 dark:hover:hover:text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white dark:bg-zinc-900/5"}`}
                   >
                     Nhân sự
                   </button>
@@ -1771,7 +1781,7 @@ export default function AdminLayout({
                       {/* Messages Area */}
                       <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar flex flex-col">
                         {(companyMessages || []).length === 0 ? (
-                          <div className="py-10 text-center text-gray-500 font-bold italic text-xs">
+                          <div className="py-10 text-center text-gray-500 font-bold italic text-sm">
                             Chưa có thông báo/tin nhắn nào
                           </div>
                         ) : (companyMessages || []).map((msg: any) => {
@@ -1783,7 +1793,7 @@ export default function AdminLayout({
                                   {msg.senderName} ({msg.senderRole === "01" ? "ADMIN" : msg.senderRole === "02" ? "QLCV" : msg.senderRole === "03" ? "QLNS" : "NV"})
                                 </span>
                               )}
-                              <div className={`p-3 rounded-2xl text-xs font-medium leading-relaxed break-all flex flex-col gap-2 ${isMe ? "bg-gold text-sidebar rounded-tr-none" : "bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white rounded-tl-none border border-gray-200 dark:border-white/5"}`}>
+                              <div className={`p-3 rounded-2xl text-sm font-medium leading-relaxed break-all flex flex-col gap-2 ${isMe ? "bg-gold text-sidebar rounded-tr-none" : "bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white rounded-tl-none border border-gray-200 dark:border-white/5"}`}>
                                 {msg.text && <span>{msg.text}</span>}
                                 {msg.fileData && msg.fileType?.startsWith("image/") && (
                                   <div className="rounded-xl overflow-hidden border border-gray-300 dark:border-white/10 max-h-36">
@@ -1864,9 +1874,9 @@ export default function AdminLayout({
                           placeholder="Nhập nội dung tin nhắn..."
                           value={chatMessage}
                           onChange={(e) => handleInputChange(e.target.value)}
-                          className="flex-1 h-10 bg-gray-200 dark:bg-white/5 border border-gray-300 dark:border-white/5 focus:border-gold/50 rounded-xl px-4 text-xs text-gray-900 dark:text-white focus:outline-none transition-all placeholder:text-gray-600 dark:text-gray-400"
+                          className="flex-1 h-10 bg-gray-200 dark:bg-white/5 border border-gray-300 dark:border-white/5 focus:border-gold/50 rounded-xl px-4 text-sm text-gray-900 dark:text-white focus:outline-none transition-all placeholder:text-gray-600 dark:text-gray-400"
                         />
-                        <button type="submit" className="h-10 w-10 bg-gold text-sidebar rounded-xl flex items-center justify-center hover:bg-white hover:text-sidebar transition-colors shadow-lg shadow-gold/10">
+                        <button type="submit" className="h-10 w-10 bg-gold text-sidebar rounded-xl flex items-center justify-center hover:bg-white dark:bg-zinc-900 hover:text-sidebar transition-colors shadow-lg shadow-gold/10">
                           <Send size={14} />
                         </button>
                       </form>
@@ -1884,13 +1894,13 @@ export default function AdminLayout({
                               className="w-full p-3 flex items-center gap-3 rounded-xl hover:bg-gray-100 dark:hover:hover:bg-gray-100 dark:bg-white/5 transition-all text-left group"
                             >
                               <div className="relative">
-                                <div className="h-8 w-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-xs text-gold font-black group-hover:scale-105 transition-all">
+                                <div className="h-8 w-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-sm text-gold font-black group-hover:scale-105 transition-all">
                                   {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover rounded-lg" onError={(e) => e.currentTarget.src = "https://ui-avatars.com/api/?name=" + (u.name || "U") + "&background=d4af37&color=000"} /> : u.name.charAt(0)}
                                 </div>
                                 <div className={`absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-[#161616] ${u.isOnline ? "bg-green-500" : "bg-red-500"}`} />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-black text-gray-900 dark:text-white truncate group-hover:text-gold transition-colors">{u.name}</p>
+                                <p className="text-sm font-black text-gray-900 dark:text-white truncate group-hover:text-gold transition-colors">{u.name}</p>
                                 <p className="text-[8px] font-bold text-gray-500 uppercase mt-0.5">@{u.username}</p>
                               </div>
                               {getUnreadCountForUser(u.username) > 0 && (
@@ -1930,7 +1940,7 @@ export default function AdminLayout({
                                 const isMe = msg.sender === user?.username;
                                 return (
                                   <div key={msg.id} className={`flex flex-col max-w-[80%] ${isMe ? "self-end items-end" : "self-start items-start"}`}>
-                                    <div className={`p-3 rounded-2xl text-xs font-medium leading-relaxed break-all flex flex-col gap-2 ${isMe ? "bg-gold text-sidebar rounded-tr-none" : "bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white rounded-tl-none border border-gray-200 dark:border-white/5"}`}>
+                                    <div className={`p-3 rounded-2xl text-sm font-medium leading-relaxed break-all flex flex-col gap-2 ${isMe ? "bg-gold text-sidebar rounded-tr-none" : "bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white rounded-tl-none border border-gray-200 dark:border-white/5"}`}>
                                       {msg.text && <span>{msg.text}</span>}
                                       {msg.fileData && msg.fileType?.startsWith("image/") && (
                                         <div className="rounded-xl overflow-hidden border border-gray-300 dark:border-white/10 max-h-36">
@@ -2014,9 +2024,9 @@ export default function AdminLayout({
                               placeholder={`Chat với ${activeChatUser.name}...`}
                               value={chatMessage}
                               onChange={(e) => handleInputChange(e.target.value)}
-                              className="flex-1 h-10 bg-gray-200 dark:bg-white/5 border border-gray-300 dark:border-white/5 focus:border-gold/50 rounded-xl px-4 text-xs text-gray-900 dark:text-white focus:outline-none transition-all placeholder:text-gray-600 dark:text-gray-400"
+                              className="flex-1 h-10 bg-gray-200 dark:bg-white/5 border border-gray-300 dark:border-white/5 focus:border-gold/50 rounded-xl px-4 text-sm text-gray-900 dark:text-white focus:outline-none transition-all placeholder:text-gray-600 dark:text-gray-400"
                             />
-                            <button type="submit" className="h-10 w-10 bg-gold text-sidebar rounded-xl flex items-center justify-center hover:bg-white hover:text-sidebar transition-colors shadow-lg shadow-gold/10">
+                            <button type="submit" className="h-10 w-10 bg-gold text-sidebar rounded-xl flex items-center justify-center hover:bg-white dark:bg-zinc-900 hover:text-sidebar transition-colors shadow-lg shadow-gold/10">
                               <Send size={14} />
                             </button>
                           </form>
@@ -2053,7 +2063,7 @@ export default function AdminLayout({
 
       {/* Floating Phone Widget */}
       {user && (user?.role === "03" || user?.role === "04" || user?.role === "05" || String(user?.role).includes("03") || String(user?.role).includes("04") || String(user?.role).includes("05") || user?.role === "NHÂN VIÊN" || user?.role === "NV THỬ VIỆC" || String(user?.role).includes("NHÂN VIÊN") || String(user?.role).includes("THỬ VIỆC")) && (
-        <div className="fixed bottom-6 right-28 z-50 flex flex-col items-end">
+        <div className="relative flex flex-col items-end">
           <AnimatePresence>
             {isPhonePanelOpen && (
               <motion.div
@@ -2066,7 +2076,7 @@ export default function AdminLayout({
                 <div className="p-4 border-b border-gray-200 dark:border-white/5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Phone size={16} className="text-gold animate-pulse shrink-0" />
-                    <h3 className="text-xs font-black text-gray-800 dark:text-white uppercase tracking-widest">Danh sách SĐT ({(myAssignedPhones || []).length})</h3>
+                    <h3 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Danh sách SĐT ({(myAssignedPhones || []).length})</h3>
                   </div>
                   <button
                     onClick={() => setIsPhonePanelOpen(false)}
@@ -2081,14 +2091,14 @@ export default function AdminLayout({
                   {(myAssignedPhones || []).length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6">
                       <Phone size={48} className="text-gold/20 mb-4 stroke-1" />
-                      <p className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">Không có SĐT</p>
-                      <p className="text-xs text-gray-500 mt-1 max-w-[200px]">Hiện không có số điện thoại nào hoạt động được gán cho bạn.</p>
+                      <p className="text-base font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">Không có SĐT</p>
+                      <p className="text-sm text-gray-500 mt-1 max-w-[200px]">Hiện không có số điện thoại nào hoạt động được gán cho bạn.</p>
                     </div>
                   ) : (
                     (myAssignedPhones || []).map((p: any) => (
                       <div
                         key={p.id}
-                        className="p-4 bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 hover:border-gold/30 dark:hover:hover:border-gold/30 rounded-2xl transition-all duration-300 flex flex-col gap-3 group relative overflow-hidden"
+                        className="p-6 bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 hover:border-gold/30 dark:hover:hover:border-gold/30 rounded-2xl transition-all duration-300 flex flex-col gap-3 group relative overflow-hidden"
                       >
                         <div className="flex items-center justify-between">
                           <button
@@ -2158,13 +2168,14 @@ export default function AdminLayout({
           >
             <Phone size={28} className="group-hover:scale-110 transition-transform duration-300" />
             {(myAssignedPhones || []).length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-gold text-[#0a0a0a] font-mono text-[11px] font-black h-6 w-6 rounded-full flex items-center justify-center border-2 border-[#161616] shadow-[0_0_15px_rgba(212,175,55,0.5)] animate-bounce">
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white font-mono text-[11px] font-black h-6 w-6 rounded-full flex items-center justify-center border-2 border-[#161616] shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-bounce">
                 {(myAssignedPhones || []).length}
               </span>
             )}
           </motion.button>
         </div>
       )}
+      </div>
 
       {/* Full Screen Image Lightbox */}
       <AnimatePresence>

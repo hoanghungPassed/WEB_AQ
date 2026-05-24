@@ -68,7 +68,7 @@ export default function SettingsPage() {
   const [isDirty, setIsDirty] = useState(false);
 
   // Tabs: PROFILE and HE_THONG (system, merging 2FA + API & Cấu hình + Ngân Hàng & QR)
-  const [activeTab, setActiveTab] = useState<"PROFILE" | "PASSWORD" | "HE_THONG">("PROFILE");
+  const [activeTab, setActiveTab] = useState<"PROFILE" | "HE_THONG">("PROFILE");
 
   // Collapsible section states inside Hệ Thống
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -456,9 +456,9 @@ export default function SettingsPage() {
     localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
   };
 
-  // UPGRADED HARD WIPE & RESET DATABASE - requires typing "XÓA"
+  // UPGRADED HARD WIPE & RESET DATABASE - requires typing "XACNHAN"
   const handleHardResetDatabase = async () => {
-    if (safetyPhrase !== "XÓA") {
+    if (safetyPhrase !== "XACNHAN") {
       return;
     }
 
@@ -628,7 +628,7 @@ export default function SettingsPage() {
     <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] shadow-2xl overflow-hidden">
       <button
         onClick={() => toggleSection(id)}
-        className="w-full flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-all"
+        className="w-full flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02] transition-all"
       >
         <div className="flex items-center gap-2">
           <Icon className={iconColor} size={18} />
@@ -665,7 +665,7 @@ export default function SettingsPage() {
             initial={{ opacity: 0, y: -20, x: "-50%" }} 
             animate={{ opacity: 1, y: 30, x: "-50%" }} 
             exit={{ opacity: 0, y: -20, x: "-50%" }}
-            className="fixed top-0 left-1/2 z-[200] bg-gold px-6 py-3 rounded-full text-sidebar font-black text-sm shadow-2xl flex items-center gap-2"
+            className="fixed top-0 left-1/2 z-[200] bg-gold px-6 py-3 rounded-full text-sidebar font-black text-base shadow-2xl flex items-center gap-2"
           >
             <CheckCircle2 size={18} /> {toastMsg}
           </motion.div>
@@ -697,8 +697,8 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="bg-red-500/10 border-2 border-red-500/30 rounded-2xl p-5 mb-6 text-xs text-gray-800 dark:text-gray-200 font-bold leading-relaxed space-y-3">
-                <p className="text-red-400 font-black text-sm">CẢNH BÁO: Thao tác này sẽ XÓA TOÀN BỘ dữ liệu hệ thống bao gồm Mail, SĐT, Kênh, và Nhân Viên. Hành động này KHÔNG THỂ HOÀN TÁC!</p>
+              <div className="bg-red-500/10 border-2 border-red-500/30 rounded-2xl p-5 mb-6 text-sm text-gray-800 dark:text-gray-200 font-bold leading-relaxed space-y-3">
+                <p className="text-red-400 font-black text-base">CẢNH BÁO: Thao tác này sẽ XÓA TOÀN BỘ dữ liệu hệ thống bao gồm Mail, SĐT, Kênh, và Nhân Viên. Hành động này KHÔNG THỂ HOÀN TÁC!</p>
                 <div className="border-t border-red-500/20 pt-3 space-y-1 text-[11px] text-gray-500 dark:text-gray-400">
                   <p>• Danh sách Mail, SĐT, Kênh</p>
                   <p>• Dữ liệu nhân viên & phân công</p>
@@ -706,12 +706,12 @@ export default function SettingsPage() {
                   <p>• Bài đăng newsfeed & thông báo</p>
                   <p>• Cấu hình hệ thống & KPI</p>
                 </div>
-                <p className="pt-2 border-t border-red-500/20">Để xác nhận, vui lòng nhập chữ <span className="text-red-400 font-black text-base">&quot;XÓA&quot;</span> vào ô bên dưới:</p>
+                <p className="pt-2 border-t border-red-500/20">Để xác nhận, vui lòng nhập chữ <span className="text-red-400 font-black text-base">&quot;XACNHAN&quot;</span> vào ô bên dưới:</p>
               </div>
 
               <input 
                 type="text"
-                placeholder='Nhập XÓA để tiếp tục...'
+                placeholder='Nhập XACNHAN để tiếp tục...'
                 value={safetyPhrase}
                 onChange={(e) => setSafetyPhrase(e.target.value)}
                 className="bg-black/40 border-2 border-red-500/30 rounded-xl px-4 h-14 text-lg text-gray-900 dark:text-white font-black text-center mb-6 outline-none focus:border-red-500 transition-all placeholder:text-red-500/30"
@@ -723,14 +723,14 @@ export default function SettingsPage() {
                     setShowResetConfirm(false);
                     setSafetyPhrase("");
                   }} 
-                  className="flex-1 h-12 rounded-xl border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white font-bold uppercase text-xs tracking-widest hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
+                  className="flex-1 h-12 rounded-xl border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white font-bold uppercase text-sm tracking-widest hover:bg-gray-100 dark:hover:bg-white dark:bg-zinc-900/5 transition-all"
                 >
                   Hủy bỏ
                 </button>
                 <button 
-                  disabled={safetyPhrase !== "XÓA"}
+                  disabled={safetyPhrase !== "XACNHAN"}
                   onClick={handleHardResetDatabase} 
-                  className="flex-1 h-12 rounded-xl bg-red-600 text-gray-900 dark:text-white font-black uppercase text-xs tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-500/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 h-12 rounded-xl bg-red-600 text-gray-900 dark:text-white font-black uppercase text-sm tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-500/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   <AlertTriangle size={16} /> Xác nhận XÓA
                 </button>
@@ -753,7 +753,7 @@ export default function SettingsPage() {
             <Settings className="text-gold" size={28} />
             Hệ Thống & Cài Đặt (Settings)
           </h2>
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mt-1">
+          <p className="text-sm text-gray-500 font-medium uppercase tracking-widest mt-1">
             Thiết lập các cấu hình thông số kỹ thuật toàn cục và tài khoản
           </p>
         </div>
@@ -763,28 +763,20 @@ export default function SettingsPage() {
       <div className="flex flex-col md:flex-row gap-4 mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
         <button 
           onClick={() => setActiveTab("PROFILE")}
-          className={`h-10 px-6 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+          className={`h-10 px-6 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
             activeTab === "PROFILE" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-gray-100 dark:bg-white/5 text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10"
           }`}
         >
           Thông tin cá nhân
         </button>
-        <button 
-          onClick={() => setActiveTab("PASSWORD")}
-          className={`h-10 px-6 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-            activeTab === "PASSWORD" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-gray-100 dark:bg-white/5 text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10"
-          }`}
-        >
-          Đổi mật khẩu
-        </button>
         {(user?.role === "01" || user?.role === "02" || user?.role === "ADMIN" || user?.role === "QL CÔNG VIỆC") && (
           <button 
             onClick={() => setActiveTab("HE_THONG")}
-            className={`h-10 px-6 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+            className={`h-10 px-6 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
               activeTab === "HE_THONG" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-gray-100 dark:bg-white/5 text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10"
             }`}
           >
-            Hệ Thống
+            Hệ Thống & Cài Đặt
           </button>
         )}
       </div>
@@ -796,16 +788,16 @@ export default function SettingsPage() {
               <Info className="text-gold" size={18} />
               <h3 className="text-md font-black text-gray-900 dark:text-white uppercase tracking-tight">Thông tin cá nhân</h3>
             </div>
-            <div className="space-y-4 text-sm text-gray-600 dark:text-gray-300">
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl">
+            <div className="space-y-4 text-base text-gray-600 dark:text-gray-300">
+              <div className="flex items-center justify-between p-6 bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl">
                 <span className="font-bold text-gray-500 uppercase text-[10px] tracking-widest">Họ và tên</span>
                 <span className="font-black text-gray-900 dark:text-white">{user?.name}</span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl">
+              <div className="flex items-center justify-between p-6 bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl">
                 <span className="font-bold text-gray-500 uppercase text-[10px] tracking-widest">Tên đăng nhập</span>
                 <span className="font-black text-gold">@{user?.username}</span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl">
+              <div className="flex items-center justify-between p-6 bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl">
                 <span className="font-bold text-gray-500 uppercase text-[10px] tracking-widest">Phân quyền</span>
                 <span className="px-3 py-1 bg-gold/10 text-gold border border-gold/20 rounded-lg text-[10px] font-black uppercase">
                   {user?.role === "01" ? "ADMIN" : user?.role === "02" ? "QL CÔNG VIỆC" : user?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN"}
@@ -815,77 +807,7 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {activeTab === "PASSWORD" && (
-          <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] p-8 shadow-2xl max-w-2xl">
-            <div className="flex items-center gap-2 border-b border-gray-100 dark:border-white/5 pb-4 mb-8">
-              <Lock className="text-gold" size={20} />
-              <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">Đổi mật khẩu tài khoản</h3>
-            </div>
-            
-            <form onSubmit={handleChangePassword} className="space-y-6">
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-2">
-                    Mật khẩu hiện tại
-                    {passErrors.old && <span className="text-red-500 flex items-center gap-1 animate-pulse"><AlertCircle size={10} /> {passErrors.old}</span>}
-                  </label>
-                  <input
-                    type="password"
-                    value={oldPassword}
-                    onChange={(e) => handleOldPasswordChange(e.target.value)}
-                    className={`w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:bg-gray-50 dark:focus:bg-[#161616] transition-all ${passErrors.old ? "border-red-500/50 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-gray-200 dark:border-white/20 focus:border-gold/50"}`}
-                    placeholder="Nhập mật khẩu đang sử dụng"
-                  />
-                </div>
 
-                <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-2">
-                    Mật khẩu mới
-                    {passErrors.new && <span className="text-red-500 flex items-center gap-1 animate-pulse"><AlertCircle size={10} /> {passErrors.new}</span>}
-                  </label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => handleNewPasswordChange(e.target.value)}
-                    className={`w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:bg-gray-50 dark:focus:bg-[#161616] transition-all ${passErrors.new ? "border-red-500/50 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-gray-200 dark:border-white/20 focus:border-gold/50"}`}
-                    placeholder="Mật khẩu mới (ít nhất 6 ký tự, gồm số và chữ hoa)"
-                  />
-                  {newPassword && !passErrors.new && (
-                    <div className="flex gap-1 mt-3">
-                      {[...Array(4)].map((_, i) => (
-                        <div key={i} className={`h-1.5 flex-1 rounded-full ${i < getPasswordStrength(newPassword) ? (getPasswordStrength(newPassword) > 2 ? "bg-green-500" : "bg-yellow-500") : "bg-gray-200 dark:bg-white/10"}`} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-2">
-                    Xác nhận mật khẩu mới
-                    {passErrors.confirm && <span className="text-red-500 flex items-center gap-1 animate-pulse"><AlertCircle size={10} /> {passErrors.confirm}</span>}
-                  </label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => handleConfirmPasswordChange(e.target.value)}
-                    className={`w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:bg-gray-50 dark:focus:bg-[#161616] transition-all ${passErrors.confirm ? "border-red-500/50 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "border-gray-200 dark:border-white/20 focus:border-gold/50"}`}
-                    placeholder="Nhập lại mật khẩu mới"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-4 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={!!(passErrors.old || passErrors.new || passErrors.confirm || !oldPassword || !newPassword || !confirmPassword)}
-                  className="h-12 px-8 rounded-2xl bg-gold text-sidebar font-black uppercase text-[10px] tracking-widest hover:bg-yellow-500 transition-all flex items-center gap-2 shadow-xl shadow-gold/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Save size={16} /> Xác nhận Đổi MK
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
 
         {activeTab === "HE_THONG" && (
           <div className="space-y-6">
@@ -893,7 +815,7 @@ export default function SettingsPage() {
             <CollapsibleSection id="WORK_CONFIG" icon={Clock} title="Cấu Hình Giờ Giấc & Phạt">
               <div className="pt-5 space-y-6">
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5">
-                  <p className="text-sm text-amber-400 font-medium leading-relaxed">
+                  <p className="text-base text-amber-400 font-medium leading-relaxed">
                     ⏰ Thiết lập giờ làm việc và mức phạt đi muộn cho nhân viên. Dữ liệu được đồng bộ cho module chấm công.
                   </p>
                 </div>
@@ -936,7 +858,7 @@ export default function SettingsPage() {
                   <label className="text-[12px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest mb-4 block">Mức phạt đi muộn (VNĐ)</label>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                      <p className="text-sm text-amber-400 font-black">Muộn 1-5 phút</p>
+                      <p className="text-base text-amber-400 font-black">Muộn 1-5 phút</p>
                       <div className="relative">
                         <input 
                           type="text" 
@@ -944,11 +866,11 @@ export default function SettingsPage() {
                           onChange={(e) => setFineTier1(Math.max(0, Number(e.target.value.replace(/\D/g, ""))))}
                           className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-black tracking-wider"
                         />
-                        <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">VND</span>
+                        <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-sm text-orange-400 font-black">Muộn 6-19 phút</p>
+                      <p className="text-base text-orange-400 font-black">Muộn 6-19 phút</p>
                       <div className="relative">
                         <input 
                           type="text" 
@@ -956,11 +878,11 @@ export default function SettingsPage() {
                           onChange={(e) => setFineTier2(Math.max(0, Number(e.target.value.replace(/\D/g, ""))))}
                           className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-black tracking-wider"
                         />
-                        <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">VND</span>
+                        <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-sm text-red-400 font-black">Muộn 20+ phút</p>
+                      <p className="text-base text-red-400 font-black">Muộn 20+ phút</p>
                       <div className="relative">
                         <input 
                           type="text" 
@@ -968,16 +890,43 @@ export default function SettingsPage() {
                           onChange={(e) => setFineTier3(Math.max(0, Number(e.target.value.replace(/\D/g, ""))))}
                           className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-black tracking-wider"
                         />
-                        <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">VND</span>
+                        <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
                       </div>
                     </div>
                   </div>
                 </div>
                 <button 
                   onClick={handleSaveWorkConfig}
-                  className="h-14 mt-4 px-8 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase text-sm tracking-widest hover:bg-yellow-400 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] w-full md:w-auto"
+                  className="h-14 mt-4 px-8 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase text-base tracking-widest hover:bg-yellow-400 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] w-full md:w-auto"
                 >
                   <Save size={18} /> Lưu Cấu Hình Giờ Giấc
+                </button>
+              </div>
+            </CollapsibleSection>
+
+            {/* Section: Agency Config */}
+            <CollapsibleSection id="AGENCY_CONFIG" icon={Building2} title="Tên Thương Hiệu (Brand Name)">
+              <div className="pt-5 space-y-6">
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-5">
+                  <p className="text-base text-blue-400 font-medium leading-relaxed">
+                    🌟 Thiết lập tên thương hiệu hiển thị trên toàn hệ thống (Mặc định: AQ MEDIA).
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[11px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest block mb-2">Tên Thương Hiệu</label>
+                  <input 
+                    type="text" 
+                    value={agencyConfigName}
+                    onChange={(e) => setAgencyConfigName(e.target.value)}
+                    placeholder="VD: AQ MEDIA"
+                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-lg text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full md:w-1/2 font-bold"
+                  />
+                </div>
+                <button 
+                  onClick={handleSaveAgencyConfig}
+                  className="h-14 mt-4 px-8 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase text-base tracking-widest hover:bg-yellow-400 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] w-full md:w-auto"
+                >
+                  <Save size={18} /> Lưu Tên Thương Hiệu
                 </button>
               </div>
             </CollapsibleSection>
@@ -987,8 +936,8 @@ export default function SettingsPage() {
               <div className="pt-5">
                 <div className="text-center p-10 bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl">
                   <ShieldCheck size={48} className="text-gray-600 mx-auto mb-4 opacity-50" />
-                  <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase mb-2">Tính năng đang phát triển</h4>
-                  <p className="text-xs text-gray-500 font-bold">Bảo mật 2FA qua TOTP Authenticator sẽ sớm được ra mắt trong bản cập nhật tới.</p>
+                  <h4 className="text-base font-black text-gray-900 dark:text-white uppercase mb-2">Tính năng đang phát triển</h4>
+                  <p className="text-sm text-gray-500 font-bold">Bảo mật 2FA qua TOTP Authenticator sẽ sớm được ra mắt trong bản cập nhật tới.</p>
                 </div>
               </div>
             </CollapsibleSection>
@@ -1007,7 +956,7 @@ export default function SettingsPage() {
                             type="number" 
                             value={chunkSize}
                             onChange={(e) => setChunkSize(Math.max(1, Number(e.target.value)))}
-                            className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+                            className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-base text-gold outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-black tracking-wider"
                             required
                           />
                         </div>
@@ -1017,7 +966,7 @@ export default function SettingsPage() {
                             type="number" 
                             value={kpiTargetMails}
                             onChange={(e) => setKpiTargetMails(Math.max(1, Number(e.target.value)))}
-                            className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-bold"
+                            className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-base text-gray-900 dark:text-white outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-bold"
                             required
                           />
                         </div>
@@ -1027,7 +976,7 @@ export default function SettingsPage() {
                             type="number" 
                             value={kpiTargetWatchHours}
                             onChange={(e) => setKpiTargetWatchHours(Math.max(1, Number(e.target.value)))}
-                            className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-bold"
+                            className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-base text-gray-900 dark:text-white outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full font-bold"
                             required
                           />
                         </div>
@@ -1038,14 +987,14 @@ export default function SettingsPage() {
                           type="text" 
                           value={apiSyncEndpoint}
                           onChange={(e) => setApiSyncEndpoint(e.target.value)}
-                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gray-600 dark:text-gray-300 font-mono outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full"
+                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-base text-gray-600 dark:text-gray-300 font-mono outline-none focus:border-gold/50 focus:bg-gray-50 dark:focus:bg-[#161616] transition-all w-full"
                           required
                         />
                       </div>
                       <div className="pt-2">
                         <button 
                           type="submit"
-                          className="h-11 px-6 rounded-xl bg-gold text-sidebar font-black uppercase text-xs tracking-widest hover:bg-yellow-500 transition-all flex items-center gap-2 shadow-lg shadow-gold/5"
+                          className="h-11 px-6 rounded-xl bg-gold text-sidebar font-black uppercase text-sm tracking-widest hover:bg-yellow-500 transition-all flex items-center gap-2 shadow-lg shadow-gold/5"
                         >
                           <Save size={14} /> Lưu Cấu Hình
                         </button>
@@ -1059,10 +1008,10 @@ export default function SettingsPage() {
                     <div className="bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl p-5">
                       <div className="flex items-center gap-2 border-b border-gray-100 dark:border-white/5 pb-3 mb-4">
                         <HardDrive className="text-gold" size={16} />
-                        <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">Dung lượng DB Local</h4>
+                        <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">Dung lượng DB Local</h4>
                       </div>
                       <div className="space-y-3">
-                        <div className="flex justify-between text-xs font-bold text-gray-500 dark:text-gray-400">
+                        <div className="flex justify-between text-sm font-bold text-gray-500 dark:text-gray-400">
                           <span>Đã sử dụng:</span>
                           <span className="text-gray-900 dark:text-white font-mono">{storageUsage.text}</span>
                         </div>
@@ -1089,8 +1038,8 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Bank Configuration Form */}
                   <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-4 mb-2">
-                      <p className="text-xs text-indigo-300 font-bold leading-relaxed">
+                    <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-6 mb-2">
+                      <p className="text-sm text-indigo-300 font-bold leading-relaxed">
                         ℹ️ Nhập thông tin tài khoản ngân hàng thụ hưởng để hệ thống tự động cập nhật mã QR Code thanh toán phạt đi muộn cho nhân viên. Dữ liệu được đồng bộ an toàn.
                       </p>
                     </div>
@@ -1101,11 +1050,11 @@ export default function SettingsPage() {
                         <label className="text-[11px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest block mb-2">Ngân Hàng Thụ Hưởng</label>
                         <div 
                           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full font-bold flex items-center justify-between cursor-pointer"
+                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-base text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full font-bold flex items-center justify-between cursor-pointer"
                         >
                           <div className="flex items-center gap-2 overflow-hidden">
                             {activeBank.logo ? (
-                              <img src={activeBank.logo} alt={activeBank.shortName} className="h-5 w-auto object-contain rounded bg-white px-1 py-0.5" />
+                              <img src={activeBank.logo} alt={activeBank.shortName} className="h-5 w-auto object-contain rounded bg-white dark:bg-zinc-900 px-1 py-0.5" />
                             ) : (
                               <div className="w-5 h-5 bg-gold/10 text-gold flex items-center justify-center rounded text-[10px]">{activeBank.shortName?.slice(0, 2)}</div>
                             )}
@@ -1123,7 +1072,7 @@ export default function SettingsPage() {
                                 value={bankSearchTerm}
                                 onChange={(e) => setBankSearchTerm(e.target.value)}
                                 onClick={(e) => e.stopPropagation()}
-                                className="bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl px-3 h-9 text-xs text-gray-900 dark:text-white placeholder:text-gray-600 outline-none focus:border-gold/30 w-full"
+                                className="bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl px-3 h-9 text-sm text-gray-900 dark:text-white placeholder:text-gray-600 outline-none focus:border-gold/30 w-full"
                               />
                             </div>
                             <div className="overflow-y-auto custom-scrollbar flex-1">
@@ -1132,7 +1081,7 @@ export default function SettingsPage() {
                                 b.name?.toLowerCase().includes(bankSearchTerm.toLowerCase()) ||
                                 b.code?.toLowerCase().includes(bankSearchTerm.toLowerCase())
                               ).length === 0 ? (
-                                <div className="p-4 text-center text-xs text-gray-500 font-bold">Không tìm thấy ngân hàng</div>
+                                <div className="p-4 text-center text-sm text-gray-500 font-bold">Không tìm thấy ngân hàng</div>
                               ) : (
                                 (banksList || []).filter((b: any) => 
                                   b.shortName?.toLowerCase().includes(bankSearchTerm.toLowerCase()) ||
@@ -1149,15 +1098,15 @@ export default function SettingsPage() {
                                       setIsDropdownOpen(false);
                                       setBankSearchTerm("");
                                     }}
-                                    className={`flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.04] transition-colors cursor-pointer border-b border-white/[0.02] last:border-0 ${activeBank.bin === b.bin ? 'bg-gold/10' : ''}`}
+                                    className={`flex items-center gap-3 px-4 py-2.5 hover:bg-white dark:bg-zinc-900/[0.04] transition-colors cursor-pointer border-b border-white/[0.02] last:border-0 ${activeBank.bin === b.bin ? 'bg-gold/10' : ''}`}
                                   >
                                     {b.logo ? (
-                                      <img src={b.logo} alt={b.shortName} className="h-6 w-10 object-contain rounded bg-white px-1 py-0.5 shrink-0" />
+                                      <img src={b.logo} alt={b.shortName} className="h-6 w-10 object-contain rounded bg-white dark:bg-zinc-900 px-1 py-0.5 shrink-0" />
                                     ) : (
                                       <div className="w-10 h-6 bg-gold/10 text-gold flex items-center justify-center rounded text-[10px] shrink-0 font-bold">{b.shortName?.slice(0, 3)}</div>
                                     )}
                                     <div className="text-left">
-                                      <div className="text-xs font-black text-gray-900 dark:text-white">{b.shortName}</div>
+                                      <div className="text-sm font-black text-gray-900 dark:text-white">{b.shortName}</div>
                                       <div className="text-[10px] text-gray-500 font-medium truncate max-w-[280px]">{b.name}</div>
                                     </div>
                                   </div>
@@ -1181,7 +1130,7 @@ export default function SettingsPage() {
                                 setLookupSuccess(null);
                               }}
                               placeholder="Ví dụ: 0123456789"
-                              className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
+                              className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-base text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
                               required
                             />
                             {isLookingUp && (
@@ -1197,7 +1146,7 @@ export default function SettingsPage() {
                             type="button"
                             onClick={handleLookupAccount}
                             disabled={isLookingUp}
-                            className="h-14 px-6 bg-gold/15 hover:bg-gold/25 text-gold border border-gold/30 rounded-2xl text-sm font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center shrink-0 disabled:opacity-40 cursor-pointer shadow-lg shadow-gold/5"
+                            className="h-14 px-6 bg-gold/15 hover:bg-gold/25 text-gold border border-gold/30 rounded-2xl text-base font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center shrink-0 disabled:opacity-40 cursor-pointer shadow-lg shadow-gold/5"
                           >
                             {isLookingUp ? "Đang tìm..." : "Tra cứu"}
                           </button>
@@ -1216,7 +1165,7 @@ export default function SettingsPage() {
                           value={bankAccountHolder}
                           onChange={(e) => setBankAccountHolder(e.target.value.toUpperCase())}
                           placeholder="Ví dụ: NGUYEN VAN A"
-                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
+                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-2xl px-5 h-14 text-base text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
                           required
                         />
                         <p className="text-[9px] text-gray-500">Tên viết in hoa không dấu - Hệ thống tự động tra cứu khi nhập đủ STK</p>
@@ -1225,7 +1174,7 @@ export default function SettingsPage() {
                       <div className="pt-4 space-y-3">
                         <button 
                           type="submit"
-                          className="h-11 w-full px-6 rounded-xl bg-gold text-sidebar font-black uppercase text-xs tracking-widest hover:bg-yellow-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-gold/20"
+                          className="h-11 w-full px-6 rounded-xl bg-gold text-sidebar font-black uppercase text-sm tracking-widest hover:bg-yellow-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-gold/20"
                         >
                           <Save size={16} /> Xác Nhận & Lưu Ngân Hàng
                         </button>
@@ -1238,12 +1187,12 @@ export default function SettingsPage() {
                     <div className="bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl p-5">
                       <div className="flex items-center gap-2 border-b border-gray-100 dark:border-white/5 pb-3 mb-4">
                         <Zap className="text-gold" size={16} />
-                        <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">QR Code Thanh Toán</h4>
+                        <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">QR Code Thanh Toán</h4>
                       </div>
 
                       {bankAccountNumber ? (
                         <div className="flex flex-col items-center gap-4">
-                          <div className="bg-white p-4 rounded-2xl shadow-xl border border-gold/40 relative">
+                          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-xl border border-gold/40 relative">
                             <img 
                               src={`https://img.vietqr.io/image/${activeBank.code || bankName || "MB"}-${bankAccountNumber}-compact2.png?accountName=${encodeURIComponent(bankAccountHolder || "")}`}
                               alt="VietQR Dynamic Fine Code"
@@ -1255,7 +1204,7 @@ export default function SettingsPage() {
                       ) : (
                         <div className="flex flex-col items-center justify-center py-12">
                           <Zap size={40} className="text-gray-600 opacity-30 mb-3" />
-                          <p className="text-gray-500 font-bold text-sm text-center">Cấu hình STK để tạo QR Code</p>
+                          <p className="text-gray-500 font-bold text-base text-center">Cấu hình STK để tạo QR Code</p>
                           <p className="text-gray-600 font-medium text-[10px] text-center mt-2">Nhập thông tin tài khoản ở bên trái</p>
                         </div>
                       )}
@@ -1265,20 +1214,20 @@ export default function SettingsPage() {
                     <div className="bg-gray-50 dark:bg-white/[0.02] border border-gold/20 rounded-2xl p-5">
                       <div className="flex items-center gap-2 border-b border-gold/10 pb-3 mb-4">
                         <CheckCircle2 className="text-gold" size={16} />
-                        <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">Thông Tin Đã Lưu</h4>
+                        <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">Thông Tin Đã Lưu</h4>
                       </div>
                       
                       {bankAccountNumber ? (
                         <div className="space-y-3">
-                          <div className="flex justify-between text-xs">
+                          <div className="flex justify-between text-sm">
                             <span className="text-gray-500 font-bold">Ngân Hàng:</span>
                             <span className="text-gray-900 dark:text-white font-black">{activeBank.shortName || bankName}</span>
                           </div>
-                          <div className="flex justify-between text-xs">
+                          <div className="flex justify-between text-sm">
                             <span className="text-gray-500 font-bold">STK:</span>
                             <span className="text-gold font-black">{bankAccountNumber}</span>
                           </div>
-                          <div className="flex justify-between text-xs">
+                          <div className="flex justify-between text-sm">
                             <span className="text-gray-500 font-bold">Chủ TK:</span>
                             <span className="text-gray-900 dark:text-white font-black">{bankAccountHolder}</span>
                           </div>
@@ -1287,13 +1236,28 @@ export default function SettingsPage() {
                           </div>
                         </div>
                       ) : (
-                        <p className="text-gray-500 text-xs text-center py-4 font-medium">Chưa có dữ liệu</p>
+                        <p className="text-gray-500 text-sm text-center py-4 font-medium">Chưa có dữ liệu</p>
                       )}
                     </div>
                   </div>
                 </div>
               </div>
             </CollapsibleSection>
+
+            {/* Danger Zone */}
+            <div className="mt-12 bg-red-500/5 border border-red-500/20 rounded-3xl p-8 flex flex-col items-center justify-center text-center">
+              <AlertTriangle size={48} className="text-red-500 mb-4 animate-pulse" />
+              <h3 className="text-xl font-black text-red-500 uppercase tracking-widest mb-2">Vùng Nguy Hiểm (Danger Zone)</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-lg mb-6">
+                Thao tác xóa toàn bộ dữ liệu (trừ Users). Không thể khôi phục sau khi thực hiện. Vui lòng cân nhắc kỹ trước khi sử dụng.
+              </p>
+              <button 
+                onClick={() => setShowResetConfirm(true)}
+                className="h-14 px-8 rounded-2xl bg-red-600 text-white font-black uppercase text-sm tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-500/20 flex items-center gap-2"
+              >
+                <AlertTriangle size={18} /> Reset Database Gốc
+              </button>
+            </div>
           </div>
         )}
       </div>

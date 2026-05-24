@@ -1,0 +1,250 @@
+﻿
+>       {/* Floating Chat Widget */}
+        {user && (
+          <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+            <AnimatePresence>
+              {isChatOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 50, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 50, scale: 0.95 }}
+                  className="w-[400px] h-[600px] bg-white/95 dark:bg-[#161616]/95 border border-gold/20 rounded-3xl 
+shadow-2xl flex flex-col overflow-hidden mb-6 backdrop-blur-xl"
+                >
+                  {/* Header */}
+                  <div className="p-4 border-b border-gray-200 dark:border-white/5 flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <h3 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest flex 
+items-center gap-2">
+                        <MessageCircle size={16} className="text-gold" />
+                        {chatTab === "COMPANY" ? "Ná»™i Bá»™ CÃ´ng Ty" : "Tin Nháº¯n Tá»± Äá»™ng"}
+                      </h3>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase mt-1">AQ MEDIA Workspace</p>
+                    </div>
+                    <button
+                      onClick={() => setIsChatOpen(false)}
+                      className="h-8 w-8 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/5 
+hover:bg-red-500/20 text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+  
+                  {/* Tabs */}
+                  <div className="flex border-b border-gray-200 dark:border-white/5 p-2 gap-2 bg-gray-50 
+dark:bg-[#0a0a0a]">
+                    <button
+                      onClick={() => {
+                        setChatTab("COMPANY");
+                        setActiveChatUser(null);
+                      }}
+                      className={`flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all 
+${chatTab === "COMPANY" ? "bg-gold text-sidebar" : "text-gray-500 hover:text-gray-800 dark:hover:hover:text-gray-900 
+dark:text-white hover:bg-gray-100 dark:hover:bg-white/5"}`}
+                    >
+                      CÃ´ng ty
+                    </button>
+                    <button
+                      onClick={() => setChatTab("PRIVATE")}
+                      className={`flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all 
+${chatTab === "PRIVATE" ? "bg-gold text-sidebar" : "text-gray-500 hover:text-gray-800 dark:hover:hover:text-gray-900 
+dark:text-white hover:bg-gray-100 dark:hover:bg-white/5"}`}
+                    >
+                      NhÃ¢n sá»±
+                    </button>
+                  </div>
+  
+                  {/* Content Area */}
+                  <div className="flex-1 flex overflow-hidden">
+                    {chatTab === "COMPANY" ? (
+                      <div className="flex-1 flex flex-col overflow-hidden">
+                        {/* Messages Area */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar flex flex-col">
+                          {(companyMessages || []).length === 0 ? (
+                            <div className="py-10 text-center text-gray-500 font-bold italic text-xs">
+                              ChÆ°a cÃ³ thÃ´ng bÃ¡o/tin nháº¯n nÃ o
+                            </div>
+                          ) : (companyMessages || []).map((msg: any) => {
+                            const isMe = msg.senderName === (user?.name || user?.username);
+                            return (
+                              <div key={msg.id} className={`flex flex-col max-w-[80%] ${isMe ? "self-end items-end" : 
+"self-start items-start"}`}>
+                                {!isMe && (
+                                  <span className="text-[8px] font-black uppercase tracking-wider text-gray-500 mb-0.5 
+ml-1">
+                                    {msg.senderName} ({msg.senderRole === "01" ? "ADMIN" : msg.senderRole === "02" ? 
+"QLCV" : msg.senderRole === "03" ? "QLNS" : "NV"})
+                                  </span>
+                                )}
+                                <div className={`p-3 rounded-2xl text-xs font-medium leading-relaxed break-all flex 
+flex-col gap-2 ${isMe ? "bg-gold text-sidebar rounded-tr-none" : "bg-gray-100 dark:bg-white/5 text-gray-900 
+dark:text-white rounded-tl-none border border-gray-200 dark:border-white/5"}`}>
+                                  {msg.text && <span>{msg.text}</span>}
+                                  {msg.fileData && msg.fileType?.startsWith("image/") && (
+                                    <div className="rounded-xl overflow-hidden border border-gray-300 
+dark:border-white/10 max-h-36">
+                                      <img
+                                        src={msg.fileData}
+                                        onClick={() => setActiveLightboxImage(msg.fileData)}
+                                        className="w-full h-full object-cover cursor-pointer hover:scale-[1.02] 
+transition-transform"
+                                        title="Báº¥m Ä‘á»ƒ xem áº£nh lá»›n"
+                                      />
+                                    </div>
+                                  )}
+                                  {msg.fileData && !msg.fileType?.startsWith("image/") && (
+                                    <div className={`flex items-center gap-2 p-2 rounded-xl text-left ${isMe ? 
+"bg-gray-200 dark:bg-white/10 text-sidebar" : "bg-gray-200 dark:bg-white/5 text-gray-900 dark:text-white border 
+border-gray-300 dark:border-white/5"}`}>
+                                      <FileText size={16} className={isMe ? "text-sidebar shrink-0" : "text-gold 
+shrink-0"} />
+                                      <div className="min-w-0 flex-1">
+                                        <p className="text-[10px] font-black truncate">{msg.fileName}</p>
+                                        <p className={`text-[8px] font-mono font-bold ${isMe ? "text-sidebar/70" : 
+"text-gray-500"}`}>{msg.fileSize}</p>
+                                      </div>
+                                      <a
+                                        href={msg.fileData}
+                                        download={msg.fileName}
+                                        className={`h-6 w-6 rounded-lg flex items-center justify-center 
+transition-colors shrink-0 ${isMe ? "bg-white dark:bg-sidebar/10 hover:bg-white dark:hover:bg-sidebar text-sidebar 
+hover:text-gray-900 dark:hover:text-gray-900 dark:text-white" : "bg-gray-300 dark:bg-white/5 hover:bg-gold 
+text-gray-500 dark:text-gray-400 hover:text-sidebar"}`}
+                                        title="Táº£i xuá»‘ng tá»‡p tin"
+                                      >
+                                        <Download size={10} />
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
+                                <span className="text-[8px] font-bold text-gray-600 font-mono mt-1 
+px-1">{msg.time}</span>
+                              </div>
+                            );
+                          })}
+                          {(companyTypingUsers || []).length > 0 && (
+                            <TypingBubble senderName={companyTypingUsers.join(", ") + " Ä‘ang soáº¡n tin..."} />
+                          )}
+                          <div ref={companyMessagesEndRef} />
+                        </div>
+  
+                        {/* Input Box */}
+                        {selectedChatFile && (
+                          <div className="mx-3 my-2 p-2 bg-gray-100 dark:bg-white/5 border border-gray-200 
+dark:border-white/10 rounded-xl flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText size={16} className="text-gold shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-black text-gray-900 dark:text-white 
+truncate">{selectedChatFile.name}</p>
+                                <p className="text-[8px] font-bold text-gray-500 font-mono">{selectedChatFile.size}</p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedChatFile(null)}
+                              className="h-6 w-6 rounded-full hover:bg-gray-200 dark:hover:hover:bg-gray-200 
+dark:bg-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 
+dark:hover:hover:text-gray-900 dark:text-white transition-colors"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        )}
+  
+                        <form onSubmit={handleSendCompanyMessage} className="p-3 border-t border-gray-200 
+dark:border-white/5 bg-gray-50 dark:bg-[#0e0e0e] flex gap-2 items-center">
+                          <input
+                            type="file"
+                            ref={companyFileInputRef}
+                            onChange={handleChatFileSelect}
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => companyFileInputRef.current?.click()}
+                            className="h-10 w-10 shrink-0 bg-gray-200 dark:bg-white/5 border border-gray-300 
+dark:border-white/5 hover:border-gold/30 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 
+hover:text-gold transition-colors"
+                            title="ÄÃ­nh kÃ¨m áº£nh hoáº·c tá»‡p (tá»‘i Ä‘a 200MB)"
+                          >
+                            <Plus size={16} />
+                          </button>
+  
+                          <input
+                            type="text"
+                            placeholder="Nháº­p ná»™i dung tin nháº¯n..."
+                            value={chatMessage}
+                            onChange={(e) => handleInputChange(e.target.value)}
+                            className="flex-1 h-10 bg-gray-200 dark:bg-white/5 border border-gray-300 
+dark:border-white/5 focus:border-gold/50 rounded-xl px-4 text-xs text-gray-900 dark:text-white focus:outline-none 
+transition-all placeholder:text-gray-600 dark:text-gray-400"
+                          />
+                          <button type="submit" className="h-10 w-10 bg-gold text-sidebar rounded-xl flex items-center 
+justify-center hover:bg-white hover:text-sidebar transition-colors shadow-lg shadow-gold/10">
+                            <Send size={14} />
+                          </button>
+                        </form>
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex overflow-hidden">
+                        {/* Left: User Select sidebar */}
+                        {!activeChatUser ? (
+                          <div className="flex-1 flex flex-col overflow-y-auto p-2 divide-y divide-gray-200 
+dark:divide-white/5 custom-scrollbar">
+                            <div className="text-[9px] font-black text-gray-500 uppercase tracking-widest p-2">Chá»n 
+nhÃ¢n sá»±</div>
+                            {(chatUsers || []).map((u: any) => (
+                              <button
+                                key={u.id}
+                                onClick={() => setActiveChatUser(u)}
+                                className="w-full p-3 flex items-center gap-3 rounded-xl hover:bg-gray-100 
+dark:hover:hover:bg-gray-100 dark:bg-white/5 transition-all text-left group"
+                              >
+                                <div className="relative">
+                                  <div className="h-8 w-8 rounded-lg bg-gold/10 border border-gold/20 flex 
+items-center justify-center text-xs text-gold font-black group-hover:scale-105 transition-all">
+                                    {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover rounded-lg" 
+onError={(e) => e.currentTarget.src = "https://ui-avatars.com/api/?name=" + (u.name || "U") + 
+"&background=d4af37&color=000"} /> : u.name.charAt(0)}
+                                  </div>
+                                  <div className={`absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full border-2 
+border-white dark:border-[#161616] ${u.isOnline ? "bg-green-500" : "bg-red-500"}`} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-black text-gray-900 dark:text-white truncate 
+group-hover:text-gold transition-colors">{u.name}</p>
+                                  <p className="text-[8px] font-bold text-gray-500 uppercase mt-0.5">@{u.username}</p>
+                                </div>
+                                {getUnreadCountForUser(u.username) > 0 && (
+                                  <span className="bg-red-500 text-gray-900 dark:text-white font-mono text-[9px] 
+font-black h-5 w-5 rounded-full flex items-center justify-center shadow-lg shrink-0 animate-pulse">
+                                    {getUnreadCountForUser(u.username)}
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex-1 flex flex-col overflow-hidden">
+                            {/* Active private partner header */}
+                            <div className="p-3 border-b border-gray-200 dark:border-white/5 bg-gray-50 
+dark:bg-[#0e0e0e] flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="h-6 w-6 rounded bg-gold/10 flex items-center justify-center 
+text-[10px] font-black text-gold">
+                                  {activeChatUser.name.charAt(0)}
+                                </div>
+                                <span className="text-[10px] font-black text-gray-900 dark:text-white uppercase 
+truncate max-w-[120px]">{activeChatUser.name}</span>
+                              </div>
+                              <button
+                                onClick={() => setActiveChatUser(null)}
+                                className="text-[9px] font-black text-gold uppercase tracking-wider 
+hover:text-gray-900 dark:hover:hover:text-gray-900 dark:text-white"
+                              >
+                                Äá»•i ngÆ°á»i
+                              </button>
+                            </div>
+
+

@@ -584,14 +584,14 @@ export default function StaffManagementPage() {
           <div className="flex gap-4">
               <button 
                 onClick={() => setActiveTab("ACTIVE")}
-                className={`h-12 px-6 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2 transition-all ${activeTab === "ACTIVE" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-gray-100 dark:bg-white/5 text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10"}`}
+                className={`h-12 px-6 rounded-2xl font-black uppercase text-sm tracking-widest flex items-center gap-2 transition-all ${activeTab === "ACTIVE" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-gray-100 dark:bg-white/5 text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10"}`}
               >
                 <Users size={18} /> Nhân viên ({stats.total})
               </button>
               {canManageDuty && (
                 <button 
                   onClick={() => setActiveTab("DUTY")}
-                  className={`h-12 px-6 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-2 transition-all ${activeTab === "DUTY" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-gray-100 dark:bg-white/5 text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10"}`}
+                  className={`h-12 px-6 rounded-2xl font-black uppercase text-sm tracking-widest flex items-center gap-2 transition-all ${activeTab === "DUTY" ? "bg-gold text-sidebar shadow-lg shadow-gold/20" : "bg-gray-100 dark:bg-white/5 text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10"}`}
                 >
                   <CalendarDays size={18} /> Lịch Trực Nhật
                 </button>
@@ -642,7 +642,7 @@ export default function StaffManagementPage() {
                     value={dutyTaskWeek}
                     onChange={(e) => setDutyTaskWeek(e.target.value)}
                     placeholder="Vd: Dọn vệ sinh văn phòng hàng ngày, đổ rác, pha trà..."
-                    className="w-full bg-black/20 border border-gray-200 dark:border-white/5 rounded-2xl p-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all custom-scrollbar resize-none"
+                    className="w-full bg-black/20 border border-gray-200 dark:border-white/5 rounded-2xl p-6 text-base text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all custom-scrollbar resize-none"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -652,7 +652,7 @@ export default function StaffManagementPage() {
                     value={dutyTaskWeekend}
                     onChange={(e) => setDutyTaskWeekend(e.target.value)}
                     placeholder="Vd: Tổng vệ sinh toàn công ty, lau kính, giặt rèm..."
-                    className="w-full bg-black/20 border border-gray-200 dark:border-white/5 rounded-2xl p-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all custom-scrollbar resize-none"
+                    className="w-full bg-black/20 border border-gray-200 dark:border-white/5 rounded-2xl p-6 text-base text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all custom-scrollbar resize-none"
                   />
                 </div>
               </div>
@@ -683,7 +683,7 @@ export default function StaffManagementPage() {
                       }`}>
                         {dutySelectedStaff.includes(staff.id) && <CheckSquare size={12} className="text-sidebar" />}
                       </div>
-                      <span className="text-xs font-bold text-gray-900 dark:text-white truncate">{staff.name}</span>
+                      <span className="text-sm font-bold text-gray-900 dark:text-white truncate">{staff.name}</span>
                     </div>
                   ))}
                 </div>
@@ -707,20 +707,20 @@ export default function StaffManagementPage() {
               
               <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-2">
                 {(dutyRoster || []).length > 0 ? (dutyRoster || []).map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5">
+                  <div key={idx} className="flex items-center gap-4 p-6 rounded-2xl bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5">
                     <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex flex-col items-center justify-center text-blue-400 border border-blue-500/20 flex-shrink-0">
                       <span className="text-[10px] font-black uppercase tracking-tighter">Thứ</span>
                       <span className="text-lg font-black">{item.day.split(' ')[1]}</span>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-black text-gray-900 dark:text-white truncate">{item.staffName}</p>
+                      <p className="text-base font-black text-gray-900 dark:text-white truncate">{item.staffName}</p>
                       <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest truncate">@{item.username}</p>
                     </div>
                   </div>
                 )) : (
                   <div className="h-full flex flex-col items-center justify-center opacity-30 text-center space-y-4">
                     <CalendarDays size={48} />
-                    <p className="text-xs font-black uppercase tracking-widest">Chưa có dữ liệu</p>
+                    <p className="text-sm font-black uppercase tracking-widest">Chưa có dữ liệu</p>
                   </div>
                 )}
               </div>
@@ -730,7 +730,7 @@ export default function StaffManagementPage() {
       ) : (
         <>
           {/* Toolbar */}
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white dark:bg-sidebar/50 border border-gray-200 dark:border-white/5 p-4 rounded-[32px] backdrop-blur-xl">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white dark:bg-sidebar/50 border border-gray-200 dark:border-white/5 p-6 rounded-[32px] backdrop-blur-xl">
         <div className="flex flex-1 gap-4 w-full">
           <div className="relative flex-1 group">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={20} />
@@ -739,7 +739,7 @@ export default function StaffManagementPage() {
               placeholder="Tìm kiếm tên hoặc username..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-12 w-full bg-black/20 border border-gray-200 dark:border-white/5 rounded-2xl pl-14 pr-6 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+              className="h-12 w-full bg-black/20 border border-gray-200 dark:border-white/5 rounded-2xl pl-14 pr-6 text-base text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
             />
           </div>
           
@@ -748,7 +748,7 @@ export default function StaffManagementPage() {
               <div className="flex items-center gap-2 bg-black/20 border border-gray-200 dark:border-white/5 rounded-2xl px-4 h-12 min-w-[180px]">
                 <Filter size={16} className="text-gold" />
                 <select 
-                  className="bg-transparent border-none outline-none text-xs text-gray-900 dark:text-white font-bold uppercase tracking-widest cursor-pointer w-full"
+                  className="bg-transparent border-none outline-none text-sm text-gray-900 dark:text-white font-bold uppercase tracking-widest cursor-pointer w-full"
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
                 >
@@ -763,7 +763,7 @@ export default function StaffManagementPage() {
               <div className="flex items-center gap-2 bg-black/20 border border-gray-200 dark:border-white/5 rounded-2xl px-4 h-12 min-w-[180px]">
                 <Activity size={16} className="text-gold" />
                 <select 
-                  className="bg-transparent border-none outline-none text-xs text-gray-900 dark:text-white font-bold uppercase tracking-widest cursor-pointer w-full"
+                  className="bg-transparent border-none outline-none text-sm text-gray-900 dark:text-white font-bold uppercase tracking-widest cursor-pointer w-full"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
@@ -799,7 +799,7 @@ export default function StaffManagementPage() {
             <tbody className="divide-y divide-white/5">
               {activeTab === "PENDING" && pendingSubTab === "ACCESS" ? (
                 (accessRequests || []).length > 0 ? (accessRequests || []).map((req) => (
-                  <tr key={req.id} className="group hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-all">
+                  <tr key={req.id} className="group hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02] transition-all">
                     <td className="px-10 py-7">
                       <div className="flex items-center gap-6">
                         <div className="h-16 w-16 rounded-[24px] bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center text-2xl text-gold font-black border border-gold/10 shadow-xl group-hover:scale-110 transition-all">
@@ -807,18 +807,18 @@ export default function StaffManagementPage() {
                         </div>
                         <div className="whitespace-nowrap">
                           <p className="text-lg font-black text-gray-900 dark:text-white group-hover:text-gold transition-colors">{req.staffName}</p>
-                          <p className="text-xs text-gray-500 font-bold uppercase mt-1 tracking-wider">ID: #{req.id}</p>
+                          <p className="text-sm text-gray-500 font-bold uppercase mt-1 tracking-wider">ID: #{req.id}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-8 py-7">
                       <div className="flex flex-col">
-                        <span className="text-sm font-black text-gray-900 dark:text-white">{req.time}</span>
+                        <span className="text-base font-black text-gray-900 dark:text-white">{req.time}</span>
                         <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Ngày: {new Date().toLocaleDateString()}</span>
                       </div>
                     </td>
                     <td className="px-8 py-7">
-                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400 italic">"{req.reason}"</span>
+                      <span className="text-base font-medium text-gray-600 dark:text-gray-400 italic">"{req.reason}"</span>
                     </td>
                     <td className="px-8 py-7">
                       <div className="flex items-center gap-3">
@@ -849,7 +849,7 @@ export default function StaffManagementPage() {
                 )
               ) : (
                 (currentStaff || []).length > 0 ? (currentStaff || []).map((staff) => (
-                <tr key={`${staff.id}-${staff.username}`} className="group hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-all cursor-pointer" onClick={() => setSelectedStaff(staff)}>
+                <tr key={`${staff.id}-${staff.username}`} className="group hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02] transition-all cursor-pointer" onClick={() => setSelectedStaff(staff)}>
                   <td className="px-10 py-7">
                     <div className="flex items-center gap-6">
                       <div className="h-16 w-16 rounded-[24px] bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center text-2xl text-gold font-black border border-gold/10 shadow-xl group-hover:scale-110 transition-all">
@@ -857,26 +857,26 @@ export default function StaffManagementPage() {
                       </div>
                       <div className="whitespace-nowrap">
                         <p className="text-lg font-black text-gray-900 dark:text-white group-hover:text-gold transition-colors">{staff.name}</p>
-                        <p className="text-xs text-gray-500 font-bold uppercase mt-1 tracking-wider">@{staff.username}</p>
+                        <p className="text-sm text-gray-500 font-bold uppercase mt-1 tracking-wider">@{staff.username}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-8 py-7">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 font-bold">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 font-bold">
                         <Mail size={12} className="text-gold/50" /> {staff.email}
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 font-bold">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 font-bold">
                         <Phone size={12} className="text-gold/50" /> {staff.phone || "---"}
                       </div>
                     </div>
                   </td>
                   <td className="px-8 py-7">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 font-bold">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 font-bold">
                         <Calendar size={12} className="text-gold/50" /> {staff.birthYear || "---"}
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 font-bold">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 font-bold">
                         <MapPin size={12} className="text-gold/50" /> {staff.address || "---"}
                       </div>
                     </div>
@@ -909,7 +909,7 @@ export default function StaffManagementPage() {
                             <option value="01">Admin</option>
                           </select>
                         ) : (
-                          <span className="text-xs text-gray-500 uppercase font-bold italic">Chờ phê duyệt</span>
+                          <span className="text-sm text-gray-500 uppercase font-bold italic">Chờ phê duyệt</span>
                         )}
                       </div>
                     )}
@@ -967,7 +967,7 @@ export default function StaffManagementPage() {
         {/* Pagination Footer */}
         {(filteredStaff || []).length > 0 && (
           <div className="bg-gray-50 dark:bg-white/[0.02] border-t border-gray-200 dark:border-white/5 px-10 py-6 flex items-center justify-between">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+            <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">
               Hiển thị <span className="text-gray-900 dark:text-white">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="text-gray-900 dark:text-white">{Math.min(currentPage * itemsPerPage, (filteredStaff || []).length)}</span> trên <span className="text-gray-900 dark:text-white">{(filteredStaff || []).length}</span> nhân sự
             </p>
             <div className="flex items-center gap-2">
@@ -1147,7 +1147,7 @@ export default function StaffManagementPage() {
                             value={tempRole || selectedStaff.role}
                             disabled={!(currentUser?.role === "01" || currentUser?.role === "02") || selectedStaff.id === currentUser?.id}
                             onChange={(e) => setTempRole(e.target.value)}
-                            className={`bg-transparent border-none outline-none text-sm font-black text-gold cursor-pointer text-right ${(!(currentUser?.role === "01" || currentUser?.role === "02") || selectedStaff.id === currentUser?.id) ? "opacity-50 cursor-not-allowed" : ""}`}
+                            className={`bg-transparent border-none outline-none text-base font-black text-gold cursor-pointer text-right ${(!(currentUser?.role === "01" || currentUser?.role === "02") || selectedStaff.id === currentUser?.id) ? "opacity-50 cursor-not-allowed" : ""}`}
                           >
                             <option value="01" className="bg-white dark:bg-sidebar">ADMIN</option>
                             <option value="02" className="bg-white dark:bg-sidebar">QUẢN LÝ CÔNG VIỆC</option>
@@ -1280,7 +1280,7 @@ export default function StaffManagementPage() {
                 </div>
                 <div>
                   <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Chi Tiết Ngày Công {activeDetailDay.dayNum}</h3>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-wider mt-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 font-bold uppercase tracking-wider mt-1">
                     Nhân sự: <span className="text-gold">{selectedStaff?.name}</span> | Ngày: {activeDetailDay.dateKey}
                   </p>
                 </div>
@@ -1298,14 +1298,14 @@ export default function StaffManagementPage() {
                     <p className="text-base font-extrabold uppercase tracking-wide">
                       {activeDetailDay.hasCheckedIn ? "Có mặt làm việc" : "Vắng mặt"}
                     </p>
-                    <p className="text-xs opacity-80 font-semibold uppercase mt-1">
+                    <p className="text-sm opacity-80 font-semibold uppercase mt-1">
                       {activeDetailDay.hasCheckedIn ? "Ghi nhận hoạt động bình thường" : "Không phát hiện dữ liệu điểm danh"}
                     </p>
                   </div>
                 </div>
                 {activeDetailDay.hasCheckedIn && (
                   <div className="sm:text-right border-t sm:border-t-0 pt-4 sm:pt-0 border-gray-200 dark:border-white/5">
-                    <p className="text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest">Giờ Check-in / Out</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest">Giờ Check-in / Out</p>
                     <p className="text-base font-black text-gray-900 dark:text-white mt-1">
                       {activeDetailDay.checkinTime} - {activeDetailDay.checkoutTime}
                     </p>
@@ -1315,14 +1315,14 @@ export default function StaffManagementPage() {
 
               {/* Work log timeline */}
               <div className="space-y-6">
-                <h4 className="text-xs font-black text-gray-600 dark:text-gray-400 uppercase tracking-[0.2em] mb-4">
+                <h4 className="text-sm font-black text-gray-600 dark:text-gray-400 uppercase tracking-[0.2em] mb-4">
                   Nhật Ký Ca Làm Việc Chi Tiết
                 </h4>
                 <div className="space-y-5 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
                   {(activeDetailDay.workLog || []).map((log: any, idx: number) => (
                     <div key={`log-timeline-${idx}`} className="flex gap-5 group/item">
                       <div className="flex flex-col items-center">
-                        <div className="h-11 px-4 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 flex items-center justify-center text-sm font-black text-gold group-hover/item:bg-gold/10 group-hover/item:border-gold/20 transition-all shrink-0 shadow-lg">
+                        <div className="h-11 px-4 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 flex items-center justify-center text-base font-black text-gold group-hover/item:bg-gold/10 group-hover/item:border-gold/20 transition-all shrink-0 shadow-lg">
                           {log.time !== "N/A" ? log.time.slice(0, 5) : "!"}
                         </div>
                         {idx < (activeDetailDay.workLog || []).length - 1 && (
@@ -1330,8 +1330,8 @@ export default function StaffManagementPage() {
                         )}
                       </div>
                       <div className="flex-1 bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 rounded-2xl p-5 group-hover/item:bg-white/[0.04] transition-all">
-                        <p className="text-sm font-black text-gray-900 dark:text-white tracking-tight">{log.title}</p>
-                        <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-2 leading-relaxed">{log.desc}</p>
+                        <p className="text-base font-black text-gray-900 dark:text-white tracking-tight">{log.title}</p>
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-2 leading-relaxed">{log.desc}</p>
                       </div>
                     </div>
                   ))}
@@ -1341,7 +1341,7 @@ export default function StaffManagementPage() {
               <div className="mt-8 pt-6 border-t border-gray-200 dark:border-white/5 flex justify-end">
                 <button
                   onClick={() => setActiveDetailDay(null)}
-                  className="h-14 px-10 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-xs tracking-widest rounded-xl transition-all shadow-xl shadow-gold/20"
+                  className="h-14 px-10 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest rounded-xl transition-all shadow-xl shadow-gold/20"
                 >
                   Đóng cửa sổ
                 </button>
@@ -1370,7 +1370,7 @@ export default function StaffManagementPage() {
                 <AlertCircle size={32} className="text-gold" />
               </div>
               <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-2">{modalConfig.title}</h3>
-              <p className="text-gray-600 dark:text-gray-400 font-medium text-sm leading-relaxed mb-8">{modalConfig.message}</p>
+              <p className="text-gray-600 dark:text-gray-400 font-medium text-base leading-relaxed mb-8">{modalConfig.message}</p>
               
               <div className="flex gap-4">
                 {modalConfig.type === "CONFIRM" && (
@@ -1435,7 +1435,7 @@ function InfoRow({ label, value, icon }: any) {
         <div className="text-gold opacity-60 group-hover:opacity-100 transition-all">{icon}</div>
         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">{label}</span>
       </div>
-      <span className="text-xs font-black text-gray-900 dark:text-white">{value}</span>
+      <span className="text-sm font-black text-gray-900 dark:text-white">{value}</span>
     </div>
   );
 }

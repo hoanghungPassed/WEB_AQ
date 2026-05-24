@@ -79,7 +79,7 @@ function MailTableContent() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-10 left-1/2 -translate-x-1/2 z-[100] bg-gold px-6 py-2 rounded-full text-sidebar font-black text-sm shadow-2xl"
+            className="fixed top-10 left-1/2 -translate-x-1/2 z-[100] bg-gold px-6 py-2 rounded-full text-sidebar font-black text-base shadow-2xl"
           >
             Đã sao chép: {(copiedText || []).length > 20 ? copiedText.substring(0, 20) + "..." : copiedText}
           </motion.div>
@@ -100,7 +100,7 @@ function MailTableContent() {
               <Mail className="text-gold" size={24} />
               {type === "live" ? "Mail Live" : type === "die" ? "Mail Die" : type === "monetized" ? "Mail Kiếm Tiền" : "Tổng Mail"}
             </h1>
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Tổng cộng: {(filteredMails || []).length}</p>
+            <p className="text-sm text-gray-500 font-medium uppercase tracking-widest">Tổng cộng: {(filteredMails || []).length}</p>
           </div>
         </div>
 
@@ -111,7 +111,7 @@ function MailTableContent() {
             <select 
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="h-10 pl-9 pr-4 rounded-lg bg-white dark:bg-sidebar border border-border-custom text-xs text-gray-900 dark:text-white focus:border-gold/50 focus:outline-none appearance-none cursor-pointer transition-all"
+              className="h-10 pl-9 pr-4 rounded-lg bg-white dark:bg-sidebar border border-border-custom text-sm text-gray-900 dark:text-white focus:border-gold/50 focus:outline-none appearance-none cursor-pointer transition-all"
             >
               <option value="all">Tất cả trạng thái</option>
               {(CHANNEL_STATUS_OPTIONS || []).map(status => (
@@ -127,10 +127,10 @@ function MailTableContent() {
               placeholder="Tìm kiếm nhanh..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-10 w-40 rounded-lg bg-white dark:bg-sidebar border border-border-custom pl-10 pr-4 text-xs text-gray-900 dark:text-white focus:border-gold/50 focus:outline-none transition-all"
+              className="h-10 w-40 rounded-lg bg-white dark:bg-sidebar border border-border-custom pl-10 pr-4 text-sm text-gray-900 dark:text-white focus:border-gold/50 focus:outline-none transition-all"
             />
           </div>
-          <button className="h-10 px-4 rounded-lg bg-gold text-[#0a0a0a] font-bold text-xs flex items-center gap-2 hover:bg-gold-hover transition-all">
+          <button className="h-10 px-4 rounded-lg bg-gold text-[#0a0a0a] font-bold text-sm flex items-center gap-2 hover:bg-gold-hover transition-all">
             <Download size={16} /> Excel
           </button>
         </div>
@@ -154,7 +154,7 @@ function MailTableContent() {
             </thead>
             <tbody className="divide-y divide-border-custom">
               {(currentItems || []).map((mail, idx) => (
-                <tr key={mail.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors group animate-fade-in">
+                <tr key={mail.id} className="hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.03] transition-colors group animate-fade-in">
                   <td className="px-2 py-2 text-[10px] font-bold text-gray-600 border-r border-border-custom text-center whitespace-nowrap">
                     {startIndex + idx + 1}
                   </td>

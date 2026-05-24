@@ -157,7 +157,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                 <span className="h-6 w-1.5 rounded-full bg-gold shadow-[0_0_10px_#d4af37]" />
                 Hồ sơ cá nhân
               </h2>
-              <button onClick={onClose} className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white">
+              <button onClick={onClose} className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-white dark:bg-zinc-900/5 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white">
                 <X size={24} />
               </button>
             </div>
@@ -165,12 +165,36 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
             {/* Body */}
             <div className="space-y-8 p-8 overflow-y-auto max-h-[70vh] custom-scrollbar">
               <div className="flex flex-col items-center">
-                <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-4xl font-bold rounded-full shadow-lg mb-4">
-                  {formData.name.charAt(0).toUpperCase()}
+                <div className="relative w-24 h-24 mb-4 group">
+                  <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-4xl font-bold rounded-full shadow-lg overflow-hidden border-2 border-gold/20">
+                    {formData.avatar ? (
+                      <img src={formData.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      formData.name.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <label className="absolute bottom-0 right-0 p-1.5 bg-gray-900 rounded-full text-white cursor-pointer hover:bg-gray-700 shadow-md">
+                    <Camera size={14} />
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setFormData({ ...formData, avatar: reader.result as string });
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }} 
+                    />
+                  </label>
                 </div>
                 <div className="mt-4 text-center">
                   <p className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">{formData.name}</p>
-                  <p className="text-xs font-bold text-gold uppercase tracking-[0.3em] mt-1">@{formData.username}</p>
+                  <p className="text-sm font-bold text-gold uppercase tracking-[0.3em] mt-1">@{formData.username}</p>
                 </div>
                 <div className="w-full mt-4 max-w-xs">
                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 flex items-center gap-2 mb-2">
@@ -179,7 +203,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                   <input
                     type="time" value={formData.offWorkTime || "17:30"}
                     onChange={(e) => setFormData({...formData, offWorkTime: e.target.value})}
-                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-sm focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-base focus:outline-none focus:border-gold/50 transition-all shadow-inner"
                   />
                 </div>
               </div>
@@ -192,7 +216,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                   <input
                     type="text" value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-base text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
                   />
                 </div>
 
@@ -203,7 +227,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                   <input
                     type="text" value={formData.birthYear || ""}
                     onChange={(e) => setFormData({...formData, birthYear: e.target.value})}
-                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-base text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
                   />
                 </div>
 
@@ -214,7 +238,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                   <input
                     type="email" value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-base text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
                   />
                 </div>
 
@@ -225,7 +249,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                   <input
                     type="text" value={formData.phone || ""}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-base text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
                   />
                 </div>
 
@@ -236,7 +260,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                   <input
                     type="text" value={formData.address || ""}
                     onChange={(e) => setFormData({...formData, address: e.target.value})}
-                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+                    className="h-12 w-full rounded-2xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 px-4 text-base text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
                   />
                 </div>
 
@@ -244,7 +268,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                   <label className="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
                     <ShieldCheck size={14} className="text-gold" /> Chức vụ hệ thống
                   </label>
-                  <div className="flex h-12 w-full items-center rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/[0.02] px-4 text-sm font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="flex h-12 w-full items-center rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/[0.02] px-4 text-base font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     {getRoleLabel(userData.role)}
                   </div>
                 </div>
@@ -253,11 +277,11 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-4 border-t border-gray-100 dark:border-white/5 bg-white/[0.01] px-8 py-6">
-              <button onClick={onClose} className="px-8 py-3 text-xs font-black text-gray-500 uppercase tracking-widest hover:text-gray-900 dark:hover:text-white transition-colors rounded-xl border border-gray-300 dark:border-gray-600">Hủy bỏ</button>
+            <div className="flex items-center justify-end gap-4 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-zinc-900/[0.01] px-8 py-6">
+              <button onClick={onClose} className="px-8 py-3 text-sm font-black text-gray-500 uppercase tracking-widest hover:text-gray-900 dark:hover:text-white transition-colors rounded-xl border border-gray-300 dark:border-gray-600">Hủy bỏ</button>
               <button 
                 onClick={handleSave} disabled={isSaving}
-                className="flex items-center gap-2 rounded-xl bg-gold px-8 py-3 text-xs font-black text-sidebar transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-50 shadow-lg shadow-gold/20 uppercase tracking-widest"
+                className="flex items-center gap-2 rounded-xl bg-gold px-8 py-3 text-sm font-black text-sidebar transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-50 shadow-lg shadow-gold/20 uppercase tracking-widest"
               >
                 {isSaving ? "Đang lưu..." : <><Save size={18} /> Lưu thay đổi</>}
               </button>

@@ -173,7 +173,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       const links = targetMail.links || [];
       const filledCount = [0, 1, 2].filter(i => links[i] && links[i].trim() !== "").length;
       if (filledCount < 3) {
-        alert("Thiếu kênh, cần đủ 3 link!");
+        alert("Vui lòng điền đủ 3 link kênh trước khi chuyển trạng thái Đã làm");
         return;
       }
     }
@@ -784,7 +784,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       <AnimatePresence>
         {showToast && (
           <motion.div initial={{ opacity: 0, y: -20, x: "-50%" }} animate={{ opacity: 1, y: 30, x: "-50%" }} exit={{ opacity: 0, y: -20, x: "-50%" }}
-            className="fixed top-0 left-1/2 z-[200] bg-gold px-6 py-2 rounded-full text-sidebar font-black text-sm shadow-2xl flex items-center gap-2"
+            className="fixed top-0 left-1/2 z-[200] bg-gold px-6 py-2 rounded-full text-sidebar font-black text-base shadow-2xl flex items-center gap-2"
           >
             <CheckCircle size={18} /> {toastMsg}
           </motion.div>
@@ -801,8 +801,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-2">{confirmConfig.title}</h3>
               <p className="text-gray-600 dark:text-gray-400 font-medium mb-8 leading-relaxed">{confirmConfig.msg}</p>
               <div className="flex gap-4">
-                <button onClick={() => setShowConfirm(false)} className="flex-1 h-12 rounded-2xl border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white font-bold uppercase text-xs tracking-widest hover:bg-gray-100 dark:hover:bg-white/5 transition-all">Hủy bỏ</button>
-                <button onClick={confirmConfig.onConfirm} className="flex-1 h-12 rounded-2xl bg-red-500 text-gray-900 dark:text-white font-black uppercase text-xs tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20">Xác nhận Xóa</button>
+                <button onClick={() => setShowConfirm(false)} className="flex-1 h-12 rounded-2xl border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white font-bold uppercase text-sm tracking-widest hover:bg-gray-100 dark:hover:bg-white dark:bg-zinc-900/5 transition-all">Hủy bỏ</button>
+                <button onClick={confirmConfig.onConfirm} className="flex-1 h-12 rounded-2xl bg-red-500 text-gray-900 dark:text-white font-black uppercase text-sm tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20">Xác nhận Xóa</button>
               </div>
             </motion.div>
           </motion.div>
@@ -822,12 +822,12 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               </p>
               <textarea
                 value={manualData} onChange={(e) => setManualData(e.target.value)}
-                className="w-full h-72 bg-black/30 border border-gray-300 dark:border-white/10 rounded-3xl p-6 text-sm text-gray-900 dark:text-white focus:border-gold outline-none transition-all resize-none font-mono scrollbar-hide"
+                className="w-full h-72 bg-black/30 border border-gray-300 dark:border-white/10 rounded-3xl p-6 text-base text-gray-900 dark:text-white focus:border-gold outline-none transition-all resize-none font-mono scrollbar-hide"
                 placeholder="Dán dữ liệu của bạn vào đây..."
               />
               <div className="flex gap-4 mt-8">
-                <button onClick={() => setShowManualImport(false)} className="flex-1 h-14 rounded-2xl border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white font-bold uppercase text-xs tracking-widest hover:bg-gray-100 dark:hover:bg-white/5 transition-all">Hủy bỏ</button>
-                <button onClick={handleManualImport} className="flex-1 h-14 rounded-2xl bg-gold text-sidebar font-black uppercase text-xs tracking-widest hover:bg-gold/80 transition-all shadow-xl shadow-gold/20">Xác nhận Thêm</button>
+                <button onClick={() => setShowManualImport(false)} className="flex-1 h-14 rounded-2xl border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white font-bold uppercase text-sm tracking-widest hover:bg-gray-100 dark:hover:bg-white dark:bg-zinc-900/5 transition-all">Hủy bỏ</button>
+                <button onClick={handleManualImport} className="flex-1 h-14 rounded-2xl bg-gold text-sidebar font-black uppercase text-sm tracking-widest hover:bg-gold/80 transition-all shadow-xl shadow-gold/20">Xác nhận Thêm</button>
               </div>
             </motion.div>
           </motion.div>
@@ -901,14 +901,14 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                     <div className="h-16 w-16 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-4 border border-gray-300 dark:border-white/10">
                       <FileText className="text-gray-600" size={28} />
                     </div>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Không có lịch sử nhập dữ liệu</p>
+                    <p className="text-sm text-gray-500 font-bold uppercase tracking-widest">Không có lịch sử nhập dữ liệu</p>
                     <p className="text-[10px] text-gray-600 mt-1">Các lượt import mới sẽ tự động được ghi nhận tại đây.</p>
                   </div>
                 ) : (
                   (filteredHistory || []).map((item: ImportHistoryItem) => (
                     <div
                       key={item.id}
-                      className="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex items-center justify-between hover:border-gray-300 dark:hover:border-white/10 transition-all group"
+                      className="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-2xl p-6 flex items-center justify-between hover:border-gray-300 dark:hover:border-white/10 transition-all group"
                     >
                       <div className="flex items-center gap-4">
                         {/* Icon / Badge */}
@@ -925,7 +925,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                         {/* Details */}
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-black text-gray-900 dark:text-white font-mono break-all">{item.fileName}</span>
+                            <span className="text-sm font-black text-gray-900 dark:text-white font-mono break-all">{item.fileName}</span>
                             <span className="text-[10px] bg-green-500/15 text-green-400 border border-green-500/25 px-2 py-0.5 rounded-md font-black">
                               +{item.quantity} {item.type === "MAIL" ? "mail" : "số"}
                             </span>
@@ -964,7 +964,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       {(!isStaff || !selectedBatch) && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <button onClick={() => router.push("/admin")} className="flex items-center gap-2 text-gold hover:text-gray-900 dark:hover:text-gray-900 dark:text-white font-black uppercase text-xs tracking-widest transition-all group">
+            <button onClick={() => router.push("/admin")} className="flex items-center gap-2 text-gold hover:text-gray-900 dark:hover:text-gray-900 dark:text-white font-black uppercase text-sm tracking-widest transition-all group">
               <div className="h-10 w-10 bg-gold/10 rounded-xl flex items-center justify-center group-hover:bg-gold/20 transition-all shadow-lg"><ArrowLeft size={20} /></div>
               Quay lại bảng điều khiển
             </button>
@@ -1030,7 +1030,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                 </span>
               </div>
               <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter group-hover:text-gold transition-colors">{batch.name}</h3>
-              <p className="text-xs text-gray-500 mt-2 font-medium">Bấm vào để xem và xử lý các mail trong lô này.</p>
+              <p className="text-sm text-gray-500 mt-2 font-medium">Bấm vào để xem và xử lý các mail trong lô này.</p>
             </button>
           ))}
         </div>
@@ -1044,7 +1044,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               {isStaff && type === "SATELLITE" && selectedBatch && (
                 <button
                   onClick={() => setSelectedBatch(null)}
-                  className="h-10 px-4 flex items-center gap-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-xl text-gray-900 dark:text-white font-black text-xs uppercase tracking-widest transition-all"
+                  className="h-10 px-4 flex items-center gap-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-xl text-gray-900 dark:text-white font-black text-sm uppercase tracking-widest transition-all"
                 >
                   <ArrowLeft size={16} /> Quay lại
                 </button>
@@ -1053,12 +1053,12 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               <div className="h-8 w-px bg-gray-200 dark:bg-white/10 hidden md:block" />
               <div className="flex items-center gap-2 bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 w-full md:w-64 lg:w-80 focus-within:border-gold transition-all">
                 <Search size={16} className="text-gray-500 shrink-0" />
-                <input type="text" placeholder="Tìm kiếm Email, Pass, Mail KP, SĐT..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none text-xs text-gray-900 dark:text-white w-full" />
+                <input type="text" placeholder="Tìm kiếm Email, Pass, Mail KP, SĐT..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none text-sm text-gray-900 dark:text-white w-full" />
               </div>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
+                className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
               >
                 <option value="ALL" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Tất cả trạng thái</option>
                 {type === "ROOT" ? (
@@ -1086,7 +1086,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                 <select
                   value={assignmentFilter}
                   onChange={(e) => setAssignmentFilter(e.target.value as "ALL" | "ASSIGNED" | "UNASSIGNED")}
-                  className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all animate-fade-in"
+                  className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all animate-fade-in"
                 >
                   <option value="ALL" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Trạng thái gán</option>
                   <option value="ASSIGNED" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Đã gán</option>
@@ -1097,7 +1097,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                 <select
                   value={selectedBatchFilter}
                   onChange={(e) => setSelectedBatchFilter(e.target.value)}
-                  className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all animate-fade-in"
+                  className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all animate-fade-in"
                 >
                   <option value="ALL" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Lọc theo Lô</option>
                   {(availableBatches || []).map((b: { id: string; name: string }) => (
@@ -1110,7 +1110,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               <select
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value as "ALL" | "1_WEEK" | "1_MONTH" | "2_MONTH")}
-                className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
+                className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
               >
                 <option value="ALL" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Tất cả thời gian</option>
                 <option value="1_WEEK" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">1 tuần gần đây</option>
@@ -1119,7 +1119,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
               </select>
               <div className="hidden xl:flex items-center gap-3 px-5 py-2 bg-gold/10 border-2 border-gold/20 rounded-2xl shadow-lg shadow-gold/5 group">
                 <Mail size={18} className="text-gold animate-pulse" />
-                <span className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">
+                <span className="text-base font-black text-gray-900 dark:text-white uppercase tracking-widest">
                   Tổng cộng: <span className="text-gold text-base ml-1">{(filteredMails || []).length}</span> <span className="text-gold/60 text-[10px] ml-1">Mail</span>
                 </span>
               </div>
@@ -1129,7 +1129,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
           <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto custom-scrollbar">
             <div className="min-w-[1200px]">
-              <table className="w-full text-left text-sm whitespace-nowrap">
+              <table className="w-full text-left text-base whitespace-nowrap">
                 <thead className="bg-white dark:bg-[#0a0a0a] text-gray-500 border-b border-gray-200 dark:border-white/5">
                   <tr>
                     <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT</th>
@@ -1149,9 +1149,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                 <tbody className="divide-y divide-white/5 text-gray-700 dark:text-gray-300">
                   {(currentItems || []).length > 0 ? (currentItems || []).map((mail: MailData & { originalSTT: number }, index: number) => {
                     const rowPadding = isStaff ? "py-1.5 px-6" : "py-3.5 px-6";
-                    const textSize = isStaff ? "text-xs" : "text-sm";
+                    const textSize = isStaff ? "text-sm" : "text-base";
                     return (
-                      <tr key={mail._id || mail.id || index} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+                      <tr key={mail._id || mail.id || index} className="hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02] transition-colors group">
                         <td className={`${rowPadding} text-[10px] font-black text-gray-500 whitespace-nowrap`}>{mail.stt || mail.originalSTT}</td>
                         <td className={`${rowPadding} cursor-pointer hover:text-gold transition-colors font-bold ${textSize} whitespace-nowrap`} onClick={() => copyToClipboard(mail.email, "Email")}>
                           {mail.type === "SATELLITE" && (() => {
@@ -1170,8 +1170,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                           })()}
                           {mail.email}
                         </td>
-                        <td className={`${rowPadding} cursor-pointer text-xs text-gray-600 dark:text-gray-400 hover:text-gold transition-colors whitespace-nowrap`} onClick={() => copyToClipboard(mail.recoveryMail || mail.recovery, "Mail KP")}>{mail.recoveryMail || mail.recovery}</td>
-                        <td className={`${rowPadding} cursor-pointer text-xs text-gray-500 hover:text-gold transition-colors font-mono whitespace-nowrap`} onClick={() => copyToClipboard(mail.password || mail.pass, "Mật khẩu")}>{mail.password || mail.pass}</td>
+                        <td className={`${rowPadding} cursor-pointer text-sm text-gray-600 dark:text-gray-400 hover:text-gold transition-colors whitespace-nowrap`} onClick={() => copyToClipboard(mail.recoveryMail || mail.recovery, "Mail KP")}>{mail.recoveryMail || mail.recovery}</td>
+                        <td className={`${rowPadding} cursor-pointer text-sm text-gray-500 hover:text-gold transition-colors font-mono whitespace-nowrap`} onClick={() => copyToClipboard(mail.password || mail.pass, "Mật khẩu")}>{mail.password || mail.pass}</td>
                         {/* 2FA - TOTP real-time */}
                         <td className={`${rowPadding} whitespace-nowrap`}>
                           {mail.twoFA ? (
@@ -1185,7 +1185,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                           {mail.phone ? (
                             <button
                               onClick={() => copyToClipboard(mail.phone || "", "SĐT")}
-                              className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 hover:text-gold transition-colors font-bold group/sdt"
+                              className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gold transition-colors font-bold group/sdt"
                             >
                               <Phone size={12} className="text-gray-600 group-hover/sdt:text-gold" />
                               {mail.phone}
@@ -1202,7 +1202,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                               href={mail.phoneLink || mail.otpLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-blue-400 hover:text-blue-300 transition-colors font-bold text-xs"
+                              className="inline-flex items-center gap-1.5 text-blue-400 hover:text-blue-300 transition-colors font-bold text-sm"
                             >
                               Mở OTP <ExternalLink size={12} />
                             </a>
@@ -1211,7 +1211,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                           )}
                         </td>
                         {isAdminOrManager && (type === "SATELLITE" || type === "ROOT" || type === "MONETIZED") && (
-                          <td className={`${rowPadding} text-xs font-bold whitespace-nowrap`}>
+                          <td className={`${rowPadding} text-sm font-bold whitespace-nowrap`}>
                             {mail.assigneeId ? (
                               <span className="text-gold">
                                 {mail.assignedTo || "Đã gán"}{mail.batchName ? ` - ${mail.batchName}` : ""}
@@ -1294,7 +1294,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
           {!(isStaff && type === "SATELLITE") && (
             <div className="p-6 border-t border-gray-200 dark:border-white/5 bg-black/20 flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-gray-900 dark:text-white font-black">{currentPage}</span> / {totalPages || 1}</span>
+              <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-gray-900 dark:text-white font-black">{currentPage}</span> / {totalPages || 1}</span>
               <div className="flex gap-2">
                 <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
                 <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
@@ -1344,7 +1344,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                 </button>
               </div>
               <div className="p-6 space-y-4">
-                <p className="text-xs text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
+                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
                   Lô mail mới nhập sẽ được nhóm lại để thuận tiện quản lý công việc, theo dõi tiến độ và phân bổ cho nhân viên.
                 </p>
                 <div className="space-y-2">
@@ -1354,7 +1354,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                     placeholder="VD: Lô 1 ngày 15/10"
                     value={importBatchName}
                     onChange={(e) => setImportBatchName(e.target.value)}
-                    className="w-full bg-black/40 border border-gray-300 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold transition-all"
+                    className="w-full bg-black/40 border border-gray-300 dark:border-white/10 rounded-xl px-4 py-3 text-base text-gray-900 dark:text-white focus:outline-none focus:border-gold transition-all"
                   />
                 </div>
               </div>
@@ -1364,13 +1364,13 @@ export default function MailManagement({ type, user }: MailManagementProps) {
                     setPendingMails(null);
                     setShowBatchNameModal(false);
                   }}
-                  className="px-5 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-xs font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-colors"
+                  className="px-5 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-colors"
                 >
                   Hủy bỏ
                 </button>
                 <button
                   onClick={handleConfirmBatchImport}
-                  className="px-5 py-2.5 rounded-xl bg-gold hover:bg-gold-hover text-[#0a0a0a] text-xs font-black uppercase tracking-wider transition-all"
+                  className="px-5 py-2.5 rounded-xl bg-gold hover:bg-gold-hover text-[#0a0a0a] text-sm font-black uppercase tracking-wider transition-all"
                 >
                   Xác nhận nạp
                 </button>

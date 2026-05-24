@@ -132,7 +132,7 @@ export default function EmployeePhoneListPage() {
             initial={{ opacity: 0, y: -20, x: "-50%" }} 
             animate={{ opacity: 1, y: 30, x: "-50%" }} 
             exit={{ opacity: 0, y: -20, x: "-50%" }}
-            className="fixed top-0 left-1/2 z-[200] bg-gold px-6 py-3 rounded-full text-sidebar font-black text-sm shadow-2xl flex items-center gap-2"
+            className="fixed top-0 left-1/2 z-[200] bg-gold px-6 py-3 rounded-full text-sidebar font-black text-base shadow-2xl flex items-center gap-2"
           >
             <CheckCircle2 size={18} /> {toastMsg}
           </motion.div>
@@ -153,7 +153,7 @@ export default function EmployeePhoneListPage() {
               <Phone className="text-gold" size={28} />
               Danh sách SĐT xác minh
             </h2>
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mt-1">
+            <p className="text-sm text-gray-500 font-medium uppercase tracking-widest mt-1">
               Danh sách 25 số điện thoại được giao để xác minh trong ngày
             </p>
           </div>
@@ -169,7 +169,7 @@ export default function EmployeePhoneListPage() {
           </div>
           <div>
             <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">Tiến độ công việc SĐT</span>
-            <span className="text-3xl font-black text-gray-900 dark:text-white mt-1">{stats.total - stats.pending} <span className="text-sm text-gray-500">/ {stats.total} Số</span></span>
+            <span className="text-3xl font-black text-gray-900 dark:text-white mt-1">{stats.total - stats.pending} <span className="text-base text-gray-500">/ {stats.total} Số</span></span>
           </div>
           <div className="w-full bg-gray-100 dark:bg-white/5 rounded-full h-2 mt-4 relative">
             <motion.div 
@@ -183,28 +183,28 @@ export default function EmployeePhoneListPage() {
 
         {/* Breakdown Stats */}
         <div className="md:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex flex-col justify-between h-24">
+          <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-6 flex flex-col justify-between h-24">
             <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-1">
               <Activity size={12} className="text-indigo-400" /> Chưa làm
             </span>
             <span className="text-2xl font-black text-gray-900 dark:text-white mt-1">{stats.pending}</span>
           </div>
 
-          <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex flex-col justify-between h-24">
+          <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-6 flex flex-col justify-between h-24">
             <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest flex items-center gap-1">
               <Award size={12} /> XM lần 1
             </span>
             <span className="text-2xl font-black text-yellow-500 mt-1">{stats.xm1}</span>
           </div>
 
-          <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex flex-col justify-between h-24">
+          <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-6 flex flex-col justify-between h-24">
             <span className="text-[9px] font-black text-green-500 uppercase tracking-widest flex items-center gap-1">
               <ShieldCheck size={12} /> XM lần 2
             </span>
             <span className="text-2xl font-black text-green-500 mt-1">{stats.xm2}</span>
           </div>
 
-          <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex flex-col justify-between h-24">
+          <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-6 flex flex-col justify-between h-24">
             <span className="text-[9px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1">
               <AlertOctagon size={12} /> Báo lỗi
             </span>
@@ -221,7 +221,7 @@ export default function EmployeePhoneListPage() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={15} />
             <input 
               placeholder="Tìm kiếm số điện thoại..."
-              className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl pl-10 pr-4 h-10 text-xs text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full sm:w-64"
+              className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl pl-10 pr-4 h-10 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full sm:w-64"
               type="text" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -233,7 +233,7 @@ export default function EmployeePhoneListPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
+              className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
             >
               <option value="ALL" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Tất cả</option>
               <option value="Chưa làm" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Chưa làm</option>
@@ -246,7 +246,7 @@ export default function EmployeePhoneListPage() {
 
         {/* Table content */}
         <div className="flex-1 overflow-y-auto custom-scrollbar border border-gray-200 dark:border-white/5 bg-black/10 rounded-2xl mb-4">
-          <table className="w-full text-left text-xs min-w-[700px]">
+          <table className="w-full text-left text-sm min-w-[700px]">
             <thead className="sticky top-0 bg-white dark:bg-[#0c0c0c] text-gray-500 border-b border-gray-200 dark:border-white/5 z-10 font-black uppercase text-[9px] tracking-widest">
               <tr>
                 <th className="py-3.5 px-6">STT</th>
@@ -259,9 +259,9 @@ export default function EmployeePhoneListPage() {
             </thead>
             <tbody className="divide-y divide-white/5 text-gray-700 dark:text-gray-300">
               {(filteredPhones || []).map((p, idx) => (
-                <tr key={p.id} className="hover:bg-white/[0.01] transition-colors">
+                <tr key={p.id} className="hover:bg-white dark:bg-zinc-900/[0.01] transition-colors">
                   <td className="py-4 px-6 text-gray-500 font-bold">{idx + 1}</td>
-                  <td className="py-4 px-6 font-bold text-gray-900 dark:text-white font-mono text-sm tracking-wide">{p.number}</td>
+                  <td className="py-4 px-6 font-bold text-gray-900 dark:text-white font-mono text-base tracking-wide">{p.number}</td>
                   <td className="py-4 px-6 text-gray-600 dark:text-gray-400 font-mono text-[10px] max-w-[240px] truncate">
                     {(p as any).otpLink ? (
                       <a href={(p as any).otpLink} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 hover:underline transition-colors">

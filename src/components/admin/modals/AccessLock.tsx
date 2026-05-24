@@ -153,11 +153,11 @@ export default function AccessLock({ message, userName, onSendRequest, onLogout 
           {status === "DENIED" && (
             <div className="flex flex-col gap-4">
               <div className="h-16 px-10 rounded-2xl bg-red-500/10 border border-red-500 text-red-500 font-black uppercase tracking-widest flex items-center justify-center gap-3">
-                <ShieldAlert size={24} /> Yêu cầu bị từ chối
+                <ShieldAlert size={24} /> Yêu cầu đăng nhập đã bị từ chối
               </div>
               <button 
                 onClick={() => setStatus("IDLE")}
-                className="text-gold text-sm font-bold hover:underline"
+                className="text-gold text-base font-bold hover:underline"
               >
                 Thử gửi lại yêu cầu
               </button>
@@ -172,7 +172,7 @@ export default function AccessLock({ message, userName, onSendRequest, onLogout 
           </button>
         </div>
 
-        <p className="mt-12 text-xs font-bold text-gray-600 uppercase tracking-widest">AQ MEDIA Management System &copy; 2026</p>
+        <p className="mt-12 text-sm font-bold text-gray-600 uppercase tracking-widest">AQ MEDIA Management System &copy; 2026</p>
       </motion.div>
     </div>
   );

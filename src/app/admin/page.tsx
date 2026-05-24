@@ -1120,7 +1120,7 @@ export default function AdminDashboard() {
         <AnimatePresence>
           {copyToast && (
             <motion.div initial={{ opacity: 0, y: -40, x: "-50%" }} animate={{ opacity: 1, y: 20, x: "-50%" }} exit={{ opacity: 0, y: -40, x: "-50%" }}
-              className="fixed top-0 left-1/2 z-[500] bg-gold px-6 py-2.5 rounded-full text-sidebar font-black text-sm shadow-2xl flex items-center gap-2">
+              className="fixed top-0 left-1/2 z-[500] bg-gold px-6 py-2.5 rounded-full text-sidebar font-black text-base shadow-2xl flex items-center gap-2">
               <CheckCircle2 size={18} /> {copyToast}
             </motion.div>
           )}
@@ -1205,10 +1205,10 @@ export default function AdminDashboard() {
                     <span className="text-red-400 font-black text-lg">!</span>
                   </div>
                   <div>
-                    <p className="text-red-300 font-black text-sm uppercase tracking-widest">
+                    <p className="text-red-300 font-black text-base uppercase tracking-widest">
                       {(missingLinksWarning || []).length} mail chưa điền đủ link kênh YouTube
                     </p>
-                    <p className="text-red-500/70 text-xs font-bold uppercase tracking-wider mt-1">
+                    <p className="text-red-500/70 text-sm font-bold uppercase tracking-wider mt-1">
                       Các mail thiếu link sẽ bị đánh dấu Lỗi — bổ sung link trong popup "Xem chi tiết"
                     </p>
                   </div>
@@ -1222,16 +1222,16 @@ export default function AdminDashboard() {
               </div>
               {/* STT Badges */}
               <div className="px-5 py-3 flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-black text-red-500/60 uppercase tracking-widest mr-2">STT thiếu link:</span>
+                <span className="text-sm font-black text-red-500/60 uppercase tracking-widest mr-2">STT thiếu link:</span>
                 {(missingLinksWarning || []).map((w) => (
                   <span
                     key={w.stt}
                     title={`${w.email} - thiếu ${w.missing} link`}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 font-black text-sm cursor-default hover:bg-red-500/30 transition-colors"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 font-black text-base cursor-default hover:bg-red-500/30 transition-colors"
                   >
                     <span className="font-black text-gray-900 dark:text-white text-base">{w.stt}</span>
-                    <span className="text-red-500/40 font-normal text-xs">|</span>
-                    <span className="text-red-400/80 font-bold text-xs">{w.missing} link trống</span>
+                    <span className="text-red-500/40 font-normal text-sm">|</span>
+                    <span className="text-red-400/80 font-bold text-sm">{w.missing} link trống</span>
                   </span>
                 ))}
               </div>
@@ -1241,7 +1241,7 @@ export default function AdminDashboard() {
 
         {/* Scrollable mail table */}
         <div className="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left text-sm whitespace-nowrap min-w-[1000px]">
+          <table className="w-full text-left text-base whitespace-nowrap min-w-[1000px]">
             <thead className="sticky top-0 bg-white dark:bg-[#0a0a0a] text-gray-500 border-b border-gray-200 dark:border-white/5 z-10">
               <tr>
                 <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT</th>
@@ -1259,9 +1259,9 @@ export default function AdminDashboard() {
               {(taskMails || []).length === 0 ? (
                 <tr><td colSpan={9} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest">Không có mail nào</td></tr>
               ) : (taskMails || []).map((mail: any, idx: number) => (
-                <tr key={mail.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+                <tr key={mail.id} className="hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02] transition-colors group">
                   <td className="py-3 px-6 text-[10px] font-black text-gray-500 whitespace-nowrap">{idx + 1}</td>
-                  <td className="py-3 px-6 font-bold text-gray-900 dark:text-white text-xs cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.email, "Email")}>
+                  <td className="py-3 px-6 font-bold text-gray-900 dark:text-white text-sm cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.email, "Email")}>
                     <div>{mail.email}</div>
                     {mail.type === "SATELLITE" && (() => {
                       const links = mail.links || [];
@@ -1276,15 +1276,15 @@ export default function AdminDashboard() {
                       return null;
                     })()}
                   </td>
-                  <td className="py-3 px-6 text-xs text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.recovery || "", "KP")}>{mail.recovery || "---"}</td>
-                  <td className="py-3 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.pass, "Pass")}>{mail.pass || "---"}</td>
-                  <td className="py-3 px-6 text-xs text-gray-500 font-mono whitespace-nowrap">
+                  <td className="py-3 px-6 text-sm text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.recovery || "", "KP")}>{mail.recovery || "---"}</td>
+                  <td className="py-3 px-6 text-sm text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.pass, "Pass")}>{mail.pass || "---"}</td>
+                  <td className="py-3 px-6 text-sm text-gray-500 font-mono whitespace-nowrap">
                     <TOTPDisplay secret={mail.twoFA || ""} compact onCopy={copyToClipboard} />
                   </td>
-                  <td className="py-3 px-6 text-xs text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
+                  <td className="py-3 px-6 text-sm text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
                   <td className="py-3 px-6 whitespace-nowrap">
                     {mail.otpLink ? (
-                      <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all flex items-center gap-1 font-bold text-xs cursor-pointer">Link OTP <ExternalLink size={12} /></a>
+                      <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all flex items-center gap-1 font-bold text-sm cursor-pointer">Link OTP <ExternalLink size={12} /></a>
                     ) : <span className="text-gray-700">---</span>}
                   </td>
                   <td className="py-3 px-6 text-center whitespace-nowrap">
@@ -1323,7 +1323,7 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-6">
             <button 
               onClick={() => setSelectedViewType(null)}
-              className="flex items-center gap-2 text-gold hover:text-gray-900 dark:hover:text-gray-900 dark:text-white font-black uppercase text-xs tracking-widest transition-all group"
+              className="flex items-center gap-2 text-gold hover:text-gray-900 dark:hover:text-gray-900 dark:text-white font-black uppercase text-sm tracking-widest transition-all group"
             >
               <div className="h-10 w-10 bg-gold/10 rounded-xl flex items-center justify-center group-hover:bg-gold/20 transition-all shadow-lg">
                 <ArrowLeft size={20} />
@@ -1346,7 +1346,7 @@ export default function AdminDashboard() {
                 <Search size={16} className="text-gray-500" />
                 <input 
                   placeholder={selectedViewType === "STAFF" ? "Tìm tên nhân viên..." : "Tìm kiếm Email..."}
-                  className="bg-transparent border-none outline-none text-xs text-gray-900 dark:text-white w-full" 
+                  className="bg-transparent border-none outline-none text-sm text-gray-900 dark:text-white w-full" 
                   type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -1359,7 +1359,7 @@ export default function AdminDashboard() {
                     setFilterMailType(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold transition-all cursor-pointer hidden md:block"
+                  className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold transition-all cursor-pointer hidden md:block"
                 >
                   <option value="ALL" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Tất cả loại</option>
                   <option value="ROOT" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Gốc</option>
@@ -1373,7 +1373,7 @@ export default function AdminDashboard() {
 
           <div className="overflow-x-auto custom-scrollbar">
             {selectedViewType === "STAFF" ? (
-              <table className="w-full text-left text-sm whitespace-nowrap">
+              <table className="w-full text-left text-base whitespace-nowrap">
                 <thead className="bg-white dark:bg-[#0a0a0a] text-gray-500 border-b border-gray-200 dark:border-white/5">
                   <tr>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
@@ -1390,29 +1390,29 @@ export default function AdminDashboard() {
                     .filter(s => s.status === "ACTIVE" && s.role !== "01")
                     .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
                     .map((staff: any, index) => (
-                    <tr key={`staff-${staff.id}`} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+                    <tr key={`staff-${staff.id}`} className="hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02] transition-colors group">
                       <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
-                      <td className="py-4 px-6 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center font-black text-xs text-gold uppercase shrink-0">
+                      <td className="py-4 px-6 text-base font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center font-black text-sm text-gold uppercase shrink-0">
                           {staff.name ? staff.name.slice(0, 2) : "NV"}
                         </div>
                         {staff.name}
                       </td>
-                      <td className="py-4 px-6 text-xs text-gray-600 dark:text-gray-400 uppercase font-black">{getRoleLabel(staff.role)}</td>
+                      <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400 uppercase font-black">{getRoleLabel(staff.role)}</td>
                       <td className="py-4 px-6">
                         <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${staff.isOnline ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20'}`}>
                           {staff.isOnline ? "ONLINE" : "OFFLINE"}
                         </span>
                       </td>
-                      <td className="py-4 px-6 text-xs text-gray-600 dark:text-gray-400 font-mono font-bold">{staff.checkInTime || "---"}</td>
-                      <td className="py-4 px-6 text-xs text-gray-600 dark:text-gray-400 font-mono font-bold">{staff.checkOutTime || "---"}</td>
-                      <td className="py-4 px-6 text-xs text-gold font-mono font-black">{staff.totalHours ? `${staff.totalHours}h` : "---"}</td>
+                      <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400 font-mono font-bold">{staff.checkInTime || "---"}</td>
+                      <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400 font-mono font-bold">{staff.checkOutTime || "---"}</td>
+                      <td className="py-4 px-6 text-sm text-gold font-mono font-black">{staff.totalHours ? `${staff.totalHours}h` : "---"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : selectedViewType === "TASKS" && isAdminOrManager ? (
-              <table className="w-full text-left text-sm whitespace-nowrap">
+              <table className="w-full text-left text-base whitespace-nowrap">
                 <thead className="bg-white dark:bg-[#0a0a0a] text-gray-500 border-b border-gray-200 dark:border-white/5">
                   <tr>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
@@ -1430,17 +1430,17 @@ export default function AdminDashboard() {
                     const assignee = staffList.find(s => String(s.id) === String(task.assigneeId));
                     const taskTypeLabel = task.type === "MAIL_GOC" ? "Mail Gốc" : (task.type === "MAIL_VE_TINH" ? "Mail Vệ Tinh" : "Mail BKT");
                     return (
-                      <tr key={`task-row-${task.id}`} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+                      <tr key={`task-row-${task.id}`} className="hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02] transition-colors group">
                         <td className="py-4 px-6 text-[10px] font-black text-gray-500">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                        <td className="py-4 px-6 text-sm font-bold text-gray-900 dark:text-white">
+                        <td className="py-4 px-6 text-base font-bold text-gray-900 dark:text-white">
                           <div>
                             <span className="block">{task.title}</span>
                             {task.note && <span className="text-[10px] text-gray-500 block font-normal whitespace-pre-wrap">{task.note}</span>}
                           </div>
                         </td>
                         <td className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gold">{taskTypeLabel}</td>
-                        <td className="py-4 px-6 text-xs text-gray-600 dark:text-gray-400 font-bold">{assignee ? assignee.name : "Chưa giao"}</td>
-                        <td className="py-4 px-6 text-xs text-gray-600 dark:text-gray-400 font-bold">{task.mailCount || 0} Mail</td>
+                        <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400 font-bold">{assignee ? assignee.name : "Chưa giao"}</td>
+                        <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400 font-bold">{task.mailCount || 0} Mail</td>
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-2">
                             <div className="w-16 h-1.5 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden border border-gray-200 dark:border-white/5">
@@ -1460,14 +1460,14 @@ export default function AdminDashboard() {
                             {task.status === "COMPLETED" ? "Hoàn thành" : task.status === "IN_PROGRESS" ? "Đang xử lý" : "Chưa làm"}
                           </span>
                         </td>
-                        <td className="py-4 px-6 text-xs text-gray-500 font-bold">{task.deadline || "---"}</td>
+                        <td className="py-4 px-6 text-sm text-gray-500 font-bold">{task.deadline || "---"}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             ) : (
-              <table className="w-full text-left text-sm whitespace-nowrap">
+              <table className="w-full text-left text-base whitespace-nowrap">
                 <thead className="bg-white dark:bg-[#0a0a0a] text-gray-500 border-b border-gray-200 dark:border-white/5">
                   <tr>
                     <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
@@ -1482,9 +1482,9 @@ export default function AdminDashboard() {
                   {(currentItems || []).map((mail: any, index: number) => {
                     const assignee = staffList.find(s => String(s.id) === String(mail.assigneeId));
                     return (
-                      <tr key={`mail-${mail.id}`} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+                      <tr key={`mail-${mail.id}`} className="hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02] transition-colors group">
                         <td className="py-4 px-6 text-[10px] font-black text-gray-500">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                        <td className="py-4 px-6 text-sm font-bold text-gray-900 dark:text-white">
+                        <td className="py-4 px-6 text-base font-bold text-gray-900 dark:text-white">
                           <div>{mail.email}</div>
                           {mail.type === "SATELLITE" && (() => {
                             const links = mail.links || [];
@@ -1510,7 +1510,7 @@ export default function AdminDashboard() {
                         <td className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-600 dark:text-gray-400">
                           {mail.workStatus || (mail.status === 'DIE' ? "Lỗi" : "Chưa làm")}
                         </td>
-                        <td className="py-4 px-6 text-xs text-gray-600 dark:text-gray-400 font-medium">
+                        <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400 font-medium">
                           {mail.updatedBy ? mail.updatedBy : (assignee ? assignee.name : "---")}
                         </td>
                       </tr>
@@ -1523,7 +1523,7 @@ export default function AdminDashboard() {
           
           {selectedViewType !== "STAFF" && (
             <div className="p-6 border-t border-gray-200 dark:border-white/5 bg-black/20 flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-gray-900 dark:text-white font-black">{currentPage}</span> / {selectedViewType === "TASKS" && isAdminOrManager ? totalTasksPages || 1 : totalPages || 1}</span>
+              <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-gray-900 dark:text-white font-black">{currentPage}</span> / {selectedViewType === "TASKS" && isAdminOrManager ? totalTasksPages || 1 : totalPages || 1}</span>
               <div className="flex gap-2">
                 <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
                 <button disabled={currentPage >= (selectedViewType === "TASKS" && isAdminOrManager ? totalTasksPages : totalPages)} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
@@ -1545,7 +1545,7 @@ export default function AdminDashboard() {
           >
             <div className="h-12 w-12 rounded-xl bg-green-500 flex items-center justify-center text-sidebar"><CheckCircle2 size={28} /></div>
             <div>
-              <p className="text-xs font-bold text-green-500 uppercase tracking-widest">Thành công</p>
+              <p className="text-sm font-bold text-green-500 uppercase tracking-widest">Thành công</p>
               <p className="text-base font-black text-gray-900 dark:text-white">Đã xác nhận và cập nhật KPI cho toàn hệ thống!</p>
             </div>
           </motion.div>
@@ -1556,7 +1556,7 @@ export default function AdminDashboard() {
         {copyToast && (
           <motion.div
             initial={{ opacity: 0, y: -100, x: "-50%" }} animate={{ opacity: 1, y: 20, x: "-50%" }} exit={{ opacity: 0, y: -100, x: "-50%" }}
-            className="fixed top-0 left-1/2 z-[500] bg-gold px-6 py-2.5 rounded-full text-sidebar font-black text-sm shadow-2xl flex items-center gap-2"
+            className="fixed top-0 left-1/2 z-[500] bg-gold px-6 py-2.5 rounded-full text-sidebar font-black text-base shadow-2xl flex items-center gap-2"
           >
             <CheckCircle2 size={18} /> {copyToast}
           </motion.div>
@@ -1593,18 +1593,18 @@ export default function AdminDashboard() {
               </p>
               
               {timekeepingModal.warning && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 mb-6 flex items-start gap-3 text-left">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 mb-6 flex items-start gap-3 text-left">
                   <AlertTriangle className="text-red-400 shrink-0 mt-0.5" size={20} />
                   <div>
-                    <p className="text-xs font-black text-red-400 uppercase tracking-widest">Cảnh báo thiếu giờ</p>
-                    <p className="text-xs text-gray-700 dark:text-gray-300 font-medium leading-relaxed mt-1">{timekeepingModal.warning}</p>
+                    <p className="text-sm font-black text-red-400 uppercase tracking-widest">Cảnh báo thiếu giờ</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed mt-1">{timekeepingModal.warning}</p>
                   </div>
                 </div>
               )}
 
               <button
                 onClick={() => setTimekeepingModal(null)}
-                className="w-full h-12 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-xs tracking-widest rounded-xl transition-all shadow-xl shadow-gold/20 mt-4"
+                className="w-full h-12 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest rounded-xl transition-all shadow-xl shadow-gold/20 mt-4"
               >
                 Xác nhận
               </button>
@@ -1652,7 +1652,7 @@ export default function AdminDashboard() {
                     <Clock size={24} />
                   </div>
                 </div>
-                <div className="mt-4 text-xs font-bold text-gray-600 dark:text-gray-400 space-y-1">
+                <div className="mt-4 text-sm font-bold text-gray-600 dark:text-gray-400 space-y-1">
                   <p>Trạng thái: <span className={`uppercase tracking-wider text-[10px] px-2 py-0.5 rounded font-black ${!checkInTime ? "bg-red-500/10 text-red-400 border border-red-500/20" : !checkOutTime ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20" : "bg-green-500/10 text-green-400 border border-green-500/20"}`}>{!checkInTime ? "Chưa Check-in" : !checkOutTime ? "Đang làm việc" : "Đã Check-out"}</span></p>
                   {checkInTime && <p>Check-in lúc: <span className="text-gray-900 dark:text-white font-mono font-bold">{new Date(checkInTime).toLocaleTimeString("vi-VN")}</span></p>}
                   {checkOutTime && <p>Check-out lúc: <span className="text-gray-900 dark:text-white font-mono font-bold">{new Date(checkOutTime).toLocaleTimeString("vi-VN")}</span></p>}
@@ -1686,7 +1686,10 @@ export default function AdminDashboard() {
 
             {/* Kênh vệ tinh đủ giờ card */}
             {(user?.role === "03" || user?.role === "04" || user?.role === "05") && (
-              <div className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl relative overflow-hidden group flex flex-col justify-between min-h-[160px]">
+              <div 
+                className="bg-white dark:bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl relative overflow-hidden group flex flex-col justify-between min-h-[160px] cursor-pointer hover:border-gold/50 transition-all"
+                onClick={() => setIsEligibleChannelsModalOpen(true)}
+              >
                 <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[50px] -mr-16 -mt-16 transition-all group-hover:bg-gold/10" />
                 <div className="relative z-10 flex-1 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
@@ -1700,7 +1703,7 @@ export default function AdminDashboard() {
                   </div>
                   
                   <div className="mt-4 flex-1 flex flex-col justify-center">
-                    <div className="text-2xl font-black text-gray-900 dark:text-white">{eligibleBreakdown.total} <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">kênh đạt</span></div>
+                    <div className="text-2xl font-black text-gray-900 dark:text-white">{eligibleBreakdown.total} <span className="text-sm text-gray-500 font-bold uppercase tracking-wider">kênh đạt</span></div>
                     {(eligibleBreakdown.list || []).length > 0 ? (
                       <div className="mt-2 grid grid-cols-2 gap-2 max-h-[80px] overflow-y-auto custom-scrollbar">
                         {(eligibleBreakdown.list || []).map((b) => (
@@ -1729,7 +1732,7 @@ export default function AdminDashboard() {
                       <ClipboardList className="text-green-500" size={28} />
                       Nhiệm vụ được giao
                     </h2>
-                    <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Danh sách các ca trực và nhiệm vụ đang thực hiện</p>
+                    <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">Danh sách các ca trực và nhiệm vụ đang thực hiện</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1747,7 +1750,7 @@ export default function AdminDashboard() {
                               Lịch trực nhật
                             </span>
                           </div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400 mb-4 font-medium leading-relaxed">
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mb-4 font-medium leading-relaxed">
                             <div className="pt-1">
                               <b>Nhiệm vụ:</b> {todayDutyTask.note}
                             </div>
@@ -1778,7 +1781,7 @@ export default function AdminDashboard() {
                               {task.status === "COMPLETED" ? "Hoàn thành" : task.status === "IN_PROGRESS" ? "Đang xử lý" : "Chưa bắt đầu"}
                             </span>
                           </div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400 mb-4 font-medium leading-relaxed space-y-1.5">
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mb-4 font-medium leading-relaxed space-y-1.5">
                             {task.title === "Làm kênh" && task.batch ? (
                               <div className="flex items-center gap-1.5 text-gold font-bold">
                                 <span className="text-[10px] uppercase tracking-wider text-gray-500">Chi tiết:</span>
@@ -1852,7 +1855,7 @@ export default function AdminDashboard() {
                         <Mail className="text-gold" size={24} />
                         Danh sách Mail được giao
                       </h3>
-                      <p className="text-xs text-gray-500 font-medium mt-1">Danh sách tất cả tài khoản mail do Admin/QL Công việc gán cho bạn</p>
+                      <p className="text-sm text-gray-500 font-medium mt-1">Danh sách tất cả tài khoản mail do Admin/QL Công việc gán cho bạn</p>
                     </div>
                     <div className="flex items-center gap-3 w-full md:w-auto">
                       <div className="flex items-center gap-2 bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 w-full md:w-64 focus-within:border-gold transition-all">
@@ -1862,7 +1865,7 @@ export default function AdminDashboard() {
                           placeholder="Tìm kiếm Email hoặc Mail KP..." 
                           value={searchQuery} 
                           onChange={(e) => setSearchQuery(e.target.value)} 
-                          className="bg-transparent border-none outline-none text-xs text-gray-900 dark:text-white w-full" 
+                          className="bg-transparent border-none outline-none text-sm text-gray-900 dark:text-white w-full" 
                         />
                       </div>
                       <button onClick={() => setShowStaffMailsView(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-colors"><X size={20} /></button>
@@ -1870,7 +1873,7 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="overflow-x-auto custom-scrollbar">
-                    <table className="w-full text-left text-sm whitespace-nowrap min-w-[1000px]">
+                    <table className="w-full text-left text-base whitespace-nowrap min-w-[1000px]">
                       <thead className="bg-white dark:bg-[#0a0a0a] text-gray-500 border-b border-gray-200 dark:border-white/5">
                         <tr>
                           <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT</th>
@@ -1893,7 +1896,7 @@ export default function AdminDashboard() {
                             m.recovery.toLowerCase().includes(searchQuery.toLowerCase())
                           )
                           .map((mail: any, index: number) => (
-                            <tr key={mail.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+                            <tr key={mail.id} className="hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02] transition-colors group">
                               <td className="py-4 px-6 text-[10px] font-black text-gray-500 whitespace-nowrap">{index + 1}</td>
                               <td className="py-4 px-6 text-[10px] font-black text-gold/80 whitespace-nowrap">
                                 {mail.type === "ROOT" ? mail.id 
@@ -1901,15 +1904,15 @@ export default function AdminDashboard() {
                                   : mail.id - 2000}
                               </td>
                               <td className="py-4 px-6 font-bold text-gray-900 dark:text-white cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
-                              <td className="py-4 px-6 text-xs text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.recovery, "KP")}>{mail.recovery}</td>
-                              <td className="py-4 px-6 text-xs text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.pass, "Mật khẩu")}>{mail.pass}</td>
-                              <td className="py-4 px-6 text-xs text-gray-500 font-mono whitespace-nowrap">
+                              <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.recovery, "KP")}>{mail.recovery}</td>
+                              <td className="py-4 px-6 text-sm text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.pass, "Mật khẩu")}>{mail.pass}</td>
+                              <td className="py-4 px-6 text-sm text-gray-500 font-mono whitespace-nowrap">
                                 <TOTPDisplay secret={mail.twoFA || ""} compact onCopy={copyToClipboard} />
                               </td>
-                              <td className="py-4 px-6 text-xs text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
-                              <td className="py-4 px-6 text-xs text-gray-500 whitespace-nowrap">
+                              <td className="py-4 px-6 text-sm text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.phone || "", "SĐT")}>{mail.phone || "---"}</td>
+                              <td className="py-4 px-6 text-sm text-gray-500 whitespace-nowrap">
                                 {mail.otpLink ? (
-                                  <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all flex items-center gap-1 font-bold text-xs cursor-pointer">Link OTP <ExternalLink size={12} /></a>
+                                  <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all flex items-center gap-1 font-bold text-sm cursor-pointer">Link OTP <ExternalLink size={12} /></a>
                                 ) : <span className="text-gray-700">---</span>}
                               </td>
                               <td className="py-4 px-6 text-center whitespace-nowrap">
@@ -1979,7 +1982,7 @@ export default function AdminDashboard() {
                   <ClipboardCheck size={28} className="text-purple-400" />
                   Lịch trực nhật & Ca trực
                 </h2>
-                <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">Phân công vệ sinh & trực văn phòng</p>
+                <p className="text-gray-500 text-sm font-bold uppercase tracking-widest mt-1">Phân công vệ sinh & trực văn phòng</p>
               </div>
             </div>
             
@@ -1999,10 +2002,10 @@ export default function AdminDashboard() {
                     { day: "Thứ Ba", name: "Trần Thị B", area: "Khu vực Pantry", status: "Chờ thực hiện" },
                     { day: "Thứ Tư", name: "Lê Văn C", area: "Phòng họp lớn", status: "Chờ thực hiện" },
                   ].map((row, i) => (
-                    <tr key={`schedule-${i}`} className="group hover:bg-gray-50 dark:hover:bg-white/[0.02]">
-                      <td className="py-4 px-2 text-sm font-bold text-gray-900 dark:text-white">{row.day}</td>
-                      <td className="py-4 px-2 text-sm font-medium text-gray-600 dark:text-gray-400">{row.name}</td>
-                      <td className="py-4 px-2 text-sm text-gray-500">{row.area}</td>
+                    <tr key={`schedule-${i}`} className="group hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02]">
+                      <td className="py-4 px-2 text-base font-bold text-gray-900 dark:text-white">{row.day}</td>
+                      <td className="py-4 px-2 text-base font-medium text-gray-600 dark:text-gray-400">{row.name}</td>
+                      <td className="py-4 px-2 text-base text-gray-500">{row.area}</td>
                       <td className="py-4 px-2">
                         <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase ${row.status === "Hoàn thành" ? "bg-green-500/10 text-green-500" : "bg-yellow-500/10 text-yellow-500"}`}>
                           {row.status}
@@ -2061,7 +2064,7 @@ export default function AdminDashboard() {
             <motion.div className="xl:col-span-2 rounded-[32px] border border-border-custom bg-white dark:bg-sidebar p-8 shadow-2xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 h-48 w-48 bg-gold/5 blur-[80px] -mr-24 -mt-24 transition-all group-hover:bg-gold/10" />
               <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-                <div><h2 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3 tracking-tighter uppercase"><TrendingUp size={32} className="text-gold" /> KPI Hệ Thống</h2><p className="text-gray-500 mt-1 font-medium text-sm">Thiết lập mục tiêu và theo dõi tiến độ công việc</p></div>
+                <div><h2 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3 tracking-tighter uppercase"><TrendingUp size={32} className="text-gold" /> KPI Hệ Thống</h2><p className="text-gray-500 mt-1 font-medium text-base">Thiết lập mục tiêu và theo dõi tiến độ công việc</p></div>
                 <div className={`flex flex-wrap items-center gap-4`}>
                   <div className={`flex items-center gap-3 bg-gray-100 dark:bg-white/5 p-2 rounded-2xl border border-gray-300 dark:border-white/10 ${!isAdminOrManager ? "opacity-75" : ""}`}>
                     <div className="flex items-center gap-2">
@@ -2071,7 +2074,7 @@ export default function AdminDashboard() {
                         value={kpi.startDate || ""} 
                         disabled={!isAdminOrManager} 
                         onChange={(e) => setKpi({ ...kpi, startDate: e.target.value })} 
-                        className="bg-black/40 text-gray-900 dark:text-white text-xs font-black p-2 rounded-xl outline-none border border-gray-200 dark:border-white/5 focus:border-gold/50 transition-all cursor-pointer" 
+                        className="bg-black/40 text-gray-900 dark:text-white text-sm font-black p-2 rounded-xl outline-none border border-gray-200 dark:border-white/5 focus:border-gold/50 transition-all cursor-pointer" 
                       />
                     </div>
                     <ChevronRight size={14} className="text-gray-500" />
@@ -2082,14 +2085,14 @@ export default function AdminDashboard() {
                         value={kpi.endDate || ""} 
                         disabled={!isAdminOrManager} 
                         onChange={(e) => setKpi({ ...kpi, endDate: e.target.value })} 
-                        className="bg-black/40 text-gray-900 dark:text-white text-xs font-black p-2 rounded-xl outline-none border border-gray-200 dark:border-white/5 focus:border-gold/50 transition-all cursor-pointer" 
+                        className="bg-black/40 text-gray-900 dark:text-white text-sm font-black p-2 rounded-xl outline-none border border-gray-200 dark:border-white/5 focus:border-gold/50 transition-all cursor-pointer" 
                       />
                     </div>
                   </div>
                   {isAdminOrManager && (
                     <button 
                       onClick={handleSaveKPI} 
-                      className="h-12 px-6 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-gold/20 flex items-center gap-2"
+                      className="h-12 px-6 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all shadow-xl shadow-gold/20 flex items-center gap-2"
                     >
                       <CheckCircle2 size={18} /> Xác nhận
                     </button>
@@ -2112,7 +2115,7 @@ export default function AdminDashboard() {
                   <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[50px] pointer-events-none" />
                   
                   <div className="flex items-center justify-between mb-4 relative z-10">
-                    <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <h3 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                       <ShieldAlert className="text-gold" size={18} />
                       Yêu cầu truy cập ngoài giờ
                     </h3>
@@ -2124,10 +2127,10 @@ export default function AdminDashboard() {
                   <div className="space-y-4 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
                     {(pendingRequests || []).length > 0 ? (
                       (pendingRequests || []).map((req: any) => (
-                        <div key={`req-card-${req.id}`} className="bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex flex-col gap-3 hover:border-gold/30 transition-all">
+                        <div key={`req-card-${req.id}`} className="bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 rounded-2xl p-6 flex flex-col gap-3 hover:border-gold/30 transition-all">
                           <div className="flex items-start justify-between">
                             <div>
-                              <p className="text-xs font-black text-gray-900 dark:text-white">{req.staffName}</p>
+                              <p className="text-sm font-black text-gray-900 dark:text-white">{req.staffName}</p>
                               <p className="text-[9px] text-gray-500 font-mono mt-0.5">{req.time}</p>
                             </div>
                             <span className="text-[8px] font-black uppercase bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded-md">
@@ -2152,7 +2155,7 @@ export default function AdminDashboard() {
                         </div>
                       ))
                     ) : (
-                      <div className="py-8 text-center text-gray-600 text-xs font-bold uppercase tracking-widest leading-relaxed">
+                      <div className="py-8 text-center text-gray-600 text-sm font-bold uppercase tracking-widest leading-relaxed">
                         Không có yêu cầu nào cần duyệt
                       </div>
                     )}
@@ -2238,7 +2241,7 @@ export default function AdminDashboard() {
                      return (
                         <div key={batchName} className="border border-gray-200 dark:border-white/5 rounded-3xl bg-black/10 overflow-hidden">
                           <div className="bg-white dark:bg-[#0d0d0d] border-b border-gray-200 dark:border-white/5 p-4 flex items-center justify-between">
-                            <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tighter">Lô: <span className="text-gold">{batchName}</span></h3>
+                            <h3 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-tighter">Lô: <span className="text-gold">{batchName}</span></h3>
                           </div>
                           <table className="w-full text-left whitespace-nowrap">
                             <thead className="bg-white dark:bg-[#0a0a0a] border-b border-gray-200 dark:border-white/5">
@@ -2252,13 +2255,13 @@ export default function AdminDashboard() {
                             </thead>
                             <tbody className="divide-y divide-white/5 text-gray-700 dark:text-gray-300">
                               {(channelsInBatch || []).map((row: any, idx: number) => (
-                                <tr key={`${row.mailId}-${row.chIdx}-${idx}`} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+                                <tr key={`${row.mailId}-${row.chIdx}-${idx}`} className="hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02] transition-colors group">
                                   <td className="py-3 px-6 text-[10px] font-black text-gray-500">{row.stt}</td>
-                                  <td className="py-3 px-6 text-xs text-gray-900 dark:text-white font-bold">{row.mailEmail}</td>
+                                  <td className="py-3 px-6 text-sm text-gray-900 dark:text-white font-bold">{row.mailEmail}</td>
                                   <td className="py-3 px-6 font-bold text-gold uppercase tracking-tighter text-[10px]">
                                     {row.name.replace("Tên kênh: ", "")}
                                   </td>
-                                  <td className="py-3 px-6 text-xs text-gray-600 dark:text-gray-400 font-mono">
+                                  <td className="py-3 px-6 text-sm text-gray-600 dark:text-gray-400 font-mono">
                                     <a 
                                       href={row.link} 
                                       target="_blank" 
@@ -2289,8 +2292,8 @@ export default function AdminDashboard() {
                             <tfoot className="bg-white dark:bg-[#0a0a0a] border-t border-gray-200 dark:border-white/5">
                               <tr>
                                 <td colSpan={5} className="py-4 px-6 text-right">
-                                  <span className="text-xs font-black text-gray-600 dark:text-gray-400 uppercase tracking-widest">
-                                    Tổng kênh đủ giờ của lô: <span className="text-gold text-sm">{(channelsInBatch || []).length} kênh</span>
+                                  <span className="text-sm font-black text-gray-600 dark:text-gray-400 uppercase tracking-widest">
+                                    Tổng kênh đủ giờ của lô: <span className="text-gold text-base">{(channelsInBatch || []).length} kênh</span>
                                   </span>
                                 </td>
                               </tr>
@@ -2305,7 +2308,7 @@ export default function AdminDashboard() {
               <div className="mt-8 relative z-10 pt-4 border-t border-gray-200 dark:border-white/5 text-right">
                 <button 
                   onClick={() => setIsEligibleChannelsModalOpen(false)} 
-                  className="h-14 px-8 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-2xl font-black uppercase text-xs tracking-widest transition-all"
+                  className="h-14 px-8 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-2xl font-black uppercase text-sm tracking-widest transition-all"
                 >
                   Đóng
                 </button>
@@ -2334,14 +2337,14 @@ function StatCard({ title, value, icon, color, subtitle, onClick }: any) {
       className={`group rounded-2xl border border-zinc-800 bg-zinc-900/80 backdrop-blur-md p-6 transition-all hover:shadow-2xl hover:border-zinc-700/80 ${onClick ? 'cursor-pointer hover:bg-zinc-800/60' : ''}`}
     >
       <div className="flex items-center justify-between mb-4">
-        <div className={`p-4 rounded-xl border transition-all shrink-0 ${colors[color] || colors.blue}`}>{icon}</div>
+        <div className={`p-6 rounded-xl border transition-all shrink-0 ${colors[color] || colors.blue}`}>{icon}</div>
         <div className="text-right min-w-0 flex-1 ml-4">
-          <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1 truncate" title={title}>{title}</p>
+          <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-1 truncate" title={title}>{title}</p>
           <h3 className="text-2xl xl:text-3xl font-black text-zinc-50 tracking-tighter truncate" title={String(value)}>{typeof value === "number" ? value.toLocaleString() : value}</h3>
         </div>
       </div>
       <div className="flex items-center justify-between pt-4 border-t border-zinc-800/50 mt-4">
-        <span className="text-xs font-medium text-zinc-500 group-hover:text-zinc-400 transition-colors">{subtitle}</span>
+        <span className="text-sm font-medium text-zinc-500 group-hover:text-zinc-400 transition-colors">{subtitle}</span>
         <div className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)] group-hover:scale-125 transition-transform" />
       </div>
     </motion.div>
@@ -2354,7 +2357,7 @@ function KPIInputCard({ label, target, current, onChange, unit, readonly }: any)
     <div className="flex flex-col space-y-5 h-full">
       <div className="min-h-[40px] lg:min-h-[32px] flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
         <span className="text-base font-bold text-gray-900 dark:text-white uppercase tracking-widest lg:whitespace-nowrap leading-tight">{label}</span>
-        <span className="text-xs font-black text-gold whitespace-nowrap leading-none mb-0.5">{percent}% Hoàn thành</span>
+        <span className="text-sm font-black text-gold whitespace-nowrap leading-none mb-0.5">{percent}% Hoàn thành</span>
       </div>
       <div className="relative h-3 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden border border-gray-200 dark:border-white/5 shadow-inner flex-shrink-0">
         <motion.div initial={{ width: 0 }} animate={{ width: `${percent}%` }} transition={{ duration: 1, ease: "easeOut" }} className="absolute h-full bg-gradient-to-r from-gold/50 to-gold shadow-[0_0_15px_rgba(212,175,55,0.3)]" />

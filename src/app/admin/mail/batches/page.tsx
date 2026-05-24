@@ -321,7 +321,7 @@ export default function BatchesManagementPage() {
             initial={{ opacity: 0, y: -20, x: "-50%" }} 
             animate={{ opacity: 1, y: 30, x: "-50%" }} 
             exit={{ opacity: 0, y: -20, x: "-50%" }}
-            className="fixed top-0 left-1/2 z-[200] bg-gold px-6 py-3 rounded-full text-sidebar font-black text-sm shadow-2xl flex items-center gap-2"
+            className="fixed top-0 left-1/2 z-[200] bg-gold px-6 py-3 rounded-full text-sidebar font-black text-base shadow-2xl flex items-center gap-2"
           >
             <CheckCircle2 size={18} /> {toastMsg}
           </motion.div>
@@ -353,7 +353,7 @@ export default function BatchesManagementPage() {
                 </div>
               </div>
 
-              <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-5 mb-6 text-xs text-gray-700 dark:text-gray-300 font-bold leading-relaxed">
+              <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-5 mb-6 text-sm text-gray-700 dark:text-gray-300 font-bold leading-relaxed">
                 Bạn có chắc chắn muốn xóa Lô <span className="text-red-400 font-black">"{batchToDelete.name}"</span> và toàn bộ <span className="text-red-400 font-black">{batchToDelete.mailCount} mail</span> thuộc lô này không? Hành động này không thể hoàn tác.
               </div>
 
@@ -363,13 +363,13 @@ export default function BatchesManagementPage() {
                     setBatchToDelete(null);
                     setShowDeleteConfirm(false);
                   }} 
-                  className="flex-1 h-12 rounded-xl border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white font-bold uppercase text-xs tracking-widest hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
+                  className="flex-1 h-12 rounded-xl border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white font-bold uppercase text-sm tracking-widest hover:bg-gray-100 dark:hover:bg-white dark:bg-zinc-900/5 transition-all"
                 >
                   Hủy bỏ
                 </button>
                 <button 
                   onClick={handleConfirmDelete} 
-                  className="flex-1 h-12 rounded-xl bg-red-500 text-gray-900 dark:text-white font-black uppercase text-xs tracking-widest hover:bg-red-600 transition-all shadow-xl shadow-red-500/10"
+                  className="flex-1 h-12 rounded-xl bg-red-500 text-gray-900 dark:text-white font-black uppercase text-sm tracking-widest hover:bg-red-600 transition-all shadow-xl shadow-red-500/10"
                 >
                   Xác nhận xóa
                 </button>
@@ -393,7 +393,7 @@ export default function BatchesManagementPage() {
               <Database className="text-gold" size={28} />
               Quản Lý Lô Mail (Batches)
             </h2>
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mt-1">
+            <p className="text-sm text-gray-500 font-medium uppercase tracking-widest mt-1">
               Hệ thống lô import tài khoản phân bố theo ô lưới trực quan
             </p>
           </div>
@@ -404,7 +404,7 @@ export default function BatchesManagementPage() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={16} />
             <input 
               placeholder="Tìm kiếm Lô, Người quản lý, Người import..."
-              className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl pl-10 pr-4 h-10 text-xs text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-60"
+              className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl pl-10 pr-4 h-10 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-60"
               type="text" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -414,7 +414,7 @@ export default function BatchesManagementPage() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-xs text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
+            className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
           >
             <option value="ALL" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Tất cả phân loại</option>
             <option value="ROOT" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Mail Gốc</option>
@@ -424,7 +424,7 @@ export default function BatchesManagementPage() {
 
           <button
             onClick={() => setShowAssignModal(true)}
-            className="bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-xs tracking-widest px-5 h-10 rounded-xl transition-all shadow-lg shadow-gold/20 flex items-center gap-2"
+            className="bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest px-5 h-10 rounded-xl transition-all shadow-lg shadow-gold/20 flex items-center gap-2"
           >
             <Layers size={16} />
             Gán Lô Cuốn Chiếu
@@ -434,25 +434,25 @@ export default function BatchesManagementPage() {
 
       {/* Premium Dashboard Metrics Row */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex flex-col justify-between">
+        <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-6 flex flex-col justify-between">
           <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Tổng số Lô</span>
-          <span className="text-2xl font-black text-gray-900 dark:text-white mt-1">{stats.total} <span className="text-xs text-gray-500">Lô</span></span>
+          <span className="text-2xl font-black text-gray-900 dark:text-white mt-1">{stats.total} <span className="text-sm text-gray-500">Lô</span></span>
         </div>
-        <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex flex-col justify-between">
+        <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-6 flex flex-col justify-between">
           <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Lô Mail Gốc</span>
-          <span className="text-2xl font-black text-indigo-400 mt-1">{stats.rootCount} <span className="text-xs text-gray-500">Lô</span></span>
+          <span className="text-2xl font-black text-indigo-400 mt-1">{stats.rootCount} <span className="text-sm text-gray-500">Lô</span></span>
         </div>
-        <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex flex-col justify-between">
+        <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-6 flex flex-col justify-between">
           <span className="text-[9px] font-black text-sky-400 uppercase tracking-widest">Lô Vệ Tinh</span>
-          <span className="text-2xl font-black text-sky-400 mt-1">{stats.satelliteCount} <span className="text-xs text-gray-500">Lô</span></span>
+          <span className="text-2xl font-black text-sky-400 mt-1">{stats.satelliteCount} <span className="text-sm text-gray-500">Lô</span></span>
         </div>
-        <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex flex-col justify-between">
+        <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-6 flex flex-col justify-between">
           <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Lô Mail BKT</span>
-          <span className="text-2xl font-black text-emerald-400 mt-1">{stats.monetizedCount} <span className="text-xs text-gray-500">Lô</span></span>
+          <span className="text-2xl font-black text-emerald-400 mt-1">{stats.monetizedCount} <span className="text-sm text-gray-500">Lô</span></span>
         </div>
-        <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex flex-col justify-between col-span-2 lg:col-span-1">
+        <div className="bg-white dark:bg-sidebar/40 border border-gray-200 dark:border-white/5 rounded-2xl p-6 flex flex-col justify-between col-span-2 lg:col-span-1">
           <span className="text-[9px] font-black text-gold uppercase tracking-widest">Tổng số Mail</span>
-          <span className="text-2xl font-black text-gold mt-1">{stats.totalMails} <span className="text-xs text-gray-500">Mail</span></span>
+          <span className="text-2xl font-black text-gold mt-1">{stats.totalMails} <span className="text-sm text-gray-500">Mail</span></span>
         </div>
       </div>
 
@@ -540,7 +540,7 @@ export default function BatchesManagementPage() {
           <div className="h-60 rounded-3xl border border-gray-200 dark:border-white/5 bg-white dark:bg-sidebar/20 flex flex-col items-center justify-center text-center p-6">
             <FolderOpen size={48} className="text-gray-600 mb-3" />
             <h4 className="text-gray-900 dark:text-white font-black uppercase tracking-tight">Không tìm thấy lô mail nào</h4>
-            <p className="text-xs text-gray-500 mt-1 max-w-xs">Thử đổi từ khóa tìm kiếm hoặc phân loại để tìm kiếm lô tương ứng</p>
+            <p className="text-sm text-gray-500 mt-1 max-w-xs">Thử đổi từ khóa tìm kiếm hoặc phân loại để tìm kiếm lô tương ứng</p>
           </div>
         )}
       </div>
@@ -566,7 +566,7 @@ export default function BatchesManagementPage() {
                     initial={{ opacity: 0, y: -20 }} 
                     animate={{ opacity: 1, y: 0 }} 
                     exit={{ opacity: 0, y: -20 }}
-                    className="absolute top-6 left-1/2 -translate-x-1/2 z-[200] bg-gold px-4 py-2 rounded-full text-sidebar font-black text-xs shadow-lg"
+                    className="absolute top-6 left-1/2 -translate-x-1/2 z-[200] bg-gold px-4 py-2 rounded-full text-sidebar font-black text-sm shadow-lg"
                   >
                     {detailCopyToast}
                   </motion.div>
@@ -592,7 +592,7 @@ export default function BatchesManagementPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={14} />
                     <input 
                       placeholder="Tìm Email trong lô..."
-                      className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl pl-9 pr-4 h-9 text-xs text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-48"
+                      className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl pl-9 pr-4 h-9 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-48"
                       type="text" 
                       value={detailSearchTerm}
                       onChange={(e) => setDetailSearchTerm(e.target.value)}
@@ -603,7 +603,7 @@ export default function BatchesManagementPage() {
                       setSelectedBatchForDetail(null);
                       setDetailSearchTerm("");
                     }}
-                    className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all"
+                    className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white dark:bg-zinc-900/5 text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all"
                   >
                     <X size={20} />
                   </button>
@@ -612,7 +612,7 @@ export default function BatchesManagementPage() {
 
               {/* Table wrapper with overflow */}
               <div className="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar border border-gray-200 dark:border-white/5 bg-black/10 rounded-2xl mb-4">
-                <table className="w-full text-left text-xs min-w-[900px]">
+                <table className="w-full text-left text-sm min-w-[900px]">
                   <thead className="sticky top-0 bg-white dark:bg-[#0c0c0c] text-gray-500 border-b border-gray-200 dark:border-white/5 z-10">
                     <tr>
                       <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px]">STT</th>
@@ -637,7 +637,7 @@ export default function BatchesManagementPage() {
                           setTimeout(() => setDetailCopyToast(""), 2000);
                         };
                         return (
-                          <tr key={mail._id || mail.id || idx} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                          <tr key={mail._id || mail.id || idx} className="hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02] transition-colors">
                             <td className="py-3 px-4 text-gray-500 font-bold">{idx + 1}</td>
                             <td className="py-3 px-4 font-bold text-gray-900 dark:text-white cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.email, "Email")}>{mail.email}</td>
                             <td className="py-3 px-4 text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.recovery || "", "Mail KP")}>{mail.recovery || "---"}</td>
@@ -678,7 +678,7 @@ export default function BatchesManagementPage() {
                     setSelectedBatchForDetail(null);
                     setDetailSearchTerm("");
                   }}
-                  className="h-10 px-6 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white hover:border-gold/50 text-xs font-black uppercase tracking-widest rounded-xl transition-all"
+                  className="h-10 px-6 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white hover:border-gold/50 text-sm font-black uppercase tracking-widest rounded-xl transition-all"
                 >
                   Đóng
                 </button>
@@ -718,7 +718,7 @@ export default function BatchesManagementPage() {
                 </div>
                 <button
                   onClick={() => setShowAssignModal(false)}
-                  className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all"
+                  className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white dark:bg-zinc-900/5 text-gray-500 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white transition-all"
                 >
                   <X size={20} />
                 </button>
@@ -732,7 +732,7 @@ export default function BatchesManagementPage() {
                   <select
                     value={selectedStaffForAssign}
                     onChange={(e) => setSelectedStaffForAssign(e.target.value)}
-                    className="w-full bg-black/40 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-12 text-xs text-gold font-bold uppercase tracking-wider focus:border-gold/50 outline-none transition-all cursor-pointer"
+                    className="w-full bg-black/40 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-12 text-sm text-gold font-bold uppercase tracking-wider focus:border-gold/50 outline-none transition-all cursor-pointer"
                   >
                     <option value="" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">-- Click chọn nhân viên --</option>
                     {(staffList || []).map((s) => (
@@ -749,7 +749,7 @@ export default function BatchesManagementPage() {
                   <select
                     value={selectedBatchNameForAssign}
                     onChange={(e) => setSelectedBatchNameForAssign(e.target.value)}
-                    className="w-full bg-black/40 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-12 text-xs text-gold font-bold uppercase tracking-wider focus:border-gold/50 outline-none transition-all cursor-pointer"
+                    className="w-full bg-black/40 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-12 text-sm text-gold font-bold uppercase tracking-wider focus:border-gold/50 outline-none transition-all cursor-pointer"
                   >
                     {["Lô 1", "Lô 2", "Lô 3", "Lô 4", "Lô 5", "Lô 6", "Lô 7", "Lô 8", "Lô 9", "Lô 10"].map((l) => (
                       <option key={l} value={l} className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">{l}</option>
@@ -762,7 +762,7 @@ export default function BatchesManagementPage() {
                   <div className="bg-gold/10 border border-gold/20 rounded-2xl p-5 space-y-3">
                     <span className="text-[9px] font-black text-gold uppercase tracking-widest block">Dải mail trống cuốn chiếu được tính toán</span>
                     
-                    <p className="text-sm font-black text-gray-900 dark:text-white leading-none">
+                    <p className="text-base font-black text-gray-900 dark:text-white leading-none">
                       {assignmentPreview.displayText}
                     </p>
 
@@ -780,14 +780,14 @@ export default function BatchesManagementPage() {
               <div className="flex gap-4 mt-8 pt-4 border-t border-gray-200 dark:border-white/5">
                 <button
                   onClick={() => setShowAssignModal(false)}
-                  className="flex-1 h-12 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white font-black uppercase text-xs tracking-widest rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                  className="flex-1 h-12 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white font-black uppercase text-sm tracking-widest rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
                 >
                   Hủy bỏ
                 </button>
                 <button
                   onClick={handleAssignBatch}
                   disabled={!selectedStaffForAssign || !assignmentPreview || assignmentPreview.count === 0}
-                  className="flex-1 h-12 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-xs tracking-widest rounded-xl transition-all shadow-xl shadow-gold/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex-1 h-12 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest rounded-xl transition-all shadow-xl shadow-gold/20 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Xác nhận gán
                 </button>

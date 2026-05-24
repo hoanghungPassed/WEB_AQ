@@ -240,7 +240,7 @@ export default function MailDetailModal({
                   type="date"
                   value={cccdDate}
                   onChange={(e) => setCccdDate(e.target.value)}
-                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
+                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none focus:border-gold/50 transition-all cursor-pointer"
                 />
               </div>
               <div className="space-y-2">
@@ -250,7 +250,7 @@ export default function MailDetailModal({
                 <select
                   value={verificationStatus}
                   onChange={(e) => setVerificationStatus(e.target.value)}
-                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
+                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none focus:border-gold/50 transition-all cursor-pointer"
                 >
                   <option value="Mail veri" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">
                     Mail veri
@@ -290,7 +290,7 @@ export default function MailDetailModal({
                       value={links[idx] || ""}
                       onChange={(e) => handleLinkChange(idx, e.target.value)}
                       placeholder="Dán link channel YouTube..."
-                      className={`flex-1 h-14 bg-gray-100 dark:bg-white/5 border rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none transition-all ${
+                      className={`flex-1 h-14 bg-gray-100 dark:bg-white/5 border rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none transition-all ${
                         validationErrors[idx]
                           ? "border-red-500/50 focus:border-red-500 bg-red-500/5 shadow-[0_0_15px_rgba(239,68,68,0.1)]"
                           : "border-gray-300 dark:border-white/10 focus:border-gold/50"
@@ -363,7 +363,7 @@ export default function MailDetailModal({
                   type="date"
                   value={reClickDate}
                   onChange={(e) => setReClickDate(e.target.value)}
-                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
+                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none focus:border-gold/50 transition-all cursor-pointer"
                 />
               </div>
               <div className="space-y-2">
@@ -374,7 +374,7 @@ export default function MailDetailModal({
                   type="date"
                   value={step2PendingDate}
                   onChange={(e) => setStep2PendingDate(e.target.value)}
-                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
+                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none focus:border-gold/50 transition-all cursor-pointer"
                 />
               </div>
               <div className="space-y-3">
@@ -414,13 +414,13 @@ export default function MailDetailModal({
         <div className="grid grid-cols-2 gap-4 mt-8 relative z-10 pt-4 border-t border-gray-200 dark:border-white/5">
           <button
             onClick={onClose}
-            className="h-14 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-2xl font-black uppercase text-xs tracking-widest transition-all"
+            className="h-14 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-2xl font-black uppercase text-sm tracking-widest transition-all"
           >
             Đóng
           </button>
           <button
             onClick={handleSave}
-            className="h-14 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
+            className="h-14 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
           >
             Lưu cập nhật
           </button>

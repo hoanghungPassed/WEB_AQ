@@ -244,7 +244,7 @@ const UnifiedMailDetailModal = ({
                   type="date"
                   value={cccdDate}
                   onChange={(e) => setCccdDate(e.target.value)}
-                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
+                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none focus:border-gold/50 transition-all cursor-pointer"
                 />
               </div>
 
@@ -253,7 +253,7 @@ const UnifiedMailDetailModal = ({
                 <select
                   value={verificationStatus}
                   onChange={(e) => setVerificationStatus(e.target.value)}
-                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
+                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none focus:border-gold/50 transition-all cursor-pointer"
                 >
                   <option value="Mail Veri mail" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Mail Veri mail</option>
                   <option value="Đã xanh" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Đã xanh</option>
@@ -282,7 +282,7 @@ const UnifiedMailDetailModal = ({
                       value={links[idx] || ""} 
                       onChange={(e) => handleLinkChange(idx, e.target.value)} 
                       placeholder="Dán link channel YouTube..." 
-                      className={`flex-1 h-14 bg-gray-100 dark:bg-white/5 border rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none transition-all ${
+                      className={`flex-1 h-14 bg-gray-100 dark:bg-white/5 border rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none transition-all ${
                         validationErrors[idx]
                           ? "border-red-500/50 focus:border-red-500 bg-red-500/5 shadow-[0_0_15px_rgba(239,68,68,0.1)]"
                           : "border-gray-300 dark:border-white/10 focus:border-gold/50"
@@ -319,7 +319,7 @@ const UnifiedMailDetailModal = ({
                   type="date"
                   value={reClickDate}
                   onChange={(e) => setReClickDate(e.target.value)}
-                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
+                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none focus:border-gold/50 transition-all cursor-pointer"
                 />
               </div>
 
@@ -329,7 +329,7 @@ const UnifiedMailDetailModal = ({
                   type="date"
                   value={step2PendingDate}
                   onChange={(e) => setStep2PendingDate(e.target.value)}
-                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 transition-all cursor-pointer"
+                  className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none focus:border-gold/50 transition-all cursor-pointer"
                 />
               </div>
 
@@ -357,10 +357,10 @@ const UnifiedMailDetailModal = ({
         </div>
 
         <div className="grid grid-cols-2 gap-4 mt-8 relative z-10 pt-4 border-t border-gray-200 dark:border-white/5">
-          <button onClick={onClose} className="h-14 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-2xl font-black uppercase text-xs tracking-widest transition-all">Đóng</button>
+          <button onClick={onClose} className="h-14 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-2xl font-black uppercase text-sm tracking-widest transition-all">Đóng</button>
           <button 
             onClick={handleSave} 
-            className="h-14 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
+            className="h-14 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
           >
             Lưu cập nhật
           </button>
@@ -402,7 +402,7 @@ const TaskCard = React.memo(({ task, onClick }: { task: TaskAssignment, onClick:
       <div className="mt-auto pt-6 border-t border-gray-200 dark:border-white/5 space-y-4 relative z-10">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{typeLabel}</span>
-          <span className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <span className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Mail size={14} className="text-gold" /> {task.mailCount} Mail
           </span>
         </div>
@@ -1034,7 +1034,7 @@ export default function TaskManagementPage() {
     <div className="h-[calc(100vh-100px)] flex flex-col gap-4 select-none relative overflow-hidden">
       <AnimatePresence>
         {notification && (
-          <motion.div initial={{ opacity: 0, y: -50, x: "-50%" }} animate={{ opacity: 1, y: 30, x: "-50%" }} exit={{ opacity: 0, y: -50, x: "-50%" }} className="fixed top-0 left-1/2 z-[500] bg-gold text-sidebar px-8 py-4 rounded-[24px] shadow-2xl flex items-center gap-4 font-black text-sm uppercase tracking-widest border border-gray-400 dark:border-white/20">
+          <motion.div initial={{ opacity: 0, y: -50, x: "-50%" }} animate={{ opacity: 1, y: 30, x: "-50%" }} exit={{ opacity: 0, y: -50, x: "-50%" }} className="fixed top-0 left-1/2 z-[500] bg-gold text-sidebar px-8 py-4 rounded-[24px] shadow-2xl flex items-center gap-4 font-black text-base uppercase tracking-widest border border-gray-400 dark:border-white/20">
             <CheckCircle2 size={24} className="animate-bounce" />{notification}
           </motion.div>
         )}
@@ -1063,13 +1063,13 @@ export default function TaskManagementPage() {
           <div className="flex bg-gray-100 dark:bg-white/5 rounded-2xl p-1 border border-gray-300 dark:border-white/10">
             <button 
               onClick={() => setAdminTab("ASSIGN")}
-              className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all ${adminTab === "ASSIGN" ? "bg-gold text-white dark:text-black shadow-lg" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"}`}
+              className={`px-4 py-2 rounded-xl text-sm font-black uppercase transition-all ${adminTab === "ASSIGN" ? "bg-gold text-white dark:text-black shadow-lg" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"}`}
             >
               Giao việc
             </button>
             <button 
               onClick={() => setAdminTab("TASKS")}
-              className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all ${adminTab === "TASKS" ? "bg-gold text-white dark:text-black shadow-lg" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"}`}
+              className={`px-4 py-2 rounded-xl text-sm font-black uppercase transition-all ${adminTab === "TASKS" ? "bg-gold text-white dark:text-black shadow-lg" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"}`}
             >
               Task hôm nay
             </button>
@@ -1135,20 +1135,20 @@ export default function TaskManagementPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-5 gap-1 p-4 bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 rounded-3xl items-center text-center">
+                    <div className="grid grid-cols-5 gap-1 p-6 bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 rounded-3xl items-center text-center">
                       <div className="col-span-1">
                         <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Mail Gốc</p>
-                        <p className="text-sm font-black text-gold">{inventory.root} <span className="text-[8px] text-gray-500 font-bold block">Khả dụng</span></p>
+                        <p className="text-base font-black text-gold">{inventory.root} <span className="text-[8px] text-gray-500 font-bold block">Khả dụng</span></p>
                       </div>
                       <div className="col-span-1 flex justify-center text-gray-900 dark:text-white/5 font-light">|</div>
                       <div className="col-span-1">
                         <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Vệ Tinh</p>
-                        <p className="text-sm font-black text-gold">{inventory.satellite} <span className="text-[8px] text-gray-500 font-bold block">Khả dụng</span></p>
+                        <p className="text-base font-black text-gold">{inventory.satellite} <span className="text-[8px] text-gray-500 font-bold block">Khả dụng</span></p>
                       </div>
                       <div className="col-span-1 flex justify-center text-gray-900 dark:text-white/5 font-light">|</div>
                       <div className="col-span-1">
                         <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Kiếm Tiền</p>
-                        <p className="text-sm font-black text-gold">{inventory.monetized} <span className="text-[8px] text-gray-500 font-bold block">Khả dụng</span></p>
+                        <p className="text-base font-black text-gold">{inventory.monetized} <span className="text-[8px] text-gray-500 font-bold block">Khả dụng</span></p>
                       </div>
                     </div>
 
@@ -1157,7 +1157,7 @@ export default function TaskManagementPage() {
                       <select 
                         value={targetStaffId}
                         onChange={(e) => setTargetStaffId(e.target.value)}
-                        className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 cursor-pointer transition-all"
+                        className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none focus:border-gold/50 cursor-pointer transition-all"
                       >
                         <option value="" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">-- Chọn nhân sự ONLINE thực hiện --</option>
                         {(eligibleStaff || []).map((staff: any) => (
@@ -1180,7 +1180,7 @@ export default function TaskManagementPage() {
                             }
                             setIsSelectMailModalOpen(true);
                           }}
-                          className="w-full h-14 bg-white dark:bg-[#0a0a0a] hover:bg-gold/5 text-gold border border-gold/20 hover:border-gold/50 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg"
+                          className="w-full h-14 bg-white dark:bg-[#0a0a0a] hover:bg-gold/5 text-gold border border-gold/20 hover:border-gold/50 rounded-2xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg"
                         >
                           <Mail size={16} />
                           {(selectedMailIdsForTask || []).length > 0 
@@ -1197,7 +1197,7 @@ export default function TaskManagementPage() {
                           <select 
                             value={selectedLo}
                             onChange={(e) => setSelectedLo(e.target.value)}
-                            className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 cursor-pointer transition-all"
+                            className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none focus:border-gold/50 cursor-pointer transition-all"
                           >
                             <option value="" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">-- Chọn Lô --</option>
                             {(dynamicStaffBatches || []).map(b => (
@@ -1222,7 +1222,7 @@ export default function TaskManagementPage() {
                               type="number"
                               value={mailRangeStart}
                               onChange={(e) => setMailRangeStart(Math.max(1, parseInt(e.target.value) || 1))}
-                              className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 transition-all"
+                              className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none focus:border-gold/50 transition-all"
                             />
                           </div>
                           <div className="space-y-2">
@@ -1231,7 +1231,7 @@ export default function TaskManagementPage() {
                               type="number"
                               value={mailRangeEnd}
                               onChange={(e) => setMailRangeEnd(Math.max(1, parseInt(e.target.value) || 1))}
-                              className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 transition-all"
+                              className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none focus:border-gold/50 transition-all"
                             />
                           </div>
                         </div>
@@ -1247,7 +1247,7 @@ export default function TaskManagementPage() {
                                 <select 
                                   value={monetizedOption}
                                   onChange={(e) => setMonetizedOption(e.target.value)}
-                                  className="w-full h-14 bg-gold/10 border-2 border-gold/30 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold cursor-pointer transition-all"
+                                  className="w-full h-14 bg-gold/10 border-2 border-gold/30 rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none focus:border-gold cursor-pointer transition-all"
                                 >
                                   <option value="Kháng kênh" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Kháng kênh</option>
                                   <option value="Nối GA" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">Nối GA</option>
@@ -1267,7 +1267,7 @@ export default function TaskManagementPage() {
                           <select 
                             value={selectedRootMailId}
                             onChange={(e) => setSelectedRootMailId(e.target.value)}
-                            className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 cursor-pointer transition-all"
+                            className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none focus:border-gold/50 cursor-pointer transition-all"
                           >
                             <option value="" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">-- Chọn Mail Gốc trong DB --</option>
                             {(mails || []).filter((m: any) => m.type === "ROOT" && m.verificationStatus === "Đã xanh" && !m.assigneeId).map((m: any) => (
@@ -1283,7 +1283,7 @@ export default function TaskManagementPage() {
                           <select 
                             value={selectedMoiKenhLo}
                             onChange={(e) => setSelectedMoiKenhLo(e.target.value)}
-                            className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 cursor-pointer transition-all"
+                            className="w-full h-14 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-6 text-gray-900 dark:text-white text-base outline-none focus:border-gold/50 cursor-pointer transition-all"
                           >
                             <option value="" className="bg-white dark:bg-sidebar text-gray-900 dark:text-white">-- Chọn Lô Vệ Tinh --</option>
                             {(targetStaffBatches || []).length > 0 ? (targetStaffBatches || []).map(b => (
@@ -1302,7 +1302,7 @@ export default function TaskManagementPage() {
                         value={assignmentNote}
                         onChange={(e) => setAssignmentNote(e.target.value)}
                         placeholder="Nhập ghi chú hoặc yêu cầu chi tiết cho nhân viên..."
-                        className="w-full h-24 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl p-4 text-gray-900 dark:text-white text-sm outline-none focus:border-gold/50 transition-all resize-none"
+                        className="w-full h-24 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl p-6 text-gray-900 dark:text-white text-base outline-none focus:border-gold/50 transition-all resize-none"
                       />
                     </div>
                   </div>
@@ -1310,7 +1310,7 @@ export default function TaskManagementPage() {
                   <div className="mt-8 relative z-10 pt-4 border-t border-gray-200 dark:border-white/5">
                     <button 
                       onClick={handleCustomAssignmentSubmit}
-                      className="w-full h-14 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
+                      className="w-full h-14 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
                     >
                       <Zap size={16} /> Giao công việc & Kích hoạt real-time
                     </button>
@@ -1341,7 +1341,7 @@ export default function TaskManagementPage() {
                   <div className="h-10 w-px bg-gray-200 dark:bg-white/10 hidden md:block" />
                   <div className="flex flex-col gap-1">
                     <span className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">Chi tiết công việc</span>
-                    <span className="text-xs font-bold text-gray-900 dark:text-white max-w-md">{selectedTask?.note} ({selectedTask?.mailRange})</span>
+                    <span className="text-sm font-bold text-gray-900 dark:text-white max-w-md">{selectedTask?.note} ({selectedTask?.mailRange})</span>
                   </div>
                   <div className="h-10 w-px bg-gray-200 dark:bg-white/10 hidden md:block" />
                   <div className="flex flex-col gap-1">
@@ -1382,7 +1382,7 @@ export default function TaskManagementPage() {
                 </div>
               </div>
               
-              <div className="flex-1 bg-white/[0.01] border border-gray-300 dark:border-white/10 rounded-[48px] flex flex-col overflow-hidden">
+              <div className="flex-1 bg-white dark:bg-zinc-900/[0.01] border border-gray-300 dark:border-white/10 rounded-[48px] flex flex-col overflow-hidden">
                 <div className="flex-1 overflow-auto custom-scrollbar bg-black/10">
                   <div className="w-full overflow-x-auto custom-scrollbar">
                     <table className="w-full text-left min-w-[900px]">
@@ -1399,9 +1399,9 @@ export default function TaskManagementPage() {
                         {(taskMails || []).length > 0 ? (
                           (taskMails || []).map((mail, i) => {
                             const rowPadding = !isAdminOrManager ? "py-1 px-6" : "py-2.5 px-6";
-                            const textSize = !isAdminOrManager ? "text-xs" : "text-sm";
+                            const textSize = !isAdminOrManager ? "text-sm" : "text-base";
                             return (
-                              <tr key={`mail-${mail.id}`} className="group hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-all">
+                              <tr key={`mail-${mail.id}`} className="group hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02] transition-all">
                                 <td className={`${rowPadding} text-[10px] font-black text-gray-700 whitespace-nowrap`}>{i + 1}</td>
                                 <td className={`${rowPadding} whitespace-nowrap`}>
                                   {mail.type === "SATELLITE" && (() => {
@@ -1521,7 +1521,7 @@ export default function TaskManagementPage() {
                     placeholder="Tìm kiếm Email hoặc Mail KP..."
                     value={modalSearchQuery}
                     onChange={(e) => setModalSearchQuery(e.target.value)}
-                    className="bg-transparent border-none outline-none text-xs text-gray-900 dark:text-white w-full"
+                    className="bg-transparent border-none outline-none text-sm text-gray-900 dark:text-white w-full"
                   />
                 </div>
               </div>
@@ -1563,7 +1563,7 @@ export default function TaskManagementPage() {
                   };
 
                   return (
-                    <table className="w-full text-left text-sm whitespace-nowrap">
+                    <table className="w-full text-left text-base whitespace-nowrap">
                       <thead className="bg-white dark:bg-[#0a0a0a] text-gray-500 border-b border-gray-200 dark:border-white/5 sticky top-0 z-20">
                         <tr>
                           <th className="py-4 px-6 text-center w-12">
@@ -1587,7 +1587,7 @@ export default function TaskManagementPage() {
                       <tbody className="divide-y divide-white/5 text-gray-700 dark:text-gray-300">
                         {(availableMails || []).length > 0 ? (
                           (availableMails || []).map((mail: any, index: number) => (
-                            <tr key={mail.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+                            <tr key={mail.id} className="hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.02] transition-colors group">
                               <td className="py-3 px-6 text-center">
                                 <input
                                   type="checkbox"
@@ -1603,7 +1603,7 @@ export default function TaskManagementPage() {
                                   : mail.id - 2000}
                               </td>
                               <td className="py-3 px-6 font-bold text-gray-900 dark:text-white cursor-pointer" onClick={() => handleToggleRow(mail.id)}>{mail.email}</td>
-                              <td className="py-3 px-6 text-xs text-gray-600 dark:text-gray-400 font-mono">{mail.recovery}</td>
+                              <td className="py-3 px-6 text-sm text-gray-600 dark:text-gray-400 font-mono">{mail.recovery}</td>
                               <td className="py-3 px-6 text-center">
                                 <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-green-500/10 text-green-500 border border-green-500/20">
                                   {mail.verificationStatus}
@@ -1613,7 +1613,7 @@ export default function TaskManagementPage() {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={6} className="py-12 text-center text-gray-600 font-bold uppercase tracking-widest text-xs">
+                            <td colSpan={6} className="py-12 text-center text-gray-600 font-bold uppercase tracking-widest text-sm">
                               Không tìm thấy mail gốc khả dụng nào
                             </td>
                           </tr>
@@ -1626,7 +1626,7 @@ export default function TaskManagementPage() {
 
               {/* Bottom bar */}
               <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-white/5 relative z-10">
-                <span className="text-sm font-black text-gold uppercase tracking-wider">
+                <span className="text-base font-black text-gold uppercase tracking-wider">
                   Đã chọn: {(selectedMailIdsForTask || []).length} mail
                 </span>
                 <div className="flex gap-4">
@@ -1635,13 +1635,13 @@ export default function TaskManagementPage() {
                       setSelectedMailIdsForTask([]);
                       setIsSelectMailModalOpen(false);
                     }}
-                    className="h-12 px-6 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-2xl font-black uppercase text-xs tracking-widest transition-all"
+                    className="h-12 px-6 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-2xl font-black uppercase text-sm tracking-widest transition-all"
                   >
                     Hủy
                   </button>
                   <button
                     onClick={() => setIsSelectMailModalOpen(false)}
-                    className="h-12 px-6 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
+                    className="h-12 px-6 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
                   >
                     Xác nhận giao việc
                   </button>

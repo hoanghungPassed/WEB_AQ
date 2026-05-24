@@ -210,7 +210,7 @@ export default function FinesReportPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col space-y-6 pb-6 overflow-hidden">
+    <div className="h-[calc(100vh-100px)] flex flex-col space-y-6 pb-6 overflow-hidden">
       {/* Toast */}
       <AnimatePresence>
         {toastMsg && (
@@ -218,7 +218,7 @@ export default function FinesReportPage() {
             initial={{ opacity: 0, y: -20, x: "-50%" }}
             animate={{ opacity: 1, y: 30, x: "-50%" }}
             exit={{ opacity: 0, y: -20, x: "-50%" }}
-            className="fixed top-0 left-1/2 z-[200] bg-gold px-6 py-3 rounded-full text-sidebar font-black text-sm shadow-2xl flex items-center gap-2"
+            className="fixed top-0 left-1/2 z-[200] bg-gold px-6 py-3 rounded-full text-sidebar font-black text-base shadow-2xl flex items-center gap-2"
           >
             <CheckCircle2 size={18} /> {toastMsg}
           </motion.div>
@@ -238,7 +238,7 @@ export default function FinesReportPage() {
             <FileText className="text-gold" size={28} />
             Báo Cáo Đi Muộn & Phạt
           </h2>
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mt-1">
+          <p className="text-sm text-gray-500 font-medium uppercase tracking-widest mt-1">
             Chi tiết nhân viên nộp phạt, lí do và trạng thái thanh toán
           </p>
         </div>
@@ -248,7 +248,7 @@ export default function FinesReportPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
         <motion.div
           whileHover={{ scale: 1.02 }}
-          className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-4 shadow-lg"
+          className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-6 shadow-lg"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -265,7 +265,7 @@ export default function FinesReportPage() {
 
         <motion.div
           whileHover={{ scale: 1.02 }}
-          className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-4 shadow-lg"
+          className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-6 shadow-lg"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -284,7 +284,7 @@ export default function FinesReportPage() {
 
         <motion.div
           whileHover={{ scale: 1.02 }}
-          className="bg-white dark:bg-sidebar border border-green-500/20 rounded-2xl p-4 shadow-lg"
+          className="bg-white dark:bg-sidebar border border-green-500/20 rounded-2xl p-6 shadow-lg"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -301,7 +301,7 @@ export default function FinesReportPage() {
 
         <motion.div
           whileHover={{ scale: 1.02 }}
-          className="bg-white dark:bg-sidebar border border-yellow-500/20 rounded-2xl p-4 shadow-lg"
+          className="bg-white dark:bg-sidebar border border-yellow-500/20 rounded-2xl p-6 shadow-lg"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -318,7 +318,7 @@ export default function FinesReportPage() {
 
         <motion.div
           whileHover={{ scale: 1.02 }}
-          className="bg-white dark:bg-sidebar border border-red-500/20 rounded-2xl p-4 shadow-lg"
+          className="bg-white dark:bg-sidebar border border-red-500/20 rounded-2xl p-6 shadow-lg"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -343,7 +343,7 @@ export default function FinesReportPage() {
             placeholder="Tìm theo tên nhân viên hoặc lí do..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-sidebar border border-border-custom rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-500 outline-none focus:border-gold/50 transition-all"
+            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-sidebar border border-border-custom rounded-xl text-base text-gray-900 dark:text-white placeholder:text-gray-500 outline-none focus:border-gold/50 transition-all"
           />
         </div>
 
@@ -352,7 +352,7 @@ export default function FinesReportPage() {
             <button
               key={status}
               onClick={() => setFilterStatus(status)}
-              className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+              className={`px-4 py-3 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
                 filterStatus === status
                   ? "bg-gold text-sidebar shadow-lg shadow-gold/20"
                   : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10"
@@ -365,7 +365,7 @@ export default function FinesReportPage() {
 
         <button
           onClick={handleExportCSV}
-          className="px-4 py-3 bg-indigo-500 hover:bg-indigo-600 text-gray-900 dark:text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg"
+          className="px-4 py-3 bg-indigo-500 hover:bg-indigo-600 text-gray-900 dark:text-white rounded-xl text-sm font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg"
         >
           <Download size={16} /> Xuất CSV
         </button>
@@ -414,26 +414,26 @@ export default function FinesReportPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.05 }}
-                    className="border-b border-border-custom hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors"
+                    className="border-b border-border-custom hover:bg-gray-50 dark:hover:bg-white dark:bg-zinc-900/[0.03] transition-colors"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center">
                           <User size={16} className="text-gold" />
                         </div>
-                        <span className="text-sm font-bold text-gray-900 dark:text-white">{report.staffName}</span>
+                        <span className="text-base font-bold text-gray-900 dark:text-white">{report.staffName}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{report.reason}</span>
+                      <span className="text-base text-gray-700 dark:text-gray-300">{report.reason}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <span className="text-sm font-bold text-gold">
+                      <span className="text-base font-bold text-gold">
                         {report.amount.toLocaleString("vi-VN")} ₫
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center gap-2 text-base text-gray-600 dark:text-gray-400">
                         <Calendar size={14} />
                         {report.date}
                       </div>
@@ -482,9 +482,9 @@ export default function FinesReportPage() {
       <div className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-6">
         <div className="flex items-center gap-2 mb-4">
           <AlertCircle className="text-gold" size={18} />
-          <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">Ghi Chú</h3>
+          <h3 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight">Ghi Chú</h3>
         </div>
-        <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2 font-medium leading-relaxed">
+        <div className="text-sm text-gray-600 dark:text-gray-400 space-y-2 font-medium leading-relaxed">
           <p>• Chọn <span className="text-gold font-black">Đã TT</span> để cập nhật trạng thái thanh toán của nhân viên</p>
           <p>• Nhân viên có báo cáo <span className="text-red-400 font-black">Quá Hạn</span> chưa thanh toán sẽ được thông báo</p>
           <p>• Xuất CSV để lưu trữ hoặc chia sẻ báo cáo chi tiết</p>
