@@ -1,16 +1,38 @@
 @import "tailwindcss";
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (.dark &);
 
 @theme {
   --color-gold: #a07800;
 }
 
-body {
-  @apply bg-[var(--background)] text-[var(--foreground)] transition-colors duration-200;
+html {
+  color-scheme: light;
 }
 
-:root { --background: #ffffff; --foreground: #171717; }
-.dark { --background: #09090b; --foreground: #fafafa; }
+html.light {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+:root {
+  --background: #eef2f7;
+  --foreground: #1e293b;
+}
+
+html.dark {
+  --background: #09090b;
+  --foreground: #fafafa;
+}
+
+body {
+  @apply bg-[var(--background)] text-[var(--foreground)] transition-colors duration-200;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
 
 /* =============================================
    SMOOTH TRANSITION
@@ -28,12 +50,6 @@ html {
   font-size: 14px;
 }
 
-body {
-  @apply bg-[#eef2f7] text-[#1e293b] dark:bg-zinc-950 dark:text-zinc-50;
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-}
 
 /* =============================================
    CUSTOM CONTAINER

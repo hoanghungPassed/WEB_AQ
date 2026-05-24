@@ -16,7 +16,8 @@ interface HeaderProps {
 
 const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: HeaderProps) => {
  const router = useRouter();
- const { theme, setTheme } = useTheme();
+ const { theme, resolvedTheme, setTheme } = useTheme();
+ const currentTheme = theme === "system" ? resolvedTheme : theme;
  const [mounted, setMounted] = useState(false);
  const [isProfileOpen, setIsProfileOpen] = useState(false);
  const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -204,13 +205,13 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
 
  {/* Theme Toggle */}
  <button
- onClick={() => setTheme(theme ==="dark" ?"light" :"dark")}
- title={theme ==="dark" ?"Chuyển Light Mode" :"Chuyển Dark Mode"}
+ onClick={() => setTheme(currentTheme === "dark" ? "light" : "dark")}
+ title={currentTheme === "dark" ? "Chuyển Light Mode" : "Chuyển Dark Mode"}
  className="relative flex h-11 w-11 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-white bg-zinc-900/5 hover:text-gold border border-transparent hover:border-gray-200 hover:border-white/5 overflow-hidden"
  >
  {mounted && (
  <AnimatePresence mode="wait" initial={false}>
- {theme ==="dark" ? (
+ {currentTheme === "dark" ? (
  <motion.span
  key="sun"
  initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
