@@ -102,11 +102,6 @@ export default function NewsfeedPage() {
   
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  const triggerNotification = (_payload?: unknown) => {
-    void _payload;
-    // Notification persistence will be handled by a dedicated API in the future.
-  };
-
   const loadPosts = async () => {
     try {
       const response = await fetch("/api/admin/notifications");
@@ -158,6 +153,12 @@ export default function NewsfeedPage() {
       await loadPosts();
     };
     void fetchPosts();
+
+    const interval = setInterval(() => {
+      void loadPosts();
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleCreatePost = async () => {
@@ -170,7 +171,6 @@ export default function NewsfeedPage() {
         body: JSON.stringify({
           title: "Bài viết mới",
           message: newPostText,
-          author: user?.id,
           imageUrl: selectedMockImage,
           type: "POST"
         })
@@ -200,7 +200,7 @@ export default function NewsfeedPage() {
       const res = await fetch("/api/admin/notifications", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: postId, action: "LIKE", userId: user?.id })
+        body: JSON.stringify({ id: postId, action: "LIKE" })
       });
       if (res.ok) {
         await loadPosts();
@@ -218,7 +218,7 @@ export default function NewsfeedPage() {
       const res = await fetch("/api/admin/notifications", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: postId, action: "COMMENT", userId: user?.id, content: text })
+        body: JSON.stringify({ id: postId, action: "COMMENT", content: text })
       });
       if (res.ok) {
         await loadPosts();
@@ -239,7 +239,7 @@ export default function NewsfeedPage() {
       const res = await fetch("/api/admin/notifications", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: postId, action: "REPLY", commentId, userId: user?.id, content: text })
+        body: JSON.stringify({ id: postId, action: "REPLY", commentId, content: text })
       });
       if (res.ok) {
         await loadPosts();

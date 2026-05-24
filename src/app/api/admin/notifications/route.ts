@@ -20,8 +20,13 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const userId = req.headers.get("x-user-id");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     await dbConnect();
     const body = await req.json();
+    body.author = userId;
+
     const newPost = await Notification.create(body);
     const populated = await newPost.populate('author', 'name username role avatar');
     return NextResponse.json({ success: true, data: populated }, { status: 201 });
@@ -32,9 +37,13 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
+    const userId = req.headers.get("x-user-id");
+    const userRole = req.headers.get("x-user-role");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     await dbConnect();
     const body = await req.json();
-    const { id, action, userId, content, commentId } = body;
+    const { id, action, content, commentId } = body;
     
     const post = await Notification.findById(id);
     if (!post) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
@@ -45,7 +54,7 @@ export async function PUT(req: Request) {
       if (hasLiked) {
         post.likes = likes.filter(uid => String(uid) !== String(userId));
       } else {
-        post.likes = [...likes, userId];
+        post.likes = [...likes, new mongoose.Types.ObjectId(userId)];
       }
     } else if (action === "COMMENT") {
       if (!post.comments) post.comments = [];
@@ -59,7 +68,11 @@ export async function PUT(req: Request) {
         }
       }
     } else if (action === "TOGGLE_PIN") {
-      post.isPinned = !post.isPinned;
+      if (userRole === '01' || userRole === '02') {
+        post.isPinned = !post.isPinned;
+      } else {
+        return NextResponse.json({ success: false, error: "Forbidden: Not enough permissions to pin." }, { status: 403 });
+      }
     }
 
     await post.save();
@@ -76,14 +89,26 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    const userId = req.headers.get("x-user-id");
+    const userRole = req.headers.get("x-user-role");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     await dbConnect();
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ success: false, error: "ID is required" }, { status: 400 });
 
-    await Notification.findByIdAndDelete(id);
-    return NextResponse.json({ success: true });
+    const post = await Notification.findById(id);
+    if (!post) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+
+    if (String(post.author) === String(userId) || userRole === '01' || userRole === '02') {
+      await Notification.findByIdAndDelete(id);
+      return NextResponse.json({ success: true });
+    } else {
+      return NextResponse.json({ success: false, error: "Forbidden: You don't have permission to delete this post." }, { status: 403 });
+    }
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+
