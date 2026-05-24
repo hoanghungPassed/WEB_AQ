@@ -1,769 +1,769 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect } from"react";
+import Image from"next/image";
+import { motion, AnimatePresence } from"framer-motion";
 import { 
-  ArrowLeft, 
-  Heart, 
-  MessageSquare, 
-  Send, 
-  Image as ImageIcon, 
-  X, 
-  Check, 
-  Info,
-  ShieldCheck,
-  CornerDownRight,
-  Pin,
-  Trash2
-} from "lucide-react";
-import { useRouter } from "next/navigation";
+ ArrowLeft, 
+ Heart, 
+ MessageSquare, 
+ Send, 
+ Image as ImageIcon, 
+ X, 
+ Check, 
+ Info,
+ ShieldCheck,
+ CornerDownRight,
+ Pin,
+ Trash2
+} from"lucide-react";
+import { useRouter } from"next/navigation";
 
 type NewsfeedUser = {
-  id?: string;
-  name?: string;
-  username?: string;
-  role?: string;
-  avatar?: string;
+ id?: string;
+ name?: string;
+ username?: string;
+ role?: string;
+ avatar?: string;
 };
 
 type NewsfeedReply = {
-  id: string;
-  authorName: string;
-  authorRole: string;
-  authorUsername: string;
-  authorAvatar?: string;
-  text: string;
-  timestamp: string;
+ id: string;
+ authorName: string;
+ authorRole: string;
+ authorUsername: string;
+ authorAvatar?: string;
+ text: string;
+ timestamp: string;
 };
 
 type NewsfeedComment = {
-  id: string;
-  authorName: string;
-  authorRole: string;
-  authorUsername: string;
-  authorAvatar?: string;
-  text: string;
-  timestamp: string;
-  replies: NewsfeedReply[];
+ id: string;
+ authorName: string;
+ authorRole: string;
+ authorUsername: string;
+ authorAvatar?: string;
+ text: string;
+ timestamp: string;
+ replies: NewsfeedReply[];
 };
 
 type NewsfeedPost = {
-  id: string;
-  authorName: string;
-  authorRole: string;
-  authorUsername: string;
-  authorAvatar?: string;
-  text: string;
-  imageUrl?: string | null;
-  likes: number;
-  likedBy: string[];
-  comments: NewsfeedComment[];
-  timestamp: string;
-  isPinned?: boolean;
+ id: string;
+ authorName: string;
+ authorRole: string;
+ authorUsername: string;
+ authorAvatar?: string;
+ text: string;
+ imageUrl?: string | null;
+ likes: number;
+ likedBy: string[];
+ comments: NewsfeedComment[];
+ timestamp: string;
+ isPinned?: boolean;
 };
 
 type NewsfeedNotificationItem = {
-  _id?: string;
-  id?: string;
-  authorName?: string;
-  authorRole?: string;
-  authorUsername?: string;
-  authorAvatar?: string;
-  message?: string;
-  title?: string;
-  imageUrl?: string;
-  likes?: number;
-  likedBy?: string[];
-  comments?: NewsfeedComment[];
-  createdAt?: string | number | Date;
+ _id?: string;
+ id?: string;
+ authorName?: string;
+ authorRole?: string;
+ authorUsername?: string;
+ authorAvatar?: string;
+ message?: string;
+ title?: string;
+ imageUrl?: string;
+ likes?: number;
+ likedBy?: string[];
+ comments?: NewsfeedComment[];
+ createdAt?: string | number | Date;
 };
 
 export default function NewsfeedPage() {
-  const router = useRouter();
-  const [user] = useState<NewsfeedUser>(() => {
-    const storedUser = sessionStorage.getItem("user");
-    return storedUser ? JSON.parse(storedUser) : {};
-  });
-  
-  // Newsfeed States
-  const [posts, setPosts] = useState<NewsfeedPost[]>([]);
-  const [newPostText, setNewPostText] = useState("");
-  const [selectedMockImage, setSelectedMockImage] = useState<string | null>(null);
-  const [showImagePresets, setShowImagePresets] = useState(false);
-  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
-  
-  // Threaded Comments States
-  const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
-  const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
-  
-  // Drag & Drop State
-  const [isDragging, setIsDragging] = useState(false);
-  
-  const [successToast, setSuccessToast] = useState<string | null>(null);
+ const router = useRouter();
+ const [user] = useState<NewsfeedUser>(() => {
+ const storedUser = sessionStorage.getItem("user");
+ return storedUser ? JSON.parse(storedUser) : {};
+ });
+ 
+ // Newsfeed States
+ const [posts, setPosts] = useState<NewsfeedPost[]>([]);
+ const [newPostText, setNewPostText] = useState("");
+ const [selectedMockImage, setSelectedMockImage] = useState<string | null>(null);
+ const [showImagePresets, setShowImagePresets] = useState(false);
+ const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+ 
+ // Threaded Comments States
+ const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
+ const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+ 
+ // Drag & Drop State
+ const [isDragging, setIsDragging] = useState(false);
+ 
+ const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  const loadPosts = async () => {
-    try {
-      const response = await fetch("/api/admin/notifications");
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setPosts(data.map((item: any) => ({
-            id: item._id,
-            authorName: item.author?.name || "Hệ thống",
-            authorRole: item.author?.role === "01" ? "ADMIN" : item.author?.role === "02" ? "QL CÔNG VIỆC" : item.author?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
-            authorUsername: item.author?.username || "system",
-            authorAvatar: item.author?.avatar || null,
-            text: item.message || item.title || "",
-            imageUrl: item.imageUrl || null,
-            likes: (item.likes || []).length,
-            likedBy: (item.likes || []).map((l: any) => l._id || l),
-            comments: (item.comments || []).map((c: any) => ({
-              id: c._id,
-              authorName: c.userId?.name || "Người dùng",
-              authorRole: c.userId?.role === "01" ? "ADMIN" : c.userId?.role === "02" ? "QL CÔNG VIỆC" : c.userId?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
-              authorUsername: c.userId?.username || "user",
-              authorAvatar: c.userId?.avatar || null,
-              text: c.content,
-              timestamp: new Date(c.createdAt).toLocaleString("vi-VN"),
-              replies: (c.replies || []).map((r: any) => ({
-                id: r._id,
-                authorName: r.userId?.name || "Người dùng",
-                authorRole: r.userId?.role === "01" ? "ADMIN" : r.userId?.role === "02" ? "QL CÔNG VIỆC" : r.userId?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
-                authorUsername: r.userId?.username || "user",
-                authorAvatar: r.userId?.avatar || null,
-                text: r.content,
-                timestamp: new Date(r.createdAt).toLocaleString("vi-VN"),
-              }))
-            })),
-            timestamp: item.createdAt ? new Date(item.createdAt).toLocaleString("vi-VN") : "",
-            isPinned: item.isPinned || false
-          })));
-          return;
-        }
-      }
-    } catch (err) {
-      console.error("Error loading newsfeed posts:", err);
-    }
-    setPosts([]);
-  };
+ const loadPosts = async () => {
+ try {
+ const response = await fetch("/api/admin/notifications");
+ if (response.ok) {
+ const data = await response.json();
+ if (Array.isArray(data)) {
+ setPosts(data.map((item: any) => ({
+ id: item._id,
+ authorName: item.author?.name ||"Hệ thống",
+ authorRole: item.author?.role ==="01" ?"ADMIN" : item.author?.role ==="02" ?"QL CÔNG VIỆC" : item.author?.role ==="03" ?"QL NHÂN SỰ" :"NHÂN VIÊN",
+ authorUsername: item.author?.username ||"system",
+ authorAvatar: item.author?.avatar || null,
+ text: item.message || item.title ||"",
+ imageUrl: item.imageUrl || null,
+ likes: (item.likes || []).length,
+ likedBy: (item.likes || []).map((l: any) => l._id || l),
+ comments: (item.comments || []).map((c: any) => ({
+ id: c._id,
+ authorName: c.userId?.name ||"Người dùng",
+ authorRole: c.userId?.role ==="01" ?"ADMIN" : c.userId?.role ==="02" ?"QL CÔNG VIỆC" : c.userId?.role ==="03" ?"QL NHÂN SỰ" :"NHÂN VIÊN",
+ authorUsername: c.userId?.username ||"user",
+ authorAvatar: c.userId?.avatar || null,
+ text: c.content,
+ timestamp: new Date(c.createdAt).toLocaleString("vi-VN"),
+ replies: (c.replies || []).map((r: any) => ({
+ id: r._id,
+ authorName: r.userId?.name ||"Người dùng",
+ authorRole: r.userId?.role ==="01" ?"ADMIN" : r.userId?.role ==="02" ?"QL CÔNG VIỆC" : r.userId?.role ==="03" ?"QL NHÂN SỰ" :"NHÂN VIÊN",
+ authorUsername: r.userId?.username ||"user",
+ authorAvatar: r.userId?.avatar || null,
+ text: r.content,
+ timestamp: new Date(r.createdAt).toLocaleString("vi-VN"),
+ }))
+ })),
+ timestamp: item.createdAt ? new Date(item.createdAt).toLocaleString("vi-VN") :"",
+ isPinned: item.isPinned || false
+ })));
+ return;
+ }
+ }
+ } catch (err) {
+ console.error("Error loading newsfeed posts:", err);
+ }
+ setPosts([]);
+ };
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      await loadPosts();
-    };
-    void fetchPosts();
+ useEffect(() => {
+ const fetchPosts = async () => {
+ await loadPosts();
+ };
+ void fetchPosts();
 
-    const interval = setInterval(() => {
-      void loadPosts();
-    }, 10000);
+ const interval = setInterval(() => {
+ void loadPosts();
+ }, 10000);
 
-    return () => clearInterval(interval);
-  }, []);
+ return () => clearInterval(interval);
+ }, []);
 
-  const handleCreatePost = async () => {
-    if (!newPostText.trim() && !selectedMockImage) return;
-    
-    try {
-      const res = await fetch("/api/admin/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: "Bài viết mới",
-          message: newPostText,
-          imageUrl: selectedMockImage,
-          type: "POST"
-        })
-      });
-      if (res.ok) {
-        await loadPosts();
-        
-        setNewPostText("");
-        setSelectedMockImage(null);
-        setShowImagePresets(false);
+ const handleCreatePost = async () => {
+ if (!newPostText.trim() && !selectedMockImage) return;
+ 
+ try {
+ const res = await fetch("/api/admin/notifications", {
+ method:"POST",
+ headers: {"Content-Type":"application/json" },
+ body: JSON.stringify({
+ title:"Bài viết mới",
+ message: newPostText,
+ imageUrl: selectedMockImage,
+ type:"POST"
+ })
+ });
+ if (res.ok) {
+ await loadPosts();
+ 
+ setNewPostText("");
+ setSelectedMockImage(null);
+ setShowImagePresets(false);
 
-        setSuccessToast("Đăng bài viết thành công!");
-        setTimeout(() => setSuccessToast(null), 3000);
-      } else {
-        const errData = await res.json().catch(() => ({}));
-        setSuccessToast(errData.error || "Lỗi khi đăng bài!");
-        setTimeout(() => setSuccessToast(null), 3000);
-      }
-    } catch (err) {
-      setSuccessToast("Lỗi khi đăng bài!");
-      setTimeout(() => setSuccessToast(null), 3000);
-    }
-  };
+ setSuccessToast("Đăng bài viết thành công!");
+ setTimeout(() => setSuccessToast(null), 3000);
+ } else {
+ const errData = await res.json().catch(() => ({}));
+ setSuccessToast(errData.error ||"Lỗi khi đăng bài!");
+ setTimeout(() => setSuccessToast(null), 3000);
+ }
+ } catch (err) {
+ setSuccessToast("Lỗi khi đăng bài!");
+ setTimeout(() => setSuccessToast(null), 3000);
+ }
+ };
 
-  const handleLikePost = async (postId: string) => {
-    try {
-      const res = await fetch("/api/admin/notifications", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: postId, action: "LIKE" })
-      });
-      if (res.ok) {
-        await loadPosts();
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+ const handleLikePost = async (postId: string) => {
+ try {
+ const res = await fetch("/api/admin/notifications", {
+ method:"PUT",
+ headers: {"Content-Type":"application/json" },
+ body: JSON.stringify({ id: postId, action:"LIKE" })
+ });
+ if (res.ok) {
+ await loadPosts();
+ }
+ } catch (err) {
+ console.error(err);
+ }
+ };
 
-  const handleAddComment = async (postId: string) => {
-    const text = commentInputs[postId] || "";
-    if (!text.trim()) return;
+ const handleAddComment = async (postId: string) => {
+ const text = commentInputs[postId] ||"";
+ if (!text.trim()) return;
 
-    try {
-      const res = await fetch("/api/admin/notifications", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: postId, action: "COMMENT", content: text })
-      });
-      if (res.ok) {
-        await loadPosts();
-        setCommentInputs(prev => ({ ...prev, [postId]: "" }));
-        setSuccessToast("Đã thêm bình luận!");
-        setTimeout(() => setSuccessToast(null), 2000);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+ try {
+ const res = await fetch("/api/admin/notifications", {
+ method:"PUT",
+ headers: {"Content-Type":"application/json" },
+ body: JSON.stringify({ id: postId, action:"COMMENT", content: text })
+ });
+ if (res.ok) {
+ await loadPosts();
+ setCommentInputs(prev => ({ ...prev, [postId]:"" }));
+ setSuccessToast("Đã thêm bình luận!");
+ setTimeout(() => setSuccessToast(null), 2000);
+ }
+ } catch (err) {
+ console.error(err);
+ }
+ };
 
-  const handleAddReply = async (postId: string, commentId: string) => {
-    const text = replyInputs[commentId] || "";
-    if (!text.trim()) return;
+ const handleAddReply = async (postId: string, commentId: string) => {
+ const text = replyInputs[commentId] ||"";
+ if (!text.trim()) return;
 
-    try {
-      const res = await fetch("/api/admin/notifications", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: postId, action: "REPLY", commentId, content: text })
-      });
-      if (res.ok) {
-        await loadPosts();
-        setReplyInputs(prev => ({ ...prev, [commentId]: "" }));
-        setActiveReplyId(null);
-        setSuccessToast("Đã gửi phản hồi!");
-        setTimeout(() => setSuccessToast(null), 2000);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+ try {
+ const res = await fetch("/api/admin/notifications", {
+ method:"PUT",
+ headers: {"Content-Type":"application/json" },
+ body: JSON.stringify({ id: postId, action:"REPLY", commentId, content: text })
+ });
+ if (res.ok) {
+ await loadPosts();
+ setReplyInputs(prev => ({ ...prev, [commentId]:"" }));
+ setActiveReplyId(null);
+ setSuccessToast("Đã gửi phản hồi!");
+ setTimeout(() => setSuccessToast(null), 2000);
+ }
+ } catch (err) {
+ console.error(err);
+ }
+ };
 
-  const handleTogglePinPost = async (postId: string) => {
-    try {
-      const res = await fetch("/api/admin/notifications", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: postId, action: "TOGGLE_PIN" })
-      });
-      if (res.ok) {
-        await loadPosts();
-        setSuccessToast("Đã thay đổi trạng thái ghim!");
-        setTimeout(() => setSuccessToast(null), 2000);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+ const handleTogglePinPost = async (postId: string) => {
+ try {
+ const res = await fetch("/api/admin/notifications", {
+ method:"PUT",
+ headers: {"Content-Type":"application/json" },
+ body: JSON.stringify({ id: postId, action:"TOGGLE_PIN" })
+ });
+ if (res.ok) {
+ await loadPosts();
+ setSuccessToast("Đã thay đổi trạng thái ghim!");
+ setTimeout(() => setSuccessToast(null), 2000);
+ }
+ } catch (err) {
+ console.error(err);
+ }
+ };
 
-  const handleDeletePost = async (postId: string) => {
-    if (confirm("Bạn có chắc chắn muốn xóa bài viết này?")) {
-      try {
-        const res = await fetch(`/api/admin/notifications?id=${postId}`, { method: "DELETE" });
-        if (res.ok) {
-          await loadPosts();
-          setSuccessToast("Đã xóa bài viết thành công!");
-          setTimeout(() => setSuccessToast(null), 2000);
-        } else {
-          const errData = await res.json().catch(() => ({}));
-          setSuccessToast(errData.error || "Lỗi khi xóa bài viết!");
-          setTimeout(() => setSuccessToast(null), 2000);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-  };
+ const handleDeletePost = async (postId: string) => {
+ if (confirm("Bạn có chắc chắn muốn xóa bài viết này?")) {
+ try {
+ const res = await fetch(`/api/admin/notifications?id=${postId}`, { method:"DELETE" });
+ if (res.ok) {
+ await loadPosts();
+ setSuccessToast("Đã xóa bài viết thành công!");
+ setTimeout(() => setSuccessToast(null), 2000);
+ } else {
+ const errData = await res.json().catch(() => ({}));
+ setSuccessToast(errData.error ||"Lỗi khi xóa bài viết!");
+ setTimeout(() => setSuccessToast(null), 2000);
+ }
+ } catch (err) {
+ console.error(err);
+ }
+ }
+ };
 
-  // Clipboard paste support for copying images
-  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const items = e.clipboardData.items;
-    for (let i = 0; i < (items || []).length; i++) {
-      if (items[i].type.indexOf("image") !== -1) {
-        const file = items[i].getAsFile();
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            if (event.target?.result) {
-              setSelectedMockImage(event.target.result as string);
-              setSuccessToast("Đã sao chép và dán ảnh thành công!");
-              setTimeout(() => setSuccessToast(null), 3000);
-            }
-          };
-          reader.readAsDataURL(file);
-        }
-        e.preventDefault();
-        break;
-      }
-    }
-  };
+ // Clipboard paste support for copying images
+ const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+ const items = e.clipboardData.items;
+ for (let i = 0; i < (items || []).length; i++) {
+ if (items[i].type.indexOf("image") !== -1) {
+ const file = items[i].getAsFile();
+ if (file) {
+ const reader = new FileReader();
+ reader.onload = (event) => {
+ if (event.target?.result) {
+ setSelectedMockImage(event.target.result as string);
+ setSuccessToast("Đã sao chép và dán ảnh thành công!");
+ setTimeout(() => setSuccessToast(null), 3000);
+ }
+ };
+ reader.readAsDataURL(file);
+ }
+ e.preventDefault();
+ break;
+ }
+ }
+ };
 
-  // Drag & Drop handlers
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
+ // Drag & Drop handlers
+ const handleDragOver = (e: React.DragEvent) => {
+ e.preventDefault();
+ setIsDragging(true);
+ };
 
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
+ const handleDragLeave = () => {
+ setIsDragging(false);
+ };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const files = e.dataTransfer.files;
-    if (files && (files || []).length > 0) {
-      const file = files[0];
-      if (file.type.indexOf("image") !== -1) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (event.target?.result) {
-            setSelectedMockImage(event.target.result as string);
-            setSuccessToast("Đã kéo thả tải ảnh lên!");
-            setTimeout(() => setSuccessToast(null), 3000);
-          }
-        };
-        reader.readAsDataURL(file);
-      }
-    }
-  };
+ const handleDrop = (e: React.DragEvent) => {
+ e.preventDefault();
+ setIsDragging(false);
+ const files = e.dataTransfer.files;
+ if (files && (files || []).length > 0) {
+ const file = files[0];
+ if (file.type.indexOf("image") !== -1) {
+ const reader = new FileReader();
+ reader.onload = (event) => {
+ if (event.target?.result) {
+ setSelectedMockImage(event.target.result as string);
+ setSuccessToast("Đã kéo thả tải ảnh lên!");
+ setTimeout(() => setSuccessToast(null), 3000);
+ }
+ };
+ reader.readAsDataURL(file);
+ }
+ }
+ };
 
-  const getRoleLabel = (role?: string) => {
-    if (role === "01") return "ADMIN";
-    if (role === "02") return "QL CÔNG VIỆC";
-    if (role === "03") return "QL NHÂN SỰ";
-    return "NHÂN VIÊN";
-  };
+ const getRoleLabel = (role?: string) => {
+ if (role ==="01") return"ADMIN";
+ if (role ==="02") return"QL CÔNG VIỆC";
+ if (role ==="03") return"QL NHÂN SỰ";
+ return"NHÂN VIÊN";
+ };
 
-  return (
-    <div className="space-y-6">
-      {/* Toast Notification */}
-      <AnimatePresence>
-        {successToast && (
-          <motion.div
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-            className="fixed top-24 left-1/2 -translate-x-1/2 z-[500] bg-green-500 text-gray-900 dark:text-white px-6 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-sm font-black uppercase tracking-wider border border-gray-300 dark:border-white/10"
-          >
-            <Check size={16} /> {successToast}
-          </motion.div>
-        )}
-      </AnimatePresence>
+ return (
+ <div className="space-y-6">
+ {/* Toast Notification */}
+ <AnimatePresence>
+ {successToast && (
+ <motion.div
+ initial={{ opacity: 0, y: -50 }}
+ animate={{ opacity: 1, y: 0 }}
+ exit={{ opacity: 0, y: -50 }}
+ className="fixed top-24 left-1/2 -translate-x-1/2 z-[500] bg-green-500 text-white px-6 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-sm font-black uppercase tracking-wider border border-white/10"
+ >
+ <Check size={16} /> {successToast}
+ </motion.div>
+ )}
+ </AnimatePresence>
 
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-6 shadow-lg relative overflow-hidden">
-        <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[60px] -mr-16 -mt-16 pointer-events-none" />
-        
-        <div className="flex items-center gap-3 relative z-10">
-          <button 
-            onClick={() => router.push("/admin")}
-            className="h-9 w-9 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-xl flex items-center justify-center border border-gray-300 dark:border-white/10 transition-all hover:scale-105"
-          >
-            <ArrowLeft size={16} />
-          </button>
-          <div>
-            <h1 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2 tracking-tighter uppercase">
-              Bảng Tin Nội Bộ
-            </h1>
-            <p className="text-gray-500 font-medium text-[10px]">Mạng xã hội nội bộ dành cho thành viên AQ MEDIA</p>
-          </div>
-        </div>
+ {/* Header Bar */}
+ <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-sidebar border border-border-custom rounded-2xl p-6 shadow-lg relative overflow-hidden">
+ <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[60px] -mr-16 -mt-16 pointer-events-none" />
+ 
+ <div className="flex items-center gap-3 relative z-10">
+ <button 
+ onClick={() => router.push("/admin")}
+ className="h-9 w-9 bg-white/5 hover:bg-white/10 text-white rounded-xl flex items-center justify-center border border-white/10 transition-all hover:scale-105"
+ >
+ <ArrowLeft size={16} />
+ </button>
+ <div>
+ <h1 className="text-xl font-black text-white flex items-center gap-2 tracking-tighter uppercase">
+ Bảng Tin Nội Bộ
+ </h1>
+ <p className="text-gray-500 font-medium text-[10px]">Mạng xã hội nội bộ dành cho thành viên AQ MEDIA</p>
+ </div>
+ </div>
 
-        <div className="flex items-center gap-2 relative z-10">
-          <span className="bg-gold/10 text-gold border border-gold/30 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-            {(posts || []).length} BÀI ĐĂNG
-          </span>
-        </div>
-      </div>
+ <div className="flex items-center gap-2 relative z-10">
+ <span className="bg-gold/10 text-gold border border-gold/30 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+ {(posts || []).length} BÀI ĐĂNG
+ </span>
+ </div>
+ </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Center: Compose post + Posts Feed stream */}
-        <div className="lg:col-span-8 space-y-6">
-          {/* Write post card with Drag and Drop handlers */}
-          <div 
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`bg-white dark:bg-sidebar border rounded-2xl p-6 shadow-lg relative overflow-hidden transition-all duration-300 ${
-              isDragging ? "border-gold bg-gold/5 scale-[1.01]" : "border-border-custom"
-            }`}
-          >
-            <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Send size={14} className="text-gold" /> Tạo bài viết mới
-            </h3>
+ <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+ {/* Center: Compose post + Posts Feed stream */}
+ <div className="lg:col-span-8 space-y-6">
+ {/* Write post card with Drag and Drop handlers */}
+ <div 
+ onDragOver={handleDragOver}
+ onDragLeave={handleDragLeave}
+ onDrop={handleDrop}
+ className={` bg-sidebar border rounded-2xl p-6 shadow-lg relative overflow-hidden transition-all duration-300 ${
+ isDragging ?"border-gold bg-gold/5 scale-[1.01]" :"border-border-custom"
+ }`}
+ >
+ <h3 className="text-sm font-black text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+ <Send size={14} className="text-gold" /> Tạo bài viết mới
+ </h3>
 
-            <textarea
-              placeholder={`Chào ${user?.name || "bạn"}, hôm nay bạn thế nào? Ctrl+V để dán hoặc kéo thả ảnh...`}
-              value={newPostText}
-              onChange={(e) => setNewPostText(e.target.value)}
-              onPaste={handlePaste}
-              className="w-full h-24 bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all resize-none custom-scrollbar font-bold"
-            />
+ <textarea
+ placeholder={`Chào ${user?.name ||"bạn"}, hôm nay bạn thế nào? Ctrl+V để dán hoặc kéo thả ảnh...`}
+ value={newPostText}
+ onChange={(e) => setNewPostText(e.target.value)}
+ onPaste={handlePaste}
+ className="w-full h-24 bg-black/20 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-gold/50 transition-all resize-none custom-scrollbar font-bold"
+ />
 
-            {/* Selected Preset Image Preview */}
-            {selectedMockImage && (
-              <div className="mt-2 relative rounded-xl overflow-hidden border border-gray-300 dark:border-white/10 group h-36">
-                <Image src={selectedMockImage!} alt="Preview" fill className="object-cover" />
-                <button 
-                  onClick={() => setSelectedMockImage(null)}
-                  className="absolute top-2 right-2 h-8 w-8 bg-black/70 rounded-full flex items-center justify-center text-gray-900 dark:text-white hover:bg-red-500 transition-colors shadow-lg"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            )}
+ {/* Selected Preset Image Preview */}
+ {selectedMockImage && (
+ <div className="mt-2 relative rounded-xl overflow-hidden border border-white/10 group h-36">
+ <Image src={selectedMockImage!} alt="Preview" fill className="object-cover" />
+ <button 
+ onClick={() => setSelectedMockImage(null)}
+ className="absolute top-2 right-2 h-8 w-8 bg-black/70 rounded-full flex items-center justify-center text-white hover:bg-red-500 transition-colors shadow-lg"
+ >
+ <X size={14} />
+ </button>
+ </div>
+ )}
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 dark:border-white/5 pt-3">
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setShowImagePresets(!showImagePresets)}
-                  className={`h-8 px-3 rounded-lg border text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
-                    showImagePresets ? "bg-gold/15 text-gold border-gold/30" : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-white/5 hover:bg-gray-200 dark:hover:bg-white/10"
-                  }`}
-                >
-                  <ImageIcon size={14} /> Chọn ảnh mẫu
-                </button>
-              </div>
+ <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/5 pt-3">
+ <div className="flex gap-2">
+ <button 
+ onClick={() => setShowImagePresets(!showImagePresets)}
+ className={`h-8 px-3 rounded-lg border text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+ showImagePresets ?"bg-gold/15 text-gold border-gold/30" :" bg-white/5 text-gray-400 border-white/5 hover:bg-white/10"
+ }`}
+ >
+ <ImageIcon size={14} /> Chọn ảnh mẫu
+ </button>
+ </div>
 
-              <button 
-                onClick={handleCreatePost}
-                disabled={!newPostText.trim() && !selectedMockImage}
-                className="h-8 px-5 bg-gold hover:bg-gold-hover disabled:opacity-50 disabled:cursor-not-allowed text-sidebar rounded-lg font-black text-[10px] uppercase tracking-wider transition-all shadow-lg shadow-gold/20"
-              >
-                Đăng bài
-              </button>
-            </div>
+ <button 
+ onClick={handleCreatePost}
+ disabled={!newPostText.trim() && !selectedMockImage}
+ className="h-8 px-5 bg-gold hover:bg-gold-hover disabled:opacity-50 disabled:cursor-not-allowed text-sidebar rounded-lg font-black text-[10px] uppercase tracking-wider transition-all shadow-lg shadow-gold/20"
+ >
+ Đăng bài
+ </button>
+ </div>
 
-            {/* Presets Grid */}
-            {showImagePresets && (
-              <div className="mt-4 p-6 bg-black/30 border border-gray-200 dark:border-white/5 rounded-2xl space-y-3">
-                <p className="text-[10px] text-gray-600 dark:text-gray-400 font-black uppercase tracking-wider flex items-center gap-1">
-                  <Info size={12} className="text-gold" /> Chọn ảnh minh họa:
-                </p>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&auto=format&fit=crop&q=60", name: "Dashboard" },
-                    { url: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=500&auto=format&fit=crop&q=60", name: "Teamwork" },
-                    { url: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500&auto=format&fit=crop&q=60", name: "Workspace" }
-                  ].map((preset, idx) => (
-                    <div 
-                      key={`preset-grid-${idx}`}
-                      onClick={() => {
-                        setSelectedMockImage(preset.url);
-                        setShowImagePresets(false);
-                      }}
-                      className="cursor-pointer h-16 rounded-xl overflow-hidden border border-gray-300 dark:border-white/10 hover:border-gold transition-all relative group"
-                    >
-                      <Image src={preset.url} alt={preset.name} fill className="object-cover" />
-                      <div className="absolute inset-0 bg-black/50 group-hover:bg-black/20 transition-all flex items-center justify-center">
-                        <span className="text-[9px] text-gray-900 dark:text-white font-black uppercase tracking-wider">{preset.name}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+ {/* Presets Grid */}
+ {showImagePresets && (
+ <div className="mt-4 p-6 bg-black/30 border border-white/5 rounded-2xl space-y-3">
+ <p className="text-[10px] text-gray-400 font-black uppercase tracking-wider flex items-center gap-1">
+ <Info size={12} className="text-gold" /> Chọn ảnh minh họa:
+ </p>
+ <div className="grid grid-cols-3 gap-3">
+ {[
+ { url:"https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&auto=format&fit=crop&q=60", name:"Dashboard" },
+ { url:"https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=500&auto=format&fit=crop&q=60", name:"Teamwork" },
+ { url:"https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500&auto=format&fit=crop&q=60", name:"Workspace" }
+ ].map((preset, idx) => (
+ <div 
+ key={`preset-grid-${idx}`}
+ onClick={() => {
+ setSelectedMockImage(preset.url);
+ setShowImagePresets(false);
+ }}
+ className="cursor-pointer h-16 rounded-xl overflow-hidden border border-white/10 hover:border-gold transition-all relative group"
+ >
+ <Image src={preset.url} alt={preset.name} fill className="object-cover" />
+ <div className="absolute inset-0 bg-black/50 group-hover:bg-black/20 transition-all flex items-center justify-center">
+ <span className="text-[9px] text-white font-black uppercase tracking-wider">{preset.name}</span>
+ </div>
+ </div>
+ ))}
+ </div>
+ </div>
+ )}
+ </div>
 
-          {/* Posts Feed Stream */}
-          <div className="space-y-4">
-            <AnimatePresence>
-              {(() => {
-                const sortedPosts = [...posts].sort((a, b) => {
-                  const aPinned = a.isPinned ? 1 : 0;
-                  const bPinned = b.isPinned ? 1 : 0;
-                  if (aPinned !== bPinned) return bPinned - aPinned;
-                  return 0;
-                });
-                return (sortedPosts || []).map((post) => {
-                  const userId = user?.id || "anon";
-                  const hasLiked = Array.isArray(post.likedBy) && post.likedBy.includes(userId);
-                  return (
-                    <motion.div 
-                      id={post.id}
-                      key={post.id}
-                      layout
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-6 shadow-lg space-y-3 text-left relative transition-all duration-500 overflow-hidden"
-                    >
-                      {/* Post Header */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {post.authorAvatar ? (
-                            <img src={post.authorAvatar} alt={post.authorName} className="h-8 w-8 rounded-full object-cover border border-gold/20 shadow-sm" />
-                          ) : (
-                            <div className="h-8 w-8 bg-gold/15 text-gold border border-gold/20 rounded-full flex items-center justify-center font-black text-sm uppercase shadow-sm">
-                              {post.authorName.charAt(0)}
-                            </div>
-                          )}
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-black text-gray-900 dark:text-white">{post.authorName}</span>
-                              <span className="px-2 py-0.5 rounded text-[7px] font-black tracking-widest uppercase border bg-gold/5 text-gold border-gold/20">{post.authorRole}</span>
-                              {post.isPinned && (
-                                <span className="px-2 py-0.5 rounded text-[7px] font-black tracking-widest uppercase bg-gold text-sidebar flex items-center gap-0.5">
-                                  <Pin size={8} className="fill-current" /> ĐÃ GHIM
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[9px] text-gray-500 font-mono font-bold mt-0.5 block">{post.timestamp}</span>
-                          </div>
-                        </div>
+ {/* Posts Feed Stream */}
+ <div className="space-y-4">
+ <AnimatePresence>
+ {(() => {
+ const sortedPosts = [...posts].sort((a, b) => {
+ const aPinned = a.isPinned ? 1 : 0;
+ const bPinned = b.isPinned ? 1 : 0;
+ if (aPinned !== bPinned) return bPinned - aPinned;
+ return 0;
+ });
+ return (sortedPosts || []).map((post) => {
+ const userId = user?.id ||"anon";
+ const hasLiked = Array.isArray(post.likedBy) && post.likedBy.includes(userId);
+ return (
+ <motion.div 
+ id={post.id}
+ key={post.id}
+ layout
+ initial={{ opacity: 0, y: 20 }}
+ animate={{ opacity: 1, y: 0 }}
+ exit={{ opacity: 0, scale: 0.95 }}
+ className="bg-sidebar border border-border-custom rounded-2xl p-6 shadow-lg space-y-3 text-left relative transition-all duration-500 overflow-hidden"
+ >
+ {/* Post Header */}
+ <div className="flex items-center justify-between">
+ <div className="flex items-center gap-3">
+ {post.authorAvatar ? (
+ <img src={post.authorAvatar} alt={post.authorName} className="h-8 w-8 rounded-full object-cover border border-gold/20 shadow-sm" />
+ ) : (
+ <div className="h-8 w-8 bg-gold/15 text-gold border border-gold/20 rounded-full flex items-center justify-center font-black text-sm uppercase shadow-sm">
+ {post.authorName.charAt(0)}
+ </div>
+ )}
+ <div>
+ <div className="flex items-center gap-2">
+ <span className="text-sm font-black text-white">{post.authorName}</span>
+ <span className="px-2 py-0.5 rounded text-[7px] font-black tracking-widest uppercase border bg-gold/5 text-gold border-gold/20">{post.authorRole}</span>
+ {post.isPinned && (
+ <span className="px-2 py-0.5 rounded text-[7px] font-black tracking-widest uppercase bg-gold text-sidebar flex items-center gap-0.5">
+ <Pin size={8} className="fill-current" /> ĐÃ GHIM
+ </span>
+ )}
+ </div>
+ <span className="text-[9px] text-gray-500 font-mono font-bold mt-0.5 block">{post.timestamp}</span>
+ </div>
+ </div>
 
-                        {/* Actions */}
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => handleTogglePinPost(post.id)}
-                            className={`h-8 w-8 rounded-lg border flex items-center justify-center transition-all ${
-                              post.isPinned 
-                                ? "bg-gold/20 text-gold border-gold/30 animate-pulse" 
-                                : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-white/5 hover:bg-gray-200 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"
-                            }`}
-                            title={post.isPinned ? "Bỏ ghim bài viết" : "Ghim bài viết"}
-                          >
-                            <Pin size={12} className={post.isPinned ? "rotate-45" : ""} />
-                          </button>
+ {/* Actions */}
+ <div className="flex items-center gap-2">
+ <button 
+ onClick={() => handleTogglePinPost(post.id)}
+ className={`h-8 w-8 rounded-lg border flex items-center justify-center transition-all ${
+ post.isPinned 
+ ?"bg-gold/20 text-gold border-gold/30 animate-pulse" 
+ :" bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-gray-900 text-white"
+ }`}
+ title={post.isPinned ?"Bỏ ghim bài viết" :"Ghim bài viết"}
+ >
+ <Pin size={12} className={post.isPinned ?"rotate-45" :""} />
+ </button>
 
-                          {(post.authorUsername === user?.username || user?.role === "01" || user?.role === "02") && (
-                            <button 
-                              onClick={() => handleDeletePost(post.id)}
-                              className="h-8 w-8 bg-gray-100 dark:bg-white/5 hover:bg-red-500/10 hover:text-red-500 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/5 hover:border-red-500/20 rounded-lg flex items-center justify-center transition-all"
-                              title="Xóa bài viết"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
+ {(post.authorUsername === user?.username || user?.role ==="01" || user?.role ==="02") && (
+ <button 
+ onClick={() => handleDeletePost(post.id)}
+ className="h-8 w-8 bg-white/5 hover:bg-red-500/10 hover:text-red-500 text-gray-400 border border-white/5 hover:border-red-500/20 rounded-lg flex items-center justify-center transition-all"
+ title="Xóa bài viết"
+ >
+ <Trash2 size={12} />
+ </button>
+ )}
+ </div>
+ </div>
 
-                      <div className="space-y-2">
-                      <p className="text-sm text-gray-700 dark:text-gray-300 font-bold leading-relaxed whitespace-pre-wrap">{post.text}</p>
-                      {post.imageUrl && (
-                        <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-white/5 max-h-[280px] relative h-72">
-                          <Image src={post.imageUrl} alt={`${post.authorName} post`} fill className="object-cover" />
-                        </div>
-                      )}
-                    </div>
+ <div className="space-y-2">
+ <p className="text-sm text-gray-300 font-bold leading-relaxed whitespace-pre-wrap">{post.text}</p>
+ {post.imageUrl && (
+ <div className="rounded-xl overflow-hidden border border-white/5 max-h-[280px] relative h-72">
+ <Image src={post.imageUrl} alt={`${post.authorName} post`} fill className="object-cover" />
+ </div>
+ )}
+ </div>
 
-                    {/* Footer reaction stats */}
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-white/5 text-gray-500 text-sm">
-                      <div className="flex items-center gap-1">
-                        <Heart size={14} className="text-red-500" fill="currentColor" />
-                        <span className="font-bold text-[11px]">{post.likes || 0} lượt thích</span>
-                      </div>
-                      <div className="font-bold text-[11px]">
-                        {post.comments?.length || 0} bình luận
-                      </div>
-                    </div>
+ {/* Footer reaction stats */}
+ <div className="flex items-center justify-between pt-2 border-t border-white/5 text-gray-500 text-sm">
+ <div className="flex items-center gap-1">
+ <Heart size={14} className="text-red-500" fill="currentColor" />
+ <span className="font-bold text-[11px]">{post.likes || 0} lượt thích</span>
+ </div>
+ <div className="font-bold text-[11px]">
+ {post.comments?.length || 0} bình luận
+ </div>
+ </div>
 
-                    {/* Action buttons */}
-                    <div className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-white/5">
-                      <button 
-                        onClick={() => handleLikePost(post.id)}
-                        className={`flex-1 h-9 rounded-xl flex items-center justify-center gap-1.5 text-sm font-black uppercase tracking-wider transition-all bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 ${
-                          hasLiked ? "text-red-500 bg-red-500/5 border-red-500/20" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-900 dark:text-white"
-                        }`}
-                      >
-                        <Heart size={14} fill={hasLiked ? "currentColor" : "none"} />
-                        <span>Thích</span>
-                      </button>
+ {/* Action buttons */}
+ <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+ <button 
+ onClick={() => handleLikePost(post.id)}
+ className={`flex-1 h-9 rounded-xl flex items-center justify-center gap-1.5 text-sm font-black uppercase tracking-wider transition-all bg-white/[0.02] border border-white/5 ${
+ hasLiked ?"text-red-500 bg-red-500/5 border-red-500/20" :" text-gray-400 hover:text-gray-900 text-white"
+ }`}
+ >
+ <Heart size={14} fill={hasLiked ?"currentColor" :"none"} />
+ <span>Thích</span>
+ </button>
 
-                      <div className="flex-1 h-9 rounded-xl flex items-center justify-center gap-1.5 text-sm font-black uppercase tracking-wider text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5">
-                        <MessageSquare size={14} />
-                        <span>Bình luận</span>
-                      </div>
-                    </div>
+ <div className="flex-1 h-9 rounded-xl flex items-center justify-center gap-1.5 text-sm font-black uppercase tracking-wider text-gray-400 bg-white/[0.02] border border-white/5">
+ <MessageSquare size={14} />
+ <span>Bình luận</span>
+ </div>
+ </div>
 
-                    {/* Threaded Nested Comments list box */}
-                    {post.comments && (post.comments || []).length > 0 && (
-                      <div className="space-y-3 bg-black/20 border border-gray-200 dark:border-white/5 rounded-xl p-3 mt-1">
-                        {(post.comments || []).map((cmt: NewsfeedComment) => (
-                          <div key={cmt.id} className="space-y-2 border-b border-gray-200 dark:border-white/5 last:border-none pb-3 last:pb-0">
-                            {/* Main Comment */}
-                            <div className="text-sm">
-                              <div className="flex items-center gap-2 mb-1">
-                                {cmt.authorAvatar ? (
-                                  <img src={cmt.authorAvatar} alt={cmt.authorName} className="w-5 h-5 rounded-full object-cover border border-gold/20" />
-                                ) : (
-                                  <div className="w-5 h-5 rounded-full bg-gold/10 text-gold flex items-center justify-center text-[10px] font-black border border-gold/20">
-                                    {cmt.authorName.charAt(0)}
-                                  </div>
-                                )}
-                                <span className="font-black text-gray-900 dark:text-white text-[11px]">{cmt.authorName}</span>
-                                <span className="text-[7px] font-bold bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-white/10 px-1 py-0.5 rounded uppercase">{cmt.authorRole}</span>
-                                <span className="text-[8px] text-gray-600 font-mono ml-auto">{cmt.timestamp}</span>
-                              </div>
-                              <p className="text-gray-700 dark:text-gray-300 font-bold pl-1">{cmt.text}</p>
-                              
-                              {/* Reply button link */}
-                              <div className="mt-1.5 pl-1 flex gap-4">
-                                <button 
-                                  onClick={() => {
-                                    setActiveReplyId(activeReplyId === cmt.id ? null : cmt.id);
-                                    setReplyInputs(prev => ({ ...prev, [cmt.id]: "" }));
-                                  }}
-                                  className="text-[9px] font-black text-gold uppercase tracking-wider hover:underline"
-                                >
-                                  Trả lời
-                                </button>
-                              </div>
-                            </div>
+ {/* Threaded Nested Comments list box */}
+ {post.comments && (post.comments || []).length > 0 && (
+ <div className="space-y-3 bg-black/20 border border-white/5 rounded-xl p-3 mt-1">
+ {(post.comments || []).map((cmt: NewsfeedComment) => (
+ <div key={cmt.id} className="space-y-2 border-b border-white/5 last:border-none pb-3 last:pb-0">
+ {/* Main Comment */}
+ <div className="text-sm">
+ <div className="flex items-center gap-2 mb-1">
+ {cmt.authorAvatar ? (
+ <img src={cmt.authorAvatar} alt={cmt.authorName} className="w-5 h-5 rounded-full object-cover border border-gold/20" />
+ ) : (
+ <div className="w-5 h-5 rounded-full bg-gold/10 text-gold flex items-center justify-center text-[10px] font-black border border-gold/20">
+ {cmt.authorName.charAt(0)}
+ </div>
+ )}
+ <span className="font-black text-white text-[11px]">{cmt.authorName}</span>
+ <span className="text-[7px] font-bold bg-white/5 text-gray-400 border border-white/10 px-1 py-0.5 rounded uppercase">{cmt.authorRole}</span>
+ <span className="text-[8px] font-mono ml-auto">{cmt.timestamp}</span>
+ </div>
+ <p className="text-gray-300 font-bold pl-1">{cmt.text}</p>
+ 
+ {/* Reply button link */}
+ <div className="mt-1.5 pl-1 flex gap-4">
+ <button 
+ onClick={() => {
+ setActiveReplyId(activeReplyId === cmt.id ? null : cmt.id);
+ setReplyInputs(prev => ({ ...prev, [cmt.id]:"" }));
+ }}
+ className="text-[9px] font-black text-gold uppercase tracking-wider hover:underline"
+ >
+ Trả lời
+ </button>
+ </div>
+ </div>
 
-                            {/* Nested Replies Rendering */}
-                            {cmt.replies && (cmt.replies || []).length > 0 && (
-                              <div className="ml-6 pl-4 border-l border-gray-300 dark:border-white/10 space-y-2 mt-2">
-                                {(cmt.replies || []).map((reply: NewsfeedReply) => (
-                                  <div key={reply.id} className="text-[11px]">
-                                    <div className="flex items-center gap-2 mb-0.5">
-                                      <CornerDownRight size={10} className="text-gold" />
-                                      {reply.authorAvatar ? (
-                                        <img src={reply.authorAvatar} alt={reply.authorName} className="w-4 h-4 rounded-full object-cover border border-gold/20" />
-                                      ) : (
-                                        <div className="w-4 h-4 rounded-full bg-gold/10 text-gold flex items-center justify-center text-[8px] font-black border border-gold/20">
-                                          {reply.authorName.charAt(0)}
-                                        </div>
-                                      )}
-                                      <span className="font-black text-gray-900 dark:text-white">{reply.authorName}</span>
-                                      <span className="text-[6px] font-bold bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-white/10 px-1 rounded uppercase">{reply.authorRole}</span>
-                                      <span className="text-[8px] text-gray-600 font-mono ml-auto">{reply.timestamp}</span>
-                                    </div>
-                                    <p className="text-gray-600 dark:text-gray-400 font-medium pl-4">{reply.text}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+ {/* Nested Replies Rendering */}
+ {cmt.replies && (cmt.replies || []).length > 0 && (
+ <div className="ml-6 pl-4 border-l border-white/10 space-y-2 mt-2">
+ {(cmt.replies || []).map((reply: NewsfeedReply) => (
+ <div key={reply.id} className="text-[11px]">
+ <div className="flex items-center gap-2 mb-0.5">
+ <CornerDownRight size={10} className="text-gold" />
+ {reply.authorAvatar ? (
+ <img src={reply.authorAvatar} alt={reply.authorName} className="w-4 h-4 rounded-full object-cover border border-gold/20" />
+ ) : (
+ <div className="w-4 h-4 rounded-full bg-gold/10 text-gold flex items-center justify-center text-[8px] font-black border border-gold/20">
+ {reply.authorName.charAt(0)}
+ </div>
+ )}
+ <span className="font-black text-white">{reply.authorName}</span>
+ <span className="text-[6px] font-bold bg-white/5 text-gray-400 border border-white/10 px-1 rounded uppercase">{reply.authorRole}</span>
+ <span className="text-[8px] font-mono ml-auto">{reply.timestamp}</span>
+ </div>
+ <p className="text-gray-400 font-medium pl-4">{reply.text}</p>
+ </div>
+ ))}
+ </div>
+ )}
 
-                            {/* Inline Reply Input Box */}
-                            {activeReplyId === cmt.id && (
-                              <div className="ml-6 pl-4 border-l border-gray-300 dark:border-white/10 flex items-center gap-2 mt-2">
-                                <input 
-                                  placeholder={`Phản hồi ${cmt.authorName}...`}
-                                  value={replyInputs[cmt.id] || ""}
-                                  onChange={(e) => setReplyInputs({ ...replyInputs, [cmt.id]: e.target.value })}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") handleAddReply(post.id, cmt.id);
-                                  }}
-                                  className="flex-grow h-8 bg-black/40 border border-gray-300 dark:border-white/10 rounded-lg px-3 text-[11px] text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all font-bold"
-                                />
-                                <button 
-                                  onClick={() => handleAddReply(post.id, cmt.id)}
-                                  className="h-8 px-3 bg-gold hover:bg-gold-hover text-sidebar rounded-lg flex items-center justify-center font-black text-[10px] uppercase tracking-wider transition-colors"
-                                >
-                                  Gửi
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+ {/* Inline Reply Input Box */}
+ {activeReplyId === cmt.id && (
+ <div className="ml-6 pl-4 border-l border-white/10 flex items-center gap-2 mt-2">
+ <input 
+ placeholder={`Phản hồi ${cmt.authorName}...`}
+ value={replyInputs[cmt.id] ||""}
+ onChange={(e) => setReplyInputs({ ...replyInputs, [cmt.id]: e.target.value })}
+ onKeyDown={(e) => {
+ if (e.key ==="Enter") handleAddReply(post.id, cmt.id);
+ }}
+ className="flex-grow h-8 bg-black/40 border border-white/10 rounded-lg px-3 text-[11px] text-white focus:outline-none focus:border-gold/50 transition-all font-bold"
+ />
+ <button 
+ onClick={() => handleAddReply(post.id, cmt.id)}
+ className="h-8 px-3 bg-gold hover:bg-gold-hover text-sidebar rounded-lg flex items-center justify-center font-black text-[10px] uppercase tracking-wider transition-colors"
+ >
+ Gửi
+ </button>
+ </div>
+ )}
+ </div>
+ ))}
+ </div>
+ )}
 
-                    <div className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-white/5">
-                      <input
-                        placeholder="Viết bình luận..."
-                        value={commentInputs[post.id] || ""}
-                        onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleAddComment(post.id);
-                        }}
-                        className="flex-grow h-8 bg-black/20 border border-gray-300 dark:border-white/10 rounded-lg px-3 text-[11px] text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 transition-all font-bold"
-                      />
-                      <button
-                        onClick={() => handleAddComment(post.id)}
-                        className="h-8 w-8 rounded-lg bg-gold hover:bg-gold-hover text-sidebar flex items-center justify-center transition-colors"
-                      >
-                        <Send size={11} />
-                      </button>
-                    </div>
-                  </motion.div>
-                );
-              });
-              })()}
-            </AnimatePresence>
+ <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+ <input
+ placeholder="Viết bình luận..."
+ value={commentInputs[post.id] ||""}
+ onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
+ onKeyDown={(e) => {
+ if (e.key ==="Enter") handleAddComment(post.id);
+ }}
+ className="flex-grow h-8 bg-black/20 border border-white/10 rounded-lg px-3 text-[11px] text-white focus:outline-none focus:border-gold/50 transition-all font-bold"
+ />
+ <button
+ onClick={() => handleAddComment(post.id)}
+ className="h-8 w-8 rounded-lg bg-gold hover:bg-gold-hover text-sidebar flex items-center justify-center transition-colors"
+ >
+ <Send size={11} />
+ </button>
+ </div>
+ </motion.div>
+ );
+ });
+ })()}
+ </AnimatePresence>
 
-            {(posts || []).length === 0 && (
-              <div className="h-40 rounded-2xl border border-gray-200 dark:border-white/5 bg-white dark:bg-sidebar/50 flex flex-col items-center justify-center text-center p-6">
-                <MessageSquare size={32} className="text-gray-600 mb-2" />
-                <h4 className="text-gray-900 dark:text-white font-black uppercase tracking-tight text-[11px]">Chưa có dữ liệu</h4>
-                <p className="text-[9px] text-gray-500 mt-1">Hãy đăng bài chia sẻ đầu tiên trên Bảng tin nội bộ nhé!</p>
-              </div>
-            )}
-          </div>
-        </div>
+ {(posts || []).length === 0 && (
+ <div className="h-40 rounded-2xl border border-white/5 bg-sidebar/50 flex flex-col items-center justify-center text-center p-6">
+ <MessageSquare size={32} className="mb-2" />
+ <h4 className="text-white font-black uppercase tracking-tight text-[11px]">Chưa có dữ liệu</h4>
+ <p className="text-[9px] text-gray-500 mt-1">Hãy đăng bài chia sẻ đầu tiên trên Bảng tin nội bộ nhé!</p>
+ </div>
+ )}
+ </div>
+ </div>
 
-        {/* Right Side: Profile Card & Quick Stats */}
-        <div className="lg:col-span-4 space-y-4 hidden lg:block">
-          {/* User profile details */}
-          <div className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-6 shadow-lg relative overflow-hidden group text-center">
-            <div className="absolute top-0 left-0 right-0 h-14 bg-gradient-to-r from-indigo-500/20 to-purple-500/20" />
-            
-            <div className="relative mt-6 flex flex-col items-center">
-              {user?.avatar ? (
-                <img src={user.avatar} alt="User Avatar" className="h-14 w-14 rounded-full object-cover border-2 border-gold shadow-lg shadow-gold/10" />
-              ) : (
-                <div className="h-14 w-14 bg-gold/10 border-2 border-gold text-gold rounded-full flex items-center justify-center font-black text-lg uppercase shadow-lg shadow-gold/10">
-                  {user?.name?.charAt(0) || "U"}
-                </div>
-              )}
-              
-              <h3 className="text-base font-black text-gray-900 dark:text-white mt-3">{user?.name || "Người dùng"}</h3>
-              <p className="text-[8px] font-black tracking-widest uppercase text-gold bg-gold/5 border border-gold/20 px-2 py-0.5 rounded-full mt-1">
-                {getRoleLabel(user?.role)}
-              </p>
-            </div>
+ {/* Right Side: Profile Card & Quick Stats */}
+ <div className="lg:col-span-4 space-y-4 hidden lg:block">
+ {/* User profile details */}
+ <div className="bg-sidebar border border-border-custom rounded-2xl p-6 shadow-lg relative overflow-hidden group text-center">
+ <div className="absolute top-0 left-0 right-0 h-14 bg-gradient-to-r from-indigo-500/20 to-purple-500/20" />
+ 
+ <div className="relative mt-6 flex flex-col items-center">
+ {user?.avatar ? (
+ <img src={user.avatar} alt="User Avatar" className="h-14 w-14 rounded-full object-cover border-2 border-gold shadow-lg shadow-gold/10" />
+ ) : (
+ <div className="h-14 w-14 bg-gold/10 border-2 border-gold text-gold rounded-full flex items-center justify-center font-black text-lg uppercase shadow-lg shadow-gold/10">
+ {user?.name?.charAt(0) ||"U"}
+ </div>
+ )}
+ 
+ <h3 className="text-base font-black text-white mt-3">{user?.name ||"Người dùng"}</h3>
+ <p className="text-[8px] font-black tracking-widest uppercase text-gold bg-gold/5 border border-gold/20 px-2 py-0.5 rounded-full mt-1">
+ {getRoleLabel(user?.role)}
+ </p>
+ </div>
 
-            <div className="grid grid-cols-2 gap-3 border-t border-gray-200 dark:border-white/5 mt-4 pt-4 text-left">
-              <div>
-                <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Tài khoản</span>
-                <span className="text-[11px] font-mono font-bold text-gray-700 dark:text-gray-300 mt-0.5 block truncate">{user?.username || "N/A"}</span>
-              </div>
-              <div>
-                <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Mã số</span>
-                <span className="text-[11px] font-mono font-bold text-gray-700 dark:text-gray-300 mt-0.5 block truncate">#{user?.id || "N/A"}</span>
-              </div>
-            </div>
-          </div>
+ <div className="grid grid-cols-2 gap-3 border-t border-white/5 mt-4 pt-4 text-left">
+ <div>
+ <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Tài khoản</span>
+ <span className="text-[11px] font-mono font-bold text-gray-300 mt-0.5 block truncate">{user?.username ||"N/A"}</span>
+ </div>
+ <div>
+ <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Mã số</span>
+ <span className="text-[11px] font-mono font-bold text-gray-300 mt-0.5 block truncate">#{user?.id ||"N/A"}</span>
+ </div>
+ </div>
+ </div>
 
-          {/* Quick instructions & guidelines */}
-          <div className="bg-white dark:bg-sidebar border border-border-custom rounded-2xl p-6 shadow-lg space-y-3">
-            <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2 border-b border-gray-200 dark:border-white/5 pb-2">
-              <ShieldCheck size={12} className="text-gold" /> Quy tắc ứng xử
-            </h3>
-            
-            <ul className="space-y-2">
-              <li className="flex gap-2 items-start text-[10px] text-gray-600 dark:text-gray-400 font-medium">
-                <div className="h-1 w-1 rounded-full bg-gold mt-1.5 flex-shrink-0" />
-                <span>Chia sẻ thông tin tích cực, văn minh, tôn trọng đồng nghiệp.</span>
-              </li>
-              <li className="flex gap-2 items-start text-[10px] text-gray-600 dark:text-gray-400 font-medium">
-                <div className="h-1 w-1 rounded-full bg-gold mt-1.5 flex-shrink-0" />
-                <span>Không đăng nội dung nhạy cảm hoặc sai sự thật.</span>
-              </li>
-              <li className="flex gap-2 items-start text-[10px] text-gray-600 dark:text-gray-400 font-medium">
-                <div className="h-1 w-1 rounded-full bg-gold mt-1.5 flex-shrink-0" />
-                <span>Ctrl+V dán ảnh hoặc kéo thả tệp trực tiếp.</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+ {/* Quick instructions & guidelines */}
+ <div className="bg-sidebar border border-border-custom rounded-2xl p-6 shadow-lg space-y-3">
+ <h3 className="text-[10px] font-black text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/5 pb-2">
+ <ShieldCheck size={12} className="text-gold" /> Quy tắc ứng xử
+ </h3>
+ 
+ <ul className="space-y-2">
+ <li className="flex gap-2 items-start text-[10px] text-gray-400 font-medium">
+ <div className="h-1 w-1 rounded-full bg-gold mt-1.5 flex-shrink-0" />
+ <span>Chia sẻ thông tin tích cực, văn minh, tôn trọng đồng nghiệp.</span>
+ </li>
+ <li className="flex gap-2 items-start text-[10px] text-gray-400 font-medium">
+ <div className="h-1 w-1 rounded-full bg-gold mt-1.5 flex-shrink-0" />
+ <span>Không đăng nội dung nhạy cảm hoặc sai sự thật.</span>
+ </li>
+ <li className="flex gap-2 items-start text-[10px] text-gray-400 font-medium">
+ <div className="h-1 w-1 rounded-full bg-gold mt-1.5 flex-shrink-0" />
+ <span>Ctrl+V dán ảnh hoặc kéo thả tệp trực tiếp.</span>
+ </li>
+ </ul>
+ </div>
+ </div>
+ </div>
+ </div>
+ );
 }

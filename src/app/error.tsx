@@ -1,15 +1,15 @@
 "use client";
 
 export default function GlobalError({ error, reset }: { error: Error; reset: () => void }) {
-  return (
-    <div className="p-10 text-red-500 flex flex-col items-center justify-center min-h-screen bg-white dark:bg-black">
-      <h2 className="text-2xl font-bold mb-4">Lỗi toàn cục: {error.message}</h2>
-      <button 
-        onClick={() => reset()} 
-        className="mt-4 px-6 py-2 bg-blue-600 text-gray-900 dark:text-white font-bold rounded-lg hover:bg-blue-700"
-      >
-        Thử tải lại
-      </button>
-    </div>
-  );
+ return (
+ <div className="p-10 text-red-500 flex flex-col items-center justify-center min-h-screen bg-black">
+ <h2 className="text-2xl font-bold mb-4">Lỗi toàn cục: {error.message}</h2>
+ <button 
+ onClick={() => reset()} 
+ className="mt-4 px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700"
+ >
+ Thử tải lại
+ </button>
+ </div>
+ );
 }
