@@ -32,6 +32,9 @@ export async function POST(req: NextRequest) {
   try {
     await dbConnect();
     
+    const userId = req.headers.get("x-user-id");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    
     const role = req.headers.get("x-user-role");
     if (role !== "01" && role !== "03") {
         return NextResponse.json({ error: "Không có quyền tạo nhân sự" }, { status: 403 });

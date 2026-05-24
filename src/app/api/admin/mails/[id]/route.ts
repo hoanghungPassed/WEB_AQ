@@ -6,6 +6,9 @@ import { MonetizedMail } from "@/models/MonetizedMail";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const userId = req.headers.get("x-user-id");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     await dbConnect();
     const body = await req.json();
     const { id } = await params;
@@ -29,6 +32,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const userId = req.headers.get("x-user-id");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     await dbConnect();
     const { id } = await params;
     

@@ -22,8 +22,12 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const userId = req.headers.get("x-user-id");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     await dbConnect();
     const body = await req.json();
+    body.createdBy = userId; // Force the creator to be the authenticated user
     const task = await Task.create(body);
     
     try {

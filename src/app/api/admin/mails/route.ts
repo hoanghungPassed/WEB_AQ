@@ -41,6 +41,9 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const userId = req.headers.get("x-user-id");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     await dbConnect();
     const body = await req.json();
     
@@ -119,6 +122,9 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    const userId = req.headers.get("x-user-id");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     await dbConnect();
     const { searchParams } = new URL(req.url);
     const batchId = searchParams.get('batchId');
