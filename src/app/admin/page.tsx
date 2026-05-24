@@ -855,15 +855,11 @@ export default function AdminDashboard() {
 
 
   const handleTaskStatusChange = async (taskId: string, newStatus: "IN_PROGRESS" | "COMPLETED") => {
-    const savedTasks = localStorage.getItem("global_tasks_data");
-    const currentTasks = savedTasks ? JSON.parse(savedTasks) : [];
-    const targetTask = currentTasks.find((t: any) => t.id === taskId);
-
-    const savedMails = localStorage.getItem("global_mails_data");
-    const currentMails = savedMails ? JSON.parse(savedMails) : [];
+    const targetTask = tasksList.find((t: any) => t.id === taskId);
+    if (!targetTask) return;
 
     if (newStatus === "COMPLETED" && targetTask?.type === "MAIL_VE_TINH") {
-      const taskMails = getMailsForTask(targetTask, currentMails);
+      const taskMails = getMailsForTask(targetTask, mails);
       let errorMails: string[] = [];
       taskMails.forEach((m: any) => {
         const linksCount = (m.links || []).filter((l: string) => typeof l === 'string' && l.trim() !== "").length;
@@ -877,92 +873,92 @@ export default function AdminDashboard() {
       }
     }
 
-    const updatedTasks = (currentTasks || []).map((t: any) => {
-      if (t.id === taskId) {
-        return { ...t, status: newStatus, progress: newStatus === "COMPLETED" ? 100 : t.progress };
-      }
-      return t;
-    });
-
-    localStorage.setItem("global_tasks_data", JSON.stringify(updatedTasks));
-    setTasksList(updatedTasks);
-
-    setSelectedStaffTask((prev: any) => {
-      if (prev && prev.id === taskId) {
-        return { ...prev, status: newStatus, progress: newStatus === "COMPLETED" ? 100 : prev.progress };
-      }
-      return prev;
-    });
-
-    const now = new Date().toISOString();
-
-    // Xác định mail IDs thuộc task bằng helper 100% đồng bộ
-    const taskMails = getMailsForTask(targetTask, currentMails);
-    const taskMailIds = (taskMails || []).map((m: any) => m.id);
-
-    // Khi COMPLETED và task SATELLITE: kiểm tra link từng mail
-    // Đủ 3 link → "Đã làm"; thiếu bất kỳ link nào → "Lỗi"
-    const isSatelliteTask = targetTask?.type === "MAIL_VE_TINH";
-    const newWorkStatus = newStatus === "COMPLETED" ? "Đã làm" : "Đang xử lí";
-
-    const updatedMails = (currentMails || []).map((m: any) => {
-      if (!taskMailIds.includes(m.id)) return m;
-      if (newStatus === "COMPLETED" && isSatelliteTask) {
-        const links: string[] = m.links || [];
-        const hasAllLinks = [0, 1, 2].every(i => links[i] && links[i].trim() !== "");
-        const resolvedStatus = hasAllLinks ? "Đã làm" : "Lỗi";
-        return { ...m, workStatus: resolvedStatus, lastUpdated: now, updatedBy: user?.name || user?.id || m.updatedBy };
-      }
-      return { ...m, workStatus: newWorkStatus, lastUpdated: now, updatedBy: user?.name || user?.id || m.updatedBy };
-    });
-
-    localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
-    setMails(updatedMails);
-
-    // Kiểm tra link bị thiếu: chỉ khi COMPLETED → quét toàn bộ; IN_PROGRESS → xóa cảnh báo
-    if (newStatus === "COMPLETED") {
-      runMissingLinksCheck(updatedMails, targetTask);
-    } else {
-      setMissingLinksWarning([]);
-    }
-
-    let finalKpi = localStorage.getItem("global_kpi_data") || "";
-    if (newStatus === "COMPLETED") {
-      const currentTaskObj = currentTasks.find((t: any) => t.id === taskId);
-      if (currentTaskObj && currentTaskObj.mailType === "MONETIZED") {
-        setKpi((prev: any) => {
-          const updatedKpi = { ...prev, currentMonetized: Math.min(prev.targetMonetized, prev.currentMonetized + 1) };
-          finalKpi = JSON.stringify(updatedKpi);
-          localStorage.setItem("global_kpi_data", finalKpi);
-          return updatedKpi;
-        });
-      } else {
-        setKpi((prev: any) => {
-          const updatedKpi = { ...prev, currentWatchHours: Math.min(prev.targetWatchHours, prev.currentWatchHours + 1) };
-          finalKpi = JSON.stringify(updatedKpi);
-          localStorage.setItem("global_kpi_data", finalKpi);
-          return updatedKpi;
-        });
-      }
-    }
-
-    setCopyToast(`✓ Đã cập nhật ${(taskMailIds || []).length} mail sang "${newWorkStatus}"`);
-    setTimeout(() => setCopyToast(null), 3000);
-
-    window.dispatchEvent(new Event("storage"));
-
     try {
-      await fetch("/api/sync", {
-        method: "POST",
+      // 1. Cập nhật trạng thái Task
+      const taskRes = await fetch(`/api/admin/tasks/${taskId}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          global_tasks_data: JSON.stringify(updatedTasks),
-          global_mails_data: JSON.stringify(updatedMails),
-          global_kpi_data: finalKpi
-        })
+        body: JSON.stringify({ status: newStatus, progress: newStatus === "COMPLETED" ? 100 : targetTask.progress })
       });
+      
+      if (!taskRes.ok) throw new Error("Cập nhật Task thất bại");
+
+      const updatedTasks = tasksList.map((t: any) => {
+        if (t.id === taskId) {
+          return { ...t, status: newStatus, progress: newStatus === "COMPLETED" ? 100 : t.progress };
+        }
+        return t;
+      });
+      setTasksList(updatedTasks);
+      setSelectedStaffTask((prev: any) => prev?.id === taskId ? { ...prev, status: newStatus, progress: newStatus === "COMPLETED" ? 100 : prev.progress } : prev);
+
+      const now = new Date().toISOString();
+      const taskMails = getMailsForTask(targetTask, mails);
+      const taskMailIds = (taskMails || []).map((m: any) => m.id);
+
+      const isSatelliteTask = targetTask?.type === "MAIL_VE_TINH";
+      const newWorkStatus = newStatus === "COMPLETED" ? "Đã làm" : "Đang xử lí";
+
+      // 2. Cập nhật trạng thái Mails
+      const mailUpdates = taskMailIds.map((mailId: string) => {
+        const m = mails.find((mail: any) => mail.id === mailId);
+        if (!m) return null;
+        let resolvedStatus = newWorkStatus;
+        if (newStatus === "COMPLETED" && isSatelliteTask) {
+          const links: string[] = m.links || [];
+          const hasAllLinks = [0, 1, 2].every(i => links[i] && links[i].trim() !== "");
+          resolvedStatus = hasAllLinks ? "Đã làm" : "Lỗi";
+        }
+        return fetch(`/api/admin/mails/${mailId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workStatus: resolvedStatus, lastUpdated: now, updatedBy: user?.name || user?.id || m.updatedBy })
+        });
+      }).filter(Boolean);
+
+      await Promise.all(mailUpdates);
+
+      const updatedMails = mails.map((m: any) => {
+        if (!taskMailIds.includes(m.id)) return m;
+        let resolvedStatus = newWorkStatus;
+        if (newStatus === "COMPLETED" && isSatelliteTask) {
+          const links: string[] = m.links || [];
+          const hasAllLinks = [0, 1, 2].every(i => links[i] && links[i].trim() !== "");
+          resolvedStatus = hasAllLinks ? "Đã làm" : "Lỗi";
+        }
+        return { ...m, workStatus: resolvedStatus, lastUpdated: now, updatedBy: user?.name || user?.id || m.updatedBy };
+      });
+      setMails(updatedMails);
+
+      if (newStatus === "COMPLETED") {
+        runMissingLinksCheck(updatedMails, targetTask);
+      } else {
+        setMissingLinksWarning([]);
+      }
+
+      // 3. Cập nhật KPI
+      if (newStatus === "COMPLETED") {
+        const kpiUpdate = targetTask.mailType === "MONETIZED" 
+          ? { currentMonetized: Math.min(kpi?.targetMonetized || 0, (kpi?.currentMonetized || 0) + 1) }
+          : { currentWatchHours: Math.min(kpi?.targetWatchHours || 0, (kpi?.currentWatchHours || 0) + 1) };
+          
+        setKpi((prev: any) => {
+          const updatedKpi = { ...prev, ...kpiUpdate };
+          fetch("/api/admin/kpis", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updatedKpi)
+          }).catch(console.error);
+          return updatedKpi;
+        });
+      }
+
+
+      setCopyToast(`✓ Đã cập nhật ${(taskMailIds || []).length} mail sang "${newWorkStatus}"`);
+      setTimeout(() => setCopyToast(null), 3000);
     } catch (err) {
-      console.error("Sync error:", err);
+      console.error("Error updating task status:", err);
+      alert("Lỗi cập nhật trạng thái");
     }
   };
 
