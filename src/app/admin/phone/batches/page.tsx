@@ -20,7 +20,8 @@ import {
   Zap,
   X,
   Calendar,
-  User as UserIcon
+  User as UserIcon,
+  Download
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -104,23 +105,10 @@ export default function PhoneBatchesPage() {
     return (importHistory || []).filter((item) => item.type === historyTab);
   }, [importHistory, historyTab]);
 
-  const handleDeleteHistoryRow = async (id: string) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa dòng lịch sử import này? (Không ảnh hưởng đến dữ liệu đã import)")) return;
-    const updated = (importHistory || []).filter((item) => item.id !== id);
-    setImportHistory(updated);
-    localStorage.setItem("global_import_history", JSON.stringify(updated));
-    window.dispatchEvent(new Event("storage"));
-
-    try {
-      await fetch("/api/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ global_import_history: JSON.stringify(updated) })
-      });
-    } catch (err) {
-      console.error("Sync history deletion error:", err);
-    }
+  const handleDeleteHistoryRow = (id: string) => {
+    setHistoryRowToDelete(id);
   };
+
 
   const handleClearAllHistory = async () => {
     if (!confirm("Xác nhận xóa TOÀN BỘ lịch sử import? Hành động này không thể hoàn tác.")) return;
@@ -157,10 +145,15 @@ export default function PhoneBatchesPage() {
   const [phones, setPhones] = useState<PhoneItem[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [toastMsg, setToastMsg] = useState("");
-  const [activeTab, setActiveTab] = useState<"warehouse" | "staff">("warehouse");
+  const [activeTab, setActiveTab] = useState<"warehouse" | "batches" | "staff">("warehouse");
   const [selectedEmpUsername, setSelectedEmpUsername] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [staffSearch, setStaffSearch] = useState("");
+  const [batchName, setBatchName] = useState("");
+  const [expandedBatches, setExpandedBatches] = useState<string[]>([]);
+  const [batchToDelete, setBatchToDelete] = useState<string | null>(null);
+  const [historyRowToDelete, setHistoryRowToDelete] = useState<string | null>(null);
+  const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
 
   const triggerToast = (msg: string) => {
     setToastMsg(msg);
@@ -212,6 +205,77 @@ export default function PhoneBatchesPage() {
     );
   }, [warehousePhones, searchTerm]);
 
+  // ─── Batches ───────────────────────────────
+  const groupedWarehouse = useMemo(() => {
+    const groups: Record<string, PhoneItem[]> = {};
+    warehousePhones.forEach(p => {
+      const b = (p as any).batch || "Chưa phân lô";
+      if (!groups[b]) groups[b] = [];
+      groups[b].push(p);
+    });
+    return groups;
+  }, [warehousePhones]);
+
+  const handleDeleteBatch = async (batch: string) => {
+    setBatchToDelete(batch);
+  };
+
+  const executeDeleteBatch = async () => {
+    if (!batchToDelete) return;
+    try {
+      const res = await fetch(`/api/admin/phones?batch=${encodeURIComponent(batchToDelete)}&username=${encodeURIComponent(user?.username || "Admin")}`, {
+        method: "DELETE"
+      });
+      const data = await res.json();
+      if (res.ok) {
+        triggerToast(`Đã xóa ${data.deletedCount} SĐT khỏi lô "${batchToDelete}"!`);
+        window.dispatchEvent(new Event("storage"));
+        // reload using api if necessary, but since we rely on localStorage let's reload
+        window.location.reload();
+      } else {
+        triggerToast(`Lỗi: ${data.error}`);
+      }
+    } catch (err) {
+      console.error(err);
+      triggerToast("Lỗi khi xóa lô SĐT");
+    } finally {
+      setBatchToDelete(null);
+    }
+  };
+
+  const executeDeleteHistoryRow = async () => {
+    if (!historyRowToDelete) return;
+    const updated = (importHistory || []).filter((item) => item.id !== historyRowToDelete);
+    setImportHistory(updated);
+    localStorage.setItem("global_import_history", JSON.stringify(updated));
+    window.dispatchEvent(new Event("storage"));
+
+    try {
+      await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ global_import_history: JSON.stringify(updated) })
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setHistoryRowToDelete(null);
+    }
+  };
+
+  const handleExportExcel = (batch: string, p: PhoneItem[]) => {
+    let csv = "STT,Số Điện Thoại,Link OTP,Trạng Thái\\n";
+    p.forEach((item, i) => {
+      csv += `${i+1},${item.number},${item.otpLink},${item.status}\\n`;
+    });
+    const blob = new Blob(["\\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Lô_${batch}.csv`;
+    link.click();
+  };
+
   // ─── IMPORT .TXT ──────────────────────────────────────────
   const handleImportTxt = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -221,91 +285,76 @@ export default function PhoneBatchesPage() {
       return;
     }
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const text = ev.target?.result as string;
       if (!text || !text.trim()) {
         triggerToast("File trống, không có dữ liệu!");
         return;
       }
 
-      const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "");
-      const now = new Date().toISOString().split("T")[0];
-      const newItems: PhoneItem[] = [];
-      let duplicateCount = 0;
+      const lines = text.split(/\\r?\\n/).filter((l) => l.trim() !== "");
+      const newItems: any[] = [];
 
       for (const line of lines) {
         const parts = line.split("|");
         const phoneNumber = (parts[0] || "").trim();
         const otpLink = (parts[1] || "").trim();
-        if (!phoneNumber) continue; // skip blank lines
+        if (!phoneNumber) continue;
 
-        // Check if duplicate in newItems or existing phones
-        const isDuplicate = newItems.some(ni => ni.number === phoneNumber) ||
-                            phones.some(p => p.number === phoneNumber);
-
-        if (isDuplicate) {
-          duplicateCount++;
-          continue;
-        }
-
-        newItems.push({
-          id: `phone-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          number: phoneNumber,
-          otpLink,
-          status: "Chưa làm",
-          assigneeId: null,
-          assignedTo: null,
-          assignedAt: null,
-          importedAt: now,
-        });
+        newItems.push({ number: phoneNumber, otpLink });
       }
 
-      if ((newItems || []).length === 0) {
-        if (duplicateCount > 0) {
-          triggerToast(`Bỏ qua tất cả ${duplicateCount} SĐT do bị trùng lặp!`);
-        } else {
-          triggerToast("Không tìm được SĐT hợp lệ nào trong file!");
-        }
+      if (newItems.length === 0) {
+        triggerToast("Không tìm được SĐT hợp lệ nào trong file!");
         return;
       }
 
-      if (duplicateCount > 0) {
-        triggerToast(`Đã bỏ qua ${duplicateCount} SĐT bị trùng!`);
+      const importBatchName = batchName.trim() || `Lô_${new Date().toISOString().replace(/[:.]/g, "-")}`;
+      
+      try {
+        const res = await fetch("/api/admin/phones", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ batch: importBatchName, phones: newItems, username: user?.username || "Admin" })
+        });
+        const data = await res.json();
+        if (data.success) {
+          triggerToast(data.message || "Import thành công!");
+          
+          // Save import history
+          if (data.imported > 0) {
+            const historyEntry = {
+              id: `import-${Date.now()}`,
+              type: "SĐT" as const,
+              fileName: importBatchName,
+              quantity: data.imported,
+              importedAt: new Date().toLocaleString("vi-VN"),
+              importedBy: user?.name || user?.username || "Admin"
+            };
+
+            const savedHistory = localStorage.getItem("global_import_history");
+            const currentHistory = savedHistory ? JSON.parse(savedHistory) : [];
+            const updatedHistory = [historyEntry, ...currentHistory];
+            localStorage.setItem("global_import_history", JSON.stringify(updatedHistory));
+            window.dispatchEvent(new Event("storage"));
+            fetch("/api/sync", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ "global_import_history": JSON.stringify(updatedHistory) }),
+            }).catch(() => {});
+          }
+
+          window.location.reload();
+        } else {
+          triggerToast("Lỗi: " + data.error);
+        }
+      } catch (err) {
+        console.error(err);
+        triggerToast("Lỗi hệ thống khi import SĐT");
       }
-
-      const updated = [...phones, ...newItems];
-      savePhones(updated);
-      setPhones(updated);
-
-      // Save import history
-      const historyEntry = {
-        id: `import-${Date.now()}`,
-        type: "SĐT" as const,
-        fileName: file.name,
-        quantity: (newItems || []).length,
-        importedAt: new Date().toLocaleString("vi-VN"),
-        importedBy: user?.name || user?.username || "Admin"
-      };
-
-      const savedHistory = localStorage.getItem("global_import_history");
-      const currentHistory = savedHistory ? JSON.parse(savedHistory) : [];
-      const updatedHistory = [historyEntry, ...currentHistory];
-      localStorage.setItem("global_import_history", JSON.stringify(updatedHistory));
-
-      pushLog(user, `Import thành công ${(newItems || []).length} SĐT từ file ${file.name}`);
-      triggerToast(`Đã import ${(newItems || []).length} SĐT mới vào Tổng kho!`);
-      window.dispatchEvent(new Event("storage"));
-
-      // Push history update to server
-      fetch("/api/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ "global_import_history": JSON.stringify(updatedHistory) }),
-      }).catch((err) => console.error("Sync history error:", err));
     };
     reader.readAsText(file, "UTF-8");
 
-    // reset input so same file can be re-selected
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -532,11 +581,12 @@ export default function PhoneBatchesPage() {
       <div className="flex items-center gap-1 bg-white dark:bg-sidebar/60 border border-gray-200 dark:border-white/5 rounded-2xl p-1.5 w-fit">
         {[
           { key: "warehouse" as const, icon: <Warehouse size={16} />, label: "Tổng kho" },
+          { key: "batches" as const, icon: <Layers size={16} />, label: "Lô SĐT" },
           { key: "staff" as const, icon: <Users size={16} />, label: "Nhân viên" },
         ].map((tab) => (
           <button
             key={tab.key}
-            onClick={() => { setActiveTab(tab.key); setSelectedEmpUsername(null); setSearchTerm(""); }}
+            onClick={() => { setActiveTab(tab.key as any); setSelectedEmpUsername(null); setSearchTerm(""); }}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
               activeTab === tab.key
                 ? "bg-gold text-sidebar shadow-lg shadow-gold/20"
@@ -573,6 +623,15 @@ export default function PhoneBatchesPage() {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  placeholder="Nhập tên lô mới..."
+                  className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-9 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full sm:w-60"
+                  type="text"
+                  value={batchName}
+                  onChange={(e) => setBatchName(e.target.value)}
                 />
               </div>
               <button
@@ -644,6 +703,90 @@ export default function PhoneBatchesPage() {
             </div>
             <p>File <span className="text-gray-900 dark:text-white font-bold">.txt</span>, mỗi dòng chứa 1 SĐT theo định dạng: <code className="text-gold font-mono bg-gold/10 px-1.5 py-0.5 rounded">SĐT|LinkOTP</code></p>
             <p>Ví dụ: <code className="text-indigo-400 font-mono bg-indigo-400/10 px-1.5 py-0.5 rounded">5093810744|https://sms222.us?token=1JT15yAhcw04232054</code></p>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════
+           TAB: LÔ SĐT
+         ══════════════════════════════════════════════════════ */}
+      {activeTab === "batches" && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-sidebar border border-gray-200 dark:border-white/5 rounded-[32px] p-6 shadow-xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h3 className="text-md font-black text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
+              <Layers size={18} className="text-gold" />
+              Danh sách Lô SĐT
+            </h3>
+            <div className="flex items-center gap-3">
+              <input placeholder="Nhập tên lô mới..." className="bg-black/20 border border-gray-300 dark:border-white/10 rounded-xl px-4 h-9 text-sm text-gray-900 dark:text-white outline-none focus:border-gold/50 transition-all w-full sm:w-60" value={batchName} onChange={(e) => setBatchName(e.target.value)} />
+              <button onClick={() => fileInputRef.current?.click()} className="bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-[10px] tracking-widest px-4 h-9 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-gold/20">
+                <Upload size={14} /> Import Txt
+              </button>
+            </div>
+          </div>
+          <div className="space-y-4">
+            {Object.entries(groupedWarehouse).map(([batch, bPhones]) => (
+              <div key={batch} className="border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden bg-white dark:bg-[#0c0c0c]">
+                <div 
+                  onClick={() => setExpandedBatches(prev => prev.includes(batch) ? prev.filter(b => b !== batch) : [...prev, batch])}
+                  className="flex flex-wrap items-center justify-between bg-gray-50 dark:bg-zinc-900 px-4 py-3 border-b border-gray-200 dark:border-white/5 gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <h4 className="font-bold text-gray-900 dark:text-white uppercase flex items-center gap-2 select-none">
+                    <Layers size={16} className="text-gold" />
+                    Lô: {batch} <span className="text-gray-500 text-xs normal-case ml-2">({bPhones.length} số)</span>
+                  </h4>
+                  <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                    <button onClick={() => handleExportExcel(batch, bPhones)} className="bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 font-bold uppercase text-[10px] px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors">
+                      <Download size={12} /> Xuất Excel
+                    </button>
+                    <button onClick={() => handleDeleteBatch(batch)} className="bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 font-bold uppercase text-[10px] px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors">
+                      <Trash2 size={12} /> Xóa Lô Này
+                    </button>
+                  </div>
+                </div>
+                {expandedBatches.includes(batch) && (
+                  <div className="overflow-x-auto border-t border-gray-200 dark:border-white/5 bg-white dark:bg-[#0c0c0c]">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-white dark:bg-[#0c0c0c] text-gray-500 uppercase font-black text-[9px] tracking-wider border-b border-gray-200 dark:border-white/5">
+                        <tr>
+                          <th className="py-2 px-4 whitespace-nowrap">STT</th>
+                          <th className="py-2 px-4 whitespace-nowrap">Số điện thoại</th>
+                          <th className="py-2 px-4 whitespace-nowrap">Link OTP</th>
+                          <th className="py-2 px-4 whitespace-nowrap">Ngày import</th>
+                          <th className="py-2 px-4 text-center whitespace-nowrap">Trạng thái</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5 text-gray-700 dark:text-gray-300">
+                        {bPhones.map((p, idx) => (
+                          <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-zinc-900/[0.01]">
+                            <td className="py-2 px-4 text-gray-500 font-bold">{idx + 1}</td>
+                            <td className="py-2 px-4 font-bold text-gray-900 dark:text-white font-mono text-base">{p.number}</td>
+                            <td className="py-2 px-4 text-gray-600 dark:text-gray-400 font-mono text-[10px] max-w-[280px] truncate">
+                              {p.otpLink ? (
+                                <a href={p.otpLink} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 hover:underline transition-colors">
+                                  {p.otpLink}
+                                </a>
+                              ) : (
+                                <span className="text-gray-600 italic">—</span>
+                              )}
+                            </td>
+                            <td className="py-2 px-4 text-gray-500 font-mono text-xs">{new Date(p.importedAt).toLocaleString("vi-VN")}</td>
+                            <td className="py-2 px-4 text-center">
+                              <StatusBadge status={p.status} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ))}
+            {Object.keys(groupedWarehouse).length === 0 && (
+              <div className="py-12 text-center text-gray-600 font-bold uppercase tracking-widest">
+                Chưa có lô SĐT nào.
+              </div>
+            )}
           </div>
         </motion.div>
       )}

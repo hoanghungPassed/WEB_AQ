@@ -122,9 +122,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         const data = await res.json();
         console.log("Dữ liệu nhận từ DB:", data);
         if (data.success) {
-          if (!data.data || data.data.length === 0) {
-            triggerToast("Server phản hồi thành công nhưng không có mail nào trong DB");
-          }
+
           setMails(data.data || []);
         } else {
           setMails([]);

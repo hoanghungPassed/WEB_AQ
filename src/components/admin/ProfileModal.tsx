@@ -173,24 +173,6 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
                       formData.name.charAt(0).toUpperCase()
                     )}
                   </div>
-                  <label className="absolute bottom-0 right-0 p-1.5 bg-gray-900 rounded-full text-white cursor-pointer hover:bg-gray-700 shadow-md">
-                    <Camera size={14} />
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setFormData({ ...formData, avatar: reader.result as string });
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }} 
-                    />
-                  </label>
                 </div>
                 <div className="mt-4 text-center">
                   <p className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">{formData.name}</p>
