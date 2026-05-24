@@ -90,7 +90,57 @@ export default function StaffManagementPage() {
     }
   }, [currentUser, isRestricted, activeTab]);
 
-  // Initialize data from localStorage
+  // === FETCH STAFF LIST TỪ API ===
+  const reloadStaffList = async () => {
+    try {
+      const res = await fetch("/api/admin/users");
+      if (res.ok) {
+        const data = await res.json();
+        const users: StaffData[] = (data.users || data || []).map((u: any) => ({
+          ...u,
+          id: u.id || u._id?.toString(),
+        }));
+        setStaffList(users);
+      } else {
+        console.warn("Staff fetch failed, status:", res.status);
+      }
+    } catch (err) {
+      console.error("Error loading staff from API:", err);
+    }
+  };
+
+  const loadAccessRequests = async () => {
+    try {
+      const res = await fetch("/api/sync");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.pending_access_requests) {
+          setAccessRequests(JSON.parse(data.pending_access_requests));
+        }
+      }
+    } catch (err) {
+      console.error("Error loading access requests:", err);
+    }
+  };
+
+  const loadDutyRoster = async () => {
+    try {
+      const res = await fetch("/api/sync");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.duty_roster) {
+          const parsed = JSON.parse(data.duty_roster);
+          setDutyRoster(parsed.roster || []);
+          setDutyTaskWeek(parsed.taskWeek || "");
+          setDutyTaskWeekend(parsed.taskWeekend || "");
+        }
+      }
+    } catch (err) {
+      console.error("Error loading duty roster:", err);
+    }
+  };
+
+  // Initialize data from API
   useEffect(() => {
     const syncUser = () => {
       const userStr = sessionStorage.getItem("user") || localStorage.getItem("user");
@@ -98,57 +148,20 @@ export default function StaffManagementPage() {
     };
 
     syncUser();
-
-    const reloadStaffList = () => {
-      const stored = localStorage.getItem("global_users");
-      if (stored) {
-        const parsed: StaffData[] = JSON.parse(stored);
-        const unique = (parsed || []).filter((item, index, self) =>
-          index === self.findIndex((t) => t.id === item.id)
-        );
-        // Chỉ cập nhật nếu thực sự có thay đổi (tránh loop vô tận với useEffect save)
-        setStaffList(prev => {
-          const prevStr = JSON.stringify(prev);
-          const nextStr = JSON.stringify(unique);
-          return prevStr === nextStr ? prev : unique;
-        });
-      }
-    };
-
     reloadStaffList();
-
-    const loadAccessRequests = () => {
-      const saved = localStorage.getItem("pending_access_requests");
-      if (saved) setAccessRequests(JSON.parse(saved));
-    };
-
-    const loadDutyRoster = () => {
-      const saved = localStorage.getItem("duty_roster");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setDutyRoster(parsed.roster || []);
-        setDutyTaskWeek(parsed.taskWeek || "");
-        setDutyTaskWeekend(parsed.taskWeekend || "");
-      }
-    };
-
     loadAccessRequests();
     loadDutyRoster();
 
-    // Listen for updates from layout (sync từ server)
-    const handleStorage = () => {
-      syncUser();
-      reloadStaffList();
-      loadAccessRequests();
-      loadDutyRoster();
-    };
-
-    window.addEventListener("storage", handleStorage);
-    // Poll định kỳ để bắt kịp user mới đăng ký sau khi reset
+    // Poll định kỳ để bắt kịp thay đổi từ các user khác
     const pollInterval = setInterval(() => {
       reloadStaffList();
       loadAccessRequests();
-    }, 3000);
+    }, 5000);
+
+    const handleStorage = () => {
+      syncUser();
+    };
+    window.addEventListener("storage", handleStorage);
 
     return () => {
       window.removeEventListener("storage", handleStorage);
@@ -220,7 +233,7 @@ export default function StaffManagementPage() {
     setModalConfig({ isOpen: true, type: "CONFIRM", title, message, onConfirm });
   };
 
-  const pushToServer = async (data: Record<string, string>) => {
+  const pushToSync = async (data: Record<string, string>) => {
     try {
       await fetch("/api/sync", {
         method: "POST",
@@ -232,202 +245,193 @@ export default function StaffManagementPage() {
     }
   };
 
-  const handleToggleStatus = (id: string) => {
+  const handleToggleStatus = async (id: string) => {
     if (currentUser?.id === id) {
       showAlert("Thông báo hệ thống", "Bạn không thể tự khóa tài khoản của chính mình!");
       return;
     }
     
-    const updatedStaffList: StaffData[] = (staffList || []).map(s => {
-      if (s.id === id) {
-        const newStatus = s.status === "ACTIVE" ? "LOCKED" : "ACTIVE";
-        return { ...s, status: newStatus as any } as StaffData;
+    const staff = staffList.find(s => s.id === id);
+    if (!staff) return;
+    const newStatus = staff.status === "ACTIVE" ? "LOCKED" : "ACTIVE";
+
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        await reloadStaffList();
+        if (selectedStaff?.id === id) {
+          setSelectedStaff(prev => prev ? { ...prev, status: newStatus as any } : null);
+        }
+      } else {
+        const err = await res.json();
+        showAlert("Lỗi", err.error || "Không thể cập nhật trạng thái");
       }
-      return s;
-    });
-
-    localStorage.setItem("global_users", JSON.stringify(updatedStaffList));
-    setStaffList(updatedStaffList);
-    pushToServer({ global_users: JSON.stringify(updatedStaffList) });
-
-    const updatedStaff = updatedStaffList.find(s => s.id === id);
-    if (updatedStaff && selectedStaff?.id === id) {
-      setSelectedStaff(updatedStaff);
+    } catch (err) {
+      console.error("Toggle status error:", err);
+      showAlert("Lỗi", "Lỗi kết nối máy chủ");
     }
-    window.dispatchEvent(new Event("storage"));
   };
 
-  const handleUpdateRole = (id: string, role: "01" | "02" | "03" | "04" | "05") => {
+  const handleUpdateRole = async (id: string, role: "01" | "02" | "03" | "04" | "05") => {
     const staff = staffList.find(s => s.id === id);
     if (!staff) return;
 
-    // TẠO THÔNG BÁO CHO NHÂN VIÊN
-    const newNotif = {
-      id: `notif_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      targetUsername: staff.username,
-      title: "Cập nhật chức vụ",
-      message: `Chức vụ của bạn đã được Admin thay đổi thành: ${
-        role === "01" ? "ADMIN" : 
-        role === "02" ? "QUẢN LÝ CÔNG VIỆC" : 
-        role === "03" ? "QUẢN LÝ NHÂN SỰ" : 
-        role === "05" ? "NHÂN VIÊN THỬ VIỆC" : "NHÂN VIÊN CHÍNH THỨC"
-      }`,
-      time: new Date().toLocaleTimeString(),
-      read: false,
-      type: "ROLE_UPDATE"
-    };
-    const existingNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
-    const updatedNotifs = [newNotif, ...existingNotifs];
-    localStorage.setItem("admin_notifications", JSON.stringify(updatedNotifs));
-    
-    const updatedStaffList: StaffData[] = (staffList || []).map(s => {
-      if (s.id === id) {
-        return { ...s, role } as StaffData;
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role })
+      });
+      if (res.ok) {
+        // Tạo thông báo cho nhân viên qua sync
+        const roleLabel = role === "01" ? "ADMIN" : role === "02" ? "QUẢN LÝ CÔNG VIỆC" : role === "03" ? "QUẢN LÝ NHÂN SỰ" : role === "05" ? "NHÂN VIÊN THỬ VIỆC" : "NHÂN VIÊN CHÍNH THỨC";
+        const newNotif = {
+          id: `notif_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+          targetUsername: staff.username,
+          title: "Cập nhật chức vụ",
+          message: `Chức vụ của bạn đã được Admin thay đổi thành: ${roleLabel}`,
+          time: new Date().toLocaleTimeString(),
+          read: false,
+          type: "ROLE_UPDATE"
+        };
+        const existingNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
+        const updatedNotifs = [newNotif, ...existingNotifs];
+        localStorage.setItem("admin_notifications", JSON.stringify(updatedNotifs));
+        pushToSync({ admin_notifications: JSON.stringify(updatedNotifs) });
+
+        await reloadStaffList();
+        if (selectedStaff?.id === id) {
+          setSelectedStaff(prev => prev ? { ...prev, role } : null);
+        }
+      } else {
+        const err = await res.json();
+        showAlert("Lỗi", err.error || "Không thể cập nhật chức vụ");
       }
-      return s;
-    });
-
-    localStorage.setItem("global_users", JSON.stringify(updatedStaffList));
-    setStaffList(updatedStaffList);
-
-    // Đồng bộ lên server ngay lập tức
-    pushToServer({
-      global_users: JSON.stringify(updatedStaffList),
-      admin_notifications: JSON.stringify(updatedNotifs)
-    });
-
-    window.dispatchEvent(new Event("storage"));
-
-    if (selectedStaff?.id === id) {
-      setSelectedStaff({ ...selectedStaff, role });
+    } catch (err) {
+      console.error("Update role error:", err);
+      showAlert("Lỗi", "Lỗi kết nối máy chủ");
     }
   };
 
-  const handleApproveUser = (id: string, role: any) => {
-    const updatedStaffList: StaffData[] = (staffList || []).map(s => {
-      if (s.id === id) {
-        return { ...s, status: "ACTIVE", role: role, lastActive: "Vừa kích hoạt" } as StaffData;
+  const handleApproveUser = async (id: string, role: any) => {
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ACTIVE", role: role, lastActive: new Date().toISOString() })
+      });
+      if (res.ok) {
+        await reloadStaffList();
+        setToastMsg("Đã phê duyệt nhân viên thành công!");
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      } else {
+        const err = await res.json();
+        showAlert("Lỗi", err.error || "Không thể phê duyệt");
       }
-      return s;
-    });
-    localStorage.setItem("global_users", JSON.stringify(updatedStaffList));
-    setStaffList(updatedStaffList);
-    
-    // ĐẨY LÊN SERVER NGAY LẬP TỨC để nhân viên đăng nhập thấy status ACTIVE!
-    pushToServer({ global_users: JSON.stringify(updatedStaffList) });
-    
-    window.dispatchEvent(new Event("storage"));
+    } catch (err) {
+      console.error("Approve user error:", err);
+      showAlert("Lỗi", "Lỗi kết nối máy chủ");
+    }
   };
 
   const handleDenyUser = (id: string) => {
-    showConfirm("Xác nhận xóa", "Bạn có chắc chắn muốn xóa tài khoản này?", () => {
-      const updatedStaffList = (staffList || []).filter(s => s.id !== id);
-      localStorage.setItem("global_users", JSON.stringify(updatedStaffList));
-      setStaffList(updatedStaffList);
-      setSelectedStaff(null);
-      pushToServer({ global_users: JSON.stringify(updatedStaffList) });
-      window.dispatchEvent(new Event("storage"));
+    showConfirm("Xác nhận xóa", "Bạn có chắc chắn muốn xóa tài khoản này?", async () => {
+      try {
+        const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+        if (res.ok) {
+          await reloadStaffList();
+          setSelectedStaff(null);
+          setToastMsg("Đã xóa tài khoản thành công!");
+          setShowToast(true);
+          setTimeout(() => setShowToast(false), 3000);
+        } else {
+          const err = await res.json();
+          showAlert("Lỗi", err.error || "Không thể xóa tài khoản");
+        }
+      } catch (err) {
+        console.error("Delete user error:", err);
+        showAlert("Lỗi", "Lỗi kết nối máy chủ");
+      }
     });
   };
 
-  const handleDenyAccess = (id: number, name: string) => {
+  const handleDenyAccess = async (id: number, name: string) => {
     const updated = (accessRequests || []).filter(r => r.id !== id);
-    const req = accessRequests.find(r => r.id === id);
+    const reqItem = accessRequests.find(r => r.id === id);
     setAccessRequests(updated);
-    localStorage.setItem("pending_access_requests", JSON.stringify(updated));
-    localStorage.setItem(`access_response_${name}`, "DENIED");
 
-    // Nếu đây là yêu cầu nộp phạt hoặc giải trình đi muộn
-    if (req && (req.type === "FINE_PAYMENT" || req.type === "LATE_EXCUSE")) {
-      const savedUsers = localStorage.getItem("global_users");
-      if (savedUsers) {
-        const allUsers = JSON.parse(savedUsers);
-        const updatedUsers = (allUsers || []).map((u: any) =>
-          u.username === req.username || u.name === req.staffName
-            ? { 
-                ...u, 
-                finePaymentStatus: req.type === "FINE_PAYMENT" ? "DENIED" : u.finePaymentStatus,
-                lateExcuseStatus: req.type === "LATE_EXCUSE" ? "DENIED" : u.lateExcuseStatus
-              }
-            : u
-        );
-        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
-        pushToServer({
-          pending_access_requests: JSON.stringify(updated),
-          [`access_response_${name}`]: "DENIED",
-          global_users: JSON.stringify(updatedUsers)
-        });
-      } else {
-        pushToServer({
-          pending_access_requests: JSON.stringify(updated),
-          [`access_response_${name}`]: "DENIED"
-        });
+    const syncPayload: Record<string, string> = {
+      pending_access_requests: JSON.stringify(updated),
+      [`access_response_${name}`]: "DENIED"
+    };
+
+    // Nếu là yêu cầu nộp phạt hoặc giải trình đi muộn → cập nhật user qua API
+    if (reqItem && (reqItem.type === "FINE_PAYMENT" || reqItem.type === "LATE_EXCUSE")) {
+      const matchUser = staffList.find(u => u.username === reqItem.username || u.name === reqItem.staffName);
+      if (matchUser) {
+        const updateData: any = {};
+        if (reqItem.type === "FINE_PAYMENT") updateData.finePaymentStatus = "DENIED";
+        if (reqItem.type === "LATE_EXCUSE") updateData.lateExcuseStatus = "DENIED";
+        try {
+          await fetch(`/api/admin/users/${matchUser.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updateData)
+          });
+        } catch (e) { console.error(e); }
       }
-    } else {
-      pushToServer({
-        pending_access_requests: JSON.stringify(updated),
-        [`access_response_${name}`]: "DENIED"
-      });
     }
 
+    await pushToSync(syncPayload);
     setToastMsg(`Đã từ chối truy cập cho ${name}`);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
 
-  const handleApproveAccess = (id: number, name: string) => {
+  const handleApproveAccess = async (id: number, name: string) => {
     const updated = (accessRequests || []).filter(r => r.id !== id);
-    const req = accessRequests.find(r => r.id === id);
+    const reqItem = accessRequests.find(r => r.id === id);
     setAccessRequests(updated);
-    localStorage.setItem("pending_access_requests", JSON.stringify(updated));
-    localStorage.setItem(`access_response_${name}`, "APPROVED");
-    localStorage.setItem(`access_${getStableDateString()}_${name}`, "true");
 
-    // Nếu đây là yêu cầu nộp phạt hoặc giải trình đi muộn
-    if (req && (req.type === "FINE_PAYMENT" || req.type === "LATE_EXCUSE")) {
-      const savedUsers = localStorage.getItem("global_users");
-      if (savedUsers) {
-        const allUsers = JSON.parse(savedUsers);
-        const updatedUsers = (allUsers || []).map((u: any) =>
-          u.username === req.username || u.name === req.staffName
-            ? { 
-                ...u, 
-                isLateLocked: false, 
-                finePaymentStatus: req.type === "FINE_PAYMENT" ? "APPROVED" : u.finePaymentStatus,
-                lateExcuseStatus: req.type === "LATE_EXCUSE" ? "APPROVED" : u.lateExcuseStatus
-              }
-            : u
-        );
-        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
-        pushToServer({
-          pending_access_requests: JSON.stringify(updated),
-          [`access_response_${name}`]: "APPROVED",
-          [`access_${getStableDateString()}_${name}`]: "true",
-          global_users: JSON.stringify(updatedUsers)
-        });
-      } else {
-        pushToServer({
-          pending_access_requests: JSON.stringify(updated),
-          [`access_response_${name}`]: "APPROVED",
-          [`access_${getStableDateString()}_${name}`]: "true"
-        });
+    const syncPayload: Record<string, string> = {
+      pending_access_requests: JSON.stringify(updated),
+      [`access_response_${name}`]: "APPROVED",
+      [`access_${getStableDateString()}_${name}`]: "true"
+    };
+
+    // Nếu là yêu cầu nộp phạt hoặc giải trình đi muộn → cập nhật user qua API
+    if (reqItem && (reqItem.type === "FINE_PAYMENT" || reqItem.type === "LATE_EXCUSE")) {
+      const matchUser = staffList.find(u => u.username === reqItem.username || u.name === reqItem.staffName);
+      if (matchUser) {
+        const updateData: any = { isLateLocked: false };
+        if (reqItem.type === "FINE_PAYMENT") updateData.finePaymentStatus = "APPROVED";
+        if (reqItem.type === "LATE_EXCUSE") updateData.lateExcuseStatus = "APPROVED";
+        try {
+          await fetch(`/api/admin/users/${matchUser.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updateData)
+          });
+        } catch (e) { console.error(e); }
       }
-    } else {
-      pushToServer({
-        pending_access_requests: JSON.stringify(updated),
-        [`access_response_${name}`]: "APPROVED",
-        [`access_${getStableDateString()}_${name}`]: "true"
-      });
     }
 
+    await pushToSync(syncPayload);
     setToastMsg(`Đã cấp quyền truy cập cho ${name}`);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
 
   const handleResetDB = () => {
-    showConfirm("Cảnh báo hệ thống", "Bạn có chắc chắn muốn xóa toàn bộ dữ liệu và reset về mặc định?", () => {
-      localStorage.removeItem("global_users");
+    showConfirm("Cảnh báo hệ thống", "Bạn có chắc chắn muốn xóa toàn bộ dữ liệu và reset về mặc định?", async () => {
+      try {
+        await fetch("/api/admin/reset-db", { method: "POST" });
+      } catch (e) { console.error(e); }
       window.location.reload();
     });
   };
@@ -473,8 +477,7 @@ export default function StaffManagementPage() {
       updatedAt: new Date().toISOString()
     };
     
-    localStorage.setItem("duty_roster", JSON.stringify(config));
-    pushToServer({ duty_roster: JSON.stringify(config) });
+    pushToSync({ duty_roster: JSON.stringify(config) });
     
     setToastMsg("Đã phân lịch trực nhật thành công!");
     setShowToast(true);

@@ -1,42 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
-
-type Theme = "dark" | "light";
-
-interface ThemeContextType {
-  theme: Theme;
-  toggleTheme: () => void;
-}
-
-const ThemeContext = createContext<ThemeContextType>({
-  theme: "dark",
-  toggleTheme: () => {}
-});
+import * as React from "react";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
-
-  useEffect(() => {
-    const saved = localStorage.getItem("aq_theme") as Theme | null;
-    if (saved === "light" || saved === "dark") {
-      setTheme(saved);
-      document.documentElement.setAttribute("data-theme", saved);
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    const next: Theme = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    document.documentElement.setAttribute("data-theme", next);
-    localStorage.setItem("aq_theme", next);
-  };
-
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <NextThemesProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       {children}
-    </ThemeContext.Provider>
+    </NextThemesProvider>
   );
 }
-
-export const useTheme = () => useContext(ThemeContext);

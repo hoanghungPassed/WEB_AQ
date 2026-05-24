@@ -12,9 +12,8 @@ export async function GET(req: NextRequest) {
     // Middleware đã set các header này từ JWT
     const role = req.headers.get("x-user-role");
     
-    // Kiểm tra quyền (ví dụ chỉ role 01 và 03 mới được xem danh sách đầy đủ)
-    // Nếu muốn ai cũng xem được thì bỏ check này
-    if (role !== "01" && role !== "03") {
+    // Kiểm tra quyền: role 01 (Admin), 02 (QL Công Việc), 03 (QL Nhân Sự) được xem danh sách
+    if (role !== "01" && role !== "02" && role !== "03") {
         return NextResponse.json({ error: "Không có quyền truy cập" }, { status: 403 });
     }
 
