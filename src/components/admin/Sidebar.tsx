@@ -36,6 +36,24 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
+  const [brandName, setBrandName] = React.useState("AQ MEDIA");
+
+  React.useEffect(() => {
+    const updateBrand = () => {
+      const savedConfig = localStorage.getItem("global_agency_config");
+      if (savedConfig) {
+        try {
+          const parsed = JSON.parse(savedConfig);
+          if (parsed.name) {
+            setBrandName(parsed.name);
+          }
+        } catch (e) {}
+      }
+    };
+    updateBrand();
+    window.addEventListener("storage", updateBrand);
+    return () => window.removeEventListener("storage", updateBrand);
+  }, []);
   const pathname = usePathname();
   const [openMenus, setOpenMenus] = useState<string[]>(["Kho mail", "Kho mail và SĐT", "Quản lý mail", "Quản lý lô Mail"]);
 
@@ -192,7 +210,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
         </div>
         {!isCollapsed && (
           <span className="ml-3 text-lg font-bold tracking-tight text-zinc-100 whitespace-nowrap">
-            AQ <span className="text-[#a07800] uppercase tracking-widest text-sm ml-0.5 font-black">MEDIA</span>
+            <span className="text-amber-500 uppercase tracking-widest text-sm font-black truncate max-w-[190px]">{brandName}</span>
           </span>
         )}
       </div>

@@ -33,6 +33,56 @@ interface SystemSettings {
  apiSyncEndpoint: string;
 }
 
+interface CollapsibleSectionProps {
+  id: string;
+  icon: any;
+  title: string;
+  children: React.ReactNode;
+  iconColor?: string;
+  openSections: Record<string, boolean>;
+  toggleSection: (key: string) => void;
+}
+
+const CollapsibleSection = ({
+  id,
+  icon: Icon,
+  title,
+  children,
+  iconColor = "text-amber-500",
+  openSections,
+  toggleSection
+}: CollapsibleSectionProps) => (
+  <div className="bg-zinc-900 border border-zinc-800 rounded-[24px] shadow-2xl overflow-hidden">
+    <button
+      onClick={() => toggleSection(id)}
+      className="w-full flex items-center justify-between p-6 hover:bg-zinc-800/20 bg-zinc-900/[0.02] transition-all"
+    >
+      <div className="flex items-center gap-2">
+        <Icon className={iconColor} size={18} />
+        <h3 className="text-md font-black text-white uppercase tracking-tight">{title}</h3>
+      </div>
+      <motion.div animate={{ rotate: openSections[id] ? 180 : 0 }} transition={{ duration: 0.2 }}>
+        <ChevronDown size={18} className="text-gray-400" />
+      </motion.div>
+    </button>
+    <AnimatePresence initial={false}>
+      {openSections[id] && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="overflow-hidden"
+        >
+          <div className="px-6 pb-6 border-t border-zinc-800/50">
+            {children}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
+);
+
 export default function SettingsPage() {
  const router = useRouter();
  const [user, setUser] = useState<any>(null);
@@ -617,40 +667,9 @@ export default function SettingsPage() {
  localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
  };
 
- // Collapsible section wrapper component
- const CollapsibleSection = ({ id, icon: Icon, title, children, iconColor ="text-gold" }: { id: string; icon: any; title: string; children: React.ReactNode; iconColor?: string }) => (
- <div className="bg-sidebar border border-border-custom rounded-[32px] shadow-2xl overflow-hidden">
- <button
- onClick={() => toggleSection(id)}
- className="w-full flex items-center justify-between p-6 hover:bg-white bg-zinc-900/[0.02] transition-all"
- >
- <div className="flex items-center gap-2">
- <Icon className={iconColor} size={18} />
- <h3 className="text-md font-black text-white uppercase tracking-tight">{title}</h3>
- </div>
- <motion.div animate={{ rotate: openSections[id] ? 180 : 0 }} transition={{ duration: 0.2 }}>
- <ChevronDown size={18} className="text-gray-500" />
- </motion.div>
- </button>
- <AnimatePresence initial={false}>
- {openSections[id] && (
- <motion.div
- initial={{ height: 0, opacity: 0 }}
- animate={{ height:"auto", opacity: 1 }}
- exit={{ height: 0, opacity: 0 }}
- transition={{ duration: 0.3, ease:"easeInOut" }}
- className="overflow-hidden"
- >
- <div className="px-6 pb-6 border-t border-white/5">
- {children}
- </div>
- </motion.div>
- )}
- </AnimatePresence>
- </div>
- );
+ // CollapsibleSection defined globally above to prevent input focus loss on state change
 
- return (
+  return (
  <div className="h-full flex flex-col space-y-6 pb-6 relative">
  {/* Toast Notification */}
  <AnimatePresence>
@@ -693,7 +712,7 @@ export default function SettingsPage() {
 
  <div className="bg-red-500/10 border-2 border-red-500/30 rounded-2xl p-5 mb-6 text-sm text-gray-200 font-bold leading-relaxed space-y-3">
  <p className="text-red-400 font-black text-base">CẢNH BÁO: Thao tác này sẽ XÓA TOÀN BỘ dữ liệu hệ thống bao gồm Mail, SĐT, Kênh, và Nhân Viên. Hành động này KHÔNG THỂ HOÀN TÁC!</p>
- <div className="border-t border-red-500/20 pt-3 space-y-1 text-[11px] text-gray-500 text-gray-400">
+ <div className="border-t border-red-500/20 pt-3 space-y-1 text-[11px] text-zinc-400">
  <p>• Danh sách Mail, SĐT, Kênh</p>
  <p>• Dữ liệu nhân viên & phân công</p>
  <p>• Lịch sử chat & tin nhắn</p>
@@ -717,7 +736,7 @@ export default function SettingsPage() {
  setShowResetConfirm(false);
  setSafetyPhrase("");
  }} 
- className="flex-1 h-12 rounded-xl border border-white/10 text-white font-bold uppercase text-sm tracking-widest hover:bg-white bg-zinc-900/5 transition-all"
+ className="flex-1 h-12 rounded-xl border border-white/10 text-white font-bold uppercase text-sm tracking-widest hover:bg-zinc-800/40 bg-zinc-900/5 transition-all"
  >
  Hủy bỏ
  </button>
@@ -738,7 +757,7 @@ export default function SettingsPage() {
  <div className="flex items-center gap-4">
  <button 
  onClick={() => router.push("/admin")}
- className="p-2 rounded-xl bg-sidebar border border-border-custom text-gray-500 text-gray-400 hover:text-gray-900 text-white transition-all shadow-md"
+ className="p-2 rounded-xl bg-sidebar border border-border-custom text-zinc-400 hover:text-amber-500 text-zinc-100 transition-all shadow-md"
  >
  <ArrowLeft size={20} />
  </button>
@@ -758,7 +777,7 @@ export default function SettingsPage() {
  <button 
  onClick={() => setActiveTab("PROFILE")}
  className={`h-10 px-6 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
- activeTab ==="PROFILE" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :" bg-white/5 text-gray-500 hover:bg-white/10"
+ activeTab ==="PROFILE" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :" bg-white/5 text-gray-500 hover:bg-zinc-800/40/10"
  }`}
  >
  Thông tin cá nhân
@@ -767,7 +786,7 @@ export default function SettingsPage() {
  <button 
  onClick={() => setActiveTab("HE_THONG")}
  className={`h-10 px-6 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
- activeTab ==="HE_THONG" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :" bg-white/5 text-gray-500 hover:bg-white/10"
+ activeTab ==="HE_THONG" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :" bg-white/5 text-gray-500 hover:bg-zinc-800/40/10"
  }`}
  >
  Hệ Thống & Cài Đặt
@@ -806,7 +825,7 @@ export default function SettingsPage() {
  {activeTab ==="HE_THONG" && (
  <div className="space-y-6">
  {/* Section: Work Schedule & Fine Config */}
- <CollapsibleSection id="WORK_CONFIG" icon={Clock} title="Cấu Hình Giờ Giấc & Phạt">
+ <CollapsibleSection id="WORK_CONFIG" icon={Clock} title="Cấu Hình Giờ Giấc & Phạt" openSections={openSections} toggleSection={toggleSection}>
  <div className="pt-5 space-y-6">
  <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5">
  <p className="text-base text-amber-400 font-medium leading-relaxed">
@@ -815,44 +834,44 @@ export default function SettingsPage() {
  </div>
  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
  <div className="space-y-2">
- <label className="text-[11px] text-gray-500 text-gray-400 font-bold uppercase tracking-widest block mb-2">Giờ bắt đầu làm việc</label>
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Giờ bắt đầu làm việc</label>
  <div className="relative">
  <input 
  type="time" 
  value={workStartTime}
  onChange={(e) => setWorkStartTime(e.target.value)}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
  />
  </div>
  </div>
  <div className="space-y-2">
- <label className="text-[11px] text-gray-500 text-gray-400 font-bold uppercase tracking-widest block mb-2">Giờ kết thúc làm việc</label>
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Giờ kết thúc làm việc</label>
  <div className="relative">
  <input 
  type="time" 
  value={workEndTime}
  onChange={(e) => setWorkEndTime(e.target.value)}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
  />
  </div>
  </div>
  <div className="space-y-2">
- <label className="text-[11px] text-gray-500 text-gray-400 font-bold uppercase tracking-widest block mb-2">Hệ thống sẽ đóng vào lúc</label>
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Hệ thống sẽ đóng vào lúc</label>
  <div className="relative">
  <input 
  type="time" 
  value={systemCloseTime}
  onChange={(e) => setSystemCloseTime(e.target.value)}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl px-5 h-14 text-lg text-amber-500 outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
  />
  </div>
  </div>
  </div>
  <div className="space-y-3 pt-4 border-t border-white/5">
- <label className="text-[12px] text-gray-500 text-gray-400 font-bold uppercase tracking-widest mb-4 block">Mức phạt đi muộn (VNĐ)</label>
+ <label className="text-[12px] text-zinc-400 font-bold uppercase tracking-widest mb-4 block">Mức phạt đi muộn (VNĐ)</label>
  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
  <div className="space-y-2">
  <p className="text-base text-amber-400 font-black">Muộn 1-5 phút</p>
@@ -862,7 +881,7 @@ export default function SettingsPage() {
  value={Number(fineTier1).toLocaleString("vi-VN")}
  onChange={(e) => setFineTier1(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-gray-800 text-white border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-black tracking-wider"
  />
  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
  </div>
@@ -875,7 +894,7 @@ export default function SettingsPage() {
  value={Number(fineTier2).toLocaleString("vi-VN")}
  onChange={(e) => setFineTier2(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-gray-800 text-white border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-black tracking-wider"
  />
  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
  </div>
@@ -888,7 +907,7 @@ export default function SettingsPage() {
  value={Number(fineTier3).toLocaleString("vi-VN")}
  onChange={(e) => setFineTier3(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-gray-800 text-white border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-black tracking-wider"
  />
  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
  </div>
@@ -897,7 +916,7 @@ export default function SettingsPage() {
  </div>
  <button 
  onClick={handleSaveWorkConfig}
- className="h-14 mt-4 px-8 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase text-base tracking-widest hover:bg-yellow-400 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] w-full md:w-auto"
+ className="h-14 mt-4 px-8 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase text-base tracking-widest hover:bg-amber-700 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] w-full md:w-auto"
  >
  <Save size={18} /> Lưu Cấu Hình Giờ Giấc
  </button>
@@ -905,7 +924,7 @@ export default function SettingsPage() {
  </CollapsibleSection>
 
  {/* Section: Agency Config */}
- <CollapsibleSection id="AGENCY_CONFIG" icon={Building2} title="Tên Thương Hiệu (Brand Name)">
+ <CollapsibleSection id="AGENCY_CONFIG" icon={Building2} title="Tên Thương Hiệu (Brand Name)" openSections={openSections} toggleSection={toggleSection}>
  <div className="pt-5 space-y-6">
  <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-5">
  <p className="text-base text-blue-400 font-medium leading-relaxed">
@@ -913,19 +932,19 @@ export default function SettingsPage() {
  </p>
  </div>
  <div className="space-y-2">
- <label className="text-[11px] text-gray-500 text-gray-400 font-bold uppercase tracking-widest block mb-2">Tên Thương Hiệu</label>
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Tên Thương Hiệu</label>
  <input 
  type="text" 
  value={agencyConfigName}
  onChange={(e) => setAgencyConfigName(e.target.value)}
  onMouseDown={(e) => e.stopPropagation()}
  placeholder="VD: AQ MEDIA"
- className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-gold/50 transition-all w-full md:w-1/2 font-bold"
+ className="bg-zinc-900 text-zinc-100 border border-zinc-800 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full md:w-1/2 font-bold"
  />
  </div>
  <button 
  onClick={handleSaveAgencyConfig}
- className="h-14 mt-4 px-8 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase text-base tracking-widest hover:bg-yellow-400 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] w-full md:w-auto"
+ className="h-14 mt-4 px-8 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase text-base tracking-widest hover:bg-amber-700 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] w-full md:w-auto"
  >
  <Save size={18} /> Lưu Tên Thương Hiệu
  </button>
@@ -933,7 +952,7 @@ export default function SettingsPage() {
  </CollapsibleSection>
 
  {/* Section: 2FA */}
- <CollapsibleSection id="2FA" icon={ShieldCheck} title="Bảo Mật 2FA">
+ <CollapsibleSection id="2FA" icon={ShieldCheck} title="Bảo Mật 2FA" openSections={openSections} toggleSection={toggleSection}>
  <div className="pt-5">
  <div className="text-center p-10 bg-white/[0.02] border border-white/5 rounded-2xl">
  <ShieldCheck size={48} className="mx-auto mb-4 opacity-50" />
@@ -944,7 +963,7 @@ export default function SettingsPage() {
  </CollapsibleSection>
 
  {/* Section: API & System Config */}
- <CollapsibleSection id="API" icon={Database} title="API & Cấu Hình Hệ Thống">
+ <CollapsibleSection id="API" icon={Database} title="API & Cấu Hình Hệ Thống" openSections={openSections} toggleSection={toggleSection}>
  <div className="pt-5">
  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
  {/* Left Side: General System Settings */}
@@ -952,54 +971,54 @@ export default function SettingsPage() {
  <form onSubmit={handleSaveSettings} className="space-y-5">
  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
  <div className="space-y-2">
- <label className="text-[11px] text-gray-500 text-gray-400 font-bold uppercase tracking-widest block mb-2">Số lượng gán Mail mỗi đợt</label>
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Số lượng gán Mail mỗi đợt</label>
  <input 
  type="number" 
  value={chunkSize}
  onChange={(e) => setChunkSize(Math.max(1, Number(e.target.value)))}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-base text-gold outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl px-5 h-14 text-base text-gold outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-black tracking-wider"
  required
  />
  </div>
  <div className="space-y-2">
- <label className="text-[11px] text-gray-500 text-gray-400 font-bold uppercase tracking-widest block mb-2">KPI Target (Mail Hàng tháng)</label>
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">KPI Target (Mail Hàng tháng)</label>
  <input 
  type="number" 
  value={kpiTargetMails}
  onChange={(e) => setKpiTargetMails(Math.max(1, Number(e.target.value)))}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-bold"
+ className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-bold"
  required
  />
  </div>
  <div className="space-y-2 md:col-span-2">
- <label className="text-[11px] text-gray-500 text-gray-400 font-bold uppercase tracking-widest block mb-2">KPI Target (Watch Hours tích lũy)</label>
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">KPI Target (Watch Hours tích lũy)</label>
  <input 
  type="number" 
  value={kpiTargetWatchHours}
  onChange={(e) => setKpiTargetWatchHours(Math.max(1, Number(e.target.value)))}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-bold"
+ className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-bold"
  required
  />
  </div>
  </div>
  <div className="space-y-2 pt-2">
- <label className="text-[11px] text-gray-500 text-gray-400 font-bold uppercase tracking-widest block mb-2">API Server Sync Endpoint</label>
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">API Server Sync Endpoint</label>
  <input 
  type="text" 
  value={apiSyncEndpoint}
  onChange={(e) => setApiSyncEndpoint(e.target.value)}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-base text-gray-300 font-mono outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full"
+ className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl px-5 h-14 text-base text-gray-300 font-mono outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full"
  required
  />
  </div>
  <div className="pt-2">
  <button 
  type="submit"
- className="h-11 px-6 rounded-xl bg-gold text-sidebar font-black uppercase text-sm tracking-widest hover:bg-yellow-500 transition-all flex items-center gap-2 shadow-lg shadow-gold/5"
+ className="h-11 px-6 rounded-xl bg-amber-600 text-white font-black uppercase text-sm tracking-widest hover:bg-amber-700 transition-all flex items-center gap-2 shadow-lg shadow-amber-600/20"
  >
  <Save size={14} /> Lưu Cấu Hình
  </button>
@@ -1016,7 +1035,7 @@ export default function SettingsPage() {
  <h4 className="text-sm font-black text-white uppercase tracking-tight">Dung lượng DB Local</h4>
  </div>
  <div className="space-y-3">
- <div className="flex justify-between text-sm font-bold text-gray-500 text-gray-400">
+ <div className="flex justify-between text-sm font-bold text-zinc-400">
  <span>Đã sử dụng:</span>
  <span className="text-white font-mono">{storageUsage.text}</span>
  </div>
@@ -1038,7 +1057,7 @@ export default function SettingsPage() {
  </CollapsibleSection>
 
  {/* Section: Bank & QR Config */}
- <CollapsibleSection id="BANK" icon={DollarSign} title="Ngân Hàng & QR Code">
+ <CollapsibleSection id="BANK" icon={DollarSign} title="Ngân Hàng & QR Code" openSections={openSections} toggleSection={toggleSection}>
  <div className="pt-5">
  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
  {/* Bank Configuration Form */}
@@ -1052,24 +1071,24 @@ export default function SettingsPage() {
  <form onSubmit={generateQRCode} className="space-y-5">
  {/* Custom search-select dropdown for banks */}
  <div className="space-y-2 relative">
- <label className="text-[11px] text-gray-500 text-gray-400 font-bold uppercase tracking-widest block mb-2">Ngân Hàng Thụ Hưởng</label>
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Ngân Hàng Thụ Hưởng</label>
  <div 
  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
- className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-gold/50 transition-all w-full font-bold flex items-center justify-between cursor-pointer"
+ className="bg-zinc-900 text-zinc-100 border border-zinc-800 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold flex items-center justify-between cursor-pointer hover:bg-zinc-800/30"
  >
  <div className="flex items-center gap-2 overflow-hidden">
  {activeBank.logo ? (
- <img src={activeBank.logo} alt={activeBank.shortName} className="h-5 w-auto object-contain rounded bg-zinc-900 px-1 py-0.5" />
+ <img src={activeBank.logo} alt={activeBank.shortName} className="h-5 w-auto object-contain rounded bg-zinc-950 px-1 py-0.5" />
  ) : (
  <div className="w-5 h-5 bg-gold/10 text-gold flex items-center justify-center rounded text-[10px]">{activeBank.shortName?.slice(0, 2)}</div>
  )}
  <span className="truncate">{activeBank.shortName} - {activeBank.name}</span>
  </div>
- <span className="text-gray-500 text-gray-400 text-[10px]">{isDropdownOpen ?"▲" :"▼"}</span>
+ <span className="text-zinc-400 text-[10px]">{isDropdownOpen ?"▲" :"▼"}</span>
  </div>
 
  {isDropdownOpen && (
- <div className="absolute left-0 right-0 mt-2 bg-sidebar border border-border-custom rounded-2xl shadow-2xl z-[100] max-h-64 flex flex-col overflow-hidden animate-fade-in">
+ <div className="absolute left-0 right-0 mt-2 bg-zinc-950/95 backdrop-blur-md border border-zinc-800 rounded-2xl shadow-2xl z-[100] max-h-64 flex flex-col overflow-hidden animate-fade-in">
  <div className="p-2 border-b border-white/5 flex-shrink-0">
  <input 
  type="text" 
@@ -1077,7 +1096,7 @@ export default function SettingsPage() {
  value={bankSearchTerm}
  onChange={(e) => setBankSearchTerm(e.target.value)}
  onClick={(e) => e.stopPropagation()}
- className="bg-black/40 border border-white/10 rounded-xl px-3 h-9 text-sm text-white placeholder:text-gray-600 outline-none focus:border-gold/30 w-full"
+ className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 h-9 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-amber-500/30 w-full"
  />
  </div>
  <div className="overflow-y-auto custom-scrollbar flex-1">
@@ -1103,10 +1122,10 @@ export default function SettingsPage() {
  setIsDropdownOpen(false);
  setBankSearchTerm("");
  }}
- className={`flex items-center gap-3 px-4 py-2.5 hover:bg-white bg-zinc-900/[0.10] transition-colors cursor-pointer border-b border-white/[0.02] last:border-0 ${activeBank.bin === b.bin ? 'bg-gold/10' : ''}`}
+ className={`flex items-center gap-3 px-4 py-2.5 hover:bg-zinc-800 bg-zinc-900/[0.10] transition-colors cursor-pointer border-b border-zinc-800/20 last:border-0 ${activeBank.bin === b.bin ? 'bg-amber-500/10' : ''}`}
  >
  {b.logo ? (
- <img src={b.logo} alt={b.shortName} className="h-6 w-10 object-contain rounded bg-zinc-900 px-1 py-0.5 shrink-0" />
+ <img src={b.logo} alt={b.shortName} className="h-6 w-10 object-contain rounded bg-zinc-950 px-1 py-0.5 shrink-0" />
  ) : (
  <div className="w-10 h-6 bg-gold/10 text-gold flex items-center justify-center rounded text-[10px] shrink-0 font-bold">{b.shortName?.slice(0, 3)}</div>
  )}
@@ -1123,7 +1142,7 @@ export default function SettingsPage() {
  </div>
 
  <div className="space-y-2 relative pt-2">
- <label className="text-[11px] text-gray-500 text-gray-400 font-bold uppercase tracking-widest block mb-2">Số Tài Khoản (STK)</label>
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Số Tài Khoản (STK)</label>
  <div className="flex gap-2">
  <div className="relative flex-1">
  <input 
@@ -1136,7 +1155,7 @@ export default function SettingsPage() {
  }}
  onMouseDown={(e) => e.stopPropagation()}
  placeholder="Ví dụ: 0123456789"
- className="bg-gray-800 text-white border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-base text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
+ className="bg-zinc-900 text-zinc-100 border border-zinc-800 rounded-2xl pl-5 pr-12 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
  required
  />
  {isLookingUp && (
@@ -1152,7 +1171,7 @@ export default function SettingsPage() {
  type="button"
  onClick={handleLookupAccount}
  disabled={isLookingUp}
- className="h-14 px-6 bg-gold/15 hover:bg-gold/25 text-gold border border-gold/30 rounded-2xl text-base font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center shrink-0 disabled:opacity-40 cursor-pointer shadow-lg shadow-gold/5"
+ className="h-14 px-6 bg-amber-500/15 hover:bg-amber-500/25 text-amber-500 border border-amber-500/30 rounded-2xl text-base font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center shrink-0 disabled:opacity-40 cursor-pointer shadow-lg shadow-gold/5"
  >
  {isLookingUp ?"Đang tìm..." :"Tra cứu"}
  </button>
@@ -1165,14 +1184,14 @@ export default function SettingsPage() {
  </div>
 
  <div className="space-y-2 pt-2">
- <label className="text-[11px] text-gray-500 text-gray-400 font-bold uppercase tracking-widest block mb-2">Tên Chủ Tài Khoản</label>
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Tên Chủ Tài Khoản</label>
  <input 
  type="text" 
  value={bankAccountHolder}
  onChange={(e) => setBankAccountHolder(e.target.value.toUpperCase())}
  onMouseDown={(e) => e.stopPropagation()}
  placeholder="Ví dụ: NGUYEN VAN A"
- className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
+ className="bg-zinc-900 text-zinc-100 border border-zinc-800 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
  required
  />
  <p className="text-[9px] text-gray-500">Tên viết in hoa không dấu - Hệ thống tự động tra cứu khi nhập đủ STK</p>
@@ -1181,7 +1200,7 @@ export default function SettingsPage() {
  <div className="pt-4 space-y-3">
  <button 
  type="submit"
- className="h-11 w-full px-6 rounded-xl bg-gold text-sidebar font-black uppercase text-sm tracking-widest hover:bg-yellow-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-gold/20"
+ className="h-11 w-full px-6 rounded-xl bg-amber-600 text-white font-black uppercase text-sm tracking-widest hover:bg-amber-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-600/20"
  >
  <Save size={16} /> Xác Nhận & Lưu Ngân Hàng
  </button>
@@ -1232,7 +1251,7 @@ export default function SettingsPage() {
  </div>
  <div className="flex justify-between text-sm">
  <span className="text-gray-500 font-bold">STK:</span>
- <span className="text-gold font-black">{bankAccountNumber}</span>
+ <span className="text-amber-500 font-black">{bankAccountNumber}</span>
  </div>
  <div className="flex justify-between text-sm">
  <span className="text-gray-500 font-bold">Chủ TK:</span>
@@ -1255,7 +1274,7 @@ export default function SettingsPage() {
  <div className="mt-12 bg-red-500/5 border border-red-500/20 rounded-3xl p-8 flex flex-col items-center justify-center text-center">
  <AlertTriangle size={48} className="text-red-500 mb-4 animate-pulse" />
  <h3 className="text-xl font-black text-red-500 uppercase tracking-widest mb-2">Vùng Nguy Hiểm (Danger Zone)</h3>
- <p className="text-sm text-gray-500 text-gray-400 max-w-lg mb-6">
+ <p className="text-sm text-zinc-400 max-w-lg mb-6">
  Thao tác xóa toàn bộ dữ liệu (trừ Users). Không thể khôi phục sau khi thực hiện. Vui lòng cân nhắc kỹ trước khi sử dụng.
  </p>
  <button 

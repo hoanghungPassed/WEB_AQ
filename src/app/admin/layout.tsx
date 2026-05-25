@@ -85,6 +85,24 @@ export default function AdminLayout({
  const [activeChatUser, setActiveChatUser] = useState<any>(null);
  const [chatUsers, setChatUsers] = useState<any[]>([]);
  const [unreadCount, setUnreadCount] = useState(0);
+  const [brandName, setBrandName] = useState("AQ MEDIA");
+
+  useEffect(() => {
+    const loadAgencyConfig = () => {
+      const savedConfig = localStorage.getItem("global_agency_config");
+      if (savedConfig) {
+        try {
+          const parsed = JSON.parse(savedConfig);
+          if (parsed.name) {
+            setBrandName(parsed.name);
+          }
+        } catch (e) {}
+      }
+    };
+    loadAgencyConfig();
+    window.addEventListener("storage", loadAgencyConfig);
+    return () => window.removeEventListener("storage", loadAgencyConfig);
+  }, []);
 
  const safeText = (value: unknown) => {
    if (value === null || value === undefined) return "";
@@ -1578,7 +1596,7 @@ export default function AdminLayout({
  setTimeout(() => setFineSuccessToast(null), 5000);
  }
  }}
- className={`flex-1 h-14 font-black text-base uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-lg ${finePaymentPending ?"bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 cursor-not-allowed" :"bg-gold text-sidebar hover:bg-white bg-zinc-900 hover:text-sidebar shadow-gold/25"}`}
+ className={`flex-1 h-14 font-black text-base uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-lg ${finePaymentPending ?"bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 cursor-not-allowed" :"bg-gold text-sidebar hover:bg-amber-700 bg-amber-600 hover:text-white shadow-gold/25"}`}
  >
  {finePaymentPending ?"Chờ duyệt..." :"Đã chuyển khoản"}
  </button>
@@ -1710,7 +1728,7 @@ export default function AdminLayout({
  <p className="text-gray-400 font-medium leading-relaxed mb-8">{safeText(accessSuccessMsg)}</p>
  <button
  onClick={() => setAccessSuccessMsg(null)}
- className="w-full h-14 bg-gold text-sidebar font-black text-base uppercase tracking-widest rounded-2xl hover:bg-white bg-zinc-900 hover:text-sidebar transition-all duration-300 shadow-lg shadow-gold/20"
+ className="w-full h-14 bg-amber-600 text-white font-black text-base uppercase tracking-widest rounded-2xl hover:bg-amber-700 transition-all duration-300 shadow-lg shadow-gold/20"
  >
  Đồng ý & Đóng
  </button>
@@ -1730,7 +1748,7 @@ export default function AdminLayout({
  initial={{ opacity: 0, y: 50, scale: 0.95 }}
  animate={{ opacity: 1, y: 0, scale: 1 }}
  exit={{ opacity: 0, y: 50, scale: 0.95 }}
- className="w-[400px] h-[600px] bg-white/95 bg-[#161616]/95 border border-gold/20 rounded-3xl shadow-2xl flex flex-col overflow-hidden mb-6 backdrop-blur-xl"
+ className="w-[400px] h-[600px] bg-zinc-950/95 border border-zinc-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden mb-6 backdrop-blur-xl"
  >
  {/* Header */}
  <div className="p-4 border-b border-white/5 flex items-center justify-between">
@@ -1739,7 +1757,7 @@ export default function AdminLayout({
  <MessageCircle size={16} className="text-gold" />
  {chatTab ==="COMPANY" ?"Nội Bộ Công Ty" :"Tin Nhắn Tự Động"}
  </h3>
- <p className="text-[10px] text-gray-500 font-bold uppercase mt-1">AQ MEDIA Workspace</p>
+ <p className="text-[10px] text-zinc-500 font-bold uppercase mt-1">{brandName} Workspace</p>
  </div>
  <button
  onClick={() => setIsChatOpen(false)}
@@ -1756,7 +1774,7 @@ export default function AdminLayout({
  setChatTab("COMPANY");
  setActiveChatUser(null);
  }}
- className={`flex-1 py-2 text-sm font-black uppercase tracking-widest rounded-xl transition-all ${chatTab ==="COMPANY" ?"bg-gold text-sidebar" :"text-gray-500 hover:text-gray-800 hover:hover:text-gray-900 text-white hover:bg-white bg-zinc-900/5"}`}
+ className={`flex-1 py-2 text-sm font-black uppercase tracking-widest rounded-xl transition-all ${chatTab ==="COMPANY" ?"bg-gold text-sidebar" :"text-gray-500 hover:text-gray-800 hover:hover:text-gray-900 text-white hover:bg-zinc-800 bg-zinc-900/5"}`}
  >
  Công ty
  </button>
@@ -1809,7 +1827,7 @@ export default function AdminLayout({
  <a
  href={msg.fileData}
  download={msg.fileName}
- className={`h-6 w-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${isMe ?" bg-sidebar/10 hover:bg-white hover:bg-sidebar text-sidebar hover:text-gray-900 text-white" :" bg-white/5 hover:bg-gold text-gray-500 text-gray-400 hover:text-sidebar"}`}
+ className={`h-6 w-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${isMe ?" bg-sidebar/10 hover:bg-zinc-800 text-zinc-100" :" bg-white/5 hover:bg-gold text-gray-500 text-gray-400 hover:text-sidebar"}`}
  title="Tải xuống tệp tin"
  >
  <Download size={10} />
@@ -1870,7 +1888,7 @@ export default function AdminLayout({
  onChange={(e) => handleInputChange(e.target.value)}
  className="flex-1 h-10 bg-white/5 border border-white/5 focus:border-gold/50 rounded-xl px-4 text-sm text-white focus:outline-none transition-all placeholder:text-gray-600 text-gray-400"
  />
- <button type="submit" className="h-10 w-10 bg-gold text-sidebar rounded-xl flex items-center justify-center hover:bg-white bg-zinc-900 hover:text-sidebar transition-colors shadow-lg shadow-gold/10">
+ <button type="submit" className="h-10 w-10 bg-gold text-sidebar rounded-xl flex items-center justify-center hover:bg-amber-700 bg-amber-600 hover:text-white transition-colors shadow-lg shadow-gold/10">
  <Send size={14} />
  </button>
  </form>
