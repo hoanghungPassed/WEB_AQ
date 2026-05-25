@@ -69,7 +69,7 @@ type NewsfeedNotificationItem = {
  authorName?: string;
  authorRole?: string;
  authorUsername?: string;
- authorAvatar?: string;
+  authorAvatar?: string | null;
  message?: string;
  title?: string;
  imageUrl?: string;
@@ -549,16 +549,16 @@ export default function NewsfeedPage() {
  <div className="flex items-center justify-between">
  <div className="flex items-center gap-3">
  {post.authorAvatar ? (
- <img src={post.authorAvatar} alt={post.authorName} className="h-8 w-8 rounded-full object-cover border border-gold/20 shadow-sm" />
- ) : (
- <div className="h-8 w-8 bg-gold/15 text-gold border border-gold/20 rounded-full flex items-center justify-center font-black text-sm uppercase shadow-sm">
- {post.authorName.charAt(0)}
- </div>
- )}
+  <img src={post.authorAvatar} alt={post.authorName} className="h-8 w-8 rounded-full object-cover border border-gold/20 shadow-sm" />
+) : (
+  <div className="h-8 w-8 bg-gold/15 text-gold border border-gold/20 rounded-full flex items-center justify-center font-black text-sm uppercase shadow-sm">
+    {post.authorName?.charAt?.(0) ?? "?"}
+  </div>
+)}
  <div>
  <div className="flex items-center gap-2">
- <span className="text-sm font-black text-white">{post.authorName}</span>
- <span className="px-2 py-0.5 rounded text-[7px] font-black tracking-widest uppercase border bg-gold/5 text-gold border-gold/20">{post.authorRole}</span>
+ <span className="text-sm font-black text-white">{post.authorName ?? "Hệ thống"}</span>
+ <span className="px-2 py-0.5 rounded text-[7px] font-black tracking-widest uppercase border bg-gold/5 text-gold border-gold/20">{post.authorRole ?? "NHÂN VIÊN"}</span>
  {post.isPinned && (
  <span className="px-2 py-0.5 rounded text-[7px] font-black tracking-widest uppercase bg-gold text-sidebar flex items-center gap-0.5">
  <Pin size={8} className="fill-current" /> ĐÃ GHIM
@@ -599,7 +599,7 @@ export default function NewsfeedPage() {
  <p className="text-sm text-gray-300 font-bold leading-relaxed whitespace-pre-wrap">{post.text}</p>
  {post.imageUrl && (
  <div className="rounded-xl overflow-hidden border border-white/5 max-h-[280px] relative h-72">
- <Image src={post.imageUrl} alt={`${post.authorName} post`} fill className="object-cover" />
+ <Image src={post.imageUrl!} alt={post.authorName ? `${post.authorName} post` : "Bài viết"} fill className="object-cover" />
  </div>
  )}
  </div>

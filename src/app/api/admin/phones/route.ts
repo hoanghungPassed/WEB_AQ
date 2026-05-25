@@ -88,8 +88,8 @@ export async function POST(req: Request) {
  }));
 
  const numbersToImport = payload.map((p) => p.number);
- const existingPhones = await Phone.find({ number: { $in: numbersToImport } }).lean<PhoneNumberOnly[]>();
- const existingNumbers = new Set(existingPhones.map((p) => p.number));
+	const existingPhones = (await Phone.find({ number: { $in: numbersToImport } }).lean()) as PhoneNumberOnly[];
+	const existingNumbers = new Set(existingPhones.map((p: PhoneNumberOnly) => p.number));
 
  const uniquePayloadMap = new Map<string, PhoneImportPayloadItem>();
  for (const p of payload) {

@@ -4,8 +4,6 @@ import React, { useEffect, useState } from"react";
 import { Search, Bell, Menu, User, PanelLeftClose, PanelLeftOpen, LogOut, UserSearch, UserPlus, CheckCircle2, Sun, Moon, X } from"lucide-react";
 import { motion, AnimatePresence } from"framer-motion";
 import { useRouter } from"next/navigation";
-import { useTheme } from"next-themes";
-
 interface HeaderProps {
  isCollapsed: boolean;
  onToggle: () => void;
@@ -16,8 +14,6 @@ interface HeaderProps {
 
 const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: HeaderProps) => {
  const router = useRouter();
- const { theme, resolvedTheme, setTheme } = useTheme();
- const currentTheme = theme === "system" ? resolvedTheme : theme;
  const [mounted, setMounted] = useState(false);
  const [isProfileOpen, setIsProfileOpen] = useState(false);
  const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -208,41 +204,6 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
  </div>
  </div>
  </div>
-
- {/* Theme Toggle */}
- <button
- onClick={() => setTheme(currentTheme === "dark" ? "light" : "dark")}
- title={currentTheme === "dark" ? "Chuyển Light Mode" : "Chuyển Dark Mode"}
- className="relative flex h-11 w-11 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-white bg-zinc-900/5 hover:text-gold border border-transparent hover:border-gray-200 hover:border-white/5 overflow-hidden"
- >
- {mounted && (
- <AnimatePresence mode="wait" initial={false}>
- {currentTheme === "dark" ? (
- <motion.span
- key="sun"
- initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
- animate={{ rotate: 0, opacity: 1, scale: 1 }}
- exit={{ rotate: 90, opacity: 0, scale: 0.5 }}
- transition={{ duration: 0.2 }}
- className="absolute"
- >
- <Sun size={22} />
- </motion.span>
- ) : (
- <motion.span
- key="moon"
- initial={{ rotate: 90, opacity: 0, scale: 0.5 }}
- animate={{ rotate: 0, opacity: 1, scale: 1 }}
- exit={{ rotate: -90, opacity: 0, scale: 0.5 }}
- transition={{ duration: 0.2 }}
- className="absolute"
- >
- <Moon size={22} />
- </motion.span>
- )}
- </AnimatePresence>
- )}
- </button>
 
  {/* Notifications Dropdown */}
  <div className="relative">
