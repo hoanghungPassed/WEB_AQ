@@ -43,16 +43,16 @@ export default function QRCodeDisplay({
  />
  </div>
  <div className="w-full space-y-2 text-center">
- <div className="bg-white/5 border border-white/10 rounded-xl p-3">
- <p className="text-[9px] text-gray-500 font-bold mb-1">STK</p>
+ <div className="bg-white/10 border border-white/10 rounded-xl p-3 hover:bg-white/12 transition-colors">
+ <p className="text-[9px] text-gray-500 font-bold mb-1 hover:text-gold transition-colors hoverable">STK</p>
  <p className="text-base font-black text-gold">{accountNumber}</p>
  </div>
- <div className="bg-white/5 border border-white/10 rounded-xl p-3">
- <p className="text-[9px] text-gray-500 font-bold mb-1">Chủ TK</p>
+ <div className="bg-white/10 border border-white/10 rounded-xl p-3 hover:bg-white/12 transition-colors">
+ <p className="text-[9px] text-gray-500 font-bold mb-1 hover:text-gold transition-colors hoverable">Chủ TK</p>
  <p className="text-base font-black text-white">{accountHolder}</p>
  </div>
- <div className="bg-white/5 border border-white/10 rounded-xl p-3">
- <p className="text-[9px] text-gray-500 font-bold mb-1">Ngân Hàng</p>
+ <div className="bg-white/10 border border-white/10 rounded-xl p-3 hover:bg-white/12 transition-colors">
+ <p className="text-[9px] text-gray-500 font-bold mb-1 hover:text-gold transition-colors hoverable">Ngân Hàng</p>
  <p className="text-base font-black text-white">{bankName}</p>
  </div>
  </div>

@@ -1,91 +1,25 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  color-scheme: dark;
+@theme {
+  --color-gold: #a07800;
   --background: #09090b;
-  --foreground: #f4f4f5;
-  --surface: #18181b;
-  --surface-strong: #18181b;
-  --border: #27272a;
-  --accent: #a07800;
-  --danger: #ef4444;
+  --foreground: #fafafa;
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  transition: background-color 0.25s ease, color 0.25s ease;
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
+  @apply bg-[#09090b] text-[#fafafa] antialiased;
 }
 
-body, html {
-  min-height: 100%;
+/* Card đồng nhất */
+.card-style {
+  @apply bg-[#18181b] border border-[#27272a] rounded-xl p-6 shadow-sm;
 }
 
-body, header, aside, main, nav, section, div,
-table, thead, tbody, tr, th, td,
-input, select, button, span, p, a, h1, h2, h3, h4 {
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease;
-}
-
-@layer utilities {
-  .bg-sidebar {
-    background-color: var(--surface-strong);
-  }
-  .bg-panel {
-    background-color: var(--surface);
-  }
-  .text-sidebar {
-    color: var(--foreground);
-  }
-  .text-accent {
-    color: var(--accent);
-  }
-  .bg-gold {
-    background-color: var(--accent);
-  }
-  .text-gold {
-    color: var(--accent);
-  }
-  .border-gold {
-    border-color: var(--accent);
-  }
-  .bg-red-500 {
-    background-color: var(--danger);
-  }
-  .text-red-500 {
-    color: var(--danger);
-  }
-  .border-red-500 {
-    border-color: var(--danger);
-  }
-  .bg-zinc-900 {
-    background-color: var(--surface-strong);
-  }
-}
-
-/* =============================================
-   BASE STYLES
-   ============================================= */
-html {
-  font-size: 14px;
-}
-
-/* =============================================
-   CUSTOM CONTAINER
-   ============================================= */
-.custom-container {
-  padding: 1.5rem !important;
-}
-
-/* =============================================
-   CUSTOM SCROLLBAR
-   ============================================= */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -93,5 +27,20 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-zinc-800 rounded-full hover:bg-zinc-700;
+  background: #27272a;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a07800;
+}
+
+/* Ensure interactive elements have a visible hover color transition
+   This helps when utility hover classes might be overridden or missed */
+a, button, .hoverable {
+  transition: color .15s ease, background-color .15s ease;
+}
+
+a:hover, button:hover, .hoverable:hover {
+  color: var(--color-gold);
 }

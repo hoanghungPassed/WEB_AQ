@@ -1500,7 +1500,7 @@ export default function AdminDashboard() {
  {mail.workStatus || (mail.status === 'DIE' ?"Lỗi" :"Chưa làm")}
  </td>
  <td className="py-4 px-6 text-sm text-gray-400 font-medium">
- {mail.updatedBy ? mail.updatedBy : (assignee ? assignee.name :"---")}
+ {mail.updatedBy ? (typeof mail.updatedBy === 'object' ? (mail.updatedBy.name || mail.updatedBy.username || "Hệ thống") : mail.updatedBy) : (assignee ? assignee.name :"---")}
  </td>
  </tr>
  );

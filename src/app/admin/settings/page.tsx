@@ -821,6 +821,7 @@ export default function SettingsPage() {
  type="time" 
  value={workStartTime}
  onChange={(e) => setWorkStartTime(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
  className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
  />
  </div>
@@ -832,6 +833,7 @@ export default function SettingsPage() {
  type="time" 
  value={workEndTime}
  onChange={(e) => setWorkEndTime(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
  className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
  />
  </div>
@@ -843,6 +845,7 @@ export default function SettingsPage() {
  type="time" 
  value={systemCloseTime}
  onChange={(e) => setSystemCloseTime(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
  className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
  />
  </div>
@@ -858,6 +861,7 @@ export default function SettingsPage() {
  type="text" 
  value={Number(fineTier1).toLocaleString("vi-VN")}
  onChange={(e) => setFineTier1(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
+ onMouseDown={(e) => e.stopPropagation()}
  className="bg-gray-800 text-white border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
  />
  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
@@ -870,6 +874,7 @@ export default function SettingsPage() {
  type="text" 
  value={Number(fineTier2).toLocaleString("vi-VN")}
  onChange={(e) => setFineTier2(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
+ onMouseDown={(e) => e.stopPropagation()}
  className="bg-gray-800 text-white border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
  />
  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
@@ -882,6 +887,7 @@ export default function SettingsPage() {
  type="text" 
  value={Number(fineTier3).toLocaleString("vi-VN")}
  onChange={(e) => setFineTier3(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
+ onMouseDown={(e) => e.stopPropagation()}
  className="bg-gray-800 text-white border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
  />
  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
@@ -912,6 +918,7 @@ export default function SettingsPage() {
  type="text" 
  value={agencyConfigName}
  onChange={(e) => setAgencyConfigName(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
  placeholder="VD: AQ MEDIA"
  className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-gold/50 transition-all w-full md:w-1/2 font-bold"
  />
@@ -950,6 +957,7 @@ export default function SettingsPage() {
  type="number" 
  value={chunkSize}
  onChange={(e) => setChunkSize(Math.max(1, Number(e.target.value)))}
+ onMouseDown={(e) => e.stopPropagation()}
  className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-base text-gold outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
  required
  />
@@ -960,6 +968,7 @@ export default function SettingsPage() {
  type="number" 
  value={kpiTargetMails}
  onChange={(e) => setKpiTargetMails(Math.max(1, Number(e.target.value)))}
+ onMouseDown={(e) => e.stopPropagation()}
  className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-bold"
  required
  />
@@ -970,6 +979,7 @@ export default function SettingsPage() {
  type="number" 
  value={kpiTargetWatchHours}
  onChange={(e) => setKpiTargetWatchHours(Math.max(1, Number(e.target.value)))}
+ onMouseDown={(e) => e.stopPropagation()}
  className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full font-bold"
  required
  />
@@ -981,6 +991,7 @@ export default function SettingsPage() {
  type="text" 
  value={apiSyncEndpoint}
  onChange={(e) => setApiSyncEndpoint(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
  className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-base text-gray-300 font-mono outline-none focus:border-gold/50 focus:bg-gray-50 focus:bg-[#161616] transition-all w-full"
  required
  />
@@ -1092,7 +1103,7 @@ export default function SettingsPage() {
  setIsDropdownOpen(false);
  setBankSearchTerm("");
  }}
- className={`flex items-center gap-3 px-4 py-2.5 hover:bg-white bg-zinc-900/[0.04] transition-colors cursor-pointer border-b border-white/[0.02] last:border-0 ${activeBank.bin === b.bin ? 'bg-gold/10' : ''}`}
+ className={`flex items-center gap-3 px-4 py-2.5 hover:bg-white bg-zinc-900/[0.10] transition-colors cursor-pointer border-b border-white/[0.02] last:border-0 ${activeBank.bin === b.bin ? 'bg-gold/10' : ''}`}
  >
  {b.logo ? (
  <img src={b.logo} alt={b.shortName} className="h-6 w-10 object-contain rounded bg-zinc-900 px-1 py-0.5 shrink-0" />
@@ -1123,6 +1134,7 @@ export default function SettingsPage() {
  setIsDirty(true);
  setLookupSuccess(null);
  }}
+ onMouseDown={(e) => e.stopPropagation()}
  placeholder="Ví dụ: 0123456789"
  className="bg-gray-800 text-white border-gray-600 rounded-2xl pl-5 pr-12 h-14 text-base text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
  required
@@ -1158,6 +1170,7 @@ export default function SettingsPage() {
  type="text" 
  value={bankAccountHolder}
  onChange={(e) => setBankAccountHolder(e.target.value.toUpperCase())}
+ onMouseDown={(e) => e.stopPropagation()}
  placeholder="Ví dụ: NGUYEN VAN A"
  className="bg-gray-800 text-white border-gray-600 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-gold/50 transition-all w-full font-bold"
  required

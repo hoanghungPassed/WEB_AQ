@@ -103,6 +103,14 @@ interface ApiPost {
   isPinned?: boolean;
 }
 
+const renderSafeString = (val: any, fallback = ""): string => {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val === "object") {
+    return val.name || val.username || val.email || fallback;
+  }
+  return String(val);
+};
+
 export default function NewsfeedPage() {
   const router = useRouter();
   const [user] = useState<NewsfeedUser>(() => {
@@ -114,7 +122,6 @@ export default function NewsfeedPage() {
   const [posts, setPosts] = useState<NewsfeedPost[]>([]);
   const [newPostText, setNewPostText] = useState("");
   const [selectedMockImage, setSelectedMockImage] = useState<string | null>(null);
-  const [showImagePresets, setShowImagePresets] = useState(false);
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   
   // Threaded Comments States
@@ -134,37 +141,46 @@ export default function NewsfeedPage() {
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data)) {
-          const formattedPosts: NewsfeedPost[] = data.map((item: ApiPost) => ({
-            id: item._id,
-            authorName: item.author?.name || "Hệ thống",
-            authorRole: item.author?.role === "01" ? "ADMIN" : item.author?.role === "02" ? "QL CÔNG VIỆC" : item.author?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
-            authorUsername: item.author?.username || "system",
-            authorAvatar: item.author?.avatar || null,
-            text: item.message || item.title || "",
-            imageUrl: item.imageUrl || null,
-            likes: (item.likes || []).length,
-            likedBy: (item.likes || []).map((l: any) => l._id || l),
-            comments: (item.comments || []).map((c: ApiComment) => ({
-              id: c._id,
-              authorName: c.userId?.name || "Người dùng",
-              authorRole: c.userId?.role === "01" ? "ADMIN" : c.userId?.role === "02" ? "QL CÔNG VIỆC" : c.userId?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
-              authorUsername: c.userId?.username || "user",
-              authorAvatar: c.userId?.avatar || null,
-              text: c.content,
-              timestamp: new Date(c.createdAt || Date.now()).toLocaleString("vi-VN"),
-              replies: (c.replies || []).map((r: ApiReply) => ({
-                id: r._id,
-                authorName: r.userId?.name || "Người dùng",
-                authorRole: r.userId?.role === "01" ? "ADMIN" : r.userId?.role === "02" ? "QL CÔNG VIỆC" : r.userId?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN",
-                authorUsername: r.userId?.username || "user",
-                authorAvatar: r.userId?.avatar || null,
-                text: r.content,
-                timestamp: new Date(r.createdAt || Date.now()).toLocaleString("vi-VN"),
-              }))
-            })),
-            timestamp: item.createdAt ? new Date(item.createdAt).toLocaleString("vi-VN") : "",
-            isPinned: item.isPinned || false
-          }));
+          const formattedPosts: NewsfeedPost[] = data.map((item: ApiPost) => {
+            const authorObj = item.author as any;
+            return {
+              id: item._id,
+              authorName: typeof authorObj === 'object' && authorObj ? (authorObj.name || "Hệ thống") : (typeof authorObj === 'string' ? authorObj : "Hệ thống"),
+              authorRole: typeof authorObj === 'object' && authorObj ? (authorObj.role === "01" ? "ADMIN" : authorObj.role === "02" ? "QL CÔNG VIỆC" : authorObj.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN") : "NHÂN VIÊN",
+              authorUsername: typeof authorObj === 'object' && authorObj ? (authorObj.username || "system") : "system",
+              authorAvatar: typeof authorObj === 'object' && authorObj ? (authorObj.avatar || null) : null,
+              text: item.message || item.title || "",
+              imageUrl: item.imageUrl || null,
+              likes: (item.likes || []).length,
+              likedBy: (item.likes || []).map((l: any) => l._id || l),
+              comments: (item.comments || []).map((c: ApiComment) => {
+                const commentUser = c.userId as any;
+                return {
+                  id: c._id,
+                  authorName: typeof commentUser === 'object' && commentUser ? (commentUser.name || "Người dùng") : (typeof commentUser === 'string' ? commentUser : "Người dùng"),
+                  authorRole: typeof commentUser === 'object' && commentUser ? (commentUser.role === "01" ? "ADMIN" : commentUser.role === "02" ? "QL CÔNG VIỆC" : commentUser.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN") : "NHÂN VIÊN",
+                  authorUsername: typeof commentUser === 'object' && commentUser ? (commentUser.username || "user") : "user",
+                  authorAvatar: typeof commentUser === 'object' && commentUser ? (commentUser.avatar || null) : null,
+                  text: c.content,
+                  timestamp: new Date(c.createdAt || Date.now()).toLocaleString("vi-VN"),
+                  replies: (c.replies || []).map((r: ApiReply) => {
+                    const replyUser = r.userId as any;
+                    return {
+                      id: r._id,
+                      authorName: typeof replyUser === 'object' && replyUser ? (replyUser.name || "Người dùng") : (typeof replyUser === 'string' ? replyUser : "Người dùng"),
+                      authorRole: typeof replyUser === 'object' && replyUser ? (replyUser.role === "01" ? "ADMIN" : replyUser.role === "02" ? "QL CÔNG VIỆC" : replyUser.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN") : "NHÂN VIÊN",
+                      authorUsername: typeof replyUser === 'object' && replyUser ? (replyUser.username || "user") : "user",
+                      authorAvatar: typeof replyUser === 'object' && replyUser ? (replyUser.avatar || null) : null,
+                      text: r.content,
+                      timestamp: new Date(r.createdAt || Date.now()).toLocaleString("vi-VN"),
+                    };
+                  })
+                };
+              }),
+              timestamp: item.createdAt ? new Date(item.createdAt).toLocaleString("vi-VN") : "",
+              isPinned: item.isPinned || false
+            };
+          });
           setPosts(formattedPosts);
           return;
         }
@@ -213,7 +229,6 @@ export default function NewsfeedPage() {
         
         setNewPostText("");
         setSelectedMockImage(null);
-        setShowImagePresets(false);
 
         setSuccessToast("Đăng bài viết thành công!");
         setTimeout(() => setSuccessToast(null), 3000);
@@ -531,20 +546,7 @@ export default function NewsfeedPage() {
               )}
             </AnimatePresence>
 
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#ffeb3b]/5 pt-4">
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setShowImagePresets(!showImagePresets)}
-                  className={`h-9 px-4 rounded-xl border text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all duration-300 ${
-                    showImagePresets 
-                      ? "bg-[#ffeb3b]/15 text-[#ffeb3b] border-[#ffeb3b]/30" 
-                      : "bg-[#161616] text-[#a3a3a3] border-[#ffeb3b]/10 hover:bg-[#1f1f1f] hover:text-[#ffeb3b]"
-                  }`}
-                >
-                  <ImageIcon size={14} /> Chọn ảnh mẫu
-                </button>
-              </div>
-
+            <div className="mt-4 flex flex-wrap items-center justify-end gap-3 border-t border-[#ffeb3b]/5 pt-4">
               <button 
                 onClick={handleCreatePost}
                 disabled={!newPostText.trim() && !selectedMockImage}
@@ -553,43 +555,6 @@ export default function NewsfeedPage() {
                 Đăng bài viết
               </button>
             </div>
-
-            {/* Presets Grid */}
-            <AnimatePresence>
-              {showImagePresets && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mt-4 p-5 bg-[#050505]/80 border border-[#ffeb3b]/10 rounded-2xl space-y-3 overflow-hidden shadow-inner"
-                >
-                  <p className="text-[9px] text-[#a3a3a3] font-black uppercase tracking-widest flex items-center gap-1.5">
-                    <Info size={12} className="text-[#ffeb3b]" /> Gợi ý ảnh chất lượng cao cho bản tin:
-                  </p>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&auto=format&fit=crop&q=60", name: "Thành Tích" },
-                      { url: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=500&auto=format&fit=crop&q=60", name: "Đội Ngũ" },
-                      { url: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500&auto=format&fit=crop&q=60", name: "Công Việc" }
-                    ].map((preset, idx) => (
-                      <div 
-                        key={`preset-grid-${idx}`}
-                        onClick={() => {
-                          setSelectedMockImage(preset.url);
-                          setShowImagePresets(false);
-                        }}
-                        className="cursor-pointer h-16 rounded-xl overflow-hidden border border-[#ffeb3b]/10 hover:border-[#ffeb3b] transition-all duration-300 relative group scale-100 hover:scale-105 shadow-md"
-                      >
-                        <Image src={preset.url} alt={preset.name} fill className="object-cover" />
-                        <div className="absolute inset-0 bg-black/60 group-hover:bg-black/30 transition-all flex items-center justify-center">
-                          <span className="text-[9px] text-[#ffffff] font-black uppercase tracking-widest" style={{ color: '#fff' }}>{preset.name}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
 
           {/* Posts Feed Stream */}
@@ -627,19 +592,19 @@ export default function NewsfeedPage() {
                         <div className="flex items-center gap-3">
                           <div className="relative">
                             {post.authorAvatar ? (
-                              <img src={post.authorAvatar} alt={post.authorName} className="h-10 w-10 rounded-full object-cover border-2 border-[#ffeb3b]/20 shadow-md" />
+                              <img src={post.authorAvatar} alt={renderSafeString(post.authorName)} className="h-10 w-10 rounded-full object-cover border-2 border-[#ffeb3b]/20 shadow-md" />
                             ) : (
                               <div className="h-10 w-10 bg-[#ffeb3b]/10 text-[#ffeb3b] border-2 border-[#ffeb3b]/20 rounded-full flex items-center justify-center font-black text-base uppercase shadow-md">
-                                {post.authorName?.charAt?.(0) ?? "?"}
+                                {renderSafeString(post.authorName).charAt(0) || "?"}
                               </div>
                             )}
                             <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#10b981] border-2 border-[#000000] rounded-full" />
                           </div>
                           <div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-sm font-black text-[#ffffff] hover:text-[#ffeb3b] transition-colors" style={{ color: '#fff' }}>{post.authorName ?? "Hệ thống"}</span>
-                              <span className={`px-2 py-0.5 rounded-md text-[7px] font-black tracking-widest uppercase ${getRoleBadgeStyle(post.authorRole)}`}>
-                                {post.authorRole ?? "NHÂN VIÊN"}
+                              <span className="text-sm font-black text-[#ffffff] hover:text-[#ffeb3b] transition-colors" style={{ color: '#fff' }}>{renderSafeString(post.authorName, "Hệ thống")}</span>
+                              <span className={`px-2 py-0.5 rounded-md text-[7px] font-black tracking-widest uppercase ${getRoleBadgeStyle(renderSafeString(post.authorRole))}`}>
+                                {renderSafeString(post.authorRole, "NHÂN VIÊN")}
                               </span>
                               {post.isPinned && (
                                 <span className="px-2.5 py-0.5 rounded-full text-[7px] font-black tracking-widest uppercase bg-[#ffeb3b] text-[#000000] flex items-center gap-1 shadow-[0_0_10px_rgba(255,235,59,0.3)] animate-pulse">
@@ -647,7 +612,7 @@ export default function NewsfeedPage() {
                                 </span>
                               )}
                             </div>
-                            <span className="text-[8px] text-[#a3a3a3] font-mono font-bold mt-0.5 block tracking-wider">{post.timestamp}</span>
+                            <span className="text-[8px] text-[#a3a3a3] font-mono font-bold mt-0.5 block tracking-wider">{renderSafeString(post.timestamp)}</span>
                           </div>
                         </div>
 
@@ -679,7 +644,7 @@ export default function NewsfeedPage() {
 
                       {/* Post Content */}
                       <div className="space-y-3">
-                        <p className="text-xs text-[#d4d4d8] font-bold leading-relaxed whitespace-pre-wrap">{post.text}</p>
+                        <p className="text-xs text-[#d4d4d8] font-bold leading-relaxed whitespace-pre-wrap">{renderSafeString(post.text)}</p>
                         {post.imageUrl && (
                           <div className="rounded-2xl overflow-hidden border border-[#ffeb3b]/10 max-h-[300px] relative h-72 group cursor-pointer shadow-lg">
                             <Image 
@@ -737,10 +702,10 @@ export default function NewsfeedPage() {
                                 {/* Left: Avatar + Connector lines */}
                                 <div className="flex flex-col items-center flex-shrink-0 relative">
                                   {cmt.authorAvatar ? (
-                                    <img src={cmt.authorAvatar} alt={cmt.authorName} className="w-7 h-7 rounded-full object-cover border border-[#ffeb3b]/20 shadow-md" />
+                                    <img src={cmt.authorAvatar} alt={renderSafeString(cmt.authorName)} className="w-7 h-7 rounded-full object-cover border border-[#ffeb3b]/20 shadow-md" />
                                   ) : (
                                     <div className="w-7 h-7 rounded-full bg-[#ffeb3b]/10 text-[#ffeb3b] flex items-center justify-center text-[11px] font-black border border-[#ffeb3b]/20 shadow-md">
-                                      {cmt.authorName.charAt(0)}
+                                      {renderSafeString(cmt.authorName).charAt(0) || "?"}
                                     </div>
                                   )}
                                   
@@ -754,12 +719,12 @@ export default function NewsfeedPage() {
                                 <div className="flex-grow bg-[#121212]/40 rounded-2xl p-3 border border-[#ffeb3b]/5">
                                   <div className="flex flex-wrap items-center justify-between gap-1 mb-1">
                                     <div className="flex items-center gap-2">
-                                      <span className="font-black text-[#ffffff]" style={{ color: '#fff' }}>{cmt.authorName}</span>
-                                      <span className="text-[7px] font-black bg-[#ffeb3b]/5 text-[#ffeb3b] border border-[#ffeb3b]/20 px-1.5 py-0.5 rounded uppercase tracking-wider">{cmt.authorRole}</span>
+                                      <span className="font-black text-[#ffffff]" style={{ color: '#fff' }}>{renderSafeString(cmt.authorName, "Người dùng")}</span>
+                                      <span className="text-[7px] font-black bg-[#ffeb3b]/5 text-[#ffeb3b] border border-[#ffeb3b]/20 px-1.5 py-0.5 rounded uppercase tracking-wider">{renderSafeString(cmt.authorRole, "NHÂN VIÊN")}</span>
                                     </div>
-                                    <span className="text-[8px] font-mono text-[#525252] font-semibold">{cmt.timestamp}</span>
+                                    <span className="text-[8px] font-mono text-[#525252] font-semibold">{renderSafeString(cmt.timestamp)}</span>
                                   </div>
-                                  <p className="text-[#d4d4d8] font-bold pl-0.5">{cmt.text}</p>
+                                  <p className="text-[#d4d4d8] font-bold pl-0.5">{renderSafeString(cmt.text)}</p>
                                   
                                   {/* Reply button link */}
                                   <div className="mt-2 pl-0.5 flex gap-4">
@@ -787,10 +752,10 @@ export default function NewsfeedPage() {
 
                                       {/* Reply Avatar */}
                                       {reply.authorAvatar ? (
-                                        <img src={reply.authorAvatar} alt={reply.authorName} className="w-5.5 h-5.5 rounded-full object-cover border border-[#ffeb3b]/20 flex-shrink-0 shadow-sm" />
+                                        <img src={reply.authorAvatar} alt={renderSafeString(reply.authorName)} className="w-5.5 h-5.5 rounded-full object-cover border border-[#ffeb3b]/20 flex-shrink-0 shadow-sm" />
                                       ) : (
                                         <div className="w-5.5 h-5.5 rounded-full bg-[#ffeb3b]/10 text-[#ffeb3b] flex items-center justify-center text-[9px] font-black border border-[#ffeb3b]/20 flex-shrink-0 shadow-sm">
-                                          {reply.authorName.charAt(0)}
+                                          {renderSafeString(reply.authorName).charAt(0) || "?"}
                                         </div>
                                       )}
 
@@ -798,12 +763,12 @@ export default function NewsfeedPage() {
                                       <div className="flex-grow bg-[#161616]/40 border border-[#ffeb3b]/5 rounded-xl p-2.5">
                                         <div className="flex flex-wrap items-center justify-between gap-1 mb-1">
                                           <div className="flex items-center gap-1.5">
-                                            <span className="font-black text-[#ffffff]" style={{ color: '#fff' }}>{reply.authorName}</span>
-                                            <span className="text-[6px] font-black bg-[#ffeb3b]/5 text-[#ffeb3b] border border-[#ffeb3b]/20 px-1 py-0.5 rounded uppercase tracking-wider">{reply.authorRole}</span>
+                                            <span className="font-black text-[#ffffff]" style={{ color: '#fff' }}>{renderSafeString(reply.authorName, "Người dùng")}</span>
+                                            <span className="text-[6px] font-black bg-[#ffeb3b]/5 text-[#ffeb3b] border border-[#ffeb3b]/20 px-1 py-0.5 rounded uppercase tracking-wider">{renderSafeString(reply.authorRole, "NHÂN VIÊN")}</span>
                                           </div>
-                                          <span className="text-[8px] font-mono text-[#525252] font-semibold">{reply.timestamp}</span>
+                                          <span className="text-[8px] font-mono text-[#525252] font-semibold">{renderSafeString(reply.timestamp)}</span>
                                         </div>
-                                        <p className="text-[#a3a3a3] font-bold">{reply.text}</p>
+                                        <p className="text-[#a3a3a3] font-bold">{renderSafeString(reply.text)}</p>
                                       </div>
                                     </div>
                                   ))}
@@ -920,29 +885,6 @@ export default function NewsfeedPage() {
               <div>
                 <span className="text-[8px] font-black text-[#a3a3a3] uppercase tracking-widest block">Mã số AQ ID</span>
                 <span className="text-[11px] font-mono font-bold text-[#ffffff] mt-0.5 block truncate" style={{ color: '#fff' }}>#{user?.id || "N/A"}</span>
-              </div>
-            </div>
-
-            {/* Gamification Progress Indicators */}
-            <div className="border-t border-[#ffeb3b]/5 mt-4 pt-4 text-left space-y-3">
-              <div>
-                <div className="flex justify-between items-center text-[8px] font-black text-[#a3a3a3] uppercase tracking-widest mb-1">
-                  <span>Điểm hoạt động (Activity)</span>
-                  <span className="text-[#ffeb3b]">92%</span>
-                </div>
-                <div className="bg-[#161616] h-1.5 rounded-full overflow-hidden border border-[#ffeb3b]/5">
-                  <div className="bg-[#ffeb3b] h-full rounded-full w-[92%]" />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center text-[8px] font-black text-[#a3a3a3] uppercase tracking-widest mb-1">
-                  <span>Đóng góp bài viết (Posts)</span>
-                  <span className="text-[#ffeb3b]">74%</span>
-                </div>
-                <div className="bg-[#161616] h-1.5 rounded-full overflow-hidden border border-[#ffeb3b]/5">
-                  <div className="bg-gradient-to-r from-[#ffeb3b]/40 to-[#ffeb3b] h-full rounded-full w-[74%]" />
-                </div>
               </div>
             </div>
           </div>
