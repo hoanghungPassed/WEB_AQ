@@ -1013,8 +1013,19 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   )}
 
  {isStaff && type ==="SATELLITE" && !selectedBatch ? (
- <h3 className="text-xl font-black text-white uppercase tracking-tighter group-hover:text-gold transition-colors">{batch.name}</h3>
- <p className="text-sm text-gray-500 mt-2 font-medium">Bấm vào để xem và xử lý các mail trong lô này.</p>
+ <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+ {(staffBatches || []).map(batch => (
+ <button
+ key={batch.id}
+ onClick={() => setSelectedBatch(batch.name)}
+ className="group text-left bg-zinc-900 hover:bg-zinc-800/80 border border-zinc-800 rounded-xl p-6 transition-all hover:border-[#a07800]/30 flex flex-col shadow-sm"
+ >
+ <div className="flex items-center justify-between mb-4 w-full">
+ <span className="text-[10px] font-bold text-[#a07800] bg-[#a07800]/10 px-2.5 py-1 rounded-lg border border-[#a07800]/20 uppercase tracking-wider">{batch.count} Mail</span>
+ <ChevronRight size={18} className="text-zinc-500 group-hover:text-[#a07800] group-hover:translate-x-1 transition-all" />
+ </div>
+ <h3 className="text-lg font-bold text-zinc-100 uppercase tracking-tight group-hover:text-[#a07800] transition-colors">{batch.name}</h3>
+ <p className="text-xs text-zinc-400 mt-2 font-medium">Bấm vào để xem và xử lý các mail trong lô này.</p>
  </button>
  ))}
  </div>

@@ -181,253 +181,260 @@ export default function MailDetailModal({
 
  const updatedAtStr = formatUpdatedAt(mail.updatedAt || mail.lastUpdated);
 
- return (
- <motion.div
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- exit={{ opacity: 0 }}
- className="fixed inset-0 z-[400] bg-white/95 bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4"
- >
- <motion.div
- initial={{ scale: 0.95, y: 20 }}
- animate={{ scale: 1, y: 0 }}
- className="bg-gray-900 border border-white/10 w-full max-w-4xl rounded-[40px] p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col max-h-[90vh]"
- >
- <div className="absolute top-0 right-0 h-96 w-96 bg-gold/5 blur-[120px] -mr-48 -mt-48" />
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[400] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 10 }}
+        animate={{ scale: 1, y: 0 }}
+        className="bg-zinc-900 border border-zinc-800 w-full max-w-2xl rounded-2xl p-6 shadow-xl relative overflow-hidden flex flex-col max-h-[90vh]"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6 relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20 shadow-sm font-bold">
+              {type === "ROOT" ? (
+                <Database size={24} />
+              ) : type === "SATELLITE" ? (
+                <ExternalLink size={24} />
+              ) : (
+                <Mail size={24} />
+              )}
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-zinc-100 uppercase tracking-tight">
+                {type === "ROOT"
+                  ? "Chi tiết Mail Gốc"
+                  : type === "SATELLITE"
+                  ? "Chi tiết Mail Vệ Tinh"
+                  : "Cấu hình Kiếm Tiền"}
+              </h2>
+              <p className="text-xs text-zinc-400 font-semibold tracking-wide mt-0.5">
+                {mail?.email}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="h-8 w-8 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-full flex items-center justify-center border border-zinc-700/50 transition-all"
+          >
+            <X size={16} />
+          </button>
+        </div>
 
- {/* Header */}
- <div className="flex items-center justify-between mb-8 relative z-10">
- <div className="flex items-center gap-4">
- <div className="h-14 w-14 rounded-2xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 shadow-lg font-black">
- {type ==="ROOT" ? (
- <Database size={28} />
- ) : type ==="SATELLITE" ? (
- <ExternalLink size={28} />
- ) : (
- <Mail size={28} />
- )}
- </div>
- <div>
- <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
- {type ==="ROOT"
- ?"Chi tiết Mail Gốc"
- : type ==="SATELLITE"
- ?"Chi tiết Mail Vệ Tinh"
- :"Cấu hình Kiếm Tiền"}
- </h2>
- <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">
- {mail?.email}
- </p>
- </div>
- </div>
- <button
- onClick={onClose}
- className="h-10 w-10 bg-white/5 hover:bg-white/10 text-white rounded-full flex items-center justify-center border border-white/10 transition-all"
- >
- <X size={20} />
- </button>
- </div>
+        {/* Body */}
+        <div className="space-y-5 relative z-10 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+          {type === "ROOT" && (
+            <>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">
+                  Quét lại CCCD vào ngày
+                </label>
+                <input
+                  type="date"
+                  value={cccdDate}
+                  onChange={(e) => setCccdDate(e.target.value)}
+                  className="w-full h-12 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-zinc-100 text-sm outline-none focus:border-amber-500/50 transition-all cursor-pointer"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">
+                  Tình trạng xác minh
+                </label>
+                <select
+                  value={verificationStatus}
+                  onChange={(e) => setVerificationStatus(e.target.value)}
+                  className="w-full h-12 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-zinc-100 text-sm outline-none focus:border-amber-500/50 transition-all cursor-pointer"
+                >
+                  <option value="Mail veri" className="bg-zinc-900 text-zinc-100">
+                    Mail veri
+                  </option>
+                  <option value="Đã xanh" className="bg-zinc-900 text-zinc-100">
+                    Đã xanh
+                  </option>
+                  <option value="Chưa xanh" className="bg-zinc-900 text-zinc-100">
+                    Chưa xanh
+                  </option>
+                  <option value="Quét CCCD" className="bg-zinc-900 text-zinc-100">
+                    Quét CCCD
+                  </option>
+                </select>
+              </div>
+            </>
+          )}
 
- {/* Body */}
- <div className="space-y-6 relative z-10 flex-1 overflow-y-auto pr-2 custom-scrollbar">
- {type ==="ROOT" && (
- <>
- <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
- Quét lại CCCD vào ngày
- </label>
- <input
- type="date"
- value={cccdDate}
- onChange={(e) => setCccdDate(e.target.value)}
- className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-base outline-none focus:border-gold/50 transition-all cursor-pointer"
- />
- </div>
- <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
- Tình trạng xác minh
- </label>
- <select
- value={verificationStatus}
- onChange={(e) => setVerificationStatus(e.target.value)}
- className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-base outline-none focus:border-gold/50 transition-all cursor-pointer"
- >
- <option value="Mail veri" className="bg-sidebar text-white">
- Mail veri
- </option>
- <option value="Đã xanh" className="bg-sidebar text-white">
- Đã xanh
- </option>
- <option value="Chưa xanh" className="bg-sidebar text-white">
- Chưa xanh
- </option>
- <option value="Quét CCCD" className="bg-sidebar text-white">
- Quét CCCD
- </option>
- </select>
- </div>
- </>
- )}
+          {type === "SATELLITE" && (
+            <>
+              {[0, 1, 2].map((idx) => (
+                <div key={idx} className="space-y-2">
+                  <div className="flex items-center justify-between ml-1">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                      Link YouTube {idx + 1}
+                    </label>
+                    {names[idx] && (
+                      <span className={`text-[10px] font-bold uppercase ${
+                        validationErrors[idx] ? "text-red-400" : "text-amber-500"
+                      }`}>
+                        {names[idx]}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      value={links[idx] || ""}
+                      onChange={(e) => handleLinkChange(idx, e.target.value)}
+                      placeholder="Dán link channel YouTube..."
+                      className={`flex-1 h-12 bg-zinc-950 border rounded-xl px-4 text-zinc-100 text-sm outline-none transition-all ${
+                        validationErrors[idx]
+                          ? "border-red-500/50 focus:border-red-500 bg-red-500/5"
+                          : "border-zinc-800 focus:border-amber-500/50"
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!links[idx] || links[idx].trim() === "") return;
+                        const newErrors = [...linkErrors];
+                        newErrors[idx] = !newErrors[idx];
+                        setLinkErrors(newErrors);
+                      }}
+                      disabled={!links[idx] || links[idx].trim() === ""}
+                      title={
+                        !links[idx] || links[idx].trim() === ""
+                          ? "Cần điền link YouTube trước"
+                          : ""
+                      }
+                      className={`h-12 px-4 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all border flex items-center gap-1.5 flex-shrink-0 ${
+                        !links[idx] || links[idx].trim() === ""
+                          ? "bg-zinc-900 border-zinc-800 cursor-not-allowed opacity-40 text-zinc-500"
+                          : linkErrors[idx]
+                          ? "bg-red-600 text-white border-red-600 hover:bg-red-700 shadow-sm"
+                          : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"
+                      }`}
+                    >
+                      <AlertCircle size={14} />
+                      {linkErrors[idx] ? "Lỗi" : "Báo Lỗi"}
+                    </button>
+                    {isAdminOrManager && (
+                      <button
+                        onClick={() => {
+                          if (!links[idx] || links[idx].trim() === "") return;
+                          const newEligible = [...eligibleChannels];
+                          newEligible[idx] = !newEligible[idx];
+                          setEligibleChannels(newEligible);
+                        }}
+                        disabled={!links[idx] || links[idx].trim() === ""}
+                        title={
+                          !links[idx] || links[idx].trim() === ""
+                            ? "Cần điền link YouTube trước khi đánh dấu đủ giờ"
+                            : ""
+                        }
+                        className={`h-12 px-4 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all border flex items-center gap-1.5 flex-shrink-0 ${
+                          !links[idx] || links[idx].trim() === ""
+                            ? "bg-zinc-900 border-zinc-800 cursor-not-allowed opacity-40 text-zinc-500"
+                            : eligibleChannels[idx]
+                            ? "bg-amber-600 text-white border-amber-600 shadow-sm"
+                            : "bg-zinc-800 text-zinc-300 border-zinc-700/50 hover:border-amber-500/30 hover:text-amber-500"
+                        }`}
+                      >
+                        <CheckCircle size={14} />
+                        {eligibleChannels[idx] ? "Đủ giờ" : "Đủ giờ"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
 
- {type ==="SATELLITE" && (
- <>
- {[0, 1, 2].map((idx) => (
- <div key={idx} className="space-y-2">
- <div className="flex items-center justify-between ml-1">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
- Link YouTube {idx + 1}
- </label>
- {names[idx] && (
- <span className={`text-[10px] font-black uppercase ${
- validationErrors[idx] ?"text-red-400" :"text-gold"
- }`}>
- {names[idx]}
- </span>
- )}
- </div>
- <div className="flex items-center gap-3">
- <input
- value={links[idx] ||""}
- onChange={(e) => handleLinkChange(idx, e.target.value)}
- placeholder="Dán link channel YouTube..."
- className={`flex-1 h-14 bg-white/5 border rounded-2xl px-6 text-white text-base outline-none transition-all ${
- validationErrors[idx]
- ?"border-red-500/50 focus:border-red-500 bg-red-500/5 shadow-[0_0_15px_rgba(239,68,68,0.1)]"
- :" border-white/10 focus:border-gold/50"
- }`}
- />
- <button
- type="button"
- onClick={() => {
- if (!links[idx] || links[idx].trim() ==="") return;
- const newErrors = [...linkErrors];
- newErrors[idx] = !newErrors[idx];
- setLinkErrors(newErrors);
- }}
- disabled={!links[idx] || links[idx].trim() ===""}
- title={
- !links[idx] || links[idx].trim() ===""
- ?"Cần điền link YouTube trước"
- :""
- }
- className={`h-14 px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border flex items-center gap-2 flex-shrink-0 ${
- !links[idx] || links[idx].trim() ===""
- ?" bg-white/[0.02] border-white/5 cursor-not-allowed opacity-40"
- : linkErrors[idx]
- ?"bg-red-600 text-white border-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20"
- :"bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40"
- }`}
- >
- <AlertCircle size={16} />
- {linkErrors[idx] ?"Lỗi" :"Báo Lỗi"}
- </button>
- {isAdminOrManager && (
- <button
- onClick={() => {
- if (!links[idx] || links[idx].trim() ==="") return;
- const newEligible = [...eligibleChannels];
- newEligible[idx] = !newEligible[idx];
- setEligibleChannels(newEligible);
- }}
- disabled={!links[idx] || links[idx].trim() ===""}
- title={
- !links[idx] || links[idx].trim() ===""
- ?"Cần điền link YouTube trước khi đánh dấu đủ giờ"
- :""
- }
- className={`h-14 px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border flex items-center gap-2 flex-shrink-0 ${
- !links[idx] || links[idx].trim() ===""
- ?" bg-white/[0.02] border-white/5 cursor-not-allowed opacity-40"
- : eligibleChannels[idx]
- ?"bg-gold text-sidebar border-gold shadow-lg shadow-gold/20"
- :" bg-white/5 text-gray-400 border-white/10 hover:border-gold/30 hover:text-gold"
- }`}
- >
- <CheckCircle size={16} />
- {eligibleChannels[idx] ?"Đủ giờ" :"Đánh dấu"}
- </button>
- )}
- </div>
- </div>
- ))}
- </>
- )}
+          {type === "MONETIZED" && (
+            <>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">
+                  Ngày bấm lại
+                </label>
+                <input
+                  type="date"
+                  value={reClickDate}
+                  onChange={(e) => setReClickDate(e.target.value)}
+                  className="w-full h-12 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-zinc-100 text-sm outline-none focus:border-amber-500/50 transition-all cursor-pointer"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">
+                  Chờ bước 2
+                </label>
+                <input
+                  type="date"
+                  value={step2PendingDate}
+                  onChange={(e) => setStep2PendingDate(e.target.value)}
+                  className="w-full h-12 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-zinc-100 text-sm outline-none focus:border-amber-500/50 transition-all cursor-pointer"
+                />
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">
+                  Trạng thái chi tiết
+                </label>
+                <div className="grid grid-cols-2 gap-3.5">
+                  {["Chờ bước 3", "Mất kênh", "Chưa SUB", "DONE", "Gắn lại gà", "Die Spam", "Chưa Done"].map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => setChannelStatusDetail(status)}
+                      className={`h-11 rounded-xl font-bold text-[10px] uppercase tracking-wider border transition-all ${
+                        channelStatusDetail === status
+                          ? "bg-amber-500/20 text-amber-500 border-amber-500/30 shadow-sm"
+                          : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:bg-zinc-800"
+                      }`}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
- {type ==="MONETIZED" && (
- <>
- <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
- Ngày bấm lại
- </label>
- <input
- type="date"
- value={reClickDate}
- onChange={(e) => setReClickDate(e.target.value)}
- className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-base outline-none focus:border-gold/50 transition-all cursor-pointer"
- />
- </div>
- <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
- Chờ bước 2
- </label>
- <input
- type="date"
- value={step2PendingDate}
- onChange={(e) => setStep2PendingDate(e.target.value)}
- className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-base outline-none focus:border-gold/50 transition-all cursor-pointer"
- />
- </div>
- <div className="space-y-3">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
- Trạng thái chi tiết
- </label>
- <div className="grid grid-cols-2 gap-3">
- {["Chờ bước 3","Mất kênh","Chưa SUB","DONE","Gắn lại gà","Die Spam","Chưa Done"
- ].map((status) => (
- <button
- key={status}
- type="button"
- onClick={() => setChannelStatusDetail(status)}
- className={`h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest border transition-all ${
- channelStatusDetail === status
- ?"bg-gold/20 text-gold border-gold/45 shadow-lg shadow-gold/5"
- :" bg-white/5 text-gray-400 border-white/10 hover:bg-white/10"
- }`}
- >
- {status}
- </button>
- ))}
- </div>
- </div>
- </>
- )}
- </div>
+        {/* Footer */}
+        <div className="grid grid-cols-2 gap-4 mt-6 relative z-10 pt-4 border-t border-zinc-800">
+          <button
+            onClick={onClose}
+            className="h-12 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl font-bold uppercase text-xs tracking-wider transition-all"
+          >
+            Đóng
+          </button>
+          <button
+            onClick={handleSave}
+            className="h-12 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-amber-600/10"
+          >
+            Lưu cập nhật
+          </button>
+        </div>
 
- {/* Footer */}
- <div className="grid grid-cols-2 gap-4 mt-8 relative z-10 pt-4 border-t border-white/5">
- <button
- onClick={onClose}
- className="h-14 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-sm tracking-widest transition-all"
- >
- Đóng
- </button>
- <button
- onClick={handleSave}
- className="h-14 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
- >
- Lưu cập nhật
- </button>
- </div>
-
- {/* Update History Footer */}
- <div className="flex items-center justify-center mt-4 relative z-10">
- <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-gold/30 bg-gold/10">
- <span className="text-[10px] font-black text-gold/80 uppercase tracking-widest">
- Cập nhật lần cuối ngày: <span className="text-white font-mono">{updatedAtStr ||"---"}</span> {mail.updatedBy && <>- Người sửa: <span className="text-white">{mail.updatedBy}</span></>}
- </span>
- </div>
- </div>
- </motion.div>
- </motion.div>
- );
+        {/* Update History Footer */}
+        <div className="flex items-center justify-center mt-4 relative z-10">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-950">
+            <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">
+              Cập nhật lần cuối ngày: <span className="text-zinc-100 font-mono font-bold">{updatedAtStr || "---"}</span> 
+              {mail.updatedBy && (
+                <>
+                  {" "} - Người sửa:{" "}
+                  <span className="text-amber-500 font-bold">
+                    {typeof mail.updatedBy === "object"
+                      ? (mail.updatedBy?.name || mail.updatedBy?.username || "Hệ thống")
+                      : String(mail.updatedBy)}
+                  </span>
+                </>
+              )}
+            </span>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
 }

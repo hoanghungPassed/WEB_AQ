@@ -24,3 +24,25 @@ export async function POST(req: Request) {
  return NextResponse.json({ success: false, error: error.message }, { status: 500 });
  }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const userId = req.headers.get("x-user-id");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    await dbConnect();
+    await Log.deleteMany({});
+    
+    try {
+      const { logAction } = await import('@/lib/logger');
+      await logAction(userId, "Đã xóa toàn bộ nhật ký hệ thống", "Dọn dẹp nhật ký.");
+    } catch (logErr) {
+      console.error("Log action err:", logErr);
+    }
+
+    return NextResponse.json({ success: true, message: "Cleared all logs" });
+  } catch (error: any) {
+    console.error("Error clearing system logs:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
