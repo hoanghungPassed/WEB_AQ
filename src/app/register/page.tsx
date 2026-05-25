@@ -91,89 +91,111 @@ export default function RegisterPage() {
 
  setIsLoading(true);
 
- // Lấy danh sách user mới nhất từ server trước khi đăng ký để tránh ghi đè hoặc trùng lặp
- let existingUsers: any[] = [];
- try {
- const res = await fetch("/api/sync");
- if (res.ok) {
- const serverStore = await res.json();
- if (serverStore.global_users) {
- existingUsers = JSON.parse(serverStore.global_users);
- localStorage.setItem("global_users", serverStore.global_users);
- } else {
- existingUsers = JSON.parse(localStorage.getItem("global_users") ||"[]");
- }
- } else {
- existingUsers = JSON.parse(localStorage.getItem("global_users") ||"[]");
- }
- } catch (err) {
- console.error("Register check fetch error:", err);
- existingUsers = JSON.parse(localStorage.getItem("global_users") ||"[]");
- }
+  // 1. Gọi API đăng ký lưu vào MongoDB
+  let createdUserOnServer: any = null;
+  try {
+    const regRes = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+    const regData = await regRes.json();
+    if (!regRes.ok) {
+      setErrors({ username: regData.error || "Đăng ký thất bại" });
+      setIsLoading(false);
+      return;
+    }
+    createdUserOnServer = regData.user;
+  } catch (err: any) {
+    console.error("Register API call failed:", err);
+    setErrors({ username: "Không thể kết nối máy chủ" });
+    setIsLoading(false);
+    return;
+  }
 
- if (existingUsers.some((u: any) => u.username === formData.username)) {
- setErrors({ username:"Username đã tồn tại" });
- setIsLoading(false);
- return;
- }
+  // 2. Lấy danh sách user từ SyncStore để đồng bộ tính tương thích
+  let existingUsers: any[] = [];
+  try {
+    const res = await fetch("/api/sync");
+    if (res.ok) {
+      const serverStore = await res.json();
+      if (serverStore.global_users) {
+        existingUsers = JSON.parse(serverStore.global_users);
+        localStorage.setItem("global_users", serverStore.global_users);
+      } else {
+        existingUsers = JSON.parse(localStorage.getItem("global_users") || "[]");
+      }
+    } else {
+      existingUsers = JSON.parse(localStorage.getItem("global_users") || "[]");
+    }
+  } catch (err) {
+    console.error("Register check fetch error:", err);
+    existingUsers = JSON.parse(localStorage.getItem("global_users") || "[]");
+  }
 
- // Giả lập độ trễ mạng ngắn
- await new Promise((resolve) => setTimeout(resolve, 800));
+  const newUser = {
+    id: createdUserOnServer.id || createdUserOnServer._id?.toString() || Date.now().toString(),
+    name: createdUserOnServer.name,
+    birthYear: createdUserOnServer.birthYear,
+    username: createdUserOnServer.username,
+    phone: createdUserOnServer.phone,
+    address: createdUserOnServer.address,
+    status: "PENDING",
+    role: createdUserOnServer.role || "05",
+    isOnline: false,
+    taskCount: 0,
+    kpiProgress: 0,
+    lastActive: "Mới đăng ký"
+  };
 
- const newUser = {
- id: Date.now().toString(),
- ...formData,
- status:"PENDING",
- role: undefined,
- isOnline: false,
- taskCount: 0,
- kpiProgress: 0,
- lastActive:"Mới đăng ký"
- };
+  // Loại bỏ trùng lặp nếu có trong global_users
+  existingUsers = existingUsers.filter((u: any) => u.username !== newUser.username);
+  existingUsers.push(newUser);
+  localStorage.setItem("global_users", JSON.stringify(existingUsers));
 
- existingUsers.push(newUser);
- localStorage.setItem("global_users", JSON.stringify(existingUsers));
+  // 3. Tạo thông báo cho Admin qua SyncStore
+  let notifications = [];
+  try {
+    const res = await fetch("/api/sync");
+    if (res.ok) {
+      const serverStore = await res.json();
+      if (serverStore.admin_notifications) {
+        notifications = JSON.parse(serverStore.admin_notifications);
+      }
+    }
+  } catch (err) {
+    console.error("Register fetch notifs error:", err);
+  }
+  
+  // Loại bỏ thông báo đăng ký cũ của cùng username nếu có để tránh trùng
+  notifications = notifications.filter((n: any) => n.userId !== newUser.id && !(n.type === "REGISTRATION" && n.message.includes(`@${newUser.username}`)));
 
- // Tạo thông báo cho Admin
- let notifications = [];
- try {
- const res = await fetch("/api/sync");
- if (res.ok) {
- const serverStore = await res.json();
- if (serverStore.admin_notifications) {
- notifications = JSON.parse(serverStore.admin_notifications);
- }
- }
- } catch (err) {
- console.error("Register fetch notifs error:", err);
- }
- 
- notifications.unshift({
- id: Date.now(),
- title:"Yêu cầu phê duyệt mới",
- message: `Tài khoản ${formData.name} (@${formData.username}) vừa đăng ký và đang chờ duyệt.`,
- time:"Vừa xong",
- type:"REGISTRATION",
- userId: newUser.id,
- read: false
- });
- localStorage.setItem("admin_notifications", JSON.stringify(notifications));
+  notifications.unshift({
+    id: Date.now(),
+    title: "Yêu cầu phê duyệt mới",
+    message: `Tài khoản ${formData.name} (@${formData.username}) vừa đăng ký và đang chờ duyệt.`,
+    time: "Vừa xong",
+    type: "REGISTRATION",
+    userId: newUser.id,
+    read: false
+  });
+  localStorage.setItem("admin_notifications", JSON.stringify(notifications));
 
- // Đồng bộ ngay lập tức lên server để Admin nhận được trong thời gian thực!
- try {
- await fetch("/api/sync", {
- method:"POST",
- headers: {"Content-Type":"application/json" },
- body: JSON.stringify({
- global_users: JSON.stringify(existingUsers),
- admin_notifications: JSON.stringify(notifications)
- })
- });
- } catch (err) {
- console.error("Register publish error:", err);
- }
+  // 4. Đồng bộ dữ liệu lên SyncStore để tất cả client nhận được trong thời gian thực!
+  try {
+    await fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        global_users: JSON.stringify(existingUsers),
+        admin_notifications: JSON.stringify(notifications)
+      })
+    });
+  } catch (err) {
+    console.error("Register publish error:", err);
+  }
 
- setSuccess(true);
+  setSuccess(true);
  setTimeout(() => {
  router.push("/login?message=pending");
  }, 3000);

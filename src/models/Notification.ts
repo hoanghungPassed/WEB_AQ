@@ -19,6 +19,7 @@ export interface INotification extends Document {
  }[];
  }[];
  isPinned?: boolean;
+ isRead?: boolean;
  createdAt: Date;
  updatedAt: Date;
 }
@@ -47,8 +48,14 @@ const NotificationSchema: Schema = new Schema(
  }
  ],
  isPinned: { type: Boolean, default: false }
+ ,
+ isRead: { type: Boolean, default: false },
  },
- { timestamps: true }
+ {
+	 timestamps: true,
+	 toJSON: { virtuals: true },
+	 toObject: { virtuals: true }
+ }
 );
 
 if (mongoose.models.Notification) {
@@ -56,3 +63,12 @@ if (mongoose.models.Notification) {
 }
 
 export const Notification: Model<INotification> = mongoose.model<INotification>("Notification", NotificationSchema,"notifications");
+
+// Add a virtual `read` property that maps to `isRead` to match frontend expectations
+NotificationSchema.virtual('read')
+	.get(function (this: any) {
+		return this.isRead;
+	})
+	.set(function (this: any, val: boolean) {
+		this.isRead = val;
+	});

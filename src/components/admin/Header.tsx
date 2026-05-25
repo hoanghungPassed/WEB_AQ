@@ -62,6 +62,13 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
         const res = await fetch('/api/admin/notifications');
         if (res.ok) stored = await res.json();
       } catch (err) {}
+      
+      // Nạp thêm thông báo hệ thống (như đăng ký mới, cập nhật role) từ localStorage admin_notifications
+      let adminNotifs = [];
+      try {
+        adminNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
+      } catch (err) {}
+
       const roleUpper = String(user?.role || "").toUpperCase();
       const isAuthorizedManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
       let accessNotifs: any[] = [];
@@ -77,7 +84,9 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           data: req
         }));
       }
-      setNotifications([...stored, ...accessNotifs]);
+      
+      // Kết hợp tất cả các nguồn thông báo
+      setNotifications([...stored, ...adminNotifs, ...accessNotifs]);
     };
 
     loadNotifs();
@@ -116,8 +125,18 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
       return n;
     });
     setNotifications(updated);
-    const persistable = (updated || []).filter(n => !String(n.id).startsWith("access-"));
-    localStorage.setItem("admin_notifications", JSON.stringify(persistable));
+    
+    // Chỉ cập nhật trạng thái đã đọc cho các thông báo hệ thống nằm trong localStorage
+    try {
+      const originalAdminNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
+      const updatedAdminNotifs = originalAdminNotifs.map((an: any) => {
+        const match = updated.find(u => String(u.id) === String(an.id));
+        return match ? { ...an, read: match.read } : an;
+      });
+      localStorage.setItem("admin_notifications", JSON.stringify(updatedAdminNotifs));
+    } catch (e) {
+      console.error("Error saving admin_notifications:", e);
+    }
     window.dispatchEvent(new Event("storage"));
   };
 
@@ -129,8 +148,20 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
       return n;
     });
     setNotifications(updated);
-    const persistable = (updated || []).filter(n => !String(n.id).startsWith("access-"));
-    localStorage.setItem("admin_notifications", JSON.stringify(persistable));
+    
+    // Chỉ cập nhật trạng thái đã đọc cho đúng thông báo hệ thống trong localStorage
+    try {
+      const originalAdminNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
+      const updatedAdminNotifs = originalAdminNotifs.map((an: any) => {
+        if (String(an.id) === String(id)) {
+          return { ...an, read: true };
+        }
+        return an;
+      });
+      localStorage.setItem("admin_notifications", JSON.stringify(updatedAdminNotifs));
+    } catch (e) {
+      console.error("Error saving single admin_notification:", e);
+    }
     window.dispatchEvent(new Event("storage"));
   };
 
