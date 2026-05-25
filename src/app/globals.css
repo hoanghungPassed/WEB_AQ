@@ -1,13 +1,14 @@
 @import "tailwindcss";
+
 :root {
   color-scheme: dark;
-  --background: #000000;
-  --foreground: #ffeb3b;
-  --surface: #090909;
-  --surface-strong: #111111;
-  --border: rgba(255, 235, 59, 0.12);
-  --accent: #ffeb3b;
-  --danger: #ff3b3b;
+  --background: #09090b;
+  --foreground: #f4f4f5;
+  --surface: #18181b;
+  --surface-strong: #18181b;
+  --border: #27272a;
+  --accent: #a07800;
+  --danger: #ef4444;
 }
 
 body {
@@ -31,52 +32,37 @@ input, select, button, span, p, a, h1, h2, h3, h4 {
 
 @layer utilities {
   .bg-sidebar {
-    background-color: var(--surface-strong) !important;
+    background-color: var(--surface-strong);
   }
   .bg-panel {
-    background-color: var(--surface) !important;
+    background-color: var(--surface);
   }
   .text-sidebar {
-    color: var(--foreground) !important;
+    color: var(--foreground);
   }
   .text-accent {
-    color: var(--accent) !important;
+    color: var(--accent);
   }
   .bg-gold {
-    background-color: var(--accent) !important;
+    background-color: var(--accent);
   }
   .text-gold {
-    color: var(--accent) !important;
+    color: var(--accent);
   }
   .border-gold {
-    border-color: var(--accent) !important;
+    border-color: var(--accent);
   }
   .bg-red-500 {
-    background-color: var(--danger) !important;
+    background-color: var(--danger);
   }
   .text-red-500 {
-    color: var(--danger) !important;
+    color: var(--danger);
   }
   .border-red-500 {
-    border-color: var(--danger) !important;
+    border-color: var(--danger);
   }
   .bg-zinc-900 {
-    background-color: var(--surface-strong) !important;
-  }
-  .text-white {
-    color: var(--accent) !important;
-  }
-  .text-black {
-    color: var(--accent) !important;
-  }
-  [class*="text-gray"] {
-    color: var(--accent) !important;
-  }
-  [class*="border-white"] {
-    border-color: rgba(255, 235, 59, 0.15) !important;
-  }
-  [class*="bg-white"] {
-    background-color: rgba(255, 235, 59, 0.06) !important;
+    background-color: var(--surface-strong);
   }
 }
 
@@ -107,5 +93,5 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 dark:bg-zinc-700 rounded-full hover:bg-amber-500 dark:hover:bg-amber-400;
+  @apply bg-zinc-800 rounded-full hover:bg-zinc-700;
 }

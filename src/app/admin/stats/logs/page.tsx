@@ -56,14 +56,18 @@ export default function SystemLogsPage() {
  if (response.ok) {
  const data = await response.json();
  if (Array.isArray(data)) {
- const normalizedLogs = data.map((log: any) => ({
+ const normalizedLogs = data.map((log: any) => {
+ const userVal = log.user;
+ const userDisplay = log.userName || (typeof userVal === "object" ? (userVal?.name || userVal?.username || "Hệ thống") : (userVal || "Hệ thống"));
+ return {
  id: log._id || log.id,
- user: log.userName || log.user ||"Hệ thống",
+ user: userDisplay,
  role: log.role ||"ADMIN",
  action: log.action || log.message ||"",
  type: log.type ||"INFO",
  timestamp: log.timestamp ? new Date(log.timestamp).toLocaleString("vi-VN") : (log.createdAt ? new Date(log.createdAt).toLocaleString("vi-VN") :"")
- }));
+ };
+ });
  setLogs(normalizedLogs);
  return;
  }
@@ -102,13 +106,13 @@ export default function SystemLogsPage() {
  return" text-gray-400";
  };
 
- const filteredLogs = (logs || []).filter(l => {
- const matchesSearch = l.action.toLowerCase().includes(searchTerm.toLowerCase()) || 
- l.user.toLowerCase().includes(searchTerm.toLowerCase());
- const matchesType = typeFilter ==="ALL" || l.type === typeFilter;
- const matchesRole = roleFilter ==="ALL" || l.role === roleFilter;
- return matchesSearch && matchesType && matchesRole;
- });
+  const filteredLogs = (logs || []).filter(l => {
+    const matchesSearch = (l.action || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (l.user || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = typeFilter ==="ALL" || l.type === typeFilter;
+    const matchesRole = roleFilter ==="ALL" || l.role === roleFilter;
+    return matchesSearch && matchesType && matchesRole;
+  });
 
  return (
  <div className="h-[calc(100vh-100px)] flex flex-col space-y-6 pb-6 relative overflow-hidden">

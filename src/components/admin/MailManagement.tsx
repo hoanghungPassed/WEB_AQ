@@ -790,16 +790,16 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
  <AnimatePresence>
  {showConfirm && (
- <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[160] bg-white/90 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
- <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-gray-900 border border-white/10 rounded-[40px] p-10 w-full max-w-md shadow-2xl text-center">
- <div className="mx-auto h-20 w-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-6 shadow-inner">
- <AlertTriangle size={40} />
+ <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[160] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+ <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#18181b] border border-zinc-800 rounded-xl p-8 w-full max-w-sm shadow-xl text-center">
+ <div className="mx-auto h-16 w-16 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-4">
+ <AlertTriangle size={32} />
  </div>
- <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">{confirmConfig.title}</h3>
- <p className="text-gray-400 font-medium mb-8 leading-relaxed">{confirmConfig.msg}</p>
- <div className="flex gap-4">
- <button onClick={() => setShowConfirm(false)} className="flex-1 h-12 rounded-2xl border border-white/10 text-white font-bold uppercase text-sm tracking-widest hover:bg-white bg-zinc-900/5 transition-all">Hủy bỏ</button>
- <button onClick={confirmConfig.onConfirm} className="flex-1 h-12 rounded-2xl bg-red-500 text-white font-black uppercase text-sm tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20">Xác nhận Xóa</button>
+ <h3 className="text-lg font-bold text-white uppercase tracking-tight mb-2">{confirmConfig.title}</h3>
+ <p className="text-zinc-400 font-medium mb-6 leading-relaxed text-sm">{confirmConfig.msg}</p>
+ <div className="flex gap-3">
+ <button onClick={() => setShowConfirm(false)} className="flex-1 h-10 rounded-xl border border-zinc-700 text-zinc-300 font-semibold uppercase text-xs tracking-wider hover:bg-zinc-800 bg-transparent transition-all">Hủy bỏ</button>
+ <button onClick={confirmConfig.onConfirm} className="flex-1 h-10 rounded-xl bg-red-600 text-white font-bold uppercase text-xs tracking-wider hover:bg-red-700 transition-all shadow-sm">Xác nhận Xóa</button>
  </div>
  </motion.div>
  </motion.div>
@@ -808,23 +808,23 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
  <AnimatePresence>
  {showManualImport && (
- <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[150] bg-white/90 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
- <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-gray-900 border border-white/10 rounded-[40px] p-10 w-full max-w-2xl shadow-2xl">
- <div className="flex items-center justify-between mb-8">
- <h3 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-4"><PlusCircle className="text-gold" size={32} /> Import Thủ Công</h3>
- <button onClick={() => setShowManualImport(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-gray-900 text-white transition-colors"><X /></button>
+ <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+ <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#18181b] border border-zinc-800 rounded-xl p-6 w-full max-w-2xl shadow-xl">
+ <div className="flex items-center justify-between mb-6">
+ <h3 className="text-xl font-bold text-zinc-50 uppercase tracking-tight flex items-center gap-3"><PlusCircle className="text-[#a07800]" size={24} /> Import Thủ Công</h3>
+ <button onClick={() => setShowManualImport(false)} className="h-9 w-9 flex items-center justify-center rounded-xl bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors border border-zinc-700/50"><X size={16} /></button>
  </div>
- <p className="text-[10px] text-gray-500 mb-6 font-black uppercase tracking-widest leading-relaxed opacity-60">
+ <p className="text-[10px] text-zinc-500 mb-4 font-semibold uppercase tracking-wider leading-relaxed">
  Định dạng: Email [Tab/Cách] Pass [Tab/Cách] Mail KP [Tab/Cách] 2FA [Tab/Cách] SĐT [Tab/Cách] Link OTP
  </p>
  <textarea
  value={manualData} onChange={(e) => setManualData(e.target.value)}
- className="w-full h-72 bg-black/30 border border-white/10 rounded-3xl p-6 text-base text-white focus:border-gold outline-none transition-all resize-none font-mono scrollbar-hide"
+ className="w-full h-64 bg-zinc-950/60 border border-zinc-800 rounded-xl p-4 text-sm text-zinc-100 focus:border-[#a07800] outline-none transition-all resize-none font-mono"
  placeholder="Dán dữ liệu của bạn vào đây..."
  />
- <div className="flex gap-4 mt-8">
- <button onClick={() => setShowManualImport(false)} className="flex-1 h-14 rounded-2xl border border-white/10 text-white font-bold uppercase text-sm tracking-widest hover:bg-white bg-zinc-900/5 transition-all">Hủy bỏ</button>
- <button onClick={handleManualImport} className="flex-1 h-14 rounded-2xl bg-gold text-sidebar font-black uppercase text-sm tracking-widest hover:bg-gold/80 transition-all shadow-xl shadow-gold/20">Xác nhận Thêm</button>
+ <div className="flex gap-3 mt-6">
+ <button onClick={() => setShowManualImport(false)} className="flex-1 h-10 rounded-xl border border-zinc-700 text-zinc-300 font-semibold uppercase text-xs tracking-wider hover:bg-zinc-800 bg-transparent transition-all">Hủy bỏ</button>
+ <button onClick={handleManualImport} className="flex-1 h-10 rounded-xl bg-[#a07800] text-white font-bold uppercase text-xs tracking-wider hover:bg-[#b88c00] transition-all shadow-sm">Xác nhận Thêm</button>
  </div>
  </motion.div>
  </motion.div>
@@ -837,53 +837,53 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  initial={{ opacity: 0 }}
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
- className="fixed inset-0 z-[200] bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+ className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
  >
  <motion.div
  initial={{ scale: 0.9, opacity: 0 }}
  animate={{ scale: 1, opacity: 1 }}
  exit={{ scale: 0.9, opacity: 0 }}
- className="bg-gray-900 border border-white/10 rounded-[40px] w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl overflow-hidden relative"
+ className="bg-[#18181b] border border-zinc-800 rounded-xl w-full max-w-4xl h-[80vh] flex flex-col shadow-xl overflow-hidden relative p-6"
  >
  {/* Header */}
- <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
+ <div className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
  <div className="flex items-center gap-3">
- <div className="h-10 w-10 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/20">
- <FileText className="text-gold" size={20} />
+ <div className="h-10 w-10 rounded-xl bg-zinc-800 flex items-center justify-center border border-zinc-700/50">
+ <FileText className="text-[#a07800]" size={20} />
  </div>
  <div>
- <h3 className="text-xl font-black text-white uppercase tracking-tight">LỊCH SỬ IMPORT HỆ THỐNG</h3>
- <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">Nhật ký danh sách nhập dữ liệu</p>
+ <h3 className="text-lg font-bold text-zinc-100 uppercase tracking-tight">LỊCH SỬ IMPORT HỆ THỐNG</h3>
+ <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Nhật ký danh sách nhập dữ liệu</p>
  </div>
  </div>
  <div className="flex items-center gap-3">
  {(importHistory || []).length > 0 && (
  <button
  onClick={handleClearAllHistory}
- className="h-9 px-3.5 bg-red-500/10 border border-red-500/25 hover:bg-red-500/25 rounded-xl text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all"
+ className="h-9 px-3.5 bg-red-950/20 border border-red-900/30 hover:bg-red-600 hover:text-white rounded-xl text-red-400 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all"
  >
  <Trash2 size={13} /> Xóa tất cả
  </button>
  )}
  <button
  onClick={() => setShowHistoryModal(false)}
- className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-400 hover:text-gray-900 text-white transition-colors"
+ className="h-9 w-9 flex items-center justify-center rounded-xl bg-zinc-800 text-zinc-400 hover:text-zinc-100 border border-zinc-700/50 transition-colors"
  >
- <X size={20} />
+ <X size={16} />
  </button>
  </div>
  </div>
 
  {/* Filters */}
- <div className="flex items-center gap-2 mb-6 bg-white/5 p-1 rounded-xl w-fit">
+ <div className="flex items-center gap-2 mb-6 bg-zinc-950/40 border border-zinc-800 p-1 rounded-xl w-fit">
  {(["ALL","MAIL","SĐT"] as Array<"ALL" |"MAIL" |"SĐT">).map((tab) => (
  <button
  key={tab}
  onClick={() => setHistoryTab(tab)}
- className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+ className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
  historyTab === tab
- ?"bg-gold text-sidebar shadow-md"
- :" text-gray-400 hover:text-gray-900 text-white"
+ ?"bg-[#a07800] text-white shadow-sm"
+ :" text-zinc-400 hover:text-zinc-200"
  }`}
  >
  {tab ==="ALL" ?"Tất cả" : tab}
@@ -892,28 +892,28 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  </div>
 
  {/* List Content */}
- <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1 scrollbar-hide">
+ <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1">
  {(filteredHistory || []).length === 0 ? (
- <div className="py-16 text-center">
- <div className="h-16 w-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
- <FileText className="" size={28} />
+ <div className="py-12 text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-950/20">
+ <div className="h-12 w-12 rounded-full bg-zinc-800 flex items-center justify-center mx-auto mb-3 border border-zinc-700/50">
+ <FileText className="text-zinc-500" size={24} />
  </div>
- <p className="text-sm text-gray-500 font-bold uppercase tracking-widest">Không có lịch sử nhập dữ liệu</p>
- <p className="text-[10px] mt-1">Các lượt import mới sẽ tự động được ghi nhận tại đây.</p>
+ <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Không có lịch sử nhập dữ liệu</p>
+ <p className="text-[9px] text-zinc-600 mt-1 uppercase tracking-widest font-semibold">Các lượt import mới sẽ tự động được ghi nhận tại đây.</p>
  </div>
  ) : (
  (filteredHistory || []).map((item: ImportHistoryItem) => (
  <div
  key={item.id}
- className="bg-white/5 border border-white/5 rounded-2xl p-6 flex items-center justify-between hover:border-gray-300 hover:border-white/10 transition-all group"
+ className="bg-zinc-950/35 border border-zinc-800/80 rounded-xl p-4 flex items-center justify-between hover:border-zinc-700 transition-all group"
  >
  <div className="flex items-center gap-4">
  {/* Icon / Badge */}
  <div
- className={`h-11 w-11 rounded-xl flex items-center justify-center border font-mono text-[10px] font-black tracking-widest ${
+ className={`h-9 w-9 rounded-lg flex items-center justify-center border font-mono text-[9px] font-bold tracking-widest ${
  item.type ==="MAIL"
  ?"bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
- :"bg-gold/10 text-gold border-gold/20"
+ :"bg-[#a07800]/10 text-[#a07800] border-[#a07800]/20"
  }`}
  >
  {item.type}
@@ -922,20 +922,20 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  {/* Details */}
  <div className="space-y-1">
  <div className="flex flex-wrap items-center gap-2">
- <span className="text-sm font-black text-white font-mono break-all">{item.fileName}</span>
- <span className="text-[10px] bg-green-500/15 text-green-400 border border-green-500/25 px-2 py-0.5 rounded-md font-black">
+ <span className="text-sm font-bold text-zinc-200 font-mono break-all">{item.fileName}</span>
+ <span className="text-[9px] bg-green-950/30 text-green-400 border border-green-900/30 px-2 py-0.5 rounded-lg font-bold">
  +{item.quantity} {item.type ==="MAIL" ?"mail" :"số"}
  </span>
  </div>
  
- <div className="flex items-center gap-4 text-[10px] text-gray-500 font-medium">
+ <div className="flex items-center gap-4 text-[10px] text-zinc-500 font-medium">
  <span className="flex items-center gap-1">
  <Calendar size={12} className="" />
  {item.importedAt}
  </span>
  <span className="flex items-center gap-1">
  <UserIcon size={12} className="" />
- Người nhập: <strong className="text-gray-400">{item.importedBy}</strong>
+ Người nhập: <strong className="text-zinc-400">{item.importedBy}</strong>
  </span>
  </div>
  </div>
@@ -944,7 +944,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  {/* Delete Individual Row */}
  <button
  onClick={() => handleDeleteHistoryRow(item.id)}
- className="h-8 w-8 rounded-lg bg-red-500/5 hover:bg-red-500/10 text-red-500/60 hover:text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all border border-red-500/0 hover:border-red-500/20"
+ className="h-8 w-8 rounded-lg bg-zinc-800 hover:bg-red-950/30 text-zinc-500 hover:text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all border border-zinc-700/50"
  title="Xóa dòng lịch sử này"
  >
  <Trash2 size={14} />
@@ -959,25 +959,27 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  </AnimatePresence>
 
  {(!isStaff || !selectedBatch) && (
- <div className="flex items-center justify-between">
- <div className="flex items-center gap-6">
- <button onClick={() => router.push("/admin")} className="flex items-center gap-2 text-gold hover:text-gray-900 text-white font-black uppercase text-sm tracking-widest transition-all group">
- <div className="h-10 w-10 bg-gold/10 rounded-xl flex items-center justify-center group-hover:bg-gold/20 transition-all shadow-lg"><ArrowLeft size={20} /></div>
- Quay lại bảng điều khiển
+ <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+ <div className="flex items-center gap-4">
+ <button onClick={() => router.push("/admin")} className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-[#a07800] hover:border-[#a07800] transition-all shadow-sm">
+   <ArrowLeft size={20} />
  </button>
- <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
- <Mail className="text-gold" size={28} />
+ <div>
+ <h2 className="text-2xl font-bold text-zinc-100 uppercase tracking-tight flex items-center gap-2">
+ <Mail className="text-[#a07800]" size={24} />
  Danh sách {type ==="ALL" ?"Tất cả" : type ==="ROOT" ?"Mail Gốc" : type ==="SATELLITE" ?"Mail Vệ Tinh" :"Mail Bật Kiếm Tiền"}
  </h2>
+ <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Quản lý kho dữ liệu email và SĐT của hệ thống</p>
  </div>
- <div className="flex items-center gap-3">
+ </div>
+ <div className="flex flex-wrap items-center gap-2">
 
  {isAdminOrManager && (
  <>
- <button onClick={() => setShowHistoryModal(true)} className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><FileText size={14} className="text-gold" /> Lịch sử Import</button>
- <button onClick={() => setShowManualImport(true)} className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><PlusCircle size={14} className="text-gold" /> Thêm thủ công</button>
- <label className="h-10 px-4 bg-white/5 border border-white/10 hover:border-gold/50 rounded-xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all cursor-pointer"><Upload size={14} className="text-gold" /> Import Excel / CSV <input type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={handleImportExcel} /></label>
- <button onClick={handleExport} className="h-10 px-4 bg-gold/10 border border-gold/30 hover:bg-gold/20 rounded-xl text-gold text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"><Download size={14} /> Export</button>
+ <button onClick={() => setShowHistoryModal(true)} className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-zinc-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"><FileText size={14} className="text-[#a07800]" /> Lịch sử Import</button>
+ <button onClick={() => setShowManualImport(true)} className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-zinc-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"><PlusCircle size={14} className="text-[#a07800]" /> Thêm thủ công</button>
+ <label className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-zinc-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer"><Upload size={14} className="text-[#a07800]" /> Import Excel <input type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={handleImportExcel} /></label>
+ <button onClick={handleExport} className="h-9 px-4 bg-[#a07800]/10 border border-[#a07800]/20 hover:bg-[#a07800]/20 rounded-xl text-[#a07800] text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"><Download size={14} /> Export</button>
  </>
  )}
  </div>
@@ -985,47 +987,32 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  )}
 
  {isStaff && !selectedBatch && (
- <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
- <div className="bg-sidebar border border-border-custom p-6 rounded-[24px] flex items-center justify-between shadow-xl">
- <div>
- <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Tổng mail được giao</p>
- <h3 className="text-2xl font-black text-white">{staffStats.totalAssigned}</h3>
- </div>
- <div className="h-12 w-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20"><Mail size={24} /></div>
- </div>
- <div className="bg-sidebar border border-border-custom p-6 rounded-[24px] flex items-center justify-between shadow-xl">
- <div>
- <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Đã làm</p>
- <h3 className="text-2xl font-black text-green-500">{staffStats.doneChannel}</h3>
- </div>
- <div className="h-12 w-12 rounded-xl bg-green-500/10 text-green-500 flex items-center justify-center border border-green-500/20"><CheckCircle size={24} /></div>
- </div>
- <div className="bg-sidebar border border-border-custom p-6 rounded-[24px] flex items-center justify-between shadow-xl">
- <div>
- <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Lỗi (Die)</p>
- <h3 className="text-2xl font-black text-red-500">{staffStats.failed}</h3>
- </div>
- <div className="h-12 w-12 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20"><AlertTriangle size={24} /></div>
- </div>
- </div>
- )}
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+  <div className="bg-[#18181b] border border-zinc-800 p-5 rounded-xl flex items-center justify-between shadow-sm">
+  <div>
+  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Tổng mail được giao</p>
+  <h3 className="text-xl font-bold text-zinc-100">{staffStats.totalAssigned}</h3>
+  </div>
+  <div className="h-10 w-10 rounded-lg bg-zinc-800 text-zinc-400 flex items-center justify-center border border-zinc-700/50"><Mail size={20} /></div>
+  </div>
+  <div className="bg-[#18181b] border border-zinc-800 p-5 rounded-xl flex items-center justify-between shadow-sm">
+  <div>
+  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Đã làm</p>
+  <h3 className="text-xl font-bold text-green-500">{staffStats.doneChannel}</h3>
+  </div>
+  <div className="h-10 w-10 rounded-lg bg-green-500/10 text-green-400 flex items-center justify-center border border-green-500/20"><CheckCircle size={20} /></div>
+  </div>
+  <div className="bg-[#18181b] border border-zinc-800 p-5 rounded-xl flex items-center justify-between shadow-sm">
+  <div>
+  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Lỗi (Die)</p>
+  <h3 className="text-xl font-bold text-red-500">{staffStats.failed}</h3>
+  </div>
+  <div className="h-10 w-10 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center border border-red-500/20"><AlertTriangle size={20} /></div>
+  </div>
+  </div>
+  )}
 
  {isStaff && type ==="SATELLITE" && !selectedBatch ? (
- <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
- {(staffBatches || []).map((batch) => (
- <button
- key={batch.id}
- onClick={() => setSelectedBatch(batch.id)}
- className="bg-sidebar border border-white/10 hover:border-gold/50 p-6 rounded-[24px] text-left transition-all group shadow-xl hover:shadow-gold/10"
- >
- <div className="flex items-center justify-between mb-4">
- <div className="h-12 w-12 rounded-xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 group-hover:scale-110 transition-transform">
- <Database size={24} />
- </div>
- <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 bg-black/40 px-3 py-1 rounded-full">
- {batch.count} mail
- </span>
- </div>
  <h3 className="text-xl font-black text-white uppercase tracking-tighter group-hover:text-gold transition-colors">{batch.name}</h3>
  <p className="text-sm text-gray-500 mt-2 font-medium">Bấm vào để xem và xử lý các mail trong lô này.</p>
  </button>
