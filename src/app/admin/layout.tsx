@@ -86,6 +86,12 @@ export default function AdminLayout({
  const [chatUsers, setChatUsers] = useState<any[]>([]);
  const [unreadCount, setUnreadCount] = useState(0);
 
+ const safeText = (value: unknown) => {
+   if (value === null || value === undefined) return "";
+   if (typeof value === "object") return "";
+   return String(value);
+ };
+
  const [isPartnerTyping, setIsPartnerTyping] = useState(false);
  const [companyTypingUsers, setCompanyTypingUsers] = useState<string[]>([]);
  const prevPrivateLengthRef = React.useRef(0);
@@ -1308,7 +1314,7 @@ export default function AdminLayout({
  exit={{ opacity: 0, y: -100, x:"-50%" }}
  className="fixed top-0 left-1/2 z-[9999] bg-gold text-sidebar px-8 py-4 rounded-[24px] shadow-2xl flex items-center gap-4 font-black text-base uppercase tracking-widest border border-white/20"
  >
- <Bell size={24} className="animate-bounce" /> {realtimeToast}
+ <Bell size={24} className="animate-bounce" /> {safeText(realtimeToast)}
  </motion.div>
  )}
  </AnimatePresence>
@@ -1328,10 +1334,10 @@ export default function AdminLayout({
  </div>
  <div>
  <p className="text-[10px] font-black text-gold uppercase tracking-[0.2em] mb-1">Thông báo mới</p>
- <h4 className="text-lg font-black text-white leading-tight">{roleUpdateNotif.title}</h4>
+ <h4 className="text-lg font-black text-white leading-tight">{safeText(roleUpdateNotif.title)}</h4>
  </div>
  </div>
- <p className="mt-4 text-gray-400 text-base font-medium leading-relaxed">{roleUpdateNotif.message}</p>
+ <p className="mt-4 text-gray-400 text-base font-medium leading-relaxed">{safeText(roleUpdateNotif.message)}</p>
  <div className="mt-4 h-1 w-full bg-white/5 rounded-full overflow-hidden">
  <motion.div initial={{ width:"100%" }} animate={{ width: 0 }} transition={{ duration: 5 }} className="h-full bg-gold" />
  </div>
@@ -1349,7 +1355,7 @@ export default function AdminLayout({
  </div>
  <div>
  <p className="text-[10px] font-bold text-gold uppercase tracking-widest">Yêu cầu truy cập mới</p>
- <p className="text-lg font-black text-white">{pendingRequests[0].staffName}</p>
+ <p className="text-lg font-black text-white">{safeText(pendingRequests[0]?.staffName)}</p>
  </div>
  </div>
  <p className="text-gray-400 text-base mb-6 font-medium">Nhân viên này đang xin phép truy cập hệ thống ngoài giờ làm việc.</p>
@@ -1701,7 +1707,7 @@ export default function AdminLayout({
  </motion.div>
  </div>
  <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-3">Cấp quyền thành công</h3>
- <p className="text-gray-400 font-medium leading-relaxed mb-8">{accessSuccessMsg}</p>
+ <p className="text-gray-400 font-medium leading-relaxed mb-8">{safeText(accessSuccessMsg)}</p>
  <button
  onClick={() => setAccessSuccessMsg(null)}
  className="w-full h-14 bg-gold text-sidebar font-black text-base uppercase tracking-widest rounded-2xl hover:bg-white bg-zinc-900 hover:text-sidebar transition-all duration-300 shadow-lg shadow-gold/20"

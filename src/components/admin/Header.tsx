@@ -26,6 +26,12 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
  const [notifTab, setNotifTab] = useState<"UNREAD" |"READ">("UNREAD");
  const [dateTimeStr, setDateTimeStr] = useState("");
 
+ const safeText = (value: unknown) => {
+   if (value === null || value === undefined) return "";
+   if (typeof value === "object") return "";
+   return String(value);
+ };
+
  useEffect(() => {
  // eslint-disable-next-line react-hooks/set-state-in-effect
  setMounted(true);
@@ -289,9 +295,9 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
  {n.type ==="REGISTRATION" ? <UserPlus size={18} className="text-gold" /> : <CheckCircle2 size={18} className="text-green-500" />}
  </div>
  <div className="flex-1">
- <p className="text-[11px] font-black text-white group-hover:text-gold transition-colors">{n.title}</p>
- <p className="text-[10px] text-gray-500 font-bold mt-1 leading-relaxed">{n.message}</p>
- <p className="text-[9px] font-black uppercase tracking-widest mt-2">{n.time}</p>
+ <p className="text-[11px] font-black text-white group-hover:text-gold transition-colors">{safeText(n.title)}</p>
+ <p className="text-[10px] text-gray-500 font-bold mt-1 leading-relaxed">{safeText(n.message)}</p>
+ <p className="text-[9px] font-black uppercase tracking-widest mt-2">{safeText(n.time)}</p>
  </div>
  </div>
  </div>
@@ -324,7 +330,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
  {/* User Profile */}
  <div className="relative flex items-center gap-4 pl-8 border-l border-white/5">
  <div className="text-right hidden lg:block overflow-hidden">
- <p className="text-base font-black text-white leading-none uppercase tracking-tighter">{user?.name ||"Người dùng"}</p>
+ <p className="text-base font-black text-white leading-none uppercase tracking-tighter">{safeText(user?.name) || "Người dùng"}</p>
  <p className="text-[10px] font-black text-gold mt-1.5 uppercase tracking-[0.2em]">{getRoleLabel(user?.role)}</p>
  </div>
  
@@ -353,8 +359,8 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
  >
  <div className="p-4 border-b border-white/5 mb-2">
  <p className="text-[10px] font-black text-gold uppercase tracking-[0.3em]">{getRoleLabel(user?.role)}</p>
- <p className="text-base font-black text-white mt-1 uppercase truncate">{user?.name}</p>
- <p className="text-[10px] font-bold mt-0.5 tracking-wider truncate">@{user?.username}</p>
+ <p className="text-base font-black text-white mt-1 uppercase truncate">{safeText(user?.name)}</p>
+ <p className="text-[10px] font-bold mt-0.5 tracking-wider truncate">@{safeText(user?.username)}</p>
  </div>
 
  <button 
@@ -477,10 +483,10 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
  </div>
  <div className="flex-1">
  <div className="flex items-center justify-between">
- <p className="text-sm font-black text-white group-hover:text-gold transition-colors">{n.title}</p>
- <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{n.time}</span>
+ <p className="text-sm font-black text-white group-hover:text-gold transition-colors">{safeText(n.title)}</p>
+ <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{safeText(n.time)}</span>
  </div>
- <p className="text-sm text-gray-400 mt-1.5 leading-relaxed font-medium">{n.message}</p>
+ <p className="text-sm text-gray-400 mt-1.5 leading-relaxed font-medium">{safeText(n.message)}</p>
  {!n.read && (
  <button
  onClick={(e) => {

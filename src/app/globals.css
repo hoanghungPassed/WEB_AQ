@@ -5,22 +5,37 @@
   --color-gold: #a07800;
 }
 
-html {
+:root {
   color-scheme: light;
   --background: #ffffff;
   --foreground: #000000;
+  --surface: #ffffff;
+  --surface-strong: #f7f7f7;
+  --border: rgba(0, 0, 0, 0.12);
+  --accent: #ffeb3b;
+  --danger: #ff3b3b;
 }
 
 html.light {
   color-scheme: light;
   --background: #ffffff;
   --foreground: #000000;
+  --surface: #ffffff;
+  --surface-strong: #f7f7f7;
+  --border: rgba(0, 0, 0, 0.12);
+  --accent: #ffeb3b;
+  --danger: #ff3b3b;
 }
 
 html.dark {
   color-scheme: dark;
   --background: #000000;
   --foreground: #ffeb3b;
+  --surface: #090909;
+  --surface-strong: #111111;
+  --border: rgba(255, 235, 59, 0.12);
+  --accent: #ffeb3b;
+  --danger: #ff3b3b;
 }
 
 body {
@@ -32,19 +47,77 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-body, body * {
-  background-color: var(--background) !important;
-  color: var(--foreground) !important;
-  border-color: var(--foreground) !important;
+body, html {
+  min-height: 100%;
 }
 
-/* =============================================
-   SMOOTH TRANSITION
-   ============================================= */
 body, header, aside, main, nav, section, div,
 table, thead, tbody, tr, th, td,
 input, select, button, span, p, a, h1, h2, h3, h4 {
   transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease;
+}
+
+@layer utilities {
+  .bg-sidebar {
+    background-color: var(--surface-strong) !important;
+  }
+  .bg-panel {
+    background-color: var(--surface) !important;
+  }
+  .text-sidebar {
+    color: var(--foreground) !important;
+  }
+  .text-accent {
+    color: var(--accent) !important;
+  }
+  .bg-gold {
+    background-color: var(--accent) !important;
+  }
+  .text-gold {
+    color: var(--accent) !important;
+  }
+  .border-gold {
+    border-color: var(--accent) !important;
+  }
+  .bg-red-500 {
+    background-color: var(--danger) !important;
+  }
+  .text-red-500 {
+    color: var(--danger) !important;
+  }
+  .border-red-500 {
+    border-color: var(--danger) !important;
+  }
+  html.light .bg-zinc-900 {
+    background-color: #ffffff !important;
+  }
+  html.dark .bg-zinc-900 {
+    background-color: var(--surface-strong) !important;
+  }
+  html.light .text-white {
+    color: #000000 !important;
+  }
+  html.dark .text-black {
+    color: var(--accent) !important;
+  }
+  html.light [class*="text-gray"] {
+    color: #000000 !important;
+  }
+  html.dark [class*="text-gray"] {
+    color: var(--accent) !important;
+  }
+  html.light [class*="border-white"] {
+    border-color: rgba(0, 0, 0, 0.08) !important;
+  }
+  html.dark [class*="border-white"] {
+    border-color: rgba(255, 235, 59, 0.15) !important;
+  }
+  html.light [class*="bg-white"] {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+  }
+  html.dark [class*="bg-white"] {
+    background-color: rgba(255, 235, 59, 0.06) !important;
+  }
 }
 
 /* =============================================
@@ -53,7 +126,6 @@ input, select, button, span, p, a, h1, h2, h3, h4 {
 html {
   font-size: 14px;
 }
-
 
 /* =============================================
    CUSTOM CONTAINER

@@ -32,7 +32,7 @@ type NewsfeedReply = {
  authorName: string;
  authorRole: string;
  authorUsername: string;
- authorAvatar?: string;
+ authorAvatar?: string | null;
  text: string;
  timestamp: string;
 };
@@ -42,7 +42,7 @@ type NewsfeedComment = {
  authorName: string;
  authorRole: string;
  authorUsername: string;
- authorAvatar?: string;
+ authorAvatar?: string | null;
  text: string;
  timestamp: string;
  replies: NewsfeedReply[];
@@ -53,7 +53,7 @@ type NewsfeedPost = {
  authorName: string;
  authorRole: string;
  authorUsername: string;
- authorAvatar?: string;
+ authorAvatar?: string | null;
  text: string;
  imageUrl?: string | null;
  likes: number;
