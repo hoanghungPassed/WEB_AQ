@@ -3,8 +3,14 @@ import dbConnect from '@/lib/mongodb';
 import { Fine } from '@/models/Fine';
 import { Log } from '@/models/Log';
 
-export async function GET() {
+export async function GET(req: Request) {
  try {
+ const userId = req.headers.get("x-user-id");
+ const userRole = req.headers.get("x-user-role");
+ if (!userId || (userRole !== "01" && userRole !== "02" && userRole !== "03")) {
+ return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ }
+
  await dbConnect();
  const fines = await Fine.find({}).populate('userId', 'name username role').sort({ createdAt: -1 });
  return NextResponse.json(fines || []);
@@ -16,6 +22,12 @@ export async function GET() {
 
 export async function POST(req: Request) {
  try {
+ const requestorId = req.headers.get("x-user-id");
+ const requestorRole = req.headers.get("x-user-role");
+ if (!requestorId || (requestorRole !== "01" && requestorRole !== "02" && requestorRole !== "03")) {
+ return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ }
+
  await dbConnect();
  const body = await req.json();
  
@@ -44,6 +56,12 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
  try {
+ const userId = req.headers.get("x-user-id");
+ const userRole = req.headers.get("x-user-role");
+ if (!userId || (userRole !== "01" && userRole !== "02" && userRole !== "03")) {
+ return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ }
+
  await dbConnect();
  const body = await req.json();
  const { id, status } = body;
@@ -54,8 +72,8 @@ export async function PUT(req: Request) {
  // Create log
  try {
  await Log.create({
- user:"System",
- role:"ADMIN",
+ user: userId,
+ role: userRole === "01" ? "ADMIN" : userRole === "02" ? "QL CÔNG VIỆC" : "QL NHÂN SỰ",
  action: `Cập nhật trạng thái thanh toán phạt của ${(fine.userId as any)?.name} thành ${status}`,
  type:"SUCCESS",
  timestamp: new Date().toLocaleString("vi-VN")
@@ -72,6 +90,12 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
  try {
+ const userId = req.headers.get("x-user-id");
+ const userRole = req.headers.get("x-user-role");
+ if (!userId || (userRole !== "01" && userRole !== "02" && userRole !== "03")) {
+ return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ }
+
  await dbConnect();
  const { searchParams } = new URL(req.url);
  const id = searchParams.get('id');

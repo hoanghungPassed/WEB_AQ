@@ -51,6 +51,12 @@ interface PhoneBulkUpdateBody {
 
 export async function GET(req: Request) {
  try {
+ const userId = req.headers.get("x-user-id");
+ const userRole = req.headers.get("x-user-role");
+ if (!userId || (userRole !== "01" && userRole !== "02" && userRole !== "03")) {
+ return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ }
+
  await dbConnect();
  const { searchParams } = new URL(req.url);
  const status = searchParams.get("status");
@@ -68,6 +74,12 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
  try {
+ const userId = req.headers.get("x-user-id");
+ const userRole = req.headers.get("x-user-role");
+ if (!userId || (userRole !== "01" && userRole !== "02" && userRole !== "03")) {
+ return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ }
+
  await dbConnect();
  const body = (await req.json()) as PhoneImportBody;
  const { batch, phones, username } = body;
@@ -132,6 +144,12 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
  try {
+ const userId = req.headers.get("x-user-id");
+ const userRole = req.headers.get("x-user-role");
+ if (!userId || (userRole !== "01" && userRole !== "02" && userRole !== "03")) {
+ return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ }
+
  await dbConnect();
  const body = (await req.json()) as PhoneBulkUpdateBody;
  const { ids, update } = body;
@@ -163,6 +181,12 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
  try {
+ const userId = req.headers.get("x-user-id");
+ const userRole = req.headers.get("x-user-role");
+ if (!userId || (userRole !== "01" && userRole !== "02" && userRole !== "03")) {
+ return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ }
+
  await dbConnect();
  const { searchParams } = new URL(req.url);
  const batch = searchParams.get('batch');

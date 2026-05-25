@@ -4,6 +4,12 @@ import mongoose from"mongoose";
 
 export async function POST(request: Request) {
  try {
+ const userId = request.headers.get("x-user-id");
+ const userRole = request.headers.get("x-user-role");
+ if (!userId || userRole !== "01") {
+ return NextResponse.json({ error:"Unauthorized: Chỉ Admin mới có quyền reset database" }, { status: 401 });
+ }
+
  await dbConnect();
 
  const db = mongoose.connection.db;

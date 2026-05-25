@@ -2,8 +2,14 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { Log } from '@/models/Log';
 
-export async function GET() {
+export async function GET(req: Request) {
  try {
+ const userId = req.headers.get("x-user-id");
+ const userRole = req.headers.get("x-user-role");
+ if (!userId || (userRole !== "01" && userRole !== "02" && userRole !== "03")) {
+ return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ }
+
  await dbConnect();
  const logs = await Log.find({}).populate('user', 'name username').sort({ createdAt: -1 });
  return NextResponse.json(logs || []);
@@ -15,6 +21,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
  try {
+ const userId = req.headers.get("x-user-id");
+ if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
  await dbConnect();
  const body = await req.json();
  const log = await Log.create(body);

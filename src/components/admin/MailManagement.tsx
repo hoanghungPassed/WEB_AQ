@@ -646,9 +646,16 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  };
 
  const handleExport = () => {
- const data = (filteredMails || []).map((m, i) => ({"STT": i + 1,"Email": m.email,"Mail KP": m.recovery,"Pass": m.pass,"2FA": m.twoFA,"SĐT": m.phone,"Link SĐT": m.otpLink
- }));
- const ws = XLSX.utils.json_to_sheet(data);
+  const data = (filteredMails || []).map((m, i) => ({
+    "STT": i + 1,
+    "Email": m.email,
+    "Mail KP": m.recovery,
+    "Pass": m.pass,
+    "2FA": m.twoFA,
+    "SĐT": m.phone,
+    "Link SĐT": m.otpLink
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
  const wb = XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb, ws,"Danh_Sach");
  XLSX.writeFile(wb, `AQ_MEDIA_${type}.xlsx`);

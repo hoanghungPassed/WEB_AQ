@@ -3,8 +3,11 @@ import dbConnect from '@/lib/mongodb';
 import { Notification } from '@/models/Notification';
 import mongoose from 'mongoose';
 
-export async function GET() {
+export async function GET(req: Request) {
  try {
+ const userId = req.headers.get("x-user-id");
+ if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
  await dbConnect();
  const notifications = await Notification.find({})
  .populate('author', 'name username role avatar')

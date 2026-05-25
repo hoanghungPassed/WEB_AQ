@@ -25,10 +25,23 @@ function MailTableContent() {
  const itemsPerPage = 100;
 
  const [mails, setMails] = useState<any[]>([]);
+ const [loading, setLoading] = useState(true);
 
  useEffect(() => {
- const saved = localStorage.getItem("global_mails_data");
- if (saved) setMails(JSON.parse(saved));
+   const loadMails = async () => {
+     try {
+       const res = await fetch("/api/admin/mails");
+       const data = await res.json();
+       if (data.success) {
+         setMails(data.data || []);
+       }
+     } catch (err) {
+       console.error("Lỗi fetch mails:", err);
+     } finally {
+       setLoading(false);
+     }
+   };
+   loadMails();
  }, []);
 
  const copyToClipboard = (text: string) => {
@@ -45,7 +58,7 @@ function MailTableContent() {
  let matchesType = true;
  if (type ==="live") matchesType = mail.status ==="LIVE";
  else if (type ==="die") matchesType = mail.status ==="DIE";
- else if (type ==="monetized") matchesType = !!(mail as any).isMonetized;
+ else if (type ==="monetized") matchesType = (mail.type ==="MONETIZED" || !!(mail as any).isMonetized);
  
  const matchesChannelStatus = selectedStatus ==="all" || (mail.channelStatus && mail.channelStatus.includes(selectedStatus));
  const matchesSearch = mail.email.toLowerCase().includes(searchTerm.toLowerCase()) || 

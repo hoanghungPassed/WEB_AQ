@@ -6,6 +6,9 @@ export const dynamic ="force-dynamic";
 
 export async function GET(req: Request) {
  try {
+ const userId = req.headers.get("x-user-id");
+ if (!userId) return NextResponse.json({ error:"Unauthorized" }, { status: 401 });
+
  await dbConnect();
  const { searchParams } = new URL(req.url);
  const assigneeId = searchParams.get("assigneeId");

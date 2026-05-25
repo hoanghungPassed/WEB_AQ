@@ -153,14 +153,30 @@ export default function MailDetailModal({
  if (type ==="ROOT") {
  onSave({ cccdDate, verificationStatus });
  } else if (type ==="SATELLITE") {
- // Validate all filled links before saving
- const hasError = validationErrors.some((err, idx) => err && links[idx]?.trim() !=="");
- if (hasError) {
- alert("Không thể lưu! Vui lòng sửa các link kênh bị sai định dạng YouTube.");
- return;
- }
+  // Validate all 3 channels are filled
+  const hasEmpty = links.some(l => !l || l.trim() ==="");
+  if (hasEmpty) {
+  alert("Vui lòng điền đầy đủ cả 3 link kênh trước khi lưu!");
+  return;
+  }
 
- onSave({ links, channelNames: names, eligibleChannels, linkErrors });
+  // Validate format for all 3 links
+  const hasFormatError = links.some(l => !validateYouTubeUrl(l));
+  if (hasFormatError) {
+  alert("Một hoặc nhiều link kênh không đúng định dạng YouTube. Vui lòng sửa lại!");
+  return;
+  }
+
+  // Validate local duplicates
+  const cleaned0 = cleanYouTubeUrl(links[0]);
+  const cleaned1 = cleanYouTubeUrl(links[1]);
+  const cleaned2 = cleanYouTubeUrl(links[2]);
+  if (cleaned0 === cleaned1 || cleaned0 === cleaned2 || cleaned1 === cleaned2) {
+  alert("Không thể lưu! Phát hiện link kênh bị trùng lặp nhau.");
+  return;
+  }
+
+  onSave({ links, channelNames: names, eligibleChannels, linkErrors });
  } else if (type ==="MONETIZED") {
  onSave({ reClickDate, step2PendingDate, channelStatusDetail });
  }

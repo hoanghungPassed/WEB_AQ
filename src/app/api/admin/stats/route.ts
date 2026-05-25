@@ -4,10 +4,13 @@ import { RootMail } from '@/models/RootMail';
 import { SatelliteMail } from '@/models/SatelliteMail';
 import { MonetizedMail } from '@/models/MonetizedMail';
 import { User } from '@/models/User';
-import { Kpi } from '@/models/Kpi';
+import { Fine } from '@/models/Fine';
 
-export async function GET() {
+export async function GET(req: Request) {
  try {
+ const userId = req.headers.get("x-user-id");
+ if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
  await dbConnect();
  const rootCount = await RootMail.countDocuments();
  const satCount = await SatelliteMail.countDocuments();
@@ -18,8 +21,8 @@ export async function GET() {
  role: { $in: ["03","04","05"] }
  });
 
- const priceAggregation = await Kpi.aggregate([
- { $group: { _id: null, total: { $sum: { $ifNull: ["$fineAmount", 0] } } } }
+ const priceAggregation = await Fine.aggregate([
+ { $group: { _id: null, total: { $sum: { $ifNull: ["$amount", 0] } } } }
  ]);
  const totalFines = (priceAggregation[0]?.total as number) || 0;
 
