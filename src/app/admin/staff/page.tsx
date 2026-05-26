@@ -591,16 +591,16 @@ export default function StaffManagementPage() {
  </button>
  )}
  {!isRestricted && (
- <div className="flex items-center gap-2 p-1 bg-white/5 rounded-[24px] border border-white/5 shadow-inner">
+ <div className="flex items-center gap-2 p-1 bg-white/5 rounded-[24px] border border-white/0 shadow-inner">
  <button 
  onClick={() => { setActiveTab("PENDING"); setPendingSubTab("ACCOUNTS"); }}
- className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab ==="PENDING" && pendingSubTab ==="ACCOUNTS" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :"text-gray-500 hover:text-gray-900 text-white"}`}
+ className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab ==="PENDING" && pendingSubTab ==="ACCOUNTS" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :"text-gray-500 hover:text-white"}`}
  >
  Duyệt đăng ký ({stats.pending})
  </button>
  <button 
  onClick={() => { setActiveTab("PENDING"); setPendingSubTab("ACCESS"); }}
- className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab ==="PENDING" && pendingSubTab ==="ACCESS" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :"text-gray-500 hover:text-gray-900 text-white"}`}
+ className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab ==="PENDING" && pendingSubTab ==="ACCESS" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :"text-gray-500 hover:text-white"}`}
  >
  Duyệt truy cập ({(accessRequests || []).length})
  </button>
@@ -622,8 +622,8 @@ export default function StaffManagementPage() {
  {activeTab ==="DUTY" && canManageDuty ? (
  <div className="flex flex-col gap-6 animate-fade-in">
  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
- <div className="md:col-span-2 bg-sidebar border border-white/5 p-8 rounded-[32px] shadow-2xl flex flex-col gap-6">
- <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+ <div className="md:col-span-2 bg-sidebar border border-white/0 p-8 rounded-[32px] shadow-2xl flex flex-col gap-6">
+ <div className="flex items-center gap-3 border-b border-white/0 pb-4">
  <CalendarDays className="text-gold" size={24} />
  <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Cấu hình Lịch Trực Nhật</h2>
  </div>
@@ -636,7 +636,7 @@ export default function StaffManagementPage() {
  value={dutyTaskWeek}
  onChange={(e) => setDutyTaskWeek(e.target.value)}
  placeholder="Vd: Dọn vệ sinh văn phòng hàng ngày, đổ rác, pha trà..."
- className="w-full bg-black/20 border border-white/5 rounded-2xl p-6 text-base text-white focus:outline-none focus:border-gold/50 transition-all custom-scrollbar resize-none"
+ className="w-full bg-black/20 border border-white/0 rounded-2xl p-6 text-base text-white focus:outline-none focus:border-white/5 transition-all custom-scrollbar resize-none"
  />
  </div>
  <div className="flex flex-col gap-2">
@@ -646,7 +646,7 @@ export default function StaffManagementPage() {
  value={dutyTaskWeekend}
  onChange={(e) => setDutyTaskWeekend(e.target.value)}
  placeholder="Vd: Tổng vệ sinh toàn công ty, lau kính, giặt rèm..."
- className="w-full bg-black/20 border border-white/5 rounded-2xl p-6 text-base text-white focus:outline-none focus:border-gold/50 transition-all custom-scrollbar resize-none"
+ className="w-full bg-black/20 border border-white/0 rounded-2xl p-6 text-base text-white focus:outline-none focus:border-white/5 transition-all custom-scrollbar resize-none"
  />
  </div>
  </div>
@@ -663,13 +663,13 @@ export default function StaffManagementPage() {
  Chọn tất cả
  </button>
  </div>
- <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-60 overflow-y-auto custom-scrollbar p-2 bg-black/20 rounded-2xl border border-white/5">
+ <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-60 overflow-y-auto custom-scrollbar p-2 bg-black/20 rounded-2xl border border-white/0">
  {(staffList || []).filter(s => s.status ==="ACTIVE").map(staff => (
  <div 
  key={staff.id} 
  onClick={() => handleToggleDutyStaff(staff.id)}
  className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3 ${
- dutySelectedStaff.includes(staff.id) ?"bg-gold/10 border-gold/30" :" bg-white/5 border-transparent hover:bg-white/10"
+ dutySelectedStaff.includes(staff.id) ?"bg-gold/10 border-white/0" :" bg-white/5 border-transparent hover:bg-white/10"
  }`}
  >
  <div className={`h-4 w-4 rounded-[4px] border flex items-center justify-center transition-colors ${
@@ -683,7 +683,7 @@ export default function StaffManagementPage() {
  </div>
  </div>
 
- <div className="flex justify-end pt-4 border-t border-white/5">
+ <div className="flex justify-end pt-4 border-t border-white/0">
  <button 
  onClick={handleGenerateRoster}
  className="h-12 px-8 rounded-2xl bg-gold text-sidebar font-black uppercase text-[10px] tracking-widest hover:bg-yellow-500 transition-all shadow-xl shadow-gold/20 flex items-center gap-2"
@@ -693,15 +693,15 @@ export default function StaffManagementPage() {
  </div>
  </div>
 
- <div className="md:col-span-1 bg-sidebar border border-white/5 p-8 rounded-[32px] shadow-2xl flex flex-col h-full">
- <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-6">
+ <div className="md:col-span-1 bg-sidebar border border-white/0 p-8 rounded-[32px] shadow-2xl flex flex-col h-full">
+ <div className="flex items-center gap-3 border-b border-white/0 pb-4 mb-6">
  <ClipboardList className="text-blue-400" size={24} />
  <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Lịch Tuần Này</h2>
  </div>
  
  <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-2">
  {(dutyRoster || []).length > 0 ? (dutyRoster || []).map((item, idx) => (
- <div key={idx} className="flex items-center gap-4 p-6 rounded-2xl bg-white/[0.02] border border-white/5">
+ <div key={idx} className="flex items-center gap-4 p-6 rounded-2xl bg-white/0 border border-white/0">
  <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex flex-col items-center justify-center text-blue-400 border border-blue-500/20 flex-shrink-0">
  <span className="text-[10px] font-black uppercase tracking-tighter">Thứ</span>
  <span className="text-lg font-black">{item.day.split(' ')[1]}</span>
@@ -724,7 +724,7 @@ export default function StaffManagementPage() {
  ) : (
  <>
  {/* Toolbar */}
- <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-sidebar/50 border border-white/5 p-6 rounded-[32px] backdrop-blur-xl">
+ <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-sidebar/50 border border-white/0 p-6 rounded-[32px] backdrop-blur-xl">
  <div className="flex flex-1 gap-4 w-full">
  <div className="relative flex-1 group">
  <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={20} />
@@ -733,13 +733,13 @@ export default function StaffManagementPage() {
  placeholder="Tìm kiếm tên hoặc username..."
  value={searchQuery}
  onChange={(e) => setSearchQuery(e.target.value)}
- className="h-12 w-full bg-black/20 border border-white/5 rounded-2xl pl-14 pr-6 text-base text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+ className="h-12 w-full bg-black/20 border border-white/0 rounded-2xl pl-14 pr-6 text-base text-white focus:outline-none focus:border-white/5 transition-all shadow-inner"
  />
  </div>
  
  {activeTab ==="ACTIVE" && (
  <>
- <div className="flex items-center gap-2 bg-black/20 border border-white/5 rounded-2xl px-4 h-12 min-w-[180px]">
+ <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-2xl px-4 h-12 min-w-[180px]">
  <Filter size={16} className="text-gold" />
  <select 
  className="bg-transparent border-none outline-none text-sm text-white font-bold uppercase tracking-widest cursor-pointer w-full"
@@ -754,7 +754,7 @@ export default function StaffManagementPage() {
  <option value="05" className="bg-sidebar">NV THỬ VIỆC</option>
  </select>
  </div>
- <div className="flex items-center gap-2 bg-black/20 border border-white/5 rounded-2xl px-4 h-12 min-w-[180px]">
+ <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-2xl px-4 h-12 min-w-[180px]">
  <Activity size={16} className="text-gold" />
  <select 
  className="bg-transparent border-none outline-none text-sm text-white font-bold uppercase tracking-widest cursor-pointer w-full"
@@ -772,11 +772,11 @@ export default function StaffManagementPage() {
  </div>
 
  {/* Table Section */}
- <div className="bg-sidebar border border-border-custom rounded-[40px] shadow-2xl flex flex-col overflow-hidden">
+ <div className="bg-sidebar border border-white/0 rounded-[40px] shadow-2xl flex flex-col overflow-hidden">
  <div className="overflow-x-auto custom-scrollbar">
  <table className="w-full text-left border-collapse min-w-[1200px]">
  <thead>
- <tr className="bg-white/[0.02] border-b border-white/5 uppercase text-[11px] font-black tracking-widest text-gray-500">
+ <tr className="bg-white/0 border-b border-white/0 uppercase text-[11px] font-black tracking-widest text-gray-500">
  <th className="px-10 py-8 whitespace-nowrap">Nhân viên</th>
  <th className="px-8 py-8 whitespace-nowrap">{activeTab ==="PENDING" && pendingSubTab ==="ACCESS" ?"Thời gian" :"Liên hệ"}</th>
  <th className="px-8 py-8 whitespace-nowrap">{activeTab ==="PENDING" && pendingSubTab ==="ACCESS" ?"Lý do" :"Chi tiết"}</th>
@@ -793,14 +793,14 @@ export default function StaffManagementPage() {
  <tbody className="divide-y divide-white/5">
  {activeTab ==="PENDING" && pendingSubTab ==="ACCESS" ? (
  (accessRequests || []).length > 0 ? (accessRequests || []).map((req) => (
- <tr key={req.id} className="group hover:bg-white bg-zinc-900/[0.02] transition-all">
+ <tr key={req.id} className="group hover:bg-white/5 bg-zinc-900/[0.02] transition-all">
  <td className="px-10 py-7">
  <div className="flex items-center gap-6">
  <div className="h-16 w-16 rounded-[24px] bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center text-2xl text-gold font-black border border-gold/10 shadow-xl group-hover:scale-110 transition-all">
  {req.staffName.charAt(0)}
  </div>
  <div className="whitespace-nowrap">
- <p className="text-lg font-black text-white group-hover:text-gold transition-colors">{req.staffName}</p>
+ <p className="text-lg font-black text-white transition-colors">{req.staffName}</p>
  <p className="text-sm text-gray-500 font-bold uppercase mt-1 tracking-wider">ID: #{req.id}</p>
  </div>
  </div>
@@ -843,14 +843,14 @@ export default function StaffManagementPage() {
  )
  ) : (
  (currentStaff || []).length > 0 ? (currentStaff || []).map((staff) => (
- <tr key={`${staff.id}-${staff.username}`} className="group hover:bg-white bg-zinc-900/[0.02] transition-all cursor-pointer" onClick={() => setSelectedStaff(staff)}>
+ <tr key={`${staff.id}-${staff.username}`} className="group hover:bg-white/5 bg-zinc-900/[0.02] transition-all cursor-pointer" onClick={() => setSelectedStaff(staff)}>
  <td className="px-10 py-7">
  <div className="flex items-center gap-6">
  <div className="h-16 w-16 rounded-[24px] bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center text-2xl text-gold font-black border border-gold/10 shadow-xl group-hover:scale-110 transition-all">
  {staff.avatar ? <img src={staff.avatar} className="w-full h-full object-cover rounded-[24px]" onError={(e) => e.currentTarget.src ="https://ui-avatars.com/api/?name=" + (staff.name ||"U") +"&background=d4af37&color=000"} /> : staff.name.charAt(0)}
  </div>
  <div className="whitespace-nowrap">
- <p className="text-lg font-black text-white group-hover:text-gold transition-colors">{staff.name}</p>
+ <p className="text-lg font-black text-white transition-colors">{staff.name}</p>
  <p className="text-sm text-gray-500 font-bold uppercase mt-1 tracking-wider">@{staff.username}</p>
  </div>
  </div>
@@ -893,7 +893,7 @@ export default function StaffManagementPage() {
  {!isRestricted ? (
  <select 
  id={`role-assign-${staff.id}`}
- className="h-10 px-4 rounded-xl bg-black/20 border border-white/10 text-[10px] font-black text-white uppercase outline-none focus:border-gold/50 cursor-pointer"
+ className="h-10 px-4 rounded-xl bg-black/20 border border-white/0 text-[10px] font-black text-white uppercase outline-none focus:border-white/5 cursor-pointer"
  >
  <option value="04">Nhân viên chính thức</option>
  <option value="05">Nhân viên thử việc</option>
@@ -959,7 +959,7 @@ export default function StaffManagementPage() {
 
  {/* Pagination Footer */}
  {(filteredStaff || []).length > 0 && (
- <div className="bg-white/[0.02] border-t border-white/5 px-10 py-6 flex items-center justify-between">
+ <div className="bg-white/0 border-t border-white/0 px-10 py-6 flex items-center justify-between">
  <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">
  Hiển thị <span className="text-white">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="text-white">{Math.min(currentPage * itemsPerPage, (filteredStaff || []).length)}</span> trên <span className="text-white">{(filteredStaff || []).length}</span> nhân sự
  </p>
@@ -967,7 +967,7 @@ export default function StaffManagementPage() {
  <button 
  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
  disabled={currentPage === 1}
- className="h-10 px-4 rounded-xl border border-white/5 bg-white/5 text-gray-500 hover:text-gold hover:bg-gold/10 disabled:opacity-30 disabled:hover:bg-gray-100 hover:bg-white/5 disabled:hover:text-gray-500 transition-all text-[10px] font-black uppercase tracking-widest"
+ className="h-10 px-4 rounded-xl border border-white/0 bg-white/5 text-gray-500 hover:text-gold hover:bg-gold/10 disabled:opacity-30 disabled:hover:bg-gray-100 hover:bg-white/5 disabled:hover:text-gray-500 transition-all text-[10px] font-black uppercase tracking-widest"
  >
  Trước
  </button>
@@ -979,7 +979,7 @@ export default function StaffManagementPage() {
  className={`h-10 w-10 rounded-xl border transition-all text-[10px] font-black ${
  currentPage === i + 1 
  ?"bg-gold border-gold text-sidebar shadow-lg shadow-gold/20" 
- :" bg-white/5 border-white/5 text-gray-500 hover:text-gray-900 text-white hover:bg-white/10"
+ :" bg-white/5 border-white/0 text-gray-500 hover:text-white hover:bg-white/10"
  }`}
  >
  {i + 1}
@@ -989,7 +989,7 @@ export default function StaffManagementPage() {
  <button 
  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
  disabled={currentPage === totalPages}
- className="h-10 px-4 rounded-xl border border-white/5 bg-white/5 text-gray-500 hover:text-gold hover:bg-gold/10 disabled:opacity-30 disabled:hover:bg-gray-100 hover:bg-white/5 disabled:hover:text-gray-500 transition-all text-[10px] font-black uppercase tracking-widest"
+ className="h-10 px-4 rounded-xl border border-white/0 bg-white/5 text-gray-500 hover:text-gold hover:bg-gold/10 disabled:opacity-30 disabled:hover:bg-gray-100 hover:bg-white/5 disabled:hover:text-gray-500 transition-all text-[10px] font-black uppercase tracking-widest"
  >
  Sau
  </button>
@@ -1013,19 +1013,19 @@ export default function StaffManagementPage() {
  initial={{ scale: 0.95, opacity: 0, y: 20 }}
  animate={{ scale: 1, opacity: 1, y: 0 }}
  exit={{ scale: 0.95, opacity: 0, y: 20 }}
- className="relative w-full max-w-6xl bg-sidebar border border-white/10 rounded-[48px] shadow-2xl overflow-y-auto md:overflow-hidden max-h-[90vh] custom-scrollbar"
+ className="relative w-full max-w-6xl bg-sidebar border border-white/0 rounded-[48px] shadow-2xl overflow-y-auto md:overflow-hidden max-h-[90vh] custom-scrollbar"
  >
  {/* Close Button */}
  <button 
  onClick={() => setSelectedStaff(null)}
- className="absolute top-6 right-6 z-20 h-10 w-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-900 text-white hover:bg-white/10 transition-all"
+ className="absolute top-6 right-6 z-20 h-10 w-10 bg-white/5 border border-white/0 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all"
  >
  <X size={18} />
  </button>
 
  <div className="grid grid-cols-1 md:grid-cols-12 max-h-[90vh] overflow-y-auto md:overflow-hidden">
  {/* Left Side: Profile & Actions (4 Columns) */}
- <div className="md:col-span-4 p-12 bg-gradient-to-b from-white/[0.03] to-transparent border-r border-white/5 flex flex-col items-center text-center md:max-h-[90vh] md:overflow-y-auto custom-scrollbar">
+ <div className="md:col-span-4 p-12 bg-gradient-to-b from-white/[0.03] to-transparent border-r border-white/0 flex flex-col items-center text-center md:max-h-[90vh] md:overflow-y-auto custom-scrollbar">
  <div className="relative group">
  <div className="h-32 w-32 rounded-[40px] bg-gold/10 border border-gold/20 flex items-center justify-center text-5xl text-gold font-black shadow-2xl group-hover:scale-105 transition-all">
  {selectedStaff.avatar ? <img src={selectedStaff.avatar} className="w-full h-full object-cover rounded-[40px]" onError={(e) => e.currentTarget.src ="https://ui-avatars.com/api/?name=" + (selectedStaff.name ||"U") +"&background=d4af37&color=000"} /> : selectedStaff.name.charAt(0)}
@@ -1087,7 +1087,7 @@ export default function StaffManagementPage() {
  setTimeout(() => setShowToast(false), 2000);
  });
  }}
- className="h-14 rounded-2xl bg-white/5 border border-white/10 text-gray-400 font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-1"
+ className="h-14 rounded-2xl bg-white/5 border border-white/0 text-gray-400 font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-1"
  >
  <Shield size={18} />
  Reset Pass
@@ -1131,7 +1131,7 @@ export default function StaffManagementPage() {
  <Activity size={14} className="text-gold" /> Thông tin quản trị
  </h4>
  <div className="grid grid-cols-1 gap-3">
- <div className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-white/5 group hover:bg-white/5 transition-all">
+ <div className="flex items-center justify-between p-3 rounded-2xl bg-white/0 border border-white/0 group hover:bg-white/5 transition-all">
  <div className="flex items-center gap-3">
  <div className="text-gold opacity-60 group-hover:opacity-100 transition-all"><Shield size={14} /></div>
  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Phân quyền</span>
@@ -1168,7 +1168,7 @@ export default function StaffManagementPage() {
  </div>
 
  {/* Calendar attendance grid with summary stats */}
- <div className="space-y-4 pt-4 border-t border-white/5">
+ <div className="space-y-4 pt-4 border-t border-white/0">
  <div className="flex items-center justify-between">
  <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
  <Calendar size={14} className="text-gold" /> Lịch Chấm Công & Hoạt Động (26 Ngày Công)
@@ -1177,8 +1177,8 @@ export default function StaffManagementPage() {
  </div>
  
  {/* Dynamic Present/Absent Summary Bar */}
- <div className="grid grid-cols-3 gap-4 bg-black/20 border border-white/5 rounded-3xl p-5">
- <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/[0.02] border border-white/5">
+ <div className="grid grid-cols-3 gap-4 bg-black/20 border border-white/0 rounded-3xl p-5">
+ <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/0 border border-white/0">
  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Tổng ngày công</span>
  <span className="text-xl font-black text-white mt-1">26 ngày</span>
  </div>
@@ -1193,17 +1193,17 @@ export default function StaffManagementPage() {
  </div>
 
  {/* Interactive 26-Day Grid */}
- <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 bg-black/20 border border-white/5 rounded-3xl p-5">
+ <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 bg-black/20 border border-white/0 rounded-3xl p-5">
  {(attendanceData.list || []).map((day) => {
  const isToday = day.isToday;
  return (
  <button 
  key={`cal-day-${day.dayNum}`}
  onClick={() => setActiveDetailDay(day)}
- className={`group/day flex flex-col items-center justify-between p-3 rounded-2xl border text-center transition-all hover:scale-105 hover:bg-white/[0.06] hover:border-gold/30 active:scale-95 ${
+ className={`group/day flex flex-col items-center justify-between p-3 rounded-2xl border text-center transition-all hover:scale-105 hover:bg-white/[0.06] hover:border-white/0 active:scale-95 ${
  isToday 
  ?"bg-gold/10 border-gold shadow-lg shadow-gold/5" 
- :" bg-white/[0.02] border-white/5"
+ :" bg-white/0 border-white/0"
  }`}
  >
  <span className={`text-[9px] font-black uppercase tracking-tighter ${isToday ?"text-gold" :"text-gray-500"}`}>Ngày {day.dayNum}</span>
@@ -1223,16 +1223,16 @@ export default function StaffManagementPage() {
  </div>
  </div>
 
- <div className="space-y-4 pt-4 border-t border-white/5">
+ <div className="space-y-4 pt-4 border-t border-white/0">
  <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
  <ClipboardList size={14} className="text-gold" /> Hiệu suất công việc
  </h4>
  <div className="grid grid-cols-2 gap-4">
- <div className="p-6 rounded-3xl bg-black/20 border border-white/5 text-center">
+ <div className="p-6 rounded-3xl bg-black/20 border border-white/0 text-center">
  <p className="text-3xl font-black text-white">{selectedStaff.taskCount}</p>
  <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">Nhiệm vụ</p>
  </div>
- <div className="p-6 rounded-3xl bg-black/20 border border-white/5 text-center">
+ <div className="p-6 rounded-3xl bg-black/20 border border-white/0 text-center">
  <p className="text-3xl font-black text-gold">{selectedStaff.kpiProgress}%</p>
  <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">KPI Tháng</p>
  </div>
@@ -1262,7 +1262,7 @@ export default function StaffManagementPage() {
  >
  <button 
  onClick={() => setActiveDetailDay(null)}
- className="absolute top-8 right-8 h-12 w-12 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-900 text-white hover:bg-white/10 transition-all"
+ className="absolute top-8 right-8 h-12 w-12 bg-white/5 border border-white/0 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all"
  >
  <X size={20} />
  </button>
@@ -1297,7 +1297,7 @@ export default function StaffManagementPage() {
  </div>
  </div>
  {activeDetailDay.hasCheckedIn && (
- <div className="sm:text-right border-t sm:border-t-0 pt-4 sm:pt-0 border-white/5">
+ <div className="sm:text-right border-t sm:border-t-0 pt-4 sm:pt-0 border-white/0">
  <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">Giờ Check-in / Out</p>
  <p className="text-base font-black text-white mt-1">
  {activeDetailDay.checkinTime} - {activeDetailDay.checkoutTime}
@@ -1315,14 +1315,14 @@ export default function StaffManagementPage() {
  {(activeDetailDay.workLog || []).map((log: any, idx: number) => (
  <div key={`log-timeline-${idx}`} className="flex gap-5 group/item">
  <div className="flex flex-col items-center">
- <div className="h-11 px-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-base font-black text-gold group-hover/item:bg-gold/10 group-hover/item:border-gold/20 transition-all shrink-0 shadow-lg">
+ <div className="h-11 px-4 rounded-xl bg-white/5 border border-white/0 flex items-center justify-center text-base font-black text-gold group-hover/item:bg-gold/10 group-hover/item:border-gold/20 transition-all shrink-0 shadow-lg">
  {log.time !=="N/A" ? log.time.slice(0, 5) :"!"}
  </div>
  {idx < (activeDetailDay.workLog || []).length - 1 && (
  <div className="w-0.5 h-16 bg-white/5 group-hover/item:bg-gold/20 transition-colors my-2" />
  )}
  </div>
- <div className="flex-1 bg-white/[0.02] border border-white/5 rounded-2xl p-5 group-hover/item:bg-white/[0.04] transition-all">
+ <div className="flex-1 bg-white/0 border border-white/0 rounded-2xl p-5 group-hover/item:bg-white/5 transition-all">
  <p className="text-base font-black text-white tracking-tight">{log.title}</p>
  <p className="text-sm font-semibold text-gray-300 mt-2 leading-relaxed">{log.desc}</p>
  </div>
@@ -1331,7 +1331,7 @@ export default function StaffManagementPage() {
  </div>
  </div>
 
- <div className="mt-8 pt-6 border-t border-white/5 flex justify-end">
+ <div className="mt-8 pt-6 border-t border-white/0 flex justify-end">
  <button
  onClick={() => setActiveDetailDay(null)}
  className="h-14 px-10 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest rounded-xl transition-all shadow-xl shadow-gold/20"
@@ -1351,13 +1351,13 @@ export default function StaffManagementPage() {
  <motion.div 
  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
  onClick={() => setModalConfig({ ...modalConfig, isOpen: false })}
- className="absolute inset-0 bg-white/90 bg-black/80 backdrop-blur-md"
+ className="absolute inset-0 bg-zinc-950/80 backdrop-blur-md"
  />
  <motion.div 
  initial={{ scale: 0.9, opacity: 0, y: 20 }}
  animate={{ scale: 1, opacity: 1, y: 0 }}
  exit={{ scale: 0.9, opacity: 0, y: 20 }}
- className="relative w-full max-w-md bg-[#161616] border border-white/10 rounded-[32px] shadow-2xl overflow-hidden p-10 text-center"
+ className="relative w-full max-w-md bg-[#161616] border border-white/0 rounded-[32px] shadow-2xl overflow-hidden p-10 text-center"
  >
  <div className="mx-auto w-16 h-16 rounded-2xl bg-gold/10 flex items-center justify-center mb-6">
  <AlertCircle size={32} className="text-gold" />
@@ -1369,7 +1369,7 @@ export default function StaffManagementPage() {
  {modalConfig.type ==="CONFIRM" && (
  <button 
  onClick={() => setModalConfig({ ...modalConfig, isOpen: false })}
- className="flex-1 h-12 rounded-xl bg-white/5 border border-white/10 text-gray-500 font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all"
+ className="flex-1 h-12 rounded-xl bg-white/5 border border-white/0 text-gray-500 font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all"
  >
  Hủy bỏ
  </button>
@@ -1423,7 +1423,7 @@ function StatCard({ title, value, icon, color }: any) {
 
 function InfoRow({ label, value, icon }: any) {
  return (
- <div className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-white/5 group hover:bg-white/5 transition-all">
+ <div className="flex items-center justify-between p-3 rounded-2xl bg-white/0 border border-white/0 group hover:bg-white/5 transition-all">
  <div className="flex items-center gap-3">
  <div className="text-gold opacity-60 group-hover:opacity-100 transition-all">{icon}</div>
  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">{label}</span>
