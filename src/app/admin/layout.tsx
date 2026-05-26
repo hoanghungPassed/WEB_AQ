@@ -154,7 +154,7 @@ export default function AdminLayout({
  return (
  <div className="flex flex-col self-start items-start max-w-[80%] animate-pulse">
  {senderName && (
- <span className="text-[8px] font-black uppercase tracking-wider text-gray-500 mb-0.5 ml-1">
+ <span className="text-[8px] font-bold uppercase tracking-wider text-gray-500 mb-0.5 ml-1">
  {senderName}
  </span>
  )}
@@ -752,6 +752,48 @@ export default function AdminLayout({
  }, 2000);
  return () => clearInterval(checkUnlockInterval);
  }, [isLate, user]);
+
+ // Synchronize global_users with the real MongoDB database to eliminate mock users
+  useEffect(() => {
+    if (!user) return;
+    
+    const syncRealUsersFromDB = async () => {
+      try {
+        const res = await fetch("/api/admin/users");
+        if (res.ok) {
+          const data = await res.json();
+          const realUsers = data.users || data.data || [];
+          if (realUsers.length > 0) {
+            const formattedUsers = realUsers.map((u: any) => ({
+              id: u.id || u._id || String(u.username),
+              name: u.name,
+              username: u.username,
+              role: u.role,
+              isOnline: u.isOnline || false,
+              lastActive: u.lastActive,
+              avatar: u.avatar || "",
+              status: u.status || "ACTIVE"
+            }));
+            
+            localStorage.setItem("global_users", JSON.stringify(formattedUsers));
+            
+            // Push to SyncStore so all other tabs are synchronized in real-time
+            fetch("/api/sync", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ global_users: JSON.stringify(formattedUsers) })
+            }).catch(err => console.error("Sync post users error:", err));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to sync real users from DB in layout:", err);
+      }
+    };
+
+    syncRealUsersFromDB();
+    const syncInterval = setInterval(syncRealUsersFromDB, 10000);
+    return () => clearInterval(syncInterval);
+  }, [user]);
 
  const formatLateMins = (mins: number) => {
  if (mins < 60) return `${mins} phút`;
@@ -1419,7 +1461,7 @@ export default function AdminLayout({
  <div className="h-20 w-20 bg-gold/10 border border-white/0 text-gold rounded-full flex items-center justify-center mx-auto shadow-lg shadow-gold/5">
  <Clock size={40} className="animate-pulse" />
  </div>
- <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Đang chờ phê duyệt</h2>
+ <h2 className="text-3xl font-bold uppercase tracking-tight text-white">Đang chờ phê duyệt</h2>
  <p className="text-gray-300 text-base font-medium max-w-md mx-auto leading-relaxed">
  Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.
  </p>
@@ -1452,7 +1494,7 @@ export default function AdminLayout({
  <div className="h-20 w-20 bg-red-500/10 border border-red-500/30 text-red-500 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-red-500/5">
  <ShieldAlert size={40} className="animate-pulse" />
  </div>
- <h2 className="text-3xl font-black uppercase tracking-tighter text-red-500">Yêu cầu bị từ chối</h2>
+ <h2 className="text-3xl font-bold uppercase tracking-tight text-red-500">Yêu cầu bị từ chối</h2>
  <p className="text-gray-300 text-base font-medium max-w-md mx-auto leading-relaxed">
  Yêu cầu giải trình hoặc nộp phạt của bạn đã bị Admin/Quản lý từ chối. Vui lòng kiểm tra lại thông tin và thử gửi lại.
  </p>
@@ -1498,7 +1540,7 @@ export default function AdminLayout({
  <Clock size={32} className="animate-pulse" />
  </div>
 
- <h2 className="text-3xl font-black uppercase tracking-tighter text-white mb-2">Báo cáo đi muộn</h2>
+ <h2 className="text-3xl font-bold uppercase tracking-tight text-white mb-2">Báo cáo đi muộn</h2>
  <p className="text-gray-400 text-base font-medium max-w-md mx-auto leading-relaxed mb-6">
  Hôm nay bạn check-in lúc <span className="text-red-400 font-bold font-mono">
  {user ? new Date(localStorage.getItem(`checkin_time_${user?.username}`) ||"").toLocaleTimeString("vi-VN") :"---"}
@@ -1520,25 +1562,25 @@ export default function AdminLayout({
 
  <div className="space-y-4">
  <div>
- <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Ngân hàng thụ hưởng</span>
+ <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Ngân hàng thụ hưởng</span>
  <span className="text-base font-black text-white">{bankConfig?.bankFullName || `${bankConfig?.bankName ||"MB"} Bank`}</span>
  </div>
  <div>
- <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Số tài khoản</span>
+ <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Số tài khoản</span>
  <span className="text-base font-black text-gold font-mono">{bankConfig?.accountNumber ||"686820388888"}</span>
  </div>
  <div>
- <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Tên người nhận</span>
+ <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Tên người nhận</span>
  <span className="text-base font-black text-white">{bankConfig?.accountHolder ||"CÔNG TY TNHH AQ MEDIA"}</span>
  </div>
  <div>
- <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Số tiền nộp phạt</span>
+ <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Số tiền nộp phạt</span>
  <span className="text-lg font-black text-red-400 font-mono">
  {fineAmount.toLocaleString("vi-VN")} VND
  </span>
  </div>
  <div>
- <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Nội dung chuyển khoản</span>
+ <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Nội dung chuyển khoản</span>
  <span className="text-sm font-bold text-gray-300 font-mono bg-white/5 border border-white/0 px-3 py-1.5 rounded-lg block overflow-hidden text-ellipsis whitespace-nowrap">
  {user?.username.toUpperCase()}_NOP_PHAT
  </span>
@@ -1548,7 +1590,7 @@ export default function AdminLayout({
 
  {/* excuse reason textarea */}
  <div className="border-t border-white/0 pt-6 my-6 text-left">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Hoặc gửi lý do giải trình đi muộn (Mở khóa lập tức)</label>
+ <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-2">Hoặc gửi lý do giải trình đi muộn (Mở khóa lập tức)</label>
  <textarea
  value={excuseReason}
  onChange={(e) => setExcuseReason(e.target.value)}
@@ -1724,7 +1766,7 @@ export default function AdminLayout({
  <Check size={40} />
  </motion.div>
  </div>
- <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-3">Cấp quyền thành công</h3>
+ <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-3">Cấp quyền thành công</h3>
  <p className="text-gray-400 font-medium leading-relaxed mb-8">{safeText(accessSuccessMsg)}</p>
  <button
  onClick={() => setAccessSuccessMsg(null)}
@@ -1753,9 +1795,9 @@ export default function AdminLayout({
  {/* Header */}
  <div className="p-4 border-b border-white/0 flex items-center justify-between">
  <div className="flex flex-col">
- <h3 className="text-base font-black text-white uppercase tracking-widest flex items-center gap-2">
+ <h3 className="text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
  <MessageCircle size={16} className="text-gold" />
- {chatTab ==="COMPANY" ?"Nội Bộ Công Ty" :"Tin Nhắn Tự Động"}
+ {chatTab ==="COMPANY" ?"Nội Bộ Công Ty" :"Trò Chuyện Nội Bộ"}
  </h3>
  <p className="text-[10px] text-zinc-500 font-bold uppercase mt-1">{brandName} Workspace</p>
  </div>
@@ -1774,13 +1816,13 @@ export default function AdminLayout({
  setChatTab("COMPANY");
  setActiveChatUser(null);
  }}
- className={`flex-1 py-2 text-sm font-black uppercase tracking-widest rounded-xl transition-all ${chatTab ==="COMPANY" ?"bg-gold text-sidebar" :"text-zinc-500 hover:bg-zinc-800 bg-zinc-900/50"}`}
+ className={`flex-1 py-2 text-sm font-bold uppercase tracking-wider rounded-xl transition-all ${chatTab ==="COMPANY" ?"bg-gold text-sidebar" :"text-zinc-500 hover:bg-zinc-800 bg-zinc-900/50"}`}
  >
  Công ty
  </button>
  <button
  onClick={() => setChatTab("PRIVATE")}
- className={`flex-1 py-2 text-sm font-black uppercase tracking-widest rounded-xl transition-all ${chatTab ==="PRIVATE" ?"bg-gold text-sidebar" :"text-zinc-500 hover:bg-zinc-800 bg-zinc-900/50"}`}
+ className={`flex-1 py-2 text-sm font-bold uppercase tracking-wider rounded-xl transition-all ${chatTab ==="PRIVATE" ?"bg-gold text-sidebar" :"text-zinc-500 hover:bg-zinc-800 bg-zinc-900/50"}`}
  >
  Nhân sự
  </button>
@@ -1801,7 +1843,7 @@ export default function AdminLayout({
  return (
  <div key={msg.id} className={`flex flex-col max-w-[80%] ${isMe ?"self-end items-end" :"self-start items-start"}`}>
  {!isMe && (
- <span className="text-[8px] font-black uppercase tracking-wider text-gray-500 mb-0.5 ml-1">
+ <span className="text-[8px] font-bold uppercase tracking-wider text-gray-500 mb-0.5 ml-1">
  {msg.senderName} ({msg.senderRole ==="01" ?"ADMIN" : msg.senderRole ==="02" ?"QLCV" : msg.senderRole ==="03" ?"QLNS" :"NV"})
  </span>
  )}
@@ -1898,12 +1940,12 @@ export default function AdminLayout({
  {/* Left: User Select sidebar */}
  {!activeChatUser ? (
  <div className="flex-1 flex flex-col overflow-y-auto p-2 divide-y divide-gray-200 divide-white/5 custom-scrollbar">
- <div className="text-[9px] font-black text-gray-500 uppercase tracking-widest p-2">Chọn nhân sự</div>
+ <div className="text-[9px] font-bold text-gray-500 uppercase tracking-wider p-2">Chọn nhân sự</div>
  {(chatUsers || []).map((u: any) => (
  <button
  key={u.id}
  onClick={() => setActiveChatUser(u)}
- className="w-full p-3 flex items-center gap-3 rounded-xl hover:hover:bg-gray-100 bg-white/5 transition-all text-left group"
+ className="w-full p-3 flex items-center gap-3 rounded-xl hover:bg-white/[0.08] bg-white/5 transition-all text-left group"
  >
  <div className="relative">
  <div className="h-8 w-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-sm text-gold font-black group-hover:scale-105 transition-all">
@@ -1912,7 +1954,7 @@ export default function AdminLayout({
  <div className={`absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-white border-[#161616] ${u.isOnline ?"bg-green-500" :"bg-red-500"}`} />
  </div>
  <div className="flex-1 min-w-0">
- <p className="text-sm font-black text-white truncate">{u.name}</p>
+ <p className="text-sm font-bold text-white truncate">{u.name}</p>
  <p className="text-[8px] font-bold text-gray-500 uppercase mt-0.5">@{u.username}</p>
  </div>
  {getUnreadCountForUser(u.username) > 0 && (
@@ -1935,7 +1977,7 @@ export default function AdminLayout({
  </div>
  <button
  onClick={() => setActiveChatUser(null)}
- className="text-[9px] font-black text-gold uppercase tracking-wider"
+ className="text-[9px] font-bold text-gold uppercase tracking-normal"
  >
  Đổi người
  </button>
@@ -2088,7 +2130,7 @@ export default function AdminLayout({
  <div className="p-4 border-b border-white/0 flex items-center justify-between">
  <div className="flex items-center gap-2">
  <Phone size={16} className="text-gold animate-pulse shrink-0" />
- <h3 className="text-sm font-black text-white uppercase tracking-widest">Danh sách SĐT ({(myAssignedPhones || []).length})</h3>
+ <h3 className="text-sm font-bold text-white uppercase tracking-wider">Danh sách SĐT ({(myAssignedPhones || []).length})</h3>
  </div>
  <button
  onClick={() => setIsPhonePanelOpen(false)}
@@ -2103,7 +2145,7 @@ export default function AdminLayout({
  {(myAssignedPhones || []).length === 0 ? (
  <div className="h-full flex flex-col items-center justify-center text-center p-6">
  <Phone size={48} className="text-gold/20 mb-4 stroke-1" />
- <p className="text-base font-black text-gray-300 uppercase tracking-wider">Không có SĐT</p>
+ <p className="text-base font-bold text-gray-300 uppercase tracking-normal">Không có SĐT</p>
  <p className="text-sm text-gray-500 mt-1 max-w-[200px]">Hiện không có số điện thoại nào hoạt động được gán cho bạn.</p>
  </div>
  ) : (
@@ -2141,21 +2183,21 @@ export default function AdminLayout({
  <div className={`grid ${p.status ==="XM lần 1" ?"grid-cols-3" :"grid-cols-2"} gap-2 border-t border-white/0 pt-3`}>
  <button
  onClick={() => handleUpdatePhoneStatus(p.id,"XM lần 1")}
- className={`py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 ${p.status ==="XM lần 1" ?"bg-gold text-[#0a0a0a] shadow-lg shadow-gold/20" :"bg-gold/10 text-gold hover:bg-gold hover:text-[#0a0a0a]"}`}
+ className={`py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${p.status ==="XM lần 1" ?"bg-gold text-[#0a0a0a] shadow-lg shadow-gold/20" :"bg-gold/10 text-gold hover:bg-gold hover:text-[#0a0a0a]"}`}
  >
  XM Lần 1
  </button>
  {p.status ==="XM lần 1" && (
  <button
  onClick={() => handleUpdatePhoneStatus(p.id,"XM lần 2")}
- className="py-1.5 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300"
+ className="py-1.5 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-300"
  >
  XM Lần 2
  </button>
  )}
  <button
  onClick={() => handleUpdatePhoneStatus(p.id,"Lỗi")}
- className="py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300"
+ className="py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-300"
  >
  Lỗi
  </button>

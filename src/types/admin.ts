@@ -15,6 +15,7 @@ export interface StaffData {
  address?: string;
  password?: string;
  checkInTime?: string;
+ createdAt?: string;
 }
 
 export interface TaskAssignment {

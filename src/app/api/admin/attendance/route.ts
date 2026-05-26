@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
  user.checkInTime = now.toISOString();
  user.checkOutTime = undefined;
  user.isOnline = true;
- user.lastActive = now.toISOString();
+ user.lastActive = now;
  await user.save();
 
  try {

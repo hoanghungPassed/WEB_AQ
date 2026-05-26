@@ -1150,7 +1150,7 @@ export default function AdminDashboard() {
  <ArrowLeft size={20} />
  </button>
  <div>
- <h1 className="text-xl font-black text-white uppercase tracking-tighter">
+ <h1 className="text-xl font-bold text-white uppercase tracking-tight">
  Nhiệm vụ được giao: {selectedStaffTask.title} ({(taskMails || []).length} mail)
  </h1>
  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
@@ -1312,14 +1312,14 @@ export default function AdminDashboard() {
  <div className="flex items-center gap-6">
  <button 
  onClick={() => setSelectedViewType(null)}
- className="flex items-center gap-2 text-gold font-black uppercase text-sm tracking-widest transition-all group"
+ className="flex items-center gap-2 text-gold font-bold uppercase text-sm tracking-wider transition-all group"
  >
  <div className="h-10 w-10 bg-gold/10 rounded-xl flex items-center justify-center group-hover:bg-gold/20 transition-all shadow-lg">
  <ArrowLeft size={20} />
  </div>
  Quay lại bảng điều khiển
  </button>
- <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+ <h2 className="text-3xl font-bold text-white uppercase tracking-tight flex items-center gap-3">
  {selectedViewType ==="STAFF" ? <Users className="text-gold" size={28} /> : <Mail className="text-gold" size={28} />}
  {selectedViewType ==="STAFF" ?"Danh sách Nhân viên" : selectedViewType ==="TASKS" ?"Task Công việc" : `Danh sách ${selectedViewType} Mail`}
  </h2>
@@ -1329,7 +1329,7 @@ export default function AdminDashboard() {
  <div className="bg-sidebar border border-white/0 rounded-[32px] overflow-hidden shadow-2xl">
  <div className="p-6 border-b border-white/0 bg-white/0 flex flex-col md:flex-row items-center justify-between gap-4">
  <div className="flex items-center gap-4 w-full md:w-auto">
- <h3 className="text-xl font-black text-white uppercase tracking-tighter hidden md:block">Dữ liệu chi tiết</h3>
+ <h3 className="text-xl font-bold text-white uppercase tracking-tight hidden md:block">Dữ liệu chi tiết</h3>
  <div className="h-8 w-px bg-white/0 hidden md:block" />
  <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-xl px-3 h-10 w-full md:w-64 focus-within:border-white/5 transition-all">
  <Search size={16} className="text-gray-500" />
@@ -1365,13 +1365,13 @@ export default function AdminDashboard() {
  <table className="w-full text-left text-base whitespace-nowrap">
  <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0">
  <tr>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Tên nhân viên</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Vai trò</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Trạng thái</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Check-in</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Check-out</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Tổng giờ</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">STT</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Tên nhân viên</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Vai trò</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Trạng thái</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Check-in</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Check-out</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Tổng giờ</th>
  </tr>
  </thead>
  <tbody className="divide-y divide-white/5 text-gray-300">
@@ -1387,7 +1387,7 @@ export default function AdminDashboard() {
  </div>
  {staff.name}
  </td>
- <td className="py-4 px-6 text-sm text-gray-400 uppercase font-black">{getRoleLabel(staff.role)}</td>
+ <td className="py-4 px-6 text-sm text-gray-400 font-bold">{getRoleLabel(staff.role)}</td>
  <td className="py-4 px-6">
  <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${staff.isOnline ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
  {staff.isOnline ?"ONLINE" :"OFFLINE"}
@@ -1404,14 +1404,14 @@ export default function AdminDashboard() {
  <table className="w-full text-left text-base whitespace-nowrap">
  <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0">
  <tr>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Tiêu đề</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Loại công việc</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Nhân sự được giao</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Số lượng mail</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Tiến độ</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Trạng thái</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Hạn chót</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">STT</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Tiêu đề</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Loại công việc</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Nhân sự được giao</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Số lượng mail</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Tiến độ</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Trạng thái</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Hạn chót</th>
  </tr>
  </thead>
  <tbody className="divide-y divide-white/5 text-gray-300">
@@ -1459,12 +1459,12 @@ export default function AdminDashboard() {
  <table className="w-full text-left text-base whitespace-nowrap">
  <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0">
  <tr>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Email</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Loại Mail</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Trạng thái</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Chi tiết</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Người cập nhật</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">STT</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Email</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Loại Mail</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Trạng thái</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Chi tiết</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Người cập nhật</th>
  </tr>
  </thead>
  <tbody className="divide-y divide-white/5 text-gray-300">
@@ -1512,7 +1512,7 @@ export default function AdminDashboard() {
  
  {selectedViewType !=="STAFF" && (
  <div className="p-6 border-t border-white/0 bg-black/20 flex items-center justify-between">
- <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-white font-black">{currentPage}</span> / {selectedViewType ==="TASKS" && isAdminOrManager ? totalTasksPages || 1 : totalPages || 1}</span>
+ <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Trang <span className="text-white font-black">{currentPage}</span> / {selectedViewType ==="TASKS" && isAdminOrManager ? totalTasksPages || 1 : totalPages || 1}</span>
  <div className="flex gap-2">
  <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/0 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
  <button disabled={currentPage >= (selectedViewType ==="TASKS" && isAdminOrManager ? totalTasksPages : totalPages)} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/0 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
@@ -1574,7 +1574,7 @@ export default function AdminDashboard() {
  }`}>
  <CheckCircle2 size={40} className="animate-pulse" />
  </div>
- <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-3">
+ <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-3">
  {timekeepingModal.type ==="in" ?"Check-in thành công" :"Check-out thành công"}
  </h3>
  <p className="text-gray-400 font-medium leading-relaxed mb-6">
@@ -1634,8 +1634,8 @@ export default function AdminDashboard() {
  <div className="relative z-10">
  <div className="flex items-center justify-between">
  <div>
- <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Thời gian làm việc</p>
- <h3 className="text-xl font-black text-white uppercase tracking-tighter mt-1">Chấm công</h3>
+ <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Thời gian làm việc</p>
+ <h3 className="text-xl font-bold text-white uppercase tracking-tight mt-1">Chấm công</h3>
  </div>
  <div className="h-12 w-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold shadow-lg shadow-gold/5">
  <Clock size={24} />
@@ -1683,8 +1683,8 @@ export default function AdminDashboard() {
  <div className="relative z-10 flex-1 flex flex-col justify-between">
  <div className="flex items-center justify-between">
  <div>
- <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Kênh vệ tinh</p>
- <h3 className="text-xl font-black text-white uppercase tracking-tighter mt-1">Đủ Giờ Theo Lô</h3>
+ <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Kênh vệ tinh</p>
+ <h3 className="text-xl font-bold text-white uppercase tracking-tight mt-1">Đủ Giờ Theo Lô</h3>
  </div>
  <div className="h-12 w-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold shadow-lg shadow-gold/5">
  <CheckCircle2 size={24} />
@@ -1732,7 +1732,7 @@ export default function AdminDashboard() {
  <div className="absolute top-0 right-0 h-24 w-24 bg-blue-500/10 blur-[40px] -mr-12 -mt-12 transition-all" />
  <div className="relative z-10">
  <div className="flex items-center justify-between mb-2">
- <h3 className="text-lg font-black text-white uppercase tracking-tighter flex items-center gap-2">
+ <h3 className="text-lg font-bold text-white uppercase tracking-tight flex items-center gap-2">
  <Calendar className="text-blue-400" size={18} /> {todayDutyTask.title}
  </h3>
  <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border tracking-widest bg-blue-500/10 text-blue-400 border-blue-500/20">
@@ -1759,7 +1759,7 @@ export default function AdminDashboard() {
  className="p-6 rounded-2xl border transition-all relative overflow-hidden group bg-white/0 border-white/0 hover:border-gray-300 hover:border-white/0 cursor-pointer hover:bg-white/5"
  >
  <div className="flex items-center justify-between mb-2">
- <h3 className="text-lg font-black text-white uppercase tracking-tighter">{task.title}</h3>
+ <h3 className="text-lg font-bold text-white uppercase tracking-tight">{task.title}</h3>
  <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border tracking-widest ${
  task.status ==="COMPLETED" 
  ?"bg-green-500/10 text-green-500 border-green-500/20" 
@@ -1781,7 +1781,7 @@ export default function AdminDashboard() {
  ) : task.mailRange ? (
  <div className="flex items-center gap-1.5 text-gold font-bold">
  <span className="text-[10px] uppercase tracking-wider text-gray-500">Chi tiết:</span>
- <span className="bg-gold/15 text-gold px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider">
+ <span className="bg-gold/15 text-gold px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider">
  STT: {task.mailRange}
  </span>
  </div>
@@ -1790,7 +1790,7 @@ export default function AdminDashboard() {
  <b>Ghi chú:</b> {task.note ||"Tiến hành check tạo xóa và xử lý các mail vệ tinh/gốc được giao. Đảm bảo đúng tiến độ và báo cáo lỗi nếu có."}
  </div>
  </div>
- <div className="flex items-center justify-between pt-4 border-t border-white/0 text-[10px] font-black uppercase tracking-widest text-gray-500">
+ <div className="flex items-center justify-between pt-4 border-t border-white/0 text-[10px] font-bold uppercase tracking-wider text-gray-500">
  <span>{task.mailCount || 0} Mail</span>
  <div className="flex items-center gap-2 relative z-20">
  <button
@@ -1840,7 +1840,7 @@ export default function AdminDashboard() {
  <div className="bg-sidebar border border-white/0 rounded-[32px] overflow-hidden shadow-2xl">
  <div className="p-6 border-b border-white/0 bg-white/0 flex flex-col md:flex-row items-center justify-between gap-4">
  <div>
- <h3 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
+ <h3 className="text-xl font-bold text-white uppercase tracking-tight flex items-center gap-2">
  <Mail className="text-gold" size={24} />
  Danh sách Mail được giao
  </h3>
@@ -2057,7 +2057,7 @@ export default function AdminDashboard() {
  <div className={`flex flex-wrap items-center gap-4`}>
  <div className={`flex items-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/0 ${!isAdminOrManager ?"opacity-75" :""}`}>
  <div className="flex items-center gap-2">
- <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Từ</span>
+ <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-2">Từ</span>
  <input 
  type="date" 
  value={kpi.startDate ||""} 
@@ -2068,7 +2068,7 @@ export default function AdminDashboard() {
  </div>
  <ChevronRight size={14} className="text-gray-500" />
  <div className="flex items-center gap-2">
- <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Đến</span>
+ <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Đến</span>
  <input 
  type="date" 
  value={kpi.endDate ||""} 
@@ -2104,7 +2104,7 @@ export default function AdminDashboard() {
  <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[50px] pointer-events-none" />
  
  <div className="flex items-center justify-between mb-4 relative z-10">
- <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+ <h3 className="text-base font-bold text-white uppercase tracking-normal flex items-center gap-2">
  <ShieldAlert className="text-gold" size={18} />
  Yêu cầu truy cập ngoài giờ
  </h3>
@@ -2119,7 +2119,7 @@ export default function AdminDashboard() {
  <div key={`req-card-${req.id}`} className="bg-white/0 border border-white/0 rounded-2xl p-6 flex flex-col gap-3 hover:border-white/0 transition-all">
  <div className="flex items-start justify-between">
  <div>
- <p className="text-sm font-black text-white">{req.staffName}</p>
+ <p className="text-sm font-semibold text-white">{req.staffName}</p>
  <p className="text-[9px] text-gray-500 font-mono mt-0.5">{req.time}</p>
  </div>
  <span className="text-[8px] font-black uppercase bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded-md">
@@ -2180,7 +2180,7 @@ export default function AdminDashboard() {
  <Target size={28} />
  </div>
  <div>
- <h2 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
+ <h2 className="text-2xl font-bold text-white uppercase tracking-tight flex items-center gap-2">
  Danh sách Kênh Đủ Giờ
  </h2>
  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">Tổng hợp kênh vệ tinh đạt điều kiện và trạng thái gửi thư mời</p>
@@ -2230,7 +2230,7 @@ export default function AdminDashboard() {
  return (
  <div key={batchName} className="border border-white/0 rounded-3xl bg-black/10 overflow-hidden">
  <div className="bg-[#0d0d0d] border-b border-white/0 p-4 flex items-center justify-between">
- <h3 className="text-base font-black text-white uppercase tracking-tighter">Lô: <span className="text-gold">{batchName}</span></h3>
+ <h3 className="text-base font-bold text-white uppercase tracking-tight">Lô: <span className="text-gold">{batchName}</span></h3>
  </div>
  <table className="w-full text-left whitespace-nowrap">
  <thead className="bg-[#0a0a0a] border-b border-white/0">
@@ -2297,7 +2297,7 @@ export default function AdminDashboard() {
  <div className="mt-8 relative z-10 pt-4 border-t border-white/0 text-right">
  <button 
  onClick={() => setIsEligibleChannelsModalOpen(false)} 
- className="h-14 px-8 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-sm tracking-widest transition-all"
+ className="h-14 px-8 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold uppercase text-sm tracking-wider transition-all"
  >
  Đóng
  </button>
@@ -2353,11 +2353,11 @@ function KPIInputCard({ label, target, current, onChange, unit, readonly }: any)
  </div>
  <div className="flex items-center gap-4 mt-auto">
  <div className="flex-1 space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">Tiến độ hiện tại</label>
+ <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block ml-1">Tiến độ hiện tại</label>
  <div className="h-14 w-full rounded-2xl bg-white/5 border border-white/0 flex items-center px-4 text-white font-bold text-base shadow-sm">{current} {unit}</div>
  </div>
  <div className="flex-1 space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">Mục tiêu (Admin)</label>
+ <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block ml-1">Mục tiêu (Admin)</label>
  {readonly ? (
  <div className="h-14 w-full rounded-2xl bg-gold/5 border border-gold/10 px-4 flex items-center text-gold/50 font-black text-base">{target}</div>
  ) : (

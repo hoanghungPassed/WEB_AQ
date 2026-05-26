@@ -25,6 +25,11 @@ export async function GET() {
  { status: 404 }
  );
  }
+
+ // Cập nhật lastActive khi người dùng tương tác/gọi API
+ user.lastActive = new Date();
+ await user.save();
+
  const userObj = user.toObject() as any;
  userObj.id = userObj._id.toString();
 

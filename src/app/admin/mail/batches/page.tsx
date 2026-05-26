@@ -487,7 +487,7 @@ export default function BatchesManagementPage() {
  setBatchToDelete(batch);
  setShowDeleteConfirm(true);
  }}
- className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-gray-900 text-white transition-all opacity-40 group-hover:opacity-100"
+ className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-all opacity-40 group-hover:opacity-100"
  title="Xóa Lô Mail"
  >
  <Trash2 size={13} />

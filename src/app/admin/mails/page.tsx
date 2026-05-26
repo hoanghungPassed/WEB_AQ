@@ -183,25 +183,25 @@ function MailTableContent() {
  </td>
  <td 
  onClick={() => copyToClipboard(mail.pass)}
- className="px-3 py-2 text-[11px] text-gray-400 font-mono border-r border-white/0 cursor-pointer active:bg-gold/10 hover:text-gray-900 text-white truncate whitespace-nowrap"
+ className="px-3 py-2 text-[11px] text-gray-400 font-mono border-r border-white/0 cursor-pointer active:bg-gold/10 hover:text-white truncate whitespace-nowrap"
  >
  {mail.pass}
  </td>
  <td 
  onClick={() => copyToClipboard(mail.recovery ||"")}
- className="px-3 py-2 text-[11px] text-gray-400 border-r border-white/0 cursor-pointer active:bg-gold/10 hover:text-gray-900 text-white truncate whitespace-nowrap"
+ className="px-3 py-2 text-[11px] text-gray-400 border-r border-white/0 cursor-pointer active:bg-gold/10 hover:text-white truncate whitespace-nowrap"
  >
  {mail.recovery}
  </td>
  <td 
  onClick={() => copyToClipboard(mail.twoFA ||"")}
- className="px-3 py-2 text-[11px] text-gray-400 font-mono border-r border-white/0 cursor-pointer active:bg-gold/10 hover:text-gray-900 text-white truncate whitespace-nowrap"
+ className="px-3 py-2 text-[11px] text-gray-400 font-mono border-r border-white/0 cursor-pointer active:bg-gold/10 hover:text-white truncate whitespace-nowrap"
  >
  {mail.twoFA}
  </td>
  <td 
  onClick={() => copyToClipboard(mail.phone ||"")}
- className="px-3 py-2 text-[11px] text-gray-400 border-r border-white/0 cursor-pointer active:bg-gold/10 hover:text-gray-900 text-white truncate whitespace-nowrap"
+ className="px-3 py-2 text-[11px] text-gray-400 border-r border-white/0 cursor-pointer active:bg-gold/10 hover:text-white truncate whitespace-nowrap"
  >
  {mail.phone}
  </td>
@@ -216,7 +216,7 @@ function MailTableContent() {
  <a 
  href={mail.otpLink} 
  target="_blank" 
- className="text-gold hover:text-gray-900 text-white transition-colors flex justify-center whitespace-nowrap"
+ className="text-gold hover:text-white transition-colors flex justify-center whitespace-nowrap"
  >
  <ExternalLink size={14} />
  </a>

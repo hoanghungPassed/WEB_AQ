@@ -834,14 +834,14 @@ export default function SatelliteBatchesPage() {
  </span>
  <button
  onClick={(e) => handleResetBatchLinks(e, batch)}
- className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-gray-900 text-white transition-all opacity-0 group-hover:opacity-100 border border-blue-500/20"
+ className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-white transition-all opacity-0 group-hover:opacity-100 border border-blue-500/20"
  title="Reset toàn bộ link kênh"
  >
  <RefreshCcw size={12} />
  </button>
  <button
  onClick={(e) => handleDeleteBatch(e, batch)}
- className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-gray-900 text-white transition-all opacity-0 group-hover:opacity-100 border border-red-500/20"
+ className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white transition-all opacity-0 group-hover:opacity-100 border border-red-500/20"
  title="Xóa lô này"
  >
  <Trash2 size={12} />
@@ -1005,7 +1005,7 @@ export default function SatelliteBatchesPage() {
  </div>
  <button
  onClick={handleUnassignBatch}
- className="w-full h-12 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-gray-900 text-white border border-red-500/20 font-black uppercase text-sm tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2"
+ className="w-full h-12 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 font-black uppercase text-sm tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2"
  >
  <Trash2 size={16} />
  Hủy gán & giải phóng lô

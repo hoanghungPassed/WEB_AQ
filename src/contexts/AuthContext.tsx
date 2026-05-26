@@ -57,6 +57,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
  fetchSession();
  }, [pathname]); // Refresh session checking dynamically based on navigation could be useful, or just on mount
 
+ // Lắng nghe hoạt động để liên tục cập nhật lastActive lên server
+ useEffect(() => {
+ if (!user) return;
+ let lastUpdate = Date.now();
+ const handleActivity = () => {
+ // Throttle 2 phút (120 giây) để tránh spam API
+ if (Date.now() - lastUpdate > 120 * 1000) {
+ lastUpdate = Date.now();
+ fetch("/api/auth/me").catch(() => {});
+ }
+ };
+ window.addEventListener("mousemove", handleActivity);
+ window.addEventListener("keydown", handleActivity);
+ window.addEventListener("scroll", handleActivity);
+ window.addEventListener("click", handleActivity);
+ return () => {
+ window.removeEventListener("mousemove", handleActivity);
+ window.removeEventListener("keydown", handleActivity);
+ window.removeEventListener("scroll", handleActivity);
+ window.removeEventListener("click", handleActivity);
+ };
+ }, [user]);
+
  const refreshUser = async () => {
  await fetchSession();
  };

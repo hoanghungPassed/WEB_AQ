@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
 
  // Cập nhật trạng thái online và check-in
  user.isOnline = true;
- user.lastActive = now.toISOString();
+ user.lastActive = now;
  if (!user.checkInTime || !user.checkInTime.startsWith(now.toISOString().split("T")[0])) {
  user.checkInTime = now.toISOString();
  user.checkOutTime = undefined; // Reset checkout for new day

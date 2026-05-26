@@ -4,27 +4,43 @@ import dbConnect from"@/lib/mongodb";
 import User from"@/models/User";
 import { hashPassword } from"@/lib/auth";
 
-// Lấy danh sách nhân sự
+// Lấy danh sách nhân sự (Hỗ trợ lọc online)
 export async function GET(req: NextRequest) {
- try {
- await dbConnect();
+  try {
+  await dbConnect();
+  
+  const role = req.headers.get("x-user-role");
+  if (!role) {
+  return NextResponse.json({ error:"Chưa đăng nhập" }, { status: 401 });
+  }
  
- // Middleware đã set các header này từ JWT
- const role = req.headers.get("x-user-role");
- 
- // Kiểm tra quyền: role 01 (Admin), 02 (QL Công Việc), 03 (QL Nhân Sự) được xem danh sách
- if (role !=="01" && role !=="02" && role !=="03") {
- return NextResponse.json({ error:"Không có quyền truy cập" }, { status: 403 });
- }
+  const statusParam = req.nextUrl.searchParams.get("status");
+  
+  // Thiết lập truy vấn lọc theo trạng thái online
+  let query: any = {};
+  if (statusParam === "online") {
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+  query.lastActive = { $gte: tenMinutesAgo };
+  query.status = "ACTIVE";
+  }
 
- // Tìm tất cả users, bỏ qua trường password, sắp xếp theo role
- const users = await User.find().select('-password').sort({ role: 1, createdAt: -1 });
- 
- return NextResponse.json({ users });
- } catch (error: any) {
- console.error("Get users error:", error);
- return NextResponse.json({ error:"Lỗi máy chủ:" + error.message }, { status: 500 });
- }
+  // Tìm các users, loại bỏ mật khẩu
+  const users = await User.find(query).select('-password').sort({ role: 1, createdAt: -1 });
+  
+  // Tính toán động trường isOnline dựa trên lastActive trong 10 phút gần nhất
+  const mappedUsers = users.map(u => {
+  const userObj = u.toObject() as any;
+  const lastActiveDate = u.lastActive ? new Date(u.lastActive) : null;
+  userObj.isOnline = lastActiveDate ? (lastActiveDate.getTime() > Date.now() - 10 * 60 * 1000) : false;
+  userObj.id = userObj._id.toString();
+  return userObj;
+  });
+  
+  return NextResponse.json({ success: true, data: mappedUsers, users: mappedUsers });
+  } catch (error: any) {
+  console.error("Get users error:", error);
+  return NextResponse.json({ error:"Lỗi máy chủ:" + error.message }, { status: 500 });
+  }
 }
 
 // Thêm nhân sự mới

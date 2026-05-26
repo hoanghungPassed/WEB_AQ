@@ -157,7 +157,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  <span className="h-6 w-1.5 rounded-full bg-gold shadow-[0_0_10px_#d4af37]" />
  Hồ sơ cá nhân
  </h2>
- <button onClick={onClose} className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-white bg-zinc-900/5 hover:text-gray-900 text-white">
+ <button onClick={onClose} className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-white bg-zinc-900/5 hover:text-white">
  <X size={24} />
  </button>
  </div>

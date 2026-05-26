@@ -1280,7 +1280,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  Xem chi tiết
  </button>
  {isAdminOrManager && (
- <button onClick={() => deleteMail(mail._id || mail.id)} className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-gray-900 text-white transition-all shadow-inner"><Trash2 size={16} /></button>
+ <button onClick={() => deleteMail(mail._id || mail.id)} className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-inner"><Trash2 size={16} /></button>
  )}
  </div>
  </td>

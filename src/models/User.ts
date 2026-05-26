@@ -15,7 +15,7 @@ export interface IUser extends Document {
  taskCount: number;
  kpiProgress: number;
  avatar?: string;
- lastActive?: string;
+ lastActive?: Date;
  birthYear?: string;
  phone?: string;
  address?: string;
@@ -74,8 +74,8 @@ const userSchema = new Schema<IUser>(
  default:"",
  },
  lastActive: {
- type: String,
- default:"",
+ type: Date,
+ default: Date.now,
  },
  birthYear: {
  type: String,

@@ -6,7 +6,7 @@ import {
  Users, UserPlus, Search, Filter, MoreHorizontal, 
  CheckCircle2, XCircle, Shield, Activity, 
  ClipboardList, AlertCircle, Trash2, UserCheck, User, Save, X, CalendarDays, CheckSquare, Clock,
- Mail, Phone, Calendar, MapPin, Plus
+ Mail, Phone, Calendar, MapPin, Plus, MessageSquare, Minus
 } from"lucide-react";
 import { useRouter, useSearchParams } from"next/navigation";
 import { StaffData } from"@/types/admin";
@@ -28,8 +28,74 @@ export default function StaffManagementPage() {
  const [statusFilter, setStatusFilter] = useState("ALL");
  const [selectedStaff, setSelectedStaff] = useState<StaffData | null>(null);
  const [activeDetailDay, setActiveDetailDay] = useState<any | null>(null);
- const [activeTab, setActiveTab] = useState<"ACTIVE" |"PENDING" |"DUTY">("ACTIVE");
- const [pendingSubTab, setPendingSubTab] = useState<"ACCOUNTS" |"ACCESS">("ACCOUNTS");
+ const [activeTab, setActiveTab] = useState<"ACTIVE" | "PENDING" | "DUTY" | "AUTO_MESSAGES">("ACTIVE");
+ const [pendingSubTab, setPendingSubTab] = useState<"ACCOUNTS" | "ACCESS">("ACCOUNTS");
+
+ // Auto Messages States
+ const [autoMessagesList, setAutoMessagesList] = useState<any[]>([]);
+ const [isAutoMsgModalOpen, setIsAutoMsgModalOpen] = useState(false);
+ const [editingAutoMsg, setEditingAutoMsg] = useState<any | null>(null);
+ const [autoMsgTitle, setAutoMsgTitle] = useState("");
+ const [autoMsgContent, setAutoMsgContent] = useState("");
+ const [autoMsgTrigger, setAutoMsgTrigger] = useState("MANUAL");
+
+ const loadAutoMessages = async () => {
+   try {
+     const res = await fetch("/api/admin/auto-messages");
+     if (res.ok) {
+       const data = await res.json();
+       setAutoMessagesList(data.messages || []);
+     }
+   } catch (err) {
+     console.error("Lỗi load tin nhắn mẫu:", err);
+   }
+ };
+
+ const handleSaveAutoMsg = async (e: React.FormEvent) => {
+   e.preventDefault();
+   if (!autoMsgTitle || !autoMsgContent) {
+     triggerToast("Vui lòng điền đầy đủ tiêu đề và nội dung");
+     return;
+   }
+   const payload = { title: autoMsgTitle, content: autoMsgContent, triggerEvent: autoMsgTrigger };
+   try {
+     const url = editingAutoMsg ? `/api/admin/auto-messages/${editingAutoMsg.id}` : "/api/admin/auto-messages";
+     const method = editingAutoMsg ? "PUT" : "POST";
+     const res = await fetch(url, {
+       method,
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify(payload)
+     });
+     if (res.ok) {
+       triggerToast(editingAutoMsg ? "Cập nhật tin nhắn mẫu thành công!" : "Tạo mới tin nhắn mẫu thành công!");
+       setIsAutoMsgModalOpen(false);
+       setEditingAutoMsg(null);
+       setAutoMsgTitle("");
+       setAutoMsgContent("");
+       loadAutoMessages();
+     } else {
+       const data = await res.json();
+       triggerToast(data.error || "Có lỗi xảy ra");
+     }
+   } catch (err) {
+     triggerToast("Lỗi kết nối máy chủ");
+   }
+ };
+
+ const handleDeleteAutoMsg = async (id: string) => {
+   if (!confirm("Bạn có chắc muốn xóa tin nhắn mẫu này?")) return;
+   try {
+     const res = await fetch(`/api/admin/auto-messages/${id}`, { method: "DELETE" });
+     if (res.ok) {
+       triggerToast("Xóa tin nhắn mẫu thành công!");
+       loadAutoMessages();
+     } else {
+       triggerToast("Có lỗi xảy ra khi xóa");
+     }
+   } catch (err) {
+     triggerToast("Lỗi kết nối");
+   }
+ };
 
  // Duty Roster States
  const [dutyTaskWeek, setDutyTaskWeek] = useState("");
@@ -43,6 +109,12 @@ export default function StaffManagementPage() {
  const [tempRole, setTempRole] = useState<string | null>(null);
  const [showToast, setShowToast] = useState(false);
  const [toastMsg, setToastMsg] = useState("");
+
+ const triggerToast = (msg: string) => {
+   setToastMsg(msg);
+   setShowToast(true);
+   setTimeout(() => setShowToast(false), 3000);
+ };
 
  const isRestricted = useMemo(() => {
  const curRoleUpper = String(currentUser?.role ||"").toUpperCase();
@@ -168,6 +240,12 @@ export default function StaffManagementPage() {
  clearInterval(pollInterval);
  };
  }, []);
+
+ useEffect(() => {
+   if (activeTab === "AUTO_MESSAGES") {
+     loadAutoMessages();
+   }
+ }, [activeTab]);
 
  // NOTE: Không có auto-save useEffect ở đây để tránh ghi đè data mới từ server.
  // Tất cả các hàm mutation (handleApproveUser, handleToggleStatus...) đã tự gọi
@@ -450,122 +528,171 @@ export default function StaffManagementPage() {
  };
 
  const handleGenerateRoster = () => {
- if ((dutySelectedStaff || []).length === 0) {
- showAlert("Lỗi","Vui lòng chọn ít nhất 1 nhân viên để phân lịch!");
- return;
- }
- 
- // Rotate logic: assign one staff per day from Mon to Sat
- const days = ["Thứ 2","Thứ 3","Thứ 4","Thứ 5","Thứ 6","Thứ 7"];
- const roster = (days || []).map((dayName, idx) => {
- const staffId = dutySelectedStaff[idx % (dutySelectedStaff || []).length];
- const staff = staffList.find(s => s.id === staffId);
- return {
- day: dayName,
- staffId: staffId,
- staffName: staff?.name ||"Unknown",
- username: staff?.username ||"unknown"
- };
- });
- 
- setDutyRoster(roster);
- 
- const config = {
- roster,
- taskWeek: dutyTaskWeek,
- taskWeekend: dutyTaskWeekend,
- updatedAt: new Date().toISOString()
- };
- 
- pushToSync({ duty_roster: JSON.stringify(config) });
- 
- setToastMsg("Đã phân lịch trực nhật thành công!");
- setShowToast(true);
- setTimeout(() => setShowToast(false), 3000);
- };
+    if ((dutySelectedStaff || []).length === 0) {
+      showAlert("Lỗi", "Vui lòng chọn ít nhất 1 nhân viên để phân lịch!");
+      return;
+    }
+    const days = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+    const roster = (days || []).map((dayName, idx) => {
+      const staffId = dutySelectedStaff[idx % (dutySelectedStaff || []).length];
+      const staff = staffList.find(s => s.id === staffId);
+      return {
+        day: dayName,
+        staffId: staffId,
+        staffName: staff?.name || "Unknown",
+        username: staff?.username || "unknown"
+      };
+    });
+    
+    setDutyRoster(roster);
+    
+    const config = {
+      roster,
+      taskWeek: dutyTaskWeek,
+      taskWeekend: dutyTaskWeekend,
+      updatedAt: new Date().toISOString()
+    };
+    
+    pushToSync({ duty_roster: JSON.stringify(config) });
+    
+    setToastMsg("Đã phân lịch trực nhật thành công!");
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
 
- const attendanceData = useMemo(() => {
- if (!selectedStaff) return { list: [], present: 0, absent: 0 };
- const list = [];
- let present = 0;
- let absent = 0;
- const today = new Date();
- const year = today.getFullYear();
- const month = String(today.getMonth() + 1).padStart(2, '0');
+  const attendanceData = useMemo(() => {
+    if (!selectedStaff) return { list: [], present: 0, absent: 0 };
+    const list: any[] = [];
+    let present = 0;
+    let absent = 0;
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonthIdx = today.getMonth(); // 0-11
+    
+    // Get total days in current month
+    const totalDays = new Date(currentYear, currentMonthIdx + 1, 0).getDate();
+    const monthStr = String(currentMonthIdx + 1).padStart(2, '0');
 
- for (let i = 0; i < 26; i++) {
- const dayNum = i + 1;
- const isToday = dayNum === today.getDate();
- const dayStr = String(dayNum).padStart(2, '0');
- const dateKey = `${year}-${month}-${dayStr}`;
+    for (let dayNum = 1; dayNum <= totalDays; dayNum++) {
+      const dayStr = String(dayNum).padStart(2, '0');
+      const dateKey = `${currentYear}-${monthStr}-${dayStr}`;
+      const currentDate = new Date(currentYear, currentMonthIdx, dayNum);
+      const isSunday = currentDate.getDay() === 0;
+      
+      const isToday = dayNum === today.getDate() && currentMonthIdx === today.getMonth() && currentYear === today.getFullYear();
+      const isFuture = currentDate > today && !isToday;
+      
+      let isNotStarted = false;
+      if (selectedStaff.createdAt) {
+        const createdDate = new Date(selectedStaff.createdAt);
+        const currentZeroTime = new Date(currentYear, currentMonthIdx, dayNum);
+        const createdZeroTime = new Date(createdDate.getFullYear(), createdDate.getMonth(), createdDate.getDate());
+        if (currentZeroTime < createdZeroTime) {
+          isNotStarted = true;
+        }
+      }
 
- const checkinTime = localStorage.getItem(`checkin_time_${selectedStaff.username}_${dateKey}`) || localStorage.getItem(`checkin_time_${selectedStaff.username}`);
- let hasCheckedIn = false;
- let actualTime ="";
- let checkoutTime ="";
+      // Check-in logic
+      const checkinTime = localStorage.getItem(`checkin_time_${selectedStaff.username}_${dateKey}`) || localStorage.getItem(`checkin_time_${selectedStaff.username}`);
+      let hasCheckedIn = false;
+      let actualTime = "";
+      let checkoutTime = "";
 
- if (isToday) {
- if (checkinTime) {
- hasCheckedIn = true;
- actualTime = checkinTime;
- checkoutTime ="17:30:00";
- }
- } else {
- let hash = 0;
- const combined = selectedStaff.username + dateKey;
- for (let charIdx = 0; charIdx < (combined || []).length; charIdx++) {
- hash = combined.charCodeAt(charIdx) + ((hash << 5) - hash);
- }
- hasCheckedIn = Math.abs(hash % 100) < 85;
- 
- if (hasCheckedIn) {
- const minOffset = Math.abs(hash % 25); // 0-24 minutes late
- const secOffset = Math.abs(hash % 60);
- actualTime = `07:${String(45 + minOffset).padStart(2, '0')}:${String(secOffset).padStart(2, '0')}`;
- checkoutTime = `17:${String(15 + Math.abs(hash % 20)).padStart(2, '0')}:${String(secOffset).padStart(2, '0')}`;
- }
- }
+      if (isToday) {
+        if (checkinTime) {
+          hasCheckedIn = true;
+          actualTime = checkinTime;
+          checkoutTime = "17:30:00";
+        }
+      } else if (!isFuture && !isSunday && !isNotStarted) {
+        let hash = 0;
+        const combined = selectedStaff.username + dateKey;
+        for (let charIdx = 0; charIdx < (combined || []).length; charIdx++) {
+          hash = combined.charCodeAt(charIdx) + ((hash << 5) - hash);
+        }
+        hasCheckedIn = Math.abs(hash % 100) < 85;
+        
+        if (hasCheckedIn) {
+          const minOffset = Math.abs(hash % 25); // 0-24 minutes late
+          const secOffset = Math.abs(hash % 60);
+          actualTime = `07:${String(45 + minOffset).padStart(2, '0')}:${String(secOffset).padStart(2, '0')}`;
+          checkoutTime = `17:${String(15 + Math.abs(hash % 20)).padStart(2, '0')}:${String(secOffset).padStart(2, '0')}`;
+        }
+      }
 
- if (hasCheckedIn) {
- present++;
- } else {
- absent++;
- }
+      // Determine Status
+      let status = "ABSENT";
+      if (isSunday) {
+        status = "SUNDAY";
+      } else if (isFuture) {
+        status = "FUTURE";
+      } else if (isNotStarted) {
+        status = "NOT_STARTED";
+      } else if (hasCheckedIn) {
+        status = "PRESENT";
+        present++;
+      } else {
+        status = "ABSENT";
+        absent++;
+      }
 
- let workLog = [];
- if (hasCheckedIn) {
- const tasks = ["Kiểm tra định kỳ & dọn dẹp các tài khoản Die trong Lô","Giao việc, mời kênh YouTube vệ tinh tham gia Network","Xem giờ xem (Watch Hours) và tối ưu hóa SEO video","Chỉnh sửa thông tin khôi phục tài khoản (Recovery Email)","Tải lên video hàng loạt & quét trạng thái bản quyền kênh","Xác minh danh tính CCCD & thiết lập mã PIN AdSense","Khắc phục sự cố 2FA & cập nhật khóa bảo mật dự phòng","Hỗ trợ bộ phận kỹ thuật cấu hình luồng livestream tự động","Rà soát dữ liệu doanh thu Lô Mail Vệ Tinh quý trước"
- ];
- 
- const task1 = tasks[(Math.abs(dayNum * 3) + (selectedStaff.name || []).length) % (tasks || []).length];
- const task2 = tasks[(Math.abs(dayNum * 7) + (selectedStaff.name || []).length + 2) % (tasks || []).length];
- 
- workLog = [
- { time: actualTime, title:"Điểm danh ca sáng (Check-in)", desc:"Bắt đầu ca làm việc đúng giờ và thực hiện đồng bộ hóa hệ thống." },
- { time:"10:30", title: `Nhiệm vụ chính: ${task1}`, desc:"Báo cáo tiến độ đầy đủ cho quản lý và đảm bảo chất lượng công việc." },
- { time:"14:15", title: `Nhiệm vụ phụ: ${task2}`, desc:"Hoạt động ghi nhận trơn tru, không có sự cố kỹ thuật phát sinh." },
- { time: checkoutTime, title:"Điểm danh ca chiều (Check-out)", desc:"Hoàn tất ca làm việc, ký số nhật ký công việc đầy đủ." }
- ];
- } else {
- workLog = [
- { time:"N/A", title:"Không có mặt", desc:"Không có dữ liệu hoạt động trong ngày này. Nhân sự nghỉ phép hoặc chưa chấm công." }
- ];
- }
+      let workLog: any[] = [];
+      if (status === "PRESENT") {
+        const tasks = [
+          "Kiểm tra định kỳ & dọn dẹp các tài khoản Die trong Lô",
+          "Giao việc, mời kênh YouTube vệ tinh tham gia Network",
+          "Xem giờ xem (Watch Hours) và tối ưu hóa SEO video",
+          "Chỉnh sửa thông tin khôi phục tài khoản (Recovery Email)",
+          "Tải lên video hàng loạt & quét trạng thái bản quyền kênh",
+          "Xác minh danh tính CCCD & thiết lập mã PIN AdSense",
+          "Khắc phục sự cố 2FA & cập nhật khóa bảo mật dự phòng",
+          "Hỗ trợ bộ phận kỹ thuật cấu hình luồng livestream tự động",
+          "Rà soát dữ liệu doanh thu Lô Mail Vệ Tinh quý trước"
+        ];
+        
+        const task1 = tasks[(Math.abs(dayNum * 3) + (selectedStaff.name || []).length) % (tasks || []).length];
+        const task2 = tasks[(Math.abs(dayNum * 7) + (selectedStaff.name || []).length + 2) % (tasks || []).length];
+        
+        workLog = [
+          { time: actualTime, title: "Điểm danh ca sáng (Check-in)", desc: "Bắt đầu ca làm việc đúng giờ và thực hiện đồng bộ hóa hệ thống." },
+          { time: "10:30", title: `Nhiệm vụ chính: ${task1}`, desc: "Báo cáo tiến độ đầy đủ cho quản lý và đảm bảo chất lượng công việc." },
+          { time: "14:15", title: `Nhiệm vụ phụ: ${task2}`, desc: "Hoạt động ghi nhận trơn tru, không có sự cố kỹ thuật phát sinh." },
+          { time: checkoutTime, title: "Điểm danh ca chiều (Check-out)", desc: "Hoàn tất ca làm việc, ký số nhật ký công việc đầy đủ." }
+        ];
+      } else if (status === "SUNDAY") {
+        workLog = [
+          { time: "N/A", title: "Chủ nhật nghỉ", desc: "Ngày nghỉ cuối tuần theo quy định, không tính công làm việc." }
+        ];
+      } else if (status === "NOT_STARTED") {
+        workLog = [
+          { time: "N/A", title: "Chưa đi làm", desc: "Nhân sự chưa bắt đầu làm việc tại công ty trước ngày đăng ký tài khoản." }
+        ];
+      } else if (status === "FUTURE") {
+        workLog = [
+          { time: "N/A", title: "Chưa đến ngày", desc: "Ngày trong tương lai của tháng hiện tại, chưa có dữ liệu chấm công." }
+        ];
+      } else {
+        workLog = [
+          { time: "N/A", title: "Vắng mặt", desc: "Không có dữ liệu hoạt động trong ngày này. Nhân sự nghỉ phép hoặc chưa chấm công." }
+        ];
+      }
 
- list.push({
- dayNum,
- dateKey,
- isToday,
- hasCheckedIn,
- checkinTime: actualTime ||"---",
- checkoutTime: checkoutTime ||"---",
- workLog
- });
- }
+      list.push({
+        dayNum,
+        dateKey,
+        isToday,
+        hasCheckedIn,
+        checkinTime: actualTime || "---",
+        checkoutTime: checkoutTime || "---",
+        workLog,
+        status
+      });
+    }
 
- return { list, present, absent };
- }, [selectedStaff]);
+    return { list, present, absent };
+  }, [selectedStaff]);
 
+  
  return (
  <div className="space-y-8 pb-10 relative">
  {/* Header & Stats */}
@@ -578,29 +705,37 @@ export default function StaffManagementPage() {
  <div className="flex gap-4">
  <button 
  onClick={() => setActiveTab("ACTIVE")}
- className={`h-12 px-6 rounded-2xl font-black uppercase text-sm tracking-widest flex items-center gap-2 transition-all ${activeTab ==="ACTIVE" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :" bg-white/5 text-gray-500 hover:bg-white/10"}`}
+ className={`h-12 px-6 rounded-2xl font-bold uppercase text-sm tracking-wider flex items-center gap-2 transition-all ${activeTab ==="ACTIVE" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :" bg-white/5 text-gray-500 hover:bg-white/10"}`}
  >
  <Users size={18} /> Nhân viên ({stats.total})
  </button>
  {canManageDuty && (
  <button 
  onClick={() => setActiveTab("DUTY")}
- className={`h-12 px-6 rounded-2xl font-black uppercase text-sm tracking-widest flex items-center gap-2 transition-all ${activeTab ==="DUTY" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :" bg-white/5 text-gray-500 hover:bg-white/10"}`}
+ className={`h-12 px-6 rounded-2xl font-bold uppercase text-sm tracking-wider flex items-center gap-2 transition-all ${activeTab ==="DUTY" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :" bg-white/5 text-gray-500 hover:bg-white/10"}`}
  >
  <CalendarDays size={18} /> Lịch Trực Nhật
+ </button>
+ )}
+ {!isRestricted && (
+ <button 
+ onClick={() => setActiveTab("AUTO_MESSAGES")}
+ className={`h-12 px-6 rounded-2xl font-bold uppercase text-sm tracking-wider flex items-center gap-2 transition-all ${activeTab ==="AUTO_MESSAGES" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :" bg-white/5 text-gray-500 hover:bg-white/10"}`}
+ >
+ <MessageSquare size={18} /> Tin nhắn tự động
  </button>
  )}
  {!isRestricted && (
  <div className="flex items-center gap-2 p-1 bg-white/5 rounded-[24px] border border-white/0 shadow-inner">
  <button 
  onClick={() => { setActiveTab("PENDING"); setPendingSubTab("ACCOUNTS"); }}
- className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab ==="PENDING" && pendingSubTab ==="ACCOUNTS" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :"text-gray-500 hover:text-white"}`}
+ className={`h-10 px-6 rounded-2xl font-bold uppercase text-[10px] tracking-wider flex items-center gap-2 transition-all ${activeTab ==="PENDING" && pendingSubTab ==="ACCOUNTS" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :"text-gray-500 hover:text-white"}`}
  >
  Duyệt đăng ký ({stats.pending})
  </button>
  <button 
  onClick={() => { setActiveTab("PENDING"); setPendingSubTab("ACCESS"); }}
- className={`h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${activeTab ==="PENDING" && pendingSubTab ==="ACCESS" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :"text-gray-500 hover:text-white"}`}
+ className={`h-10 px-6 rounded-2xl font-bold uppercase text-[10px] tracking-wider flex items-center gap-2 transition-all ${activeTab ==="PENDING" && pendingSubTab ==="ACCESS" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :"text-gray-500 hover:text-white"}`}
  >
  Duyệt truy cập ({(accessRequests || []).length})
  </button>
@@ -625,12 +760,12 @@ export default function StaffManagementPage() {
  <div className="md:col-span-2 bg-sidebar border border-white/0 p-8 rounded-[32px] shadow-2xl flex flex-col gap-6">
  <div className="flex items-center gap-3 border-b border-white/0 pb-4">
  <CalendarDays className="text-gold" size={24} />
- <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Cấu hình Lịch Trực Nhật</h2>
+ <h2 className="text-2xl font-bold text-white uppercase tracking-tight">Cấu hình Lịch Trực Nhật</h2>
  </div>
  
  <div className="space-y-4">
  <div className="flex flex-col gap-2">
- <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Nhiệm vụ trực nhật (T2 - T6)</label>
+ <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Nhiệm vụ trực nhật (T2 - T6)</label>
  <textarea 
  rows={2}
  value={dutyTaskWeek}
@@ -640,7 +775,7 @@ export default function StaffManagementPage() {
  />
  </div>
  <div className="flex flex-col gap-2">
- <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Nhiệm vụ tổng vệ sinh (Thứ 7)</label>
+ <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Nhiệm vụ tổng vệ sinh (Thứ 7)</label>
  <textarea 
  rows={2}
  value={dutyTaskWeekend}
@@ -653,7 +788,7 @@ export default function StaffManagementPage() {
 
  <div className="flex-1 mt-4">
  <div className="flex items-center justify-between mb-4">
- <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+ <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
  Nhân viên tham gia xoay vòng ({(dutySelectedStaff || []).length})
  </label>
  <button 
@@ -686,7 +821,7 @@ export default function StaffManagementPage() {
  <div className="flex justify-end pt-4 border-t border-white/0">
  <button 
  onClick={handleGenerateRoster}
- className="h-12 px-8 rounded-2xl bg-gold text-sidebar font-black uppercase text-[10px] tracking-widest hover:bg-yellow-500 transition-all shadow-xl shadow-gold/20 flex items-center gap-2"
+ className="h-12 px-8 rounded-2xl bg-gold text-sidebar font-bold uppercase text-[10px] tracking-wider hover:bg-yellow-500 transition-all shadow-xl shadow-gold/20 flex items-center gap-2"
  >
  <CheckCircle2 size={16} /> Xác nhận phân lịch
  </button>
@@ -696,18 +831,18 @@ export default function StaffManagementPage() {
  <div className="md:col-span-1 bg-sidebar border border-white/0 p-8 rounded-[32px] shadow-2xl flex flex-col h-full">
  <div className="flex items-center gap-3 border-b border-white/0 pb-4 mb-6">
  <ClipboardList className="text-blue-400" size={24} />
- <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Lịch Tuần Này</h2>
+ <h2 className="text-2xl font-bold text-white uppercase tracking-tight">Lịch Tuần Này</h2>
  </div>
  
  <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-2">
  {(dutyRoster || []).length > 0 ? (dutyRoster || []).map((item, idx) => (
  <div key={idx} className="flex items-center gap-4 p-6 rounded-2xl bg-white/0 border border-white/0">
  <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex flex-col items-center justify-center text-blue-400 border border-blue-500/20 flex-shrink-0">
- <span className="text-[10px] font-black uppercase tracking-tighter">Thứ</span>
+ <span className="text-[10px] font-bold uppercase tracking-tight">Thứ</span>
  <span className="text-lg font-black">{item.day.split(' ')[1]}</span>
  </div>
  <div className="min-w-0">
- <p className="text-base font-black text-white truncate">{item.staffName}</p>
+ <p className="text-base font-bold text-white truncate">{item.staffName}</p>
  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest truncate">@{item.username}</p>
  </div>
  </div>
@@ -824,7 +959,7 @@ export default function StaffManagementPage() {
  </button>
  <button 
  onClick={() => handleDenyAccess(req.id, req.staffName)}
- className="h-11 px-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-gray-900 text-white transition-all"
+ className="h-11 px-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
  >
  Từ chối
  </button>
@@ -910,7 +1045,7 @@ export default function StaffManagementPage() {
  {!isRestricted && (
  <td className="px-8 py-7">
  {activeTab ==="ACTIVE" ? (
- <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase border whitespace-nowrap ${
+ <span className={`px-3 py-1 rounded-xl text-[10px] font-bold tracking-wider uppercase border whitespace-nowrap ${
  staff.status ==="ACTIVE" ?"bg-green-500/10 text-green-500 border-green-500/20" :"bg-red-500/10 text-red-500 border-red-500/20"
  }`}>
  {staff.status ==="ACTIVE" ?"Hoạt động" :"Đã khóa"}
@@ -929,7 +1064,7 @@ export default function StaffManagementPage() {
  </button>
  <button 
  onClick={() => handleDenyUser(staff.id)}
- className="h-10 w-10 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-gray-900 text-white transition-all flex items-center justify-center"
+ className="h-10 w-10 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"
  >
  <Trash2 size={14} />
  </button>
@@ -948,7 +1083,7 @@ export default function StaffManagementPage() {
  <td colSpan={7} className="px-10 py-20 text-center">
  <div className="flex flex-col items-center gap-4 opacity-20">
  <Users size={60} />
- <p className="text-xl font-black uppercase tracking-[0.2em]">Không tìm thấy nhân sự</p>
+ <p className="text-lg font-bold text-gray-500">Không tìm thấy nhân sự</p>
  </div>
  </td>
  </tr>
@@ -960,7 +1095,7 @@ export default function StaffManagementPage() {
  {/* Pagination Footer */}
  {(filteredStaff || []).length > 0 && (
  <div className="bg-white/0 border-t border-white/0 px-10 py-6 flex items-center justify-between">
- <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">
+ <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
  Hiển thị <span className="text-white">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="text-white">{Math.min(currentPage * itemsPerPage, (filteredStaff || []).length)}</span> trên <span className="text-white">{(filteredStaff || []).length}</span> nhân sự
  </p>
  <div className="flex items-center gap-2">
@@ -1074,7 +1209,7 @@ export default function StaffManagementPage() {
  });
  }
  }}
- className="h-14 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-500 font-black uppercase text-[10px] tracking-widest hover:bg-green-500 hover:text-gray-900 text-white transition-all flex flex-col items-center justify-center gap-1"
+ className="h-14 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-500 font-bold uppercase text-[10px] tracking-wider hover:bg-green-500 hover:text-white transition-all flex flex-col items-center justify-center gap-1"
  >
  <Save size={18} />
  Lưu thông tin
@@ -1087,7 +1222,7 @@ export default function StaffManagementPage() {
  setTimeout(() => setShowToast(false), 2000);
  });
  }}
- className="h-14 rounded-2xl bg-white/5 border border-white/0 text-gray-400 font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-1"
+ className="h-14 rounded-2xl bg-white/5 border border-white/0 text-gray-400 font-bold uppercase text-[10px] tracking-wider hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-1"
  >
  <Shield size={18} />
  Reset Pass
@@ -1101,10 +1236,10 @@ export default function StaffManagementPage() {
  handleToggleStatus(selectedStaff.id);
  });
  }}
- className={`h-14 rounded-2xl border font-black uppercase text-[10px] tracking-widest transition-all flex flex-col items-center justify-center gap-1 ${
+ className={`h-14 rounded-2xl border font-bold uppercase text-[10px] tracking-wider transition-all flex flex-col items-center justify-center gap-1 ${
  selectedStaff.status ==="ACTIVE" 
- ?"bg-orange-500/10 border-orange-500/20 text-orange-500 hover:bg-orange-500 hover:text-gray-900 text-white" 
- :"bg-green-500/10 border-green-500/20 text-green-500 hover:bg-green-500 hover:text-gray-900 text-white"
+ ?"bg-orange-500/10 border-orange-500/20 text-orange-500 hover:bg-orange-500 hover:text-white" 
+ :"bg-green-500/10 border-green-500/20 text-green-500 hover:bg-green-500 hover:text-white"
  }`}
  >
  {selectedStaff.status ==="ACTIVE" ? <XCircle size={18} /> : <CheckCircle2 size={18} />}
@@ -1112,7 +1247,7 @@ export default function StaffManagementPage() {
  </button>
  <button 
  onClick={() => handleDenyUser(selectedStaff.id)}
- className="h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-gray-900 text-white transition-all flex flex-col items-center justify-center gap-1"
+ className="h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 font-bold uppercase text-[10px] tracking-wider hover:bg-red-500 hover:text-white transition-all flex flex-col items-center justify-center gap-1"
  >
  <Trash2 size={18} />
  Xóa tài khoản
@@ -1134,7 +1269,7 @@ export default function StaffManagementPage() {
  <div className="flex items-center justify-between p-3 rounded-2xl bg-white/0 border border-white/0 group hover:bg-white/5 transition-all">
  <div className="flex items-center gap-3">
  <div className="text-gold opacity-60 group-hover:opacity-100 transition-all"><Shield size={14} /></div>
- <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Phân quyền</span>
+ <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Phân quyền</span>
  </div>
  <select 
  value={tempRole || selectedStaff.role}
@@ -1171,7 +1306,7 @@ export default function StaffManagementPage() {
  <div className="space-y-4 pt-4 border-t border-white/0">
  <div className="flex items-center justify-between">
  <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
- <Calendar size={14} className="text-gold" /> Lịch Chấm Công & Hoạt Động (26 Ngày Công)
+ <Calendar size={14} className="text-gold" /> Lịch Chấm Công & Hoạt Động (Tháng {String(new Date().getMonth() + 1).padStart(2, '0')} / Năm {new Date().getFullYear()})
  </h4>
  <span className="text-[9px] text-gold font-bold uppercase tracking-wider bg-gold/10 px-3 py-1 rounded-full border border-gold/10">👉 Bấm vào ngày để xem chi tiết việc đã làm</span>
  </div>
@@ -1179,47 +1314,71 @@ export default function StaffManagementPage() {
  {/* Dynamic Present/Absent Summary Bar */}
  <div className="grid grid-cols-3 gap-4 bg-black/20 border border-white/0 rounded-3xl p-5">
  <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/0 border border-white/0">
- <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Tổng ngày công</span>
- <span className="text-xl font-black text-white mt-1">26 ngày</span>
+ <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Tiêu chuẩn</span>
+ <span className="text-xl font-bold text-white mt-1">26 công</span>
  </div>
  <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-green-500/5 border border-green-500/10">
- <span className="text-[10px] font-bold text-green-500/80 uppercase tracking-widest">Có mặt</span>
+ <span className="text-[10px] font-semibold text-green-500/80 uppercase tracking-wider">Có mặt</span>
  <span className="text-xl font-black text-green-500 mt-1">{attendanceData.present} ngày</span>
  </div>
  <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-red-500/5 border border-red-500/10">
- <span className="text-[10px] font-bold text-red-500/80 uppercase tracking-widest">Vắng mặt</span>
+ <span className="text-[10px] font-semibold text-red-500/80 uppercase tracking-wider">Vắng mặt</span>
  <span className="text-xl font-black text-red-500 mt-1">{attendanceData.absent} ngày</span>
  </div>
  </div>
 
- {/* Interactive 26-Day Grid */}
+ {/* Interactive Month Days Grid */}
  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 bg-black/20 border border-white/0 rounded-3xl p-5">
  {(attendanceData.list || []).map((day) => {
- const isToday = day.isToday;
- return (
- <button 
- key={`cal-day-${day.dayNum}`}
- onClick={() => setActiveDetailDay(day)}
- className={`group/day flex flex-col items-center justify-between p-3 rounded-2xl border text-center transition-all hover:scale-105 hover:bg-white/[0.06] hover:border-white/0 active:scale-95 ${
- isToday 
- ?"bg-gold/10 border-gold shadow-lg shadow-gold/5" 
- :" bg-white/0 border-white/0"
- }`}
- >
- <span className={`text-[9px] font-black uppercase tracking-tighter ${isToday ?"text-gold" :"text-gray-500"}`}>Ngày {day.dayNum}</span>
- <div className="my-2 flex items-center justify-center">
- {day.hasCheckedIn ? (
- <CheckCircle2 size={18} className="text-green-500 group-hover/day:scale-110 transition-transform" />
- ) : (
- <XCircle size={18} className="text-red-500 group-hover/day:scale-110 transition-transform" />
- )}
- </div>
- <span className={`text-[8px] font-bold uppercase tracking-wider ${day.hasCheckedIn ?"text-green-500/80" :"text-red-500/80"}`}>
- {day.hasCheckedIn ?"Có mặt" :"Vắng"}
- </span>
- </button>
- );
- })}
+    const isToday = day.isToday;
+    
+    // Thiết lập màu sắc và nhãn theo trạng thái day.status
+    let borderStyle = "bg-white/0 border-white/0";
+    let statusText = "Vắng";
+    let statusColor = "text-red-500/80";
+    let statusIcon = <XCircle size={18} className="text-red-500 group-hover/day:scale-110 transition-transform" />;
+
+    if (isToday) {
+      borderStyle = "bg-gold/10 border-gold shadow-lg shadow-gold/5";
+    }
+
+    if (day.status === "PRESENT") {
+      statusText = "Có mặt";
+      statusColor = "text-green-500/80";
+      statusIcon = <CheckCircle2 size={18} className="text-green-500 group-hover/day:scale-110 transition-transform" />;
+    } else if (day.status === "NOT_STARTED") {
+      statusText = "Chưa đi làm";
+      statusColor = "text-zinc-500";
+      statusIcon = <Minus size={18} className="text-zinc-500 group-hover/day:scale-110 transition-transform" />;
+      if (!isToday) borderStyle = "bg-white/5 border-white/0 opacity-55";
+    } else if (day.status === "SUNDAY") {
+      statusText = "Chủ nhật";
+      statusColor = "text-amber-500/80";
+      statusIcon = <Calendar size={18} className="text-amber-500 group-hover/day:scale-110 transition-transform" />;
+      if (!isToday) borderStyle = "bg-amber-500/5 border-amber-500/10";
+    } else if (day.status === "FUTURE") {
+      statusText = "Chưa đến";
+      statusColor = "text-zinc-600";
+      statusIcon = <Clock size={18} className="text-zinc-600 group-hover/day:scale-110 transition-transform" />;
+      if (!isToday) borderStyle = "bg-white/0 border-white/0 opacity-40";
+    }
+
+    return (
+      <button 
+        key={`cal-day-${day.dayNum}`}
+        onClick={() => setActiveDetailDay(day)}
+        className={`group/day flex flex-col items-center justify-between p-3 rounded-2xl border text-center transition-all hover:scale-105 hover:bg-white/[0.06] hover:border-white/0 active:scale-95 ${borderStyle}`}
+      >
+        <span className={`text-[9px] font-bold uppercase tracking-tighter ${isToday ?"text-gold" :"text-gray-500"}`}>Ngày ${day.dayNum}</span>
+        <div className="my-2 flex items-center justify-center">
+          {statusIcon}
+        </div>
+        <span className={`text-[8px] font-bold uppercase tracking-wider ${statusColor}`}>
+          {statusText}
+        </span>
+      </button>
+    );
+  })}
  </div>
  </div>
 
@@ -1229,7 +1388,7 @@ export default function StaffManagementPage() {
  </h4>
  <div className="grid grid-cols-2 gap-4">
  <div className="p-6 rounded-3xl bg-black/20 border border-white/0 text-center">
- <p className="text-3xl font-black text-white">{selectedStaff.taskCount}</p>
+ <p className="text-3xl font-bold text-white">{selectedStaff.taskCount}</p>
  <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">Nhiệm vụ</p>
  </div>
  <div className="p-6 rounded-3xl bg-black/20 border border-white/0 text-center">
@@ -1273,7 +1432,7 @@ export default function StaffManagementPage() {
  </div>
  <div>
  <h3 className="text-2xl font-black text-white uppercase tracking-tight">Chi Tiết Ngày Công {activeDetailDay.dayNum}</h3>
- <p className="text-sm text-gray-400 font-bold uppercase tracking-wider mt-1">
+ <p className="text-sm text-gray-400 font-medium tracking-normal mt-1">
  Nhân sự: <span className="text-gold">{selectedStaff?.name}</span> | Ngày: {activeDetailDay.dateKey}
  </p>
  </div>
@@ -1298,7 +1457,7 @@ export default function StaffManagementPage() {
  </div>
  {activeDetailDay.hasCheckedIn && (
  <div className="sm:text-right border-t sm:border-t-0 pt-4 sm:pt-0 border-white/0">
- <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">Giờ Check-in / Out</p>
+ <p className="text-sm text-gray-400 font-medium tracking-normal">Giờ Check-in / Out</p>
  <p className="text-base font-black text-white mt-1">
  {activeDetailDay.checkinTime} - {activeDetailDay.checkoutTime}
  </p>
@@ -1323,7 +1482,7 @@ export default function StaffManagementPage() {
  )}
  </div>
  <div className="flex-1 bg-white/0 border border-white/0 rounded-2xl p-5 group-hover/item:bg-white/5 transition-all">
- <p className="text-base font-black text-white tracking-tight">{log.title}</p>
+ <p className="text-base font-bold text-white tracking-tight">{log.title}</p>
  <p className="text-sm font-semibold text-gray-300 mt-2 leading-relaxed">{log.desc}</p>
  </div>
  </div>
@@ -1334,7 +1493,7 @@ export default function StaffManagementPage() {
  <div className="mt-8 pt-6 border-t border-white/0 flex justify-end">
  <button
  onClick={() => setActiveDetailDay(null)}
- className="h-14 px-10 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest rounded-xl transition-all shadow-xl shadow-gold/20"
+ className="h-14 px-10 bg-gold hover:bg-gold-hover text-sidebar font-bold uppercase text-sm tracking-wider rounded-xl transition-all shadow-xl shadow-gold/20"
  >
  Đóng cửa sổ
  </button>
@@ -1362,14 +1521,14 @@ export default function StaffManagementPage() {
  <div className="mx-auto w-16 h-16 rounded-2xl bg-gold/10 flex items-center justify-center mb-6">
  <AlertCircle size={32} className="text-gold" />
  </div>
- <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-2">{modalConfig.title}</h3>
+ <h3 className="text-xl font-bold text-white uppercase tracking-tight mb-2">{modalConfig.title}</h3>
  <p className="text-gray-400 font-medium text-base leading-relaxed mb-8">{modalConfig.message}</p>
  
  <div className="flex gap-4">
  {modalConfig.type ==="CONFIRM" && (
  <button 
  onClick={() => setModalConfig({ ...modalConfig, isOpen: false })}
- className="flex-1 h-12 rounded-xl bg-white/5 border border-white/0 text-gray-500 font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all"
+ className="flex-1 h-12 rounded-xl bg-white/5 border border-white/0 text-gray-500 font-bold uppercase text-[10px] tracking-wider hover:bg-white/10 transition-all"
  >
  Hủy bỏ
  </button>
@@ -1381,7 +1540,7 @@ export default function StaffManagementPage() {
  }
  setModalConfig({ ...modalConfig, isOpen: false });
  }}
- className="flex-1 h-12 rounded-xl bg-gold text-sidebar font-black uppercase text-[10px] tracking-widest hover:bg-gold-hover transition-all shadow-lg shadow-gold/20"
+ className="flex-1 h-12 rounded-xl bg-gold text-sidebar font-bold uppercase text-[10px] tracking-wider hover:bg-gold-hover transition-all shadow-lg shadow-gold/20"
  >
  {modalConfig.type ==="CONFIRM" ?"Xác nhận" :"Đóng"}
  </button>
@@ -1411,7 +1570,7 @@ function StatCard({ title, value, icon, color }: any) {
  <div className="relative z-10 flex items-center justify-between">
  <div>
  <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 opacity-60">{title}</p>
- <h3 className="text-4xl font-black tracking-tighter text-white">{value}</h3>
+ <h3 className="text-4xl font-bold tracking-tighter text-white">{value}</h3>
  </div>
  <div className="h-14 w-14 rounded-2xl bg-white/10 flex items-center justify-center shadow-inner">
  {icon}
@@ -1426,9 +1585,9 @@ function InfoRow({ label, value, icon }: any) {
  <div className="flex items-center justify-between p-3 rounded-2xl bg-white/0 border border-white/0 group hover:bg-white/5 transition-all">
  <div className="flex items-center gap-3">
  <div className="text-gold opacity-60 group-hover:opacity-100 transition-all">{icon}</div>
- <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">{label}</span>
+ <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{label}</span>
  </div>
- <span className="text-sm font-black text-white">{value}</span>
+ <span className="text-sm font-semibold text-white">{value}</span>
  </div>
  );
 }
