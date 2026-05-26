@@ -207,7 +207,7 @@ export default function MailDetailModal({
       <motion.div
         initial={{ scale: 0.95, y: 10 }}
         animate={{ scale: 1, y: 0 }}
-        className="bg-zinc-900 border border-zinc-800 w-full max-w-2xl rounded-2xl p-6 shadow-xl relative overflow-hidden flex flex-col max-h-[90vh]"
+        className="bg-zinc-900 border border-white/0 w-full max-w-2xl rounded-2xl p-6 shadow-xl relative overflow-hidden flex flex-col max-h-[90vh]"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6 relative z-10">
@@ -254,7 +254,7 @@ export default function MailDetailModal({
                   type="date"
                   value={cccdDate}
                   onChange={(e) => setCccdDate(e.target.value)}
-                  className="w-full h-12 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-zinc-100 text-sm outline-none focus:border-amber-500/50 transition-all cursor-pointer"
+                  className="w-full h-12 bg-zinc-950 border border-white/0 rounded-xl px-4 text-zinc-100 text-sm outline-none focus:border-amber-500/50 transition-all cursor-pointer"
                 />
               </div>
               <div className="space-y-2">
@@ -264,7 +264,7 @@ export default function MailDetailModal({
                 <select
                   value={verificationStatus}
                   onChange={(e) => setVerificationStatus(e.target.value)}
-                  className="w-full h-12 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-zinc-100 text-sm outline-none focus:border-amber-500/50 transition-all cursor-pointer"
+                  className="w-full h-12 bg-zinc-950 border border-white/0 rounded-xl px-4 text-zinc-100 text-sm outline-none focus:border-amber-500/50 transition-all cursor-pointer"
                 >
                   <option value="Mail veri" className="bg-zinc-900 text-zinc-100">
                     Mail veri
@@ -307,7 +307,7 @@ export default function MailDetailModal({
                       className={`flex-1 h-12 bg-zinc-950 border rounded-xl px-4 text-zinc-100 text-sm outline-none transition-all ${
                         validationErrors[idx]
                           ? "border-red-500/50 focus:border-red-500 bg-red-500/5"
-                          : "border-zinc-800 focus:border-amber-500/50"
+                          : "border-white/0 focus:border-amber-500/50"
                       }`}
                     />
                     <button
@@ -326,7 +326,7 @@ export default function MailDetailModal({
                       }
                       className={`h-12 px-4 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all border flex items-center gap-1.5 flex-shrink-0 ${
                         !links[idx] || links[idx].trim() === ""
-                          ? "bg-zinc-900 border-zinc-800 cursor-not-allowed opacity-40 text-zinc-500"
+                          ? "bg-zinc-900 border-white/0 cursor-not-allowed opacity-40 text-zinc-500"
                           : linkErrors[idx]
                           ? "bg-red-600 text-white border-red-600 hover:bg-red-700 shadow-sm"
                           : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"
@@ -351,7 +351,7 @@ export default function MailDetailModal({
                         }
                         className={`h-12 px-4 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all border flex items-center gap-1.5 flex-shrink-0 ${
                           !links[idx] || links[idx].trim() === ""
-                            ? "bg-zinc-900 border-zinc-800 cursor-not-allowed opacity-40 text-zinc-500"
+                            ? "bg-zinc-900 border-white/0 cursor-not-allowed opacity-40 text-zinc-500"
                             : eligibleChannels[idx]
                             ? "bg-amber-600 text-white border-amber-600 shadow-sm"
                             : "bg-zinc-800 text-zinc-300 border-zinc-700/50 hover:border-amber-500/30 hover:text-amber-500"
@@ -377,7 +377,7 @@ export default function MailDetailModal({
                   type="date"
                   value={reClickDate}
                   onChange={(e) => setReClickDate(e.target.value)}
-                  className="w-full h-12 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-zinc-100 text-sm outline-none focus:border-amber-500/50 transition-all cursor-pointer"
+                  className="w-full h-12 bg-zinc-950 border border-white/0 rounded-xl px-4 text-zinc-100 text-sm outline-none focus:border-amber-500/50 transition-all cursor-pointer"
                 />
               </div>
               <div className="space-y-2">
@@ -388,7 +388,7 @@ export default function MailDetailModal({
                   type="date"
                   value={step2PendingDate}
                   onChange={(e) => setStep2PendingDate(e.target.value)}
-                  className="w-full h-12 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-zinc-100 text-sm outline-none focus:border-amber-500/50 transition-all cursor-pointer"
+                  className="w-full h-12 bg-zinc-950 border border-white/0 rounded-xl px-4 text-zinc-100 text-sm outline-none focus:border-amber-500/50 transition-all cursor-pointer"
                 />
               </div>
               <div className="space-y-3">
@@ -404,7 +404,7 @@ export default function MailDetailModal({
                       className={`h-11 rounded-xl font-bold text-[10px] uppercase tracking-wider border transition-all ${
                         channelStatusDetail === status
                           ? "bg-amber-500/20 text-amber-500 border-amber-500/30 shadow-sm"
-                          : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:bg-zinc-800"
+                          : "bg-zinc-950 text-zinc-400 border-white/0 hover:bg-zinc-800"
                       }`}
                     >
                       {status}
@@ -417,7 +417,7 @@ export default function MailDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="grid grid-cols-2 gap-4 mt-6 relative z-10 pt-4 border-t border-zinc-800">
+        <div className="grid grid-cols-2 gap-4 mt-6 relative z-10 pt-4 border-t border-white/0">
           <button
             onClick={onClose}
             className="h-12 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl font-bold uppercase text-xs tracking-wider transition-all"
@@ -434,7 +434,7 @@ export default function MailDetailModal({
 
         {/* Update History Footer */}
         <div className="flex items-center justify-center mt-4 relative z-10">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-950">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/0 bg-zinc-950">
             <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">
               Cập nhật lần cuối ngày: <span className="text-zinc-100 font-mono font-bold">{updatedAtStr || "---"}</span> 
               {mail.updatedBy && (

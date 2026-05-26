@@ -798,7 +798,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  <AnimatePresence>
  {showConfirm && (
  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[160] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
- <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#18181b] border border-zinc-800 rounded-xl p-8 w-full max-w-sm shadow-xl text-center">
+ <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#18181b] border border-white/0 rounded-xl p-8 w-full max-w-sm shadow-xl text-center">
  <div className="mx-auto h-16 w-16 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-4">
  <AlertTriangle size={32} />
  </div>
@@ -816,7 +816,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  <AnimatePresence>
  {showManualImport && (
  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
- <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#18181b] border border-zinc-800 rounded-xl p-6 w-full max-w-2xl shadow-xl">
+ <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#18181b] border border-white/0 rounded-xl p-6 w-full max-w-2xl shadow-xl">
  <div className="flex items-center justify-between mb-6">
  <h3 className="text-xl font-bold text-zinc-50 uppercase tracking-tight flex items-center gap-3"><PlusCircle className="text-[#a07800]" size={24} /> Import Thủ Công</h3>
  <button onClick={() => setShowManualImport(false)} className="h-9 w-9 flex items-center justify-center rounded-xl bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors border border-zinc-700/50"><X size={16} /></button>
@@ -826,7 +826,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  </p>
  <textarea
  value={manualData} onChange={(e) => setManualData(e.target.value)}
- className="w-full h-64 bg-zinc-950/60 border border-zinc-800 rounded-xl p-4 text-sm text-zinc-100 focus:border-[#a07800] outline-none transition-all resize-none font-mono"
+ className="w-full h-64 bg-zinc-950/60 border border-white/0 rounded-xl p-4 text-sm text-zinc-100 focus:border-[#a07800] outline-none transition-all resize-none font-mono"
  placeholder="Dán dữ liệu của bạn vào đây..."
  />
  <div className="flex gap-3 mt-6">
@@ -850,10 +850,10 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  initial={{ scale: 0.9, opacity: 0 }}
  animate={{ scale: 1, opacity: 1 }}
  exit={{ scale: 0.9, opacity: 0 }}
- className="bg-[#18181b] border border-zinc-800 rounded-xl w-full max-w-4xl h-[80vh] flex flex-col shadow-xl overflow-hidden relative p-6"
+ className="bg-[#18181b] border border-white/0 rounded-xl w-full max-w-4xl h-[80vh] flex flex-col shadow-xl overflow-hidden relative p-6"
  >
  {/* Header */}
- <div className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
+ <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/0">
  <div className="flex items-center gap-3">
  <div className="h-10 w-10 rounded-xl bg-zinc-800 flex items-center justify-center border border-zinc-700/50">
  <FileText className="text-[#a07800]" size={20} />
@@ -882,7 +882,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  </div>
 
  {/* Filters */}
- <div className="flex items-center gap-2 mb-6 bg-zinc-950/40 border border-zinc-800 p-1 rounded-xl w-fit">
+ <div className="flex items-center gap-2 mb-6 bg-zinc-950/40 border border-white/0 p-1 rounded-xl w-fit">
  {(["ALL","MAIL","SĐT"] as Array<"ALL" |"MAIL" |"SĐT">).map((tab) => (
  <button
  key={tab}
@@ -901,7 +901,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  {/* List Content */}
  <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1">
  {(filteredHistory || []).length === 0 ? (
- <div className="py-12 text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-950/20">
+ <div className="py-12 text-center border border-dashed border-white/0 rounded-xl bg-zinc-950/20">
  <div className="h-12 w-12 rounded-full bg-zinc-800 flex items-center justify-center mx-auto mb-3 border border-zinc-700/50">
  <FileText className="text-zinc-500" size={24} />
  </div>
@@ -912,7 +912,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  (filteredHistory || []).map((item: ImportHistoryItem) => (
  <div
  key={item.id}
- className="bg-zinc-950/35 border border-zinc-800/80 rounded-xl p-4 flex items-center justify-between hover:border-zinc-700 transition-all group"
+ className="bg-zinc-950/35 border border-white/0 rounded-xl p-4 flex items-center justify-between hover:border-zinc-700 transition-all group"
  >
  <div className="flex items-center gap-4">
  {/* Icon / Badge */}
@@ -968,7 +968,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  {(!isStaff || !selectedBatch) && (
  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
  <div className="flex items-center gap-4">
- <button onClick={() => router.push("/admin")} className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-[#a07800] hover:border-[#a07800] transition-all shadow-sm">
+ <button onClick={() => router.push("/admin")} className="p-2 rounded-xl bg-zinc-900 border border-white/0 text-zinc-400 hover:text-[#a07800] hover:border-[#a07800] transition-all shadow-sm">
    <ArrowLeft size={20} />
  </button>
  <div>
@@ -983,9 +983,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
  {isAdminOrManager && (
  <>
- <button onClick={() => setShowHistoryModal(true)} className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-zinc-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"><FileText size={14} className="text-[#a07800]" /> Lịch sử Import</button>
- <button onClick={() => setShowManualImport(true)} className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-zinc-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"><PlusCircle size={14} className="text-[#a07800]" /> Thêm thủ công</button>
- <label className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-zinc-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer"><Upload size={14} className="text-[#a07800]" /> Import Excel <input type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={handleImportExcel} /></label>
+ <button onClick={() => setShowHistoryModal(true)} className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 border border-white/0 rounded-xl text-zinc-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"><FileText size={14} className="text-[#a07800]" /> Lịch sử Import</button>
+ <button onClick={() => setShowManualImport(true)} className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 border border-white/0 rounded-xl text-zinc-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"><PlusCircle size={14} className="text-[#a07800]" /> Thêm thủ công</button>
+ <label className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 border border-white/0 rounded-xl text-zinc-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer"><Upload size={14} className="text-[#a07800]" /> Import Excel <input type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={handleImportExcel} /></label>
  <button onClick={handleExport} className="h-9 px-4 bg-[#a07800]/10 border border-[#a07800]/20 hover:bg-[#a07800]/20 rounded-xl text-[#a07800] text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"><Download size={14} /> Export</button>
  </>
  )}
@@ -995,21 +995,21 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
  {isStaff && !selectedBatch && (
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-  <div className="bg-[#18181b] border border-zinc-800 p-5 rounded-xl flex items-center justify-between shadow-sm">
+  <div className="bg-[#18181b] border border-white/0 p-5 rounded-xl flex items-center justify-between shadow-sm">
   <div>
   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Tổng mail được giao</p>
   <h3 className="text-xl font-bold text-zinc-100">{staffStats.totalAssigned}</h3>
   </div>
   <div className="h-10 w-10 rounded-lg bg-zinc-800 text-zinc-400 flex items-center justify-center border border-zinc-700/50"><Mail size={20} /></div>
   </div>
-  <div className="bg-[#18181b] border border-zinc-800 p-5 rounded-xl flex items-center justify-between shadow-sm">
+  <div className="bg-[#18181b] border border-white/0 p-5 rounded-xl flex items-center justify-between shadow-sm">
   <div>
   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Đã làm</p>
   <h3 className="text-xl font-bold text-green-500">{staffStats.doneChannel}</h3>
   </div>
   <div className="h-10 w-10 rounded-lg bg-green-500/10 text-green-400 flex items-center justify-center border border-green-500/20"><CheckCircle size={20} /></div>
   </div>
-  <div className="bg-[#18181b] border border-zinc-800 p-5 rounded-xl flex items-center justify-between shadow-sm">
+  <div className="bg-[#18181b] border border-white/0 p-5 rounded-xl flex items-center justify-between shadow-sm">
   <div>
   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Lỗi (Die)</p>
   <h3 className="text-xl font-bold text-red-500">{staffStats.failed}</h3>
@@ -1025,7 +1025,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  <button
  key={batch.id}
  onClick={() => setSelectedBatch(batch.name)}
- className="group text-left bg-zinc-900 hover:bg-zinc-800/80 border border-zinc-800 rounded-xl p-6 transition-all hover:border-[#a07800]/30 flex flex-col shadow-sm"
+ className="group text-left bg-zinc-900 hover:bg-zinc-800/80 border border-white/0 rounded-xl p-6 transition-all hover:border-[#a07800]/30 flex flex-col shadow-sm"
  >
  <div className="flex items-center justify-between mb-4 w-full">
  <span className="text-[10px] font-bold text-[#a07800] bg-[#a07800]/10 px-2.5 py-1 rounded-lg border border-[#a07800]/20 uppercase tracking-wider">{batch.count} Mail</span>
@@ -1037,11 +1037,11 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  ))}
  </div>
  ) : (
- <div className={` bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex flex-col ${selectedBatch
+ <div className={` bg-sidebar border border-white/0 rounded-[32px] overflow-hidden shadow-2xl flex flex-col ${selectedBatch
  ?"h-[calc(100vh-120px)] md:h-[calc(100vh-140px)] lg:h-[calc(100vh-160px)]"
  :"h-[calc(100vh-220px)] md:h-[calc(100vh-240px)] lg:h-[calc(100vh-260px)]"
  }`}>
- <div className="p-6 border-b border-white/5 bg-white/[0.02] flex flex-col xl:flex-row items-center justify-between gap-4">
+ <div className="p-6 border-b border-white/0 bg-white/0 flex flex-col xl:flex-row items-center justify-between gap-4">
  <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
  {isStaff && type ==="SATELLITE" && selectedBatch && (
  <button
@@ -1052,15 +1052,15 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  </button>
  )}
  <h3 className="text-xl font-black text-white uppercase tracking-tighter shrink-0">Dữ liệu chi tiết {selectedBatch ? `- Lô mail` :""}</h3>
- <div className="h-8 w-px bg-white/10 hidden md:block" />
- <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-4 h-10 w-full md:w-64 lg:w-80 focus-within:border-gold transition-all">
+ <div className="h-8 w-px bg-white/0 hidden md:block" />
+ <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-xl px-4 h-10 w-full md:w-64 lg:w-80 focus-within:border-gold transition-all">
  <Search size={16} className="text-gray-500 shrink-0" />
  <input type="text" placeholder="Tìm kiếm Email, Pass, Mail KP, SĐT..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none text-sm text-white w-full" />
  </div>
  <select
  value={statusFilter}
  onChange={(e) => setStatusFilter(e.target.value)}
- className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
+ className="bg-black/20 border border-white/0 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
  >
  <option value="ALL" className="bg-sidebar text-white">Tất cả trạng thái</option>
  {type ==="ROOT" ? (
@@ -1088,7 +1088,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  <select
  value={assignmentFilter}
  onChange={(e) => setAssignmentFilter(e.target.value as"ALL" |"ASSIGNED" |"UNASSIGNED")}
- className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all animate-fade-in"
+ className="bg-black/20 border border-white/0 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all animate-fade-in"
  >
  <option value="ALL" className="bg-sidebar text-white">Trạng thái gán</option>
  <option value="ASSIGNED" className="bg-sidebar text-white">Đã gán</option>
@@ -1099,7 +1099,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  <select
  value={selectedBatchFilter}
  onChange={(e) => setSelectedBatchFilter(e.target.value)}
- className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all animate-fade-in"
+ className="bg-black/20 border border-white/0 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all animate-fade-in"
  >
  <option value="ALL" className="bg-sidebar text-white">Lọc theo Lô</option>
  {(availableBatches || []).map((b: { id: string; name: string }) => (
@@ -1112,7 +1112,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  <select
  value={dateFilter}
  onChange={(e) => setDateFilter(e.target.value as"ALL" |"1_WEEK" |"1_MONTH" |"2_MONTH")}
- className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
+ className="bg-black/20 border border-white/0 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
  >
  <option value="ALL" className="bg-sidebar text-white">Tất cả thời gian</option>
  <option value="1_WEEK" className="bg-sidebar text-white">1 tuần gần đây</option>
@@ -1132,7 +1132,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto custom-scrollbar">
  <div className="min-w-[1200px]">
  <table className="w-full text-left text-base whitespace-nowrap">
- <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
+ <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0">
  <tr>
  <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT</th>
  <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Email</th>
@@ -1275,7 +1275,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  onClick={() => {
  setSelectedMailForConfig(mail);
  }}
- className="px-4 py-1 rounded-xl bg-gold/10 hover:bg-gold hover:text-sidebar text-gold border border-gold/30 text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-gold/5 font-black"
+ className="px-4 py-1 rounded-xl bg-gold/10 hover:bg-gold hover:text-sidebar text-gold border border-white/0 text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-gold/5 font-black"
  >
  Xem chi tiết
  </button>
@@ -1295,11 +1295,11 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  </div>
 
  {!(isStaff && type ==="SATELLITE") && (
- <div className="p-6 border-t border-white/5 bg-black/20 flex items-center justify-between">
+ <div className="p-6 border-t border-white/0 bg-black/20 flex items-center justify-between">
  <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-white font-black">{currentPage}</span> / {totalPages || 1}</span>
  <div className="flex gap-2">
- <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
- <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
+ <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/0 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
+ <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/0 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
  </div>
  </div>
  )}
@@ -1325,22 +1325,22 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  initial={{ opacity: 0 }}
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
- className="fixed inset-0 bg-white/90 bg-black/80 backdrop-blur-md z-[200] flex items-center justify-center p-4"
+ className="fixed inset-0 bg-zinc-950/80 backdrop-blur-md z-[200] flex items-center justify-center p-4"
  >
  <motion.div
  initial={{ scale: 0.9, y: 20 }}
  animate={{ scale: 1, y: 0 }}
  exit={{ scale: 0.9, y: 20 }}
- className="bg-gray-900 border border-border-custom rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+ className="bg-gray-900 border border-white/0 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
  >
- <div className="p-6 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+ <div className="p-6 border-b border-white/0 bg-white/0 flex items-center justify-between">
  <h3 className="text-lg font-black text-white uppercase tracking-tighter">Đặt Tên Lô Cho Dữ Liệu Import</h3>
  <button
  onClick={() => {
  setPendingMails(null);
  setShowBatchNameModal(false);
  }}
- className="p-1.5 rounded-lg bg-white/5 text-gray-500 hover:text-gray-900 text-white transition-colors"
+ className="p-1.5 rounded-lg bg-white/5 text-gray-500 hover:text-white transition-colors"
  >
  <X size={16} />
  </button>
@@ -1356,17 +1356,17 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  placeholder="VD: Lô 1 ngày 15/10"
  value={importBatchName}
  onChange={(e) => setImportBatchName(e.target.value)}
- className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-base text-white focus:outline-none focus:border-gold transition-all"
+ className="w-full bg-black/40 border border-white/0 rounded-xl px-4 py-3 text-base text-white focus:outline-none focus:border-gold transition-all"
  />
  </div>
  </div>
- <div className="p-6 border-t border-white/5 bg-white/[0.02] flex items-center justify-end gap-3">
+ <div className="p-6 border-t border-white/0 bg-white/0 flex items-center justify-end gap-3">
  <button
  onClick={() => {
  setPendingMails(null);
  setShowBatchNameModal(false);
  }}
- className="px-5 py-2.5 rounded-xl border border-white/10 text-sm font-bold text-gray-400 hover:text-gray-900 text-white transition-colors"
+ className="px-5 py-2.5 rounded-xl border border-white/0 text-sm font-bold text-gray-400 hover:text-white transition-colors"
  >
  Hủy bỏ
  </button>

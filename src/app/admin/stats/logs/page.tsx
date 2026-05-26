@@ -182,7 +182,7 @@ export default function SystemLogsPage() {
               <div className="flex gap-4">
                 <button 
                   onClick={() => setShowClearConfirm(false)} 
-                  className="flex-1 h-12 rounded-xl border border-zinc-800 text-zinc-300 font-semibold uppercase text-xs tracking-wider hover:bg-zinc-800 transition-all"
+                  className="flex-1 h-12 rounded-xl border border-white/0 text-zinc-300 font-semibold uppercase text-xs tracking-wider hover:bg-zinc-800 transition-all"
                 >
                   Hủy bỏ
                 </button>
@@ -203,7 +203,7 @@ export default function SystemLogsPage() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.push("/admin")}
-            className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-100 transition-all shadow-sm"
+            className="p-2.5 rounded-xl bg-zinc-900 border border-white/0 text-zinc-400 hover:text-zinc-100 transition-all shadow-sm"
           >
             <ArrowLeft size={18} />
           </button>
@@ -223,7 +223,7 @@ export default function SystemLogsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-amber-500 transition-colors" size={14} />
             <input 
               placeholder="Tìm kiếm tác vụ, tài khoản..."
-              className="bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 h-10 text-sm text-zinc-100 outline-none focus:border-amber-500/50 transition-all w-60"
+              className="bg-zinc-900 border border-white/0 rounded-xl pl-9 pr-4 h-10 text-sm text-zinc-100 outline-none focus:border-amber-500/50 transition-all w-60"
               type="text" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -240,13 +240,13 @@ export default function SystemLogsPage() {
       </div>
 
       {/* Filters Row */}
-      <div className="flex flex-wrap items-center gap-4 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+      <div className="flex flex-wrap items-center gap-4 bg-zinc-900 border border-white/0 rounded-xl p-4">
         <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-1.5"><Filter size={12} /> Bộ lọc nâng cao:</span>
         
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="bg-zinc-950 border border-zinc-800 rounded-xl px-4 h-9 text-xs text-amber-500 font-bold uppercase tracking-wider outline-none focus:border-amber-500 cursor-pointer transition-all"
+          className="bg-zinc-950 border border-white/0 rounded-xl px-4 h-9 text-xs text-amber-500 font-bold uppercase tracking-wider outline-none focus:border-amber-500 cursor-pointer transition-all"
         >
           <option value="ALL" className="bg-zinc-900 text-zinc-100">Mọi mức độ</option>
           <option value="SUCCESS" className="bg-zinc-900 text-zinc-100">Thành công (SUCCESS)</option>
@@ -258,7 +258,7 @@ export default function SystemLogsPage() {
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
-          className="bg-zinc-950 border border-zinc-800 rounded-xl px-4 h-9 text-xs text-amber-500 font-bold uppercase tracking-wider outline-none focus:border-amber-500 cursor-pointer transition-all"
+          className="bg-zinc-950 border border-white/0 rounded-xl px-4 h-9 text-xs text-amber-500 font-bold uppercase tracking-wider outline-none focus:border-amber-500 cursor-pointer transition-all"
         >
           <option value="ALL" className="bg-zinc-900 text-zinc-100">Tất cả chức vụ</option>
           <option value="ADMIN" className="bg-zinc-900 text-zinc-100">ADMIN</option>
@@ -272,8 +272,8 @@ export default function SystemLogsPage() {
       </div>
 
       {/* Main Table Display */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col min-h-0">
-        <div className="p-4 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between">
+      <div className="bg-zinc-900 border border-white/0 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col min-h-0">
+        <div className="p-4 border-b border-white/0 bg-zinc-950 flex items-center justify-between">
           <h3 className="text-base font-bold text-zinc-100 uppercase tracking-tight flex items-center gap-2">
             <Terminal size={16} className="text-amber-500" />
             Nhật ký sự kiện thời gian thực
@@ -283,7 +283,7 @@ export default function SystemLogsPage() {
 
         <div className="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
           <table className="w-full text-left text-sm whitespace-nowrap min-w-[1000px]">
-            <thead className="bg-zinc-950 text-zinc-400 border-b border-zinc-800 sticky top-0 z-10">
+            <thead className="bg-zinc-950 text-zinc-400 border-b border-white/0 sticky top-0 z-10">
               <tr>
                 <th className="py-4 px-6 font-bold uppercase tracking-wider text-[10px]">Thời gian</th>
                 <th className="py-4 px-6 font-bold uppercase tracking-wider text-[10px]">Mức độ</th>

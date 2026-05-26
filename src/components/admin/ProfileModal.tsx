@@ -142,17 +142,17 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  <motion.div
  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
  onClick={onClose}
- className="absolute inset-0 bg-white/90 bg-black/80 backdrop-blur-sm"
+ className="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm"
  />
 
  <motion.div
  initial={{ opacity: 0, scale: 0.9, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.9, y: 20 }}
- className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-gray-900 shadow-xl"
+ className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-white/0 bg-gray-900 shadow-xl"
  >
  {/* Header */}
- <div className="flex items-center justify-between border-b border-white/5 bg-white/[0.02] px-8 py-6">
+ <div className="flex items-center justify-between border-b border-white/0 bg-white/0 px-8 py-6">
  <h2 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter">
  <span className="h-6 w-1.5 rounded-full bg-gold shadow-[0_0_10px_#d4af37]" />
  Hồ sơ cá nhân
@@ -185,7 +185,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  <input
  type="time" value={formData.offWorkTime ||"17:30"}
  onChange={(e) => setFormData({...formData, offWorkTime: e.target.value})}
- className="h-12 w-full rounded-2xl border bg-gray-800 text-white border-gray-600 px-4 text-base focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+ className="h-12 w-full rounded-2xl border bg-gray-800 text-white border-gray-600 px-4 text-base focus:outline-none focus:border-white/5 transition-all shadow-inner"
  />
  </div>
  </div>
@@ -198,7 +198,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  <input
  type="text" value={formData.name}
  onChange={(e) => setFormData({...formData, name: e.target.value})}
- className="h-12 w-full rounded-2xl border bg-gray-800 text-white border-gray-600 px-4 text-base text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+ className="h-12 w-full rounded-2xl border bg-gray-800 text-white border-gray-600 px-4 text-base text-white focus:outline-none focus:border-white/5 transition-all shadow-inner"
  />
  </div>
 
@@ -209,7 +209,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  <input
  type="text" value={formData.birthYear ||""}
  onChange={(e) => setFormData({...formData, birthYear: e.target.value})}
- className="h-12 w-full rounded-2xl border bg-gray-800 text-white border-gray-600 px-4 text-base text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+ className="h-12 w-full rounded-2xl border bg-gray-800 text-white border-gray-600 px-4 text-base text-white focus:outline-none focus:border-white/5 transition-all shadow-inner"
  />
  </div>
 
@@ -220,7 +220,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  <input
  type="email" value={formData.email}
  onChange={(e) => setFormData({...formData, email: e.target.value})}
- className="h-12 w-full rounded-2xl border bg-gray-800 text-white border-gray-600 px-4 text-base text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+ className="h-12 w-full rounded-2xl border bg-gray-800 text-white border-gray-600 px-4 text-base text-white focus:outline-none focus:border-white/5 transition-all shadow-inner"
  />
  </div>
 
@@ -231,7 +231,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  <input
  type="text" value={formData.phone ||""}
  onChange={(e) => setFormData({...formData, phone: e.target.value})}
- className="h-12 w-full rounded-2xl border bg-gray-800 text-white border-gray-600 px-4 text-base text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+ className="h-12 w-full rounded-2xl border bg-gray-800 text-white border-gray-600 px-4 text-base text-white focus:outline-none focus:border-white/5 transition-all shadow-inner"
  />
  </div>
 
@@ -242,7 +242,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  <input
  type="text" value={formData.address ||""}
  onChange={(e) => setFormData({...formData, address: e.target.value})}
- className="h-12 w-full rounded-2xl border bg-gray-800 text-white border-gray-600 px-4 text-base text-white focus:outline-none focus:border-gold/50 transition-all shadow-inner"
+ className="h-12 w-full rounded-2xl border bg-gray-800 text-white border-gray-600 px-4 text-base text-white focus:outline-none focus:border-white/5 transition-all shadow-inner"
  />
  </div>
 
@@ -250,7 +250,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  <label className="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
  <ShieldCheck size={14} className="text-gold" /> Chức vụ hệ thống
  </label>
- <div className="flex h-12 w-full items-center rounded-2xl border border-white/5 bg-white/[0.02] px-4 text-base font-black text-gray-500 text-gray-400 uppercase tracking-wider">
+ <div className="flex h-12 w-full items-center rounded-2xl border border-white/0 bg-white/0 px-4 text-base font-black text-gray-500 text-gray-400 uppercase tracking-wider">
  {getRoleLabel(userData.role)}
  </div>
  </div>
@@ -259,7 +259,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  </div>
 
  {/* Footer */}
- <div className="flex items-center justify-end gap-4 border-t border-white/5 bg-zinc-900/[0.01] px-8 py-6">
+ <div className="flex items-center justify-end gap-4 border-t border-white/0 bg-zinc-900/[0.01] px-8 py-6">
  <button onClick={onClose} className="px-8 py-3 text-sm font-black text-gray-500 uppercase tracking-widest hover:text-white transition-colors rounded-xl border border-gray-600">Hủy bỏ</button>
  <button 
  onClick={handleSave} disabled={isSaving}

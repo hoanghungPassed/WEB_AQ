@@ -84,7 +84,7 @@ function StatusBadge({ status }: { status: PhoneStatus }) {
  ?"bg-green-500/10 text-green-500 border-green-500/20"
  : status ==="Lỗi"
  ?"bg-red-500/10 text-red-500 border-red-500/20"
- :"bg-gray-500/10 text-gray-400 border-white/5";
+ :"bg-gray-500/10 text-gray-400 border-white/0";
  return (
  <span className={`px-2.5 py-0.5 rounded text-[8px] font-black uppercase border ${cls}`}>
  {status}
@@ -562,7 +562,7 @@ export default function PhoneBatchesPage() {
  <div className="flex items-center gap-4">
  <button
  onClick={() => router.push("/admin")}
- className="p-2 rounded-xl bg-sidebar border border-border-custom text-gray-400 hover:text-gray-900 text-white transition-all shadow-md"
+ className="p-2 rounded-xl bg-sidebar border border-white/0 text-gray-400 hover:text-white transition-all shadow-md"
  >
  <ArrowLeft size={20} />
  </button>
@@ -588,7 +588,7 @@ export default function PhoneBatchesPage() {
  { label:"XM lần 2", value: globalStats.xm2, color:"text-green-500" },
  { label:"Bị Lỗi", value: globalStats.err, color:"text-red-500" },
  ].map((s) => (
- <div key={s.label} className="bg-sidebar/40 border border-white/5 rounded-2xl p-6 flex flex-col justify-between">
+ <div key={s.label} className="bg-sidebar/40 border border-white/0 rounded-2xl p-6 flex flex-col justify-between">
  <span className={`text-[9px] font-black uppercase tracking-widest ${s.color}`}>{s.label}</span>
  <span className={`text-2xl font-black mt-1 ${s.color}`}>
  {s.value} <span className="text-sm text-gray-500">Số</span>
@@ -598,7 +598,7 @@ export default function PhoneBatchesPage() {
  </div>
 
  {/* ── Tab Switcher ──────────────────────────────────── */}
- <div className="flex items-center gap-1 bg-sidebar/60 border border-white/5 rounded-2xl p-1.5 w-fit">
+ <div className="flex items-center gap-1 bg-sidebar/60 border border-white/0 rounded-2xl p-1.5 w-fit">
  {[
  { key:"warehouse" as const, icon: <Warehouse size={16} />, label:"Tổng kho" },
  { key:"batches" as const, icon: <Layers size={16} />, label:"Lô SĐT" },
@@ -610,7 +610,7 @@ export default function PhoneBatchesPage() {
  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
  activeTab === tab.key
  ?"bg-gold text-sidebar shadow-lg shadow-gold/20"
- :"text-gray-500 hover:text-gray-900 text-white hover:bg-white bg-zinc-900/5"
+ :"text-gray-500 hover:text-white hover:bg-white bg-zinc-900/5"
  }`}
  >
  {tab.icon} {tab.label}
@@ -625,7 +625,7 @@ export default function PhoneBatchesPage() {
  <motion.div
  initial={{ opacity: 0, y: 10 }}
  animate={{ opacity: 1, y: 0 }}
- className="bg-sidebar border border-white/5 rounded-[32px] p-6 shadow-xl space-y-4 flex-1 flex flex-col"
+ className="bg-sidebar border border-white/0 rounded-[32px] p-6 shadow-xl space-y-4 flex-1 flex flex-col"
  >
  {/* Toolbar */}
  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -639,7 +639,7 @@ export default function PhoneBatchesPage() {
  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={14} />
  <input
  placeholder="Tìm SĐT, OTP Link..."
- className="bg-black/20 border border-white/10 rounded-xl pl-9 pr-4 h-9 text-sm text-white outline-none focus:border-gold/50 transition-all w-full sm:w-60"
+ className="bg-black/20 border border-white/0 rounded-xl pl-9 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-60"
  type="text"
  value={searchTerm}
  onChange={(e) => setSearchTerm(e.target.value)}
@@ -648,7 +648,7 @@ export default function PhoneBatchesPage() {
  <div className="flex items-center gap-3">
  <input
  placeholder="Nhập tên lô mới..."
- className="bg-black/20 border border-white/10 rounded-xl px-4 h-9 text-sm text-white outline-none focus:border-gold/50 transition-all w-full sm:w-60"
+ className="bg-black/20 border border-white/0 rounded-xl px-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-60"
  type="text"
  value={batchName}
  onChange={(e) => setBatchName(e.target.value)}
@@ -656,7 +656,7 @@ export default function PhoneBatchesPage() {
  </div>
  <button
  onClick={() => setShowHistoryModal(true)}
- className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-gold/50 text-white font-black uppercase text-[10px] tracking-widest px-4 h-9 rounded-xl transition-all flex items-center gap-2"
+ className="bg-white/5 hover:bg-white/10 border border-white/0 hover:border-white/5 text-white font-black uppercase text-[10px] tracking-widest px-4 h-9 rounded-xl transition-all flex items-center gap-2"
  >
  <FileText size={14} className="text-gold" />
  Lịch sử Import
@@ -672,9 +672,9 @@ export default function PhoneBatchesPage() {
  </div>
 
  {/* Table */}
- <div className="flex-1 overflow-y-auto max-h-[450px] custom-scrollbar border border-white/5 rounded-2xl">
+ <div className="flex-1 overflow-y-auto max-h-[450px] custom-scrollbar border border-white/0 rounded-2xl">
  <table className="w-full text-left text-sm">
- <thead className="sticky top-0 bg-[#0c0c0c] text-gray-500 uppercase font-black text-[9px] tracking-wider z-10 border-b border-white/5">
+ <thead className="sticky top-0 bg-[#0c0c0c] text-gray-500 uppercase font-black text-[9px] tracking-wider z-10 border-b border-white/0">
  <tr>
  <th className="py-3 px-4">STT</th>
  <th className="py-3 px-4">Số điện thoại</th>
@@ -731,14 +731,14 @@ export default function PhoneBatchesPage() {
  TAB: LÔ SĐT
  ══════════════════════════════════════════════════════ */}
  {activeTab ==="batches" && (
- <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-sidebar border border-white/5 rounded-[32px] p-6 shadow-xl space-y-4">
+ <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-sidebar border border-white/0 rounded-[32px] p-6 shadow-xl space-y-4">
  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
  <h3 className="text-md font-black text-white uppercase tracking-tight flex items-center gap-2">
  <Layers size={18} className="text-gold" />
  Danh sách Lô SĐT
  </h3>
  <div className="flex items-center gap-3">
- <input placeholder="Nhập tên lô mới..." className="bg-black/20 border border-white/10 rounded-xl px-4 h-9 text-sm text-white outline-none focus:border-gold/50 transition-all w-full sm:w-60" value={batchName} onChange={(e) => setBatchName(e.target.value)} />
+ <input placeholder="Nhập tên lô mới..." className="bg-black/20 border border-white/0 rounded-xl px-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-60" value={batchName} onChange={(e) => setBatchName(e.target.value)} />
  <button onClick={() => fileInputRef.current?.click()} className="bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-[10px] tracking-widest px-4 h-9 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-gold/20">
  <Upload size={14} /> Import Txt
  </button>
@@ -746,10 +746,10 @@ export default function PhoneBatchesPage() {
  </div>
  <div className="space-y-4">
  {Object.entries(groupedWarehouse).map(([batch, bPhones]) => (
- <div key={batch} className="border border-white/5 rounded-2xl overflow-hidden bg-[#0c0c0c]">
+ <div key={batch} className="border border-white/0 rounded-2xl overflow-hidden bg-[#0c0c0c]">
  <div 
  onClick={() => setExpandedBatches(prev => prev.includes(batch) ? prev.filter(b => b !== batch) : [...prev, batch])}
- className="flex flex-wrap items-center justify-between bg-zinc-900 px-4 py-3 border-b border-white/5 gap-2 cursor-pointer hover:bg-zinc-800 transition-colors"
+ className="flex flex-wrap items-center justify-between bg-zinc-900 px-4 py-3 border-b border-white/0 gap-2 cursor-pointer hover:bg-zinc-800 transition-colors"
  >
  <h4 className="font-bold text-white uppercase flex items-center gap-2 select-none">
  <Layers size={16} className="text-gold" />
@@ -765,9 +765,9 @@ export default function PhoneBatchesPage() {
  </div>
  </div>
  {expandedBatches.includes(batch) && (
- <div className="overflow-x-auto border-t border-white/5 bg-[#0c0c0c]">
+ <div className="overflow-x-auto border-t border-white/0 bg-[#0c0c0c]">
  <table className="w-full text-left text-sm">
- <thead className="bg-[#0c0c0c] text-gray-500 uppercase font-black text-[9px] tracking-wider border-b border-white/5">
+ <thead className="bg-[#0c0c0c] text-gray-500 uppercase font-black text-[9px] tracking-wider border-b border-white/0">
  <tr>
  <th className="py-2 px-4 whitespace-nowrap">STT</th>
  <th className="py-2 px-4 whitespace-nowrap">Số điện thoại</th>
@@ -821,7 +821,7 @@ export default function PhoneBatchesPage() {
  className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start flex-1"
  >
  {/* ── Left: Employee List ───────────────────────── */}
- <div className="lg:col-span-4 bg-sidebar border border-white/5 rounded-[32px] p-6 shadow-xl space-y-4">
+ <div className="lg:col-span-4 bg-sidebar border border-white/0 rounded-[32px] p-6 shadow-xl space-y-4">
  <h3 className="text-md font-black text-white uppercase tracking-tight flex items-center gap-2">
  <Users size={18} className="text-gold" />
  Nhân viên Online
@@ -832,7 +832,7 @@ export default function PhoneBatchesPage() {
  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={14} />
  <input
  placeholder="Tìm tên hoặc username..."
- className="w-full bg-black/20 border border-white/10 rounded-xl pl-9 pr-4 h-9 text-sm text-white outline-none focus:border-gold/50 transition-all"
+ className="w-full bg-black/20 border border-white/0 rounded-xl pl-9 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all"
  type="text"
  value={staffSearch}
  onChange={(e) => setStaffSearch(e.target.value)}
@@ -865,8 +865,8 @@ export default function PhoneBatchesPage() {
  onClick={() => setSelectedEmpUsername(emp.username)}
  className={`w-full text-left p-6 rounded-2xl border transition-all group ${
  isSelected
- ?"bg-gold/5 border-gold/30 shadow-lg shadow-gold/5"
- :" bg-zinc-900/[0.01] border-white/5 hover:border-gray-300 hover:border-white/10 hover:bg-white bg-zinc-900/[0.02]"
+ ?"bg-gold/5 border-white/0 shadow-lg shadow-gold/5"
+ :" bg-zinc-900/[0.01] border-white/0 hover:border-gray-300 hover:border-white/0 hover:bg-white bg-zinc-900/[0.02]"
  }`}
  >
  <div className="flex items-center justify-between">
@@ -882,7 +882,7 @@ export default function PhoneBatchesPage() {
  </div>
  <ChevronRight
  size={14}
- className={`transition-colors ${isSelected ?"text-gold" :" group-hover:text-gray-900 group-hover:text-gray-900 text-white"}`}
+ className={`transition-colors ${isSelected ?"text-gold" :"text-white"}`}
  />
  </div>
  </div>
@@ -905,7 +905,7 @@ export default function PhoneBatchesPage() {
  {/* ── Right: Selected Employee Detail ───────────── */}
  <div className="lg:col-span-8 space-y-6">
  {!selectedEmp ? (
- <div className="bg-sidebar border border-white/5 rounded-[32px] p-12 shadow-xl flex flex-col items-center justify-center text-center">
+ <div className="bg-sidebar border border-white/0 rounded-[32px] p-12 shadow-xl flex flex-col items-center justify-center text-center">
  <UserCheck size={48} className="mb-4" />
  <h3 className="text-lg font-black text-gray-500 uppercase tracking-widest">
  Chọn nhân viên để xem chi tiết
@@ -917,7 +917,7 @@ export default function PhoneBatchesPage() {
  ) : (
  <>
  {/* Employee Header + Actions */}
- <div className="bg-sidebar border border-white/5 rounded-[32px] p-6 shadow-xl">
+ <div className="bg-sidebar border border-white/0 rounded-[32px] p-6 shadow-xl">
  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
  <div>
  <h3 className="text-xl font-black text-white uppercase tracking-tight">
@@ -963,7 +963,7 @@ export default function PhoneBatchesPage() {
  { label:"XM lần 2", value: empStats.xm2, color:"text-green-500" },
  { label:"Lỗi", value: empStats.err, color:"text-red-500" },
  ].map((s) => (
- <div key={s.label} className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-center">
+ <div key={s.label} className="bg-white/0 border border-white/0 rounded-xl p-3 text-center">
  <div className={`text-lg font-black ${s.color}`}>{s.value}</div>
  <div className="text-[8px] font-black uppercase tracking-widest mt-0.5">{s.label}</div>
  </div>
@@ -983,14 +983,14 @@ export default function PhoneBatchesPage() {
  </div>
 
  {/* Employee Phone Table */}
- <div className="bg-sidebar border border-white/5 rounded-[32px] p-6 shadow-xl">
+ <div className="bg-sidebar border border-white/0 rounded-[32px] p-6 shadow-xl">
  <h4 className="text-base font-black text-white uppercase tracking-tight flex items-center gap-2 mb-4">
  <Phone size={16} className="text-gold" />
  Danh sách SĐT của {selectedEmp.name}
  </h4>
- <div className="overflow-y-auto max-h-[400px] custom-scrollbar border border-white/5 rounded-2xl">
+ <div className="overflow-y-auto max-h-[400px] custom-scrollbar border border-white/0 rounded-2xl">
  <table className="w-full text-left text-sm">
- <thead className="sticky top-0 bg-[#0c0c0c] text-gray-500 uppercase font-black text-[9px] tracking-wider z-10 border-b border-white/5">
+ <thead className="sticky top-0 bg-[#0c0c0c] text-gray-500 uppercase font-black text-[9px] tracking-wider z-10 border-b border-white/0">
  <tr>
  <th className="py-3 px-4">STT</th>
  <th className="py-3 px-4">Số điện thoại</th>
@@ -1058,10 +1058,10 @@ export default function PhoneBatchesPage() {
  initial={{ scale: 0.9, opacity: 0 }}
  animate={{ scale: 1, opacity: 1 }}
  exit={{ scale: 0.9, opacity: 0 }}
- className="bg-sidebar border border-white/10 rounded-[32px] p-8 w-full max-w-3xl shadow-2xl flex flex-col max-h-[85vh]"
+ className="bg-sidebar border border-white/0 rounded-[32px] p-8 w-full max-w-3xl shadow-2xl flex flex-col max-h-[85vh]"
  >
  {/* Header */}
- <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
+ <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/0">
  <div className="flex items-center gap-3">
  <div className="h-10 w-10 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/20">
  <FileText className="text-gold" size={20} />
@@ -1082,7 +1082,7 @@ export default function PhoneBatchesPage() {
  )}
  <button
  onClick={() => setShowHistoryModal(false)}
- className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-400 hover:text-gray-900 text-white transition-colors"
+ className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-400 hover:text-white transition-colors"
  >
  <X size={20} />
  </button>
@@ -1098,7 +1098,7 @@ export default function PhoneBatchesPage() {
  className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
  historyTab === tab
  ?"bg-gold text-sidebar shadow-md"
- :" text-gray-400 hover:text-gray-900 text-white"
+ :" text-gray-400 hover:text-white"
  }`}
  >
  {tab ==="ALL" ?"Tất cả" : tab}
@@ -1110,7 +1110,7 @@ export default function PhoneBatchesPage() {
  <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1 scrollbar-hide">
  {(filteredHistory || []).length === 0 ? (
  <div className="py-16 text-center">
- <div className="h-16 w-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
+ <div className="h-16 w-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/0">
  <FileText className="" size={28} />
  </div>
  <p className="text-sm text-gray-500 font-bold uppercase tracking-widest">Không có lịch sử nhập dữ liệu</p>
@@ -1120,7 +1120,7 @@ export default function PhoneBatchesPage() {
  (filteredHistory || []).map((item: any) => (
  <div
  key={item.id}
- className="bg-white/5 border border-white/5 rounded-2xl p-6 flex items-center justify-between hover:border-gray-300 hover:border-white/10 transition-all group"
+ className="bg-white/5 border border-white/0 rounded-2xl p-6 flex items-center justify-between hover:border-gray-300 hover:border-white/0 transition-all group"
  >
  <div className="flex items-center gap-4">
  {/* Icon / Badge */}

@@ -197,7 +197,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
     <motion.aside 
       initial={false}
       animate={{ width: isCollapsed ? (windowWidth && windowWidth < 640 ? 0 : 80) : 280 }}
-      className="fixed left-0 top-0 z-40 h-screen border-r border-zinc-800/80 bg-[#18181b] text-zinc-100 flex flex-col shadow-xl"
+      className="fixed left-0 top-0 z-40 h-screen border-r border-white/0 bg-[#18181b] text-zinc-100 flex flex-col shadow-xl"
     >
       {/* Logo */}
       <div className={cn("flex h-20 items-center transition-all duration-300",
@@ -263,7 +263,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
                     initial={{ opacity: 0, height: 0 }} 
                     animate={{ opacity: 1, height: "auto" }} 
                     exit={{ opacity: 0, height: 0 }}
-                    className="ml-8 pl-2 border-l border-zinc-800 space-y-1 overflow-hidden"
+                    className="ml-8 pl-2 border-l border-white/0 space-y-1 overflow-hidden"
                   >
                     {item.subItems?.map((sub: any) => {
                       const subContent = (
@@ -306,7 +306,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
       </nav>
 
       {/* User Profile at bottom */}
-      <div className="border-t border-zinc-800/80 p-3 bg-zinc-900/[0.05] space-y-2">
+      <div className="border-t border-white/0 p-3 bg-zinc-900/[0.05] space-y-2">
         <div className={cn("flex items-center justify-between rounded-2xl p-2 transition-colors hover:bg-zinc-800/40 group",
           isCollapsed && "flex-col gap-3"
         )}>

@@ -33,7 +33,7 @@ function RealTimeClock() {
  }, []);
 
  return (
- <div className="absolute right-8 top-8 z-20 flex flex-col items-end rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md text-right font-mono text-white shadow-lg">
+ <div className="absolute right-8 top-8 z-20 flex flex-col items-end rounded-2xl border border-white/0 bg-white/5 p-4 backdrop-blur-md text-right font-mono text-white shadow-lg">
  <div className="text-2xl font-black tracking-widest text-gold">{timeStr}</div>
  <div className="text-[10px] font-black uppercase tracking-wider text-gray-400 mt-1">{dateStr}</div>
  </div>
@@ -110,7 +110,7 @@ function LoginForm() {
  animate={{ opacity: 1, y: 0 }}
  className="z-10 w-full max-w-[550px] p-6"
  >
- <div className="rounded-2xl border border-white/10 bg-white/5 p-12 md:p-16 backdrop-blur-3xl shadow-xl shadow-gray-900/50">
+ <div className="rounded-2xl border border-white/0 bg-white/5 p-12 md:p-16 backdrop-blur-3xl shadow-xl shadow-gray-900/50">
  {/* Logo Section */}
  <div className="mb-10 text-center">
  <motion.div
@@ -208,7 +208,7 @@ function LoginForm() {
  <button
  type="button"
  onClick={() => setShowPassword(!showPassword)}
- className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 text-white transition-colors"
+ className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
  >
  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
  </button>

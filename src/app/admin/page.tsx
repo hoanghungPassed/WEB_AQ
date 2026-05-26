@@ -1140,7 +1140,7 @@ export default function AdminDashboard() {
  </AnimatePresence>
 
  {/* Sticky Header */}
- <div className="flex-shrink-0 bg-sidebar border-b border-white/10 px-6 py-4 shadow-2xl z-10">
+ <div className="flex-shrink-0 bg-sidebar border-b border-white/0 px-6 py-4 shadow-2xl z-10">
  <div className="flex items-center justify-between gap-4">
  <div className="flex items-center gap-4">
  <button
@@ -1164,7 +1164,7 @@ export default function AdminDashboard() {
  className={`h-10 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
  selectedStaffTask.status ==="IN_PROGRESS"
  ?"bg-yellow-500 text-sidebar border-yellow-500"
- :" bg-white/5 text-gray-400 border-white/10 hover:border-yellow-500/50 hover:text-yellow-500"
+ :" bg-white/5 text-gray-400 border-white/0 hover:border-yellow-500/50 hover:text-yellow-500"
  }`}
  >
  Đang xử lí
@@ -1174,7 +1174,7 @@ export default function AdminDashboard() {
  className={`h-10 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
  selectedStaffTask.status ==="COMPLETED"
  ?"bg-green-500 text-sidebar border-green-500"
- :" bg-white/5 text-gray-400 border-white/10 hover:border-green-500/50 hover:text-green-500"
+ :" bg-white/5 text-gray-400 border-white/0 hover:border-green-500/50 hover:text-green-500"
  }`}
  >
  Hoàn thành
@@ -1204,7 +1204,7 @@ export default function AdminDashboard() {
  </div>
  <button
  onClick={() => setMissingLinksWarning([])}
- className="h-7 w-7 rounded-lg bg-red-500/10 hover:bg-red-500/30 text-red-400 hover:text-gray-900 text-white transition-all flex items-center justify-center"
+ className="h-7 w-7 rounded-lg bg-red-500/10 hover:bg-red-500/30 text-red-400 transition-all flex items-center justify-center"
  >
  <X size={14} />
  </button>
@@ -1231,7 +1231,7 @@ export default function AdminDashboard() {
  {/* Scrollable mail table */}
  <div className="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
  <table className="w-full text-left text-base whitespace-nowrap min-w-[1000px]">
- <thead className="sticky top-0 bg-[#0a0a0a] text-gray-500 border-b border-white/5 z-10">
+ <thead className="sticky top-0 bg-[#0a0a0a] text-gray-500 border-b border-white/0 z-10">
  <tr>
  <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT</th>
  <th className="py-4 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Email</th>
@@ -1248,7 +1248,7 @@ export default function AdminDashboard() {
  {(taskMails || []).length === 0 ? (
  <tr><td colSpan={9} className="py-20 text-center font-bold uppercase tracking-widest">Không có mail nào</td></tr>
  ) : (taskMails || []).map((mail: any, idx: number) => (
- <tr key={mail.id} className="hover:bg-white bg-zinc-900/[0.02] transition-colors group">
+ <tr key={mail.id} className="hover:bg-white/5 bg-zinc-900/[0.02] transition-colors group">
  <td className="py-3 px-6 text-[10px] font-black text-gray-500 whitespace-nowrap">{idx + 1}</td>
  <td className="py-3 px-6 font-bold text-white text-sm cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.email,"Email")}>
  <div>{mail.email}</div>
@@ -1273,7 +1273,7 @@ export default function AdminDashboard() {
  <td className="py-3 px-6 text-sm text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.phone ||"","SĐT")}>{mail.phone ||"---"}</td>
  <td className="py-3 px-6 whitespace-nowrap">
  {mail.otpLink ? (
- <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-gray-900 text-white transition-all flex items-center gap-1 font-bold text-sm cursor-pointer">Link OTP <ExternalLink size={12} /></a>
+ <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-all flex items-center gap-1 font-bold text-sm cursor-pointer">Link OTP <ExternalLink size={12} /></a>
  ) : <span className="">---</span>}
  </td>
  <td className="py-3 px-6 text-center whitespace-nowrap">
@@ -1291,7 +1291,7 @@ export default function AdminDashboard() {
  <td className="py-3 px-6 text-center whitespace-nowrap">
  <button
  onClick={() => setSelectedMailForModal(mail)}
- className="px-4 py-1 rounded-xl bg-gold/10 hover:bg-gold hover:text-sidebar text-gold border border-gold/30 text-[10px] font-black uppercase tracking-widest transition-all"
+ className="px-4 py-1 rounded-xl bg-gold/10 hover:bg-gold hover:text-sidebar text-gold border border-white/0 text-[10px] font-black uppercase tracking-widest transition-all"
  >
  Xem chi tiết
  </button>
@@ -1312,7 +1312,7 @@ export default function AdminDashboard() {
  <div className="flex items-center gap-6">
  <button 
  onClick={() => setSelectedViewType(null)}
- className="flex items-center gap-2 text-gold hover:text-gray-900 text-white font-black uppercase text-sm tracking-widest transition-all group"
+ className="flex items-center gap-2 text-gold font-black uppercase text-sm tracking-widest transition-all group"
  >
  <div className="h-10 w-10 bg-gold/10 rounded-xl flex items-center justify-center group-hover:bg-gold/20 transition-all shadow-lg">
  <ArrowLeft size={20} />
@@ -1326,12 +1326,12 @@ export default function AdminDashboard() {
  </div>
  </div>
 
- <div className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl">
- <div className="p-6 border-b border-white/5 bg-white/[0.02] flex flex-col md:flex-row items-center justify-between gap-4">
+ <div className="bg-sidebar border border-white/0 rounded-[32px] overflow-hidden shadow-2xl">
+ <div className="p-6 border-b border-white/0 bg-white/0 flex flex-col md:flex-row items-center justify-between gap-4">
  <div className="flex items-center gap-4 w-full md:w-auto">
  <h3 className="text-xl font-black text-white uppercase tracking-tighter hidden md:block">Dữ liệu chi tiết</h3>
- <div className="h-8 w-px bg-white/10 hidden md:block" />
- <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-3 h-10 w-full md:w-64 focus-within:border-gold/50 transition-all">
+ <div className="h-8 w-px bg-white/0 hidden md:block" />
+ <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-xl px-3 h-10 w-full md:w-64 focus-within:border-white/5 transition-all">
  <Search size={16} className="text-gray-500" />
  <input 
  placeholder={selectedViewType ==="STAFF" ?"Tìm tên nhân viên..." :"Tìm kiếm Email..."}
@@ -1348,7 +1348,7 @@ export default function AdminDashboard() {
  setFilterMailType(e.target.value);
  setCurrentPage(1);
  }}
- className="bg-black/20 border border-white/10 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold transition-all cursor-pointer hidden md:block"
+ className="bg-black/20 border border-white/0 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold transition-all cursor-pointer hidden md:block"
  >
  <option value="ALL" className="bg-sidebar text-white">Tất cả loại</option>
  <option value="ROOT" className="bg-sidebar text-white">Gốc</option>
@@ -1363,7 +1363,7 @@ export default function AdminDashboard() {
  <div className="overflow-x-auto custom-scrollbar">
  {selectedViewType ==="STAFF" ? (
  <table className="w-full text-left text-base whitespace-nowrap">
- <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
+ <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0">
  <tr>
  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Tên nhân viên</th>
@@ -1379,7 +1379,7 @@ export default function AdminDashboard() {
  .filter(s => s.status ==="ACTIVE" && s.role !=="01")
  .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
  .map((staff: any, index) => (
- <tr key={`staff-${staff.id}`} className="hover:bg-white bg-zinc-900/[0.02] transition-colors group">
+ <tr key={`staff-${staff.id}`} className="hover:bg-white/5 bg-zinc-900/[0.02] transition-colors group">
  <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
  <td className="py-4 px-6 text-base font-bold text-white flex items-center gap-3">
  <div className="h-8 w-8 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center font-black text-sm text-gold uppercase shrink-0">
@@ -1402,7 +1402,7 @@ export default function AdminDashboard() {
  </table>
  ) : selectedViewType ==="TASKS" && isAdminOrManager ? (
  <table className="w-full text-left text-base whitespace-nowrap">
- <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
+ <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0">
  <tr>
  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Tiêu đề</th>
@@ -1419,7 +1419,7 @@ export default function AdminDashboard() {
  const assignee = staffList.find(s => String(s.id) === String(task.assigneeId));
  const taskTypeLabel = task.type ==="MAIL_GOC" ?"Mail Gốc" : (task.type ==="MAIL_VE_TINH" ?"Mail Vệ Tinh" :"Mail BKT");
  return (
- <tr key={`task-row-${task.id}`} className="hover:bg-white bg-zinc-900/[0.02] transition-colors group">
+ <tr key={`task-row-${task.id}`} className="hover:bg-white/5 bg-zinc-900/[0.02] transition-colors group">
  <td className="py-4 px-6 text-[10px] font-black text-gray-500">{(currentPage - 1) * itemsPerPage + index + 1}</td>
  <td className="py-4 px-6 text-base font-bold text-white">
  <div>
@@ -1432,7 +1432,7 @@ export default function AdminDashboard() {
  <td className="py-4 px-6 text-sm text-gray-400 font-bold">{task.mailCount || 0} Mail</td>
  <td className="py-4 px-6">
  <div className="flex items-center gap-2">
- <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+ <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/0">
  <div className="h-full bg-gold" style={{ width: `${task.progress || 0}%` }} />
  </div>
  <span className="text-[10px] font-black text-gold">{task.progress || 0}%</span>
@@ -1457,7 +1457,7 @@ export default function AdminDashboard() {
  </table>
  ) : (
  <table className="w-full text-left text-base whitespace-nowrap">
- <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
+ <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0">
  <tr>
  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">STT</th>
  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Email</th>
@@ -1471,7 +1471,7 @@ export default function AdminDashboard() {
  {(currentItems || []).map((mail: any, index: number) => {
  const assignee = staffList.find(s => String(s.id) === String(mail.assigneeId));
  return (
- <tr key={`mail-${mail.id}`} className="hover:bg-white bg-zinc-900/[0.02] transition-colors group">
+ <tr key={`mail-${mail.id}`} className="hover:bg-white/5 bg-zinc-900/[0.02] transition-colors group">
  <td className="py-4 px-6 text-[10px] font-black text-gray-500">{(currentPage - 1) * itemsPerPage + index + 1}</td>
  <td className="py-4 px-6 text-base font-bold text-white">
  <div>{mail.email}</div>
@@ -1511,11 +1511,11 @@ export default function AdminDashboard() {
  </div>
  
  {selectedViewType !=="STAFF" && (
- <div className="p-6 border-t border-white/5 bg-black/20 flex items-center justify-between">
+ <div className="p-6 border-t border-white/0 bg-black/20 flex items-center justify-between">
  <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-white font-black">{currentPage}</span> / {selectedViewType ==="TASKS" && isAdminOrManager ? totalTasksPages || 1 : totalPages || 1}</span>
  <div className="flex gap-2">
- <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
- <button disabled={currentPage >= (selectedViewType ==="TASKS" && isAdminOrManager ? totalTasksPages : totalPages)} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
+ <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/0 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
+ <button disabled={currentPage >= (selectedViewType ==="TASKS" && isAdminOrManager ? totalTasksPages : totalPages)} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/0 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
  </div>
  </div>
  )}
@@ -1559,13 +1559,13 @@ export default function AdminDashboard() {
  initial={{ opacity: 0 }}
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
- className="fixed inset-0 z-[600] bg-white/90 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+ className="fixed inset-0 z-[600] bg-zinc-950/80 backdrop-blur-sm flex items-center justify-center p-4"
  >
  <motion.div
  initial={{ scale: 0.9, opacity: 0 }}
  animate={{ scale: 1, opacity: 1 }}
  exit={{ scale: 0.9, opacity: 0 }}
- className="bg-sidebar border border-gold/30 rounded-[32px] p-8 w-full max-w-md shadow-2xl relative text-center"
+ className="bg-zinc-900 border border-white/0 rounded-2xl p-8 w-full max-w-md shadow-2xl text-center relative"
  >
  <div className={`mx-auto h-20 w-20 rounded-full flex items-center justify-center border mb-6 shadow-lg ${
  timekeepingModal.type ==="in" 
@@ -1593,7 +1593,7 @@ export default function AdminDashboard() {
 
  <button
  onClick={() => setTimekeepingModal(null)}
- className="w-full h-12 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest rounded-xl transition-all shadow-xl shadow-gold/20 mt-4"
+ className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-zinc-50 font-bold rounded-xl transition-colors mt-4"
  >
  Xác nhận
  </button>
@@ -1629,7 +1629,7 @@ export default function AdminDashboard() {
  />
  
  {/* Chấm công card */}
- <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl relative overflow-hidden group flex flex-col justify-between min-h-[160px]">
+ <div className="bg-sidebar border border-white/0 rounded-[32px] p-6 shadow-2xl relative overflow-hidden group flex flex-col justify-between min-h-[160px]">
  <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[50px] -mr-16 -mt-16 transition-all group-hover:bg-gold/10" />
  <div className="relative z-10">
  <div className="flex items-center justify-between">
@@ -1654,7 +1654,7 @@ export default function AdminDashboard() {
  className={`flex-1 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
  !checkInTime 
  ?"bg-gold text-sidebar hover:bg-white hover:text-sidebar shadow-lg shadow-gold/25" 
- :" bg-white/5 cursor-not-allowed border border-white/5"
+ :" bg-white/5 cursor-not-allowed border border-white/0"
  }`}
  >
  Check-in
@@ -1664,8 +1664,8 @@ export default function AdminDashboard() {
  disabled={!checkInTime || !!checkOutTime}
  className={`flex-1 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
  checkInTime && !checkOutTime 
- ?"bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-gray-900 text-white" 
- :" bg-white/5 cursor-not-allowed border border-white/5"
+ ?"bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white" 
+ :" bg-white/5 cursor-not-allowed border border-white/0"
  }`}
  >
  Check-out
@@ -1676,7 +1676,7 @@ export default function AdminDashboard() {
  {/* Kênh vệ tinh đủ giờ card */}
  {(user?.role ==="03" || user?.role ==="04" || user?.role ==="05") && (
  <div 
- className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl relative overflow-hidden group flex flex-col justify-between min-h-[160px] cursor-pointer hover:border-gold/50 transition-all"
+ className="bg-sidebar border border-white/0 rounded-[32px] p-6 shadow-2xl relative overflow-hidden group flex flex-col justify-between min-h-[160px] cursor-pointer hover:border-white/5 transition-all"
  onClick={() => setIsEligibleChannelsModalOpen(true)}
  >
  <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[50px] -mr-16 -mt-16 transition-all group-hover:bg-gold/10" />
@@ -1696,7 +1696,7 @@ export default function AdminDashboard() {
  {(eligibleBreakdown.list || []).length > 0 ? (
  <div className="mt-2 grid grid-cols-2 gap-2 max-h-[80px] overflow-y-auto custom-scrollbar">
  {(eligibleBreakdown.list || []).map((b) => (
- <div key={b.name} className="flex items-center gap-1.5 bg-white/5 border border-white/5 px-2 py-1 rounded-xl text-[10px] font-black text-gray-300 uppercase tracking-wide">
+ <div key={b.name} className="flex items-center gap-1.5 bg-white/5 border border-white/0 px-2 py-1 rounded-xl text-[10px] font-black text-gray-300 uppercase tracking-wide">
  <span className="text-gold font-mono">{b.name}:</span>
  <span>{b.count} kênh</span>
  </div>
@@ -1714,7 +1714,7 @@ export default function AdminDashboard() {
  <AnimatePresence>
  {showStaffTasksView && (
  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="space-y-6">
- <div className="bg-sidebar border border-border-custom rounded-[32px] p-8 shadow-2xl relative overflow-hidden group">
+ <div className="bg-sidebar border border-white/0 rounded-[32px] p-8 shadow-2xl relative overflow-hidden group">
  <div className="absolute top-0 right-0 h-48 w-48 bg-green-500/5 blur-[80px] -mr-24 -mt-24 transition-all group-hover:bg-green-500/10" />
  <div className="relative z-10 flex flex-col gap-2 mb-6">
  <h2 className="text-2xl font-black text-white flex items-center gap-3 tracking-tighter uppercase">
@@ -1756,7 +1756,7 @@ export default function AdminDashboard() {
  <div
  key={task.id}
  onClick={() => setSelectedStaffTask(task)}
- className="p-6 rounded-2xl border transition-all relative overflow-hidden group bg-white/[0.02] border-white/5 hover:border-gray-300 hover:border-white/10 cursor-pointer hover:bg-white/[0.05]"
+ className="p-6 rounded-2xl border transition-all relative overflow-hidden group bg-white/0 border-white/0 hover:border-gray-300 hover:border-white/0 cursor-pointer hover:bg-white/5"
  >
  <div className="flex items-center justify-between mb-2">
  <h3 className="text-lg font-black text-white uppercase tracking-tighter">{task.title}</h3>
@@ -1790,7 +1790,7 @@ export default function AdminDashboard() {
  <b>Ghi chú:</b> {task.note ||"Tiến hành check tạo xóa và xử lý các mail vệ tinh/gốc được giao. Đảm bảo đúng tiến độ và báo cáo lỗi nếu có."}
  </div>
  </div>
- <div className="flex items-center justify-between pt-4 border-t border-white/5 text-[10px] font-black uppercase tracking-widest text-gray-500">
+ <div className="flex items-center justify-between pt-4 border-t border-white/0 text-[10px] font-black uppercase tracking-widest text-gray-500">
  <span>{task.mailCount || 0} Mail</span>
  <div className="flex items-center gap-2 relative z-20">
  <button
@@ -1803,7 +1803,7 @@ export default function AdminDashboard() {
  className={`h-8 px-3.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${
  task.status ==="IN_PROGRESS"
  ?"bg-yellow-500 text-sidebar border-yellow-500 shadow-md shadow-yellow-500/10"
- :" bg-white/5 text-gray-400 border-white/10 hover:border-yellow-500/40 hover:text-yellow-500"
+ :" bg-white/5 text-gray-400 border-white/0 hover:border-yellow-500/40 hover:text-yellow-500"
  }`}
  >
  Đang xử lí
@@ -1818,7 +1818,7 @@ export default function AdminDashboard() {
  className={`h-8 px-3.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${
  task.status ==="COMPLETED"
  ?"bg-green-500 text-sidebar border-green-500 shadow-md shadow-green-500/10"
- :" bg-white/5 text-gray-400 border-white/10 hover:border-green-500/40 hover:text-green-500"
+ :" bg-white/5 text-gray-400 border-white/0 hover:border-green-500/40 hover:text-green-500"
  }`}
  >
  Hoàn thành
@@ -1837,8 +1837,8 @@ export default function AdminDashboard() {
 
  {showStaffMailsView && (
  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="space-y-6">
- <div className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl">
- <div className="p-6 border-b border-white/5 bg-white/[0.02] flex flex-col md:flex-row items-center justify-between gap-4">
+ <div className="bg-sidebar border border-white/0 rounded-[32px] overflow-hidden shadow-2xl">
+ <div className="p-6 border-b border-white/0 bg-white/0 flex flex-col md:flex-row items-center justify-between gap-4">
  <div>
  <h3 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
  <Mail className="text-gold" size={24} />
@@ -1847,7 +1847,7 @@ export default function AdminDashboard() {
  <p className="text-sm text-gray-500 font-medium mt-1">Danh sách tất cả tài khoản mail do Admin/QL Công việc gán cho bạn</p>
  </div>
  <div className="flex items-center gap-3 w-full md:w-auto">
- <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-4 h-10 w-full md:w-64 focus-within:border-gold transition-all">
+ <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-xl px-4 h-10 w-full md:w-64 focus-within:border-gold transition-all">
  <Search size={14} className="text-gray-500" />
  <input 
  type="text" 
@@ -1857,13 +1857,13 @@ export default function AdminDashboard() {
  className="bg-transparent border-none outline-none text-sm text-white w-full" 
  />
  </div>
- <button onClick={() => setShowStaffMailsView(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-gray-900 text-white transition-colors"><X size={20} /></button>
+ <button onClick={() => setShowStaffMailsView(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-red-400 transition-colors"><X size={20} /></button>
  </div>
  </div>
 
  <div className="overflow-x-auto custom-scrollbar">
  <table className="w-full text-left text-base whitespace-nowrap min-w-[1000px]">
- <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5">
+ <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0">
  <tr>
  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT</th>
  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT Gốc</th>
@@ -1885,7 +1885,7 @@ export default function AdminDashboard() {
  m.recovery.toLowerCase().includes(searchQuery.toLowerCase())
  )
  .map((mail: any, index: number) => (
- <tr key={mail.id} className="hover:bg-white bg-zinc-900/[0.02] transition-colors group">
+ <tr key={mail.id} className="hover:bg-white/5 bg-zinc-900/[0.02] transition-colors group">
  <td className="py-4 px-6 text-[10px] font-black text-gray-500 whitespace-nowrap">{index + 1}</td>
  <td className="py-4 px-6 text-[10px] font-black text-gold/80 whitespace-nowrap">
  {mail.type ==="ROOT" ? mail.id 
@@ -1901,7 +1901,7 @@ export default function AdminDashboard() {
  <td className="py-4 px-6 text-sm text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.phone ||"","SĐT")}>{mail.phone ||"---"}</td>
  <td className="py-4 px-6 text-sm text-gray-500 whitespace-nowrap">
  {mail.otpLink ? (
- <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-gray-900 text-white transition-all flex items-center gap-1 font-bold text-sm cursor-pointer">Link OTP <ExternalLink size={12} /></a>
+ <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-all flex items-center gap-1 font-bold text-sm cursor-pointer">Link OTP <ExternalLink size={12} /></a>
  ) : <span className="">---</span>}
  </td>
  <td className="py-4 px-6 text-center whitespace-nowrap">
@@ -1916,7 +1916,7 @@ export default function AdminDashboard() {
  className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
  mail.workStatus ==="ĐÃ LÀM KÊNH" || mail.workStatus ==="HOÀN THÀNH" || mail.workStatus ==="Đã làm" || mail.workStatus ==="ĐÃ LÀM" || mail.workStatus ==="ĐÃ MỜI MAIL"
  ?"bg-green-500/10 text-green-500 border-green-500/30 font-bold"
- :" bg-white/5 text-gray-400 border-white/10 hover:border-green-500/30 hover:text-green-500"
+ :" bg-white/5 text-gray-400 border-white/0 hover:border-green-500/30 hover:text-green-500"
  }`}
  >
  Đã làm
@@ -1927,7 +1927,7 @@ export default function AdminDashboard() {
  className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
  mail.workStatus ==="Chưa làm" || mail.workStatus ==="CHƯA LÀM" || mail.workStatus ==="CHƯA LÀM KÊNH" || mail.workStatus ==="CHƯA MỜI MAIL" || !mail.workStatus
  ?"bg-amber-500/10 text-amber-500 border-amber-500/30 font-bold"
- :" bg-white/5 text-gray-400 border-white/10 hover:border-amber-500/30 hover:text-amber-500"
+ :" bg-white/5 text-gray-400 border-white/0 hover:border-amber-500/30 hover:text-amber-500"
  }`}
  >
  Chưa làm
@@ -1938,7 +1938,7 @@ export default function AdminDashboard() {
  className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
  mail.workStatus ==="Lỗi" || mail.workStatus ==="LỖI"
  ?"bg-red-500/10 text-red-500 border-red-500/30 font-bold"
- :" bg-white/5 text-gray-400 border-white/10 hover:border-red-500/30 hover:text-red-500"
+ :" bg-white/5 text-gray-400 border-white/0 hover:border-red-500/30 hover:text-red-500"
  }`}
  >
  Lỗi
@@ -1963,7 +1963,7 @@ export default function AdminDashboard() {
  <div className="lg:col-span-1">
  <StatCard title="Nhân viên Online" value={stats.staffOnline} icon={<Users size={32} />} color="purple" subtitle="Đang làm việc" onClick={() => setSelectedViewType("STAFF")} />
  </div>
- <div className="lg:col-span-2 rounded-[32px] border border-border-custom bg-sidebar p-8 shadow-2xl overflow-hidden relative group min-h-[350px]">
+ <div className="lg:col-span-2 rounded-[32px] border border-white/0 bg-sidebar p-8 shadow-2xl overflow-hidden relative group min-h-[350px]">
  <div className="absolute top-0 right-0 h-48 w-48 bg-purple-500/5 blur-[80px] -mr-24 -mt-24 transition-all group-hover:bg-purple-500/10" />
  <div className="relative z-10 flex items-center justify-between mb-6">
  <div>
@@ -1978,7 +1978,7 @@ export default function AdminDashboard() {
  <div className="overflow-x-auto">
  <table className="w-full text-left">
  <thead>
- <tr className="text-gray-500 border-b border-white/5 uppercase text-[10px] font-black tracking-widest">
+ <tr className="text-gray-500 border-b border-white/0 uppercase text-[10px] font-black tracking-widest">
  <th className="pb-4 px-2">Thứ</th>
  <th className="pb-4 px-2">Nhân viên</th>
  <th className="pb-4 px-2">Khu vực</th>
@@ -2030,7 +2030,7 @@ export default function AdminDashboard() {
 
  <div className="grid grid-cols-1 gap-6">
  {/* Live/Die Stats - Grid Style */}
- <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 flex items-center justify-around shadow-lg backdrop-blur-md">
+ <div className="rounded-2xl border border-white/0 bg-zinc-900/80 p-6 flex items-center justify-around shadow-lg backdrop-blur-md">
  <div 
  onClick={() => setSelectedViewType("LIVE")}
  className="flex flex-col items-center gap-2 cursor-pointer group transition-all"
@@ -2050,12 +2050,12 @@ export default function AdminDashboard() {
  </div>
 
  <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
- <motion.div className="xl:col-span-2 rounded-[32px] border border-border-custom bg-sidebar p-8 shadow-2xl relative overflow-hidden group">
+ <motion.div className="xl:col-span-2 rounded-[32px] border border-white/0 bg-sidebar p-8 shadow-2xl relative overflow-hidden group">
  <div className="absolute top-0 right-0 h-48 w-48 bg-gold/5 blur-[80px] -mr-24 -mt-24 transition-all group-hover:bg-gold/10" />
  <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
  <div><h2 className="text-3xl font-black text-white flex items-center gap-3 tracking-tighter uppercase"><TrendingUp size={32} className="text-gold" /> KPI Hệ Thống</h2><p className="text-gray-500 mt-1 font-medium text-base">Thiết lập mục tiêu và theo dõi tiến độ công việc</p></div>
  <div className={`flex flex-wrap items-center gap-4`}>
- <div className={`flex items-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/10 ${!isAdminOrManager ?"opacity-75" :""}`}>
+ <div className={`flex items-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/0 ${!isAdminOrManager ?"opacity-75" :""}`}>
  <div className="flex items-center gap-2">
  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Từ</span>
  <input 
@@ -2063,7 +2063,7 @@ export default function AdminDashboard() {
  value={kpi.startDate ||""} 
  disabled={!isAdminOrManager} 
  onChange={(e) => setKpi({ ...kpi, startDate: e.target.value })} 
- className="bg-black/40 text-white text-sm font-black p-2 rounded-xl outline-none border border-white/5 focus:border-gold/50 transition-all cursor-pointer" 
+ className="bg-black/40 text-white text-sm font-black p-2 rounded-xl outline-none border border-white/0 focus:border-white/5 transition-all cursor-pointer" 
  />
  </div>
  <ChevronRight size={14} className="text-gray-500" />
@@ -2074,7 +2074,7 @@ export default function AdminDashboard() {
  value={kpi.endDate ||""} 
  disabled={!isAdminOrManager} 
  onChange={(e) => setKpi({ ...kpi, endDate: e.target.value })} 
- className="bg-black/40 text-white text-sm font-black p-2 rounded-xl outline-none border border-white/5 focus:border-gold/50 transition-all cursor-pointer" 
+ className="bg-black/40 text-white text-sm font-black p-2 rounded-xl outline-none border border-white/0 focus:border-white/5 transition-all cursor-pointer" 
  />
  </div>
  </div>
@@ -2100,7 +2100,7 @@ export default function AdminDashboard() {
  <div className="flex flex-col gap-6">
  {/* Approval Center Card */}
  {isAdminOrManager && (
- <div className="rounded-[32px] border border-border-custom bg-sidebar p-6 shadow-2xl relative overflow-hidden group text-left">
+ <div className="rounded-[32px] border border-white/0 bg-sidebar p-6 shadow-2xl relative overflow-hidden group text-left">
  <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[50px] pointer-events-none" />
  
  <div className="flex items-center justify-between mb-4 relative z-10">
@@ -2108,7 +2108,7 @@ export default function AdminDashboard() {
  <ShieldAlert className="text-gold" size={18} />
  Yêu cầu truy cập ngoài giờ
  </h3>
- <span className="bg-gold/10 text-gold border border-gold/30 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">
+ <span className="bg-gold/10 text-gold border border-white/0 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">
  {(pendingRequests || []).length} Đang chờ
  </span>
  </div>
@@ -2116,7 +2116,7 @@ export default function AdminDashboard() {
  <div className="space-y-4 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
  {(pendingRequests || []).length > 0 ? (
  (pendingRequests || []).map((req: any) => (
- <div key={`req-card-${req.id}`} className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 flex flex-col gap-3 hover:border-gold/30 transition-all">
+ <div key={`req-card-${req.id}`} className="bg-white/0 border border-white/0 rounded-2xl p-6 flex flex-col gap-3 hover:border-white/0 transition-all">
  <div className="flex items-start justify-between">
  <div>
  <p className="text-sm font-black text-white">{req.staffName}</p>
@@ -2170,7 +2170,7 @@ export default function AdminDashboard() {
  <motion.div 
  initial={{ scale: 0.95, y: 20 }} 
  animate={{ scale: 1, y: 0 }} 
- className="bg-sidebar border border-white/10 w-full max-w-4xl rounded-[40px] p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col max-h-[85vh]"
+ className="bg-sidebar border border-white/0 w-full max-w-4xl rounded-[40px] p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col max-h-[85vh]"
  >
  <div className="absolute top-0 right-0 h-96 w-96 bg-gold/5 blur-[120px] -mr-48 -mt-48" />
 
@@ -2188,7 +2188,7 @@ export default function AdminDashboard() {
  </div>
  <button 
  onClick={() => setIsEligibleChannelsModalOpen(false)} 
- className="h-10 w-10 bg-white/5 hover:bg-white/10 text-white rounded-full flex items-center justify-center border border-white/10 transition-all"
+ className="h-10 w-10 bg-white/5 hover:bg-white/10 text-white rounded-full flex items-center justify-center border border-white/0 transition-all"
  >
  <X size={20} />
  </button>
@@ -2198,7 +2198,7 @@ export default function AdminDashboard() {
  {(() => {
  const eligibleMails = (mails || []).filter((m: any) => m.type ==="SATELLITE" && Array.isArray(m.eligibleChannels) && m.eligibleChannels.some(Boolean));
  if ((eligibleMails || []).length === 0) {
- return <div className="p-12 text-center text-gray-500 font-bold uppercase tracking-widest bg-black/10 rounded-3xl border border-white/5">Không có kênh nào đủ điều kiện hiện tại</div>;
+ return <div className="p-12 text-center text-gray-500 font-bold uppercase tracking-widest bg-black/10 rounded-3xl border border-white/0">Không có kênh nào đủ điều kiện hiện tại</div>;
  }
  
  const byBatch = eligibleMails.reduce((acc: any, m: any) => {
@@ -2228,12 +2228,12 @@ export default function AdminDashboard() {
  });
 
  return (
- <div key={batchName} className="border border-white/5 rounded-3xl bg-black/10 overflow-hidden">
- <div className="bg-[#0d0d0d] border-b border-white/5 p-4 flex items-center justify-between">
+ <div key={batchName} className="border border-white/0 rounded-3xl bg-black/10 overflow-hidden">
+ <div className="bg-[#0d0d0d] border-b border-white/0 p-4 flex items-center justify-between">
  <h3 className="text-base font-black text-white uppercase tracking-tighter">Lô: <span className="text-gold">{batchName}</span></h3>
  </div>
  <table className="w-full text-left whitespace-nowrap">
- <thead className="bg-[#0a0a0a] border-b border-white/5">
+ <thead className="bg-[#0a0a0a] border-b border-white/0">
  <tr className="text-gray-500 text-[10px] font-black uppercase tracking-widest">
  <th className="py-3 px-6 w-16">STT</th>
  <th className="py-3 px-6">Email Gốc</th>
@@ -2278,7 +2278,7 @@ export default function AdminDashboard() {
  </tr>
  ))}
  </tbody>
- <tfoot className="bg-[#0a0a0a] border-t border-white/5">
+ <tfoot className="bg-[#0a0a0a] border-t border-white/0">
  <tr>
  <td colSpan={5} className="py-4 px-6 text-right">
  <span className="text-sm font-black text-gray-400 uppercase tracking-widest">
@@ -2294,7 +2294,7 @@ export default function AdminDashboard() {
  })()}
  </div>
 
- <div className="mt-8 relative z-10 pt-4 border-t border-white/5 text-right">
+ <div className="mt-8 relative z-10 pt-4 border-t border-white/0 text-right">
  <button 
  onClick={() => setIsEligibleChannelsModalOpen(false)} 
  className="h-14 px-8 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-sm tracking-widest transition-all"
@@ -2323,7 +2323,7 @@ function StatCard({ title, value, icon, color, subtitle, onClick }: any) {
  <motion.div 
  whileHover={{ y: -4 }} 
  onClick={onClick} 
- className={`group rounded-2xl border border-zinc-800 bg-zinc-900/80 backdrop-blur-md p-6 transition-all hover:shadow-2xl hover:border-zinc-700/80 ${onClick ? 'cursor-pointer hover:bg-zinc-800/60' : ''}`}
+ className={`group rounded-2xl border border-white/0 bg-zinc-900/80 backdrop-blur-md p-6 transition-all hover:shadow-2xl hover:border-zinc-700/80 ${onClick ? 'cursor-pointer hover:bg-zinc-800/60' : ''}`}
  >
  <div className="flex items-center justify-between mb-4">
  <div className={`p-6 rounded-xl border transition-all shrink-0 ${colors[color] || colors.blue}`}>{icon}</div>
@@ -2332,7 +2332,7 @@ function StatCard({ title, value, icon, color, subtitle, onClick }: any) {
  <h3 className="text-2xl xl:text-3xl font-black text-zinc-50 tracking-tighter truncate" title={String(value)}>{typeof value ==="number" ? value.toLocaleString() : value}</h3>
  </div>
  </div>
- <div className="flex items-center justify-between pt-4 border-t border-zinc-800/50 mt-4">
+ <div className="flex items-center justify-between pt-4 border-t border-white/0 mt-4">
  <span className="text-sm font-medium text-zinc-500 group-hover:text-zinc-400 transition-colors">{subtitle}</span>
  <div className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)] group-hover:scale-125 transition-transform" />
  </div>
@@ -2348,20 +2348,20 @@ function KPIInputCard({ label, target, current, onChange, unit, readonly }: any)
  <span className="text-base font-bold text-white uppercase tracking-widest lg:whitespace-nowrap leading-tight">{label}</span>
  <span className="text-sm font-black text-gold whitespace-nowrap leading-none mb-0.5">{percent}% Hoàn thành</span>
  </div>
- <div className="relative h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 shadow-inner flex-shrink-0">
+ <div className="relative h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/0 shadow-inner flex-shrink-0">
  <motion.div initial={{ width: 0 }} animate={{ width: `${percent}%` }} transition={{ duration: 1, ease:"easeOut" }} className="absolute h-full bg-gradient-to-r from-gold/50 to-gold shadow-[0_0_15px_rgba(212,175,55,0.3)]" />
  </div>
  <div className="flex items-center gap-4 mt-auto">
  <div className="flex-1 space-y-2">
  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">Tiến độ hiện tại</label>
- <div className="h-14 w-full rounded-2xl bg-white/5 border border-white/5 flex items-center px-4 text-white font-bold text-base shadow-sm">{current} {unit}</div>
+ <div className="h-14 w-full rounded-2xl bg-white/5 border border-white/0 flex items-center px-4 text-white font-bold text-base shadow-sm">{current} {unit}</div>
  </div>
  <div className="flex-1 space-y-2">
  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">Mục tiêu (Admin)</label>
  {readonly ? (
  <div className="h-14 w-full rounded-2xl bg-gold/5 border border-gold/10 px-4 flex items-center text-gold/50 font-black text-base">{target}</div>
  ) : (
- <input type="number" value={target ||""} onChange={(e) => { const val = e.target.value ==="" ? 0 : parseInt(e.target.value); onChange(val); }} className="h-14 w-full rounded-2xl bg-gold/10 border border-gold/30 px-4 text-gold font-black focus:outline-none focus:border-gold text-base transition-all shadow-lg shadow-gold/5" />
+ <input type="number" value={target ||""} onChange={(e) => { const val = e.target.value ==="" ? 0 : parseInt(e.target.value); onChange(val); }} className="h-14 w-full rounded-2xl bg-gold/10 border border-white/0 px-4 text-gold font-black focus:outline-none focus:border-gold text-base transition-all shadow-lg shadow-gold/5" />
  )}
  </div>
  </div>

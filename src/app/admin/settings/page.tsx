@@ -52,7 +52,7 @@ const CollapsibleSection = ({
   openSections,
   toggleSection
 }: CollapsibleSectionProps) => (
-  <div className="bg-zinc-900 border border-zinc-800 rounded-[24px] shadow-2xl overflow-hidden">
+  <div className="bg-zinc-900 border border-white/0 rounded-[24px] shadow-2xl overflow-hidden">
     <button
       onClick={() => toggleSection(id)}
       className="w-full flex items-center justify-between p-6 hover:bg-zinc-800/20 bg-zinc-900/[0.02] transition-all"
@@ -74,7 +74,7 @@ const CollapsibleSection = ({
           transition={{ duration: 0.3, ease: "easeInOut" }}
           className="overflow-hidden"
         >
-          <div className="px-6 pb-6 border-t border-zinc-800/50">
+          <div className="px-6 pb-6 border-t border-white/0">
             {children}
           </div>
         </motion.div>
@@ -736,7 +736,7 @@ export default function SettingsPage() {
  setShowResetConfirm(false);
  setSafetyPhrase("");
  }} 
- className="flex-1 h-12 rounded-xl border border-white/10 text-white font-bold uppercase text-sm tracking-widest hover:bg-zinc-800/40 bg-zinc-900/5 transition-all"
+ className="flex-1 h-12 rounded-xl border border-white/0 text-white font-bold uppercase text-sm tracking-widest hover:bg-zinc-800/40 bg-zinc-900/5 transition-all"
  >
  Hủy bỏ
  </button>
@@ -757,7 +757,7 @@ export default function SettingsPage() {
  <div className="flex items-center gap-4">
  <button 
  onClick={() => router.push("/admin")}
- className="p-2 rounded-xl bg-sidebar border border-border-custom text-zinc-400 hover:text-amber-500 text-zinc-100 transition-all shadow-md"
+ className="p-2 rounded-xl bg-sidebar border border-white/0 text-zinc-400 hover:text-amber-500 text-zinc-100 transition-all shadow-md"
  >
  <ArrowLeft size={20} />
  </button>
@@ -773,7 +773,7 @@ export default function SettingsPage() {
  </div>
 
  {/* Tab buttons - only PROFILE and HE_THONG */}
- <div className="flex flex-col md:flex-row gap-4 mb-6 pb-4 border-b border-white/5">
+ <div className="flex flex-col md:flex-row gap-4 mb-6 pb-4 border-b border-white/0">
  <button 
  onClick={() => setActiveTab("PROFILE")}
  className={`h-10 px-6 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
@@ -796,21 +796,21 @@ export default function SettingsPage() {
 
  <div className="animate-fade-in">
  {activeTab ==="PROFILE" && (
- <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl max-w-2xl">
- <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-6">
+ <div className="bg-sidebar border border-white/0 rounded-[32px] p-6 shadow-2xl max-w-2xl">
+ <div className="flex items-center gap-2 border-b border-white/0 pb-4 mb-6">
  <Info className="text-gold" size={18} />
  <h3 className="text-md font-black text-white uppercase tracking-tight">Thông tin cá nhân</h3>
  </div>
  <div className="space-y-4 text-base text-gray-300">
- <div className="flex items-center justify-between p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+ <div className="flex items-center justify-between p-6 bg-white/0 border border-white/0 rounded-2xl">
  <span className="font-bold text-gray-500 uppercase text-[10px] tracking-widest">Họ và tên</span>
  <span className="font-black text-white">{user?.name}</span>
  </div>
- <div className="flex items-center justify-between p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+ <div className="flex items-center justify-between p-6 bg-white/0 border border-white/0 rounded-2xl">
  <span className="font-bold text-gray-500 uppercase text-[10px] tracking-widest">Tên đăng nhập</span>
  <span className="font-black text-gold">@{user?.username}</span>
  </div>
- <div className="flex items-center justify-between p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+ <div className="flex items-center justify-between p-6 bg-white/0 border border-white/0 rounded-2xl">
  <span className="font-bold text-gray-500 uppercase text-[10px] tracking-widest">Phân quyền</span>
  <span className="px-3 py-1 bg-gold/10 text-gold border border-gold/20 rounded-lg text-[10px] font-black uppercase">
  {user?.role ==="01" ?"ADMIN" : user?.role ==="02" ?"QL CÔNG VIỆC" : user?.role ==="03" ?"QL NHÂN SỰ" :"NHÂN VIÊN"}
@@ -841,7 +841,7 @@ export default function SettingsPage() {
  value={workStartTime}
  onChange={(e) => setWorkStartTime(e.target.value)}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
  />
  </div>
  </div>
@@ -853,7 +853,7 @@ export default function SettingsPage() {
  value={workEndTime}
  onChange={(e) => setWorkEndTime(e.target.value)}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
  />
  </div>
  </div>
@@ -865,12 +865,12 @@ export default function SettingsPage() {
  value={systemCloseTime}
  onChange={(e) => setSystemCloseTime(e.target.value)}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl px-5 h-14 text-lg text-amber-500 outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-lg text-amber-500 outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
  />
  </div>
  </div>
  </div>
- <div className="space-y-3 pt-4 border-t border-white/5">
+ <div className="space-y-3 pt-4 border-t border-white/0">
  <label className="text-[12px] text-zinc-400 font-bold uppercase tracking-widest mb-4 block">Mức phạt đi muộn (VNĐ)</label>
  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
  <div className="space-y-2">
@@ -881,7 +881,7 @@ export default function SettingsPage() {
  value={Number(fineTier1).toLocaleString("vi-VN")}
  onChange={(e) => setFineTier1(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-black tracking-wider"
  />
  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
  </div>
@@ -894,7 +894,7 @@ export default function SettingsPage() {
  value={Number(fineTier2).toLocaleString("vi-VN")}
  onChange={(e) => setFineTier2(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-black tracking-wider"
  />
  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
  </div>
@@ -907,7 +907,7 @@ export default function SettingsPage() {
  value={Number(fineTier3).toLocaleString("vi-VN")}
  onChange={(e) => setFineTier3(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-black tracking-wider"
  />
  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
  </div>
@@ -939,7 +939,7 @@ export default function SettingsPage() {
  onChange={(e) => setAgencyConfigName(e.target.value)}
  onMouseDown={(e) => e.stopPropagation()}
  placeholder="VD: AQ MEDIA"
- className="bg-zinc-900 text-zinc-100 border border-zinc-800 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full md:w-1/2 font-bold"
+ className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full md:w-1/2 font-bold"
  />
  </div>
  <button 
@@ -954,7 +954,7 @@ export default function SettingsPage() {
  {/* Section: 2FA */}
  <CollapsibleSection id="2FA" icon={ShieldCheck} title="Bảo Mật 2FA" openSections={openSections} toggleSection={toggleSection}>
  <div className="pt-5">
- <div className="text-center p-10 bg-white/[0.02] border border-white/5 rounded-2xl">
+ <div className="text-center p-10 bg-white/0 border border-white/0 rounded-2xl">
  <ShieldCheck size={48} className="mx-auto mb-4 opacity-50" />
  <h4 className="text-base font-black text-white uppercase mb-2">Tính năng đang phát triển</h4>
  <p className="text-sm text-gray-500 font-bold">Bảo mật 2FA qua TOTP Authenticator sẽ sớm được ra mắt trong bản cập nhật tới.</p>
@@ -977,7 +977,7 @@ export default function SettingsPage() {
  value={chunkSize}
  onChange={(e) => setChunkSize(Math.max(1, Number(e.target.value)))}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl px-5 h-14 text-base text-gold outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-base text-gold outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-black tracking-wider"
  required
  />
  </div>
@@ -988,7 +988,7 @@ export default function SettingsPage() {
  value={kpiTargetMails}
  onChange={(e) => setKpiTargetMails(Math.max(1, Number(e.target.value)))}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-bold"
+ className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-bold"
  required
  />
  </div>
@@ -999,7 +999,7 @@ export default function SettingsPage() {
  value={kpiTargetWatchHours}
  onChange={(e) => setKpiTargetWatchHours(Math.max(1, Number(e.target.value)))}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full font-bold"
+ className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-bold"
  required
  />
  </div>
@@ -1011,7 +1011,7 @@ export default function SettingsPage() {
  value={apiSyncEndpoint}
  onChange={(e) => setApiSyncEndpoint(e.target.value)}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-zinc-800 text-zinc-100 border-zinc-800 rounded-2xl px-5 h-14 text-base text-gray-300 font-mono outline-none focus:border-gold/50  focus:bg-[#161616] transition-all w-full"
+ className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-base text-gray-300 font-mono outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full"
  required
  />
  </div>
@@ -1029,8 +1029,8 @@ export default function SettingsPage() {
  {/* Right Side: Storage Stats & Danger Hard Reset */}
  <div className="space-y-6">
  {/* Database Space Allocation Stats Widget */}
- <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5">
- <div className="flex items-center gap-2 border-b border-white/5 pb-3 mb-4">
+ <div className="bg-white/0 border border-white/0 rounded-2xl p-5">
+ <div className="flex items-center gap-2 border-b border-white/0 pb-3 mb-4">
  <HardDrive className="text-gold" size={16} />
  <h4 className="text-sm font-black text-white uppercase tracking-tight">Dung lượng DB Local</h4>
  </div>
@@ -1074,7 +1074,7 @@ export default function SettingsPage() {
  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Ngân Hàng Thụ Hưởng</label>
  <div 
  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
- className="bg-zinc-900 text-zinc-100 border border-zinc-800 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold flex items-center justify-between cursor-pointer hover:bg-zinc-800/30"
+ className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold flex items-center justify-between cursor-pointer hover:bg-zinc-800/30"
  >
  <div className="flex items-center gap-2 overflow-hidden">
  {activeBank.logo ? (
@@ -1088,15 +1088,15 @@ export default function SettingsPage() {
  </div>
 
  {isDropdownOpen && (
- <div className="absolute left-0 right-0 mt-2 bg-zinc-950/95 backdrop-blur-md border border-zinc-800 rounded-2xl shadow-2xl z-[100] max-h-64 flex flex-col overflow-hidden animate-fade-in">
- <div className="p-2 border-b border-white/5 flex-shrink-0">
+ <div className="absolute left-0 right-0 mt-2 bg-zinc-950/95 backdrop-blur-md border border-white/0 rounded-2xl shadow-2xl z-[100] max-h-64 flex flex-col overflow-hidden animate-fade-in">
+ <div className="p-2 border-b border-white/0 flex-shrink-0">
  <input 
  type="text" 
  placeholder="Tìm tên hoặc mã ngân hàng..."
  value={bankSearchTerm}
  onChange={(e) => setBankSearchTerm(e.target.value)}
  onClick={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 h-9 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-amber-500/30 w-full"
+ className="bg-zinc-900 border border-white/0 rounded-xl px-3 h-9 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-amber-500/30 w-full"
  />
  </div>
  <div className="overflow-y-auto custom-scrollbar flex-1">
@@ -1122,7 +1122,7 @@ export default function SettingsPage() {
  setIsDropdownOpen(false);
  setBankSearchTerm("");
  }}
- className={`flex items-center gap-3 px-4 py-2.5 hover:bg-zinc-800 bg-zinc-900/[0.10] transition-colors cursor-pointer border-b border-zinc-800/20 last:border-0 ${activeBank.bin === b.bin ? 'bg-amber-500/10' : ''}`}
+ className={`flex items-center gap-3 px-4 py-2.5 hover:bg-zinc-800 bg-zinc-900/[0.10] transition-colors cursor-pointer border-b border-white/0 last:border-0 ${activeBank.bin === b.bin ? 'bg-amber-500/10' : ''}`}
  >
  {b.logo ? (
  <img src={b.logo} alt={b.shortName} className="h-6 w-10 object-contain rounded bg-zinc-950 px-1 py-0.5 shrink-0" />
@@ -1155,7 +1155,7 @@ export default function SettingsPage() {
  }}
  onMouseDown={(e) => e.stopPropagation()}
  placeholder="Ví dụ: 0123456789"
- className="bg-zinc-900 text-zinc-100 border border-zinc-800 rounded-2xl pl-5 pr-12 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+ className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl pl-5 pr-12 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
  required
  />
  {isLookingUp && (
@@ -1191,7 +1191,7 @@ export default function SettingsPage() {
  onChange={(e) => setBankAccountHolder(e.target.value.toUpperCase())}
  onMouseDown={(e) => e.stopPropagation()}
  placeholder="Ví dụ: NGUYEN VAN A"
- className="bg-zinc-900 text-zinc-100 border border-zinc-800 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+ className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
  required
  />
  <p className="text-[9px] text-gray-500">Tên viết in hoa không dấu - Hệ thống tự động tra cứu khi nhập đủ STK</p>
@@ -1210,15 +1210,15 @@ export default function SettingsPage() {
 
  {/* QR Code Display */}
  <div className="space-y-6">
- <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5">
- <div className="flex items-center gap-2 border-b border-white/5 pb-3 mb-4">
+ <div className="bg-white/0 border border-white/0 rounded-2xl p-5">
+ <div className="flex items-center gap-2 border-b border-white/0 pb-3 mb-4">
  <Zap className="text-gold" size={16} />
  <h4 className="text-sm font-black text-white uppercase tracking-tight">QR Code Thanh Toán</h4>
  </div>
 
  {bankAccountNumber ? (
  <div className="flex flex-col items-center gap-4">
- <div className="bg-zinc-900 p-6 rounded-2xl shadow-xl border border-gold/40 relative">
+ <div className="bg-zinc-900 p-6 rounded-2xl shadow-xl border border-white/0 relative">
  <img 
  src={`https://img.vietqr.io/image/${activeBank.code || bankName ||"MB"}-${bankAccountNumber}-compact2.png?accountName=${encodeURIComponent(bankAccountHolder ||"")}`}
  alt="VietQR Dynamic Fine Code"
@@ -1237,7 +1237,7 @@ export default function SettingsPage() {
  </div>
 
  {/* Bank Info Display */}
- <div className="bg-white/[0.02] border border-gold/20 rounded-2xl p-5">
+ <div className="bg-white/0 border border-gold/20 rounded-2xl p-5">
  <div className="flex items-center gap-2 border-b border-gold/10 pb-3 mb-4">
  <CheckCircle2 className="text-gold" size={16} />
  <h4 className="text-sm font-black text-white uppercase tracking-tight">Thông Tin Đã Lưu</h4>
@@ -1257,7 +1257,7 @@ export default function SettingsPage() {
  <span className="text-gray-500 font-bold">Chủ TK:</span>
  <span className="text-white font-black">{bankAccountHolder}</span>
  </div>
- <div className="pt-2 border-t border-white/10">
+ <div className="pt-2 border-t border-white/0">
  <p className="text-[9px] text-green-400 font-black">✓ Đã được cấu hình & đồng bộ thành công</p>
  </div>
  </div>

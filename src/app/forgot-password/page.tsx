@@ -66,7 +66,7 @@ export default function ForgotPasswordPage() {
  animate={{ opacity: 1, y: 0 }}
  className="z-10 w-full max-w-[550px]"
  >
- <div className="rounded-[50px] border border-white/10 bg-white/5 p-12 md:p-16 backdrop-blur-3xl shadow-2xl">
+ <div className="rounded-[50px] border border-white/0 bg-white/5 p-12 md:p-16 backdrop-blur-3xl shadow-2xl">
  {/* Header */}
  <div className="mb-10 text-center">
  <div className="mx-auto mb-8 flex h-32 w-32 items-center justify-center rounded-[40px] bg-gold/5 border border-gold/10 overflow-hidden shadow-2xl">
@@ -103,7 +103,7 @@ export default function ForgotPasswordPage() {
  value={phone}
  onChange={(e) => setPhone(e.target.value)}
  placeholder="09xx xxx xxx"
- className="h-16 w-full rounded-2xl border border-white/10 bg-white/5 pl-14 pr-6 text-lg text-white focus:border-gold/50 focus:outline-none focus:ring-4 focus:ring-gold/5 transition-all"
+ className="h-16 w-full rounded-2xl border border-white/0 bg-white/5 pl-14 pr-6 text-lg text-white focus:border-white/5 focus:outline-none focus:ring-4 focus:ring-gold/5 transition-all"
  />
  </div>
  </div>
@@ -132,7 +132,7 @@ export default function ForgotPasswordPage() {
  value={otp}
  onChange={(e) => setOtp(e.target.value)}
  placeholder="Thử 123456"
- className="h-16 w-full rounded-2xl border border-white/10 bg-white/5 pl-14 pr-6 text-center text-2xl tracking-[0.5em] text-white focus:border-gold/50 focus:outline-none transition-all"
+ className="h-16 w-full rounded-2xl border border-white/0 bg-white/5 pl-14 pr-6 text-center text-2xl tracking-[0.5em] text-white focus:border-white/5 focus:outline-none transition-all"
  />
  </div>
  {error && <p className="text-center text-xs font-bold text-red-500 uppercase tracking-widest">{error}</p>}
@@ -162,7 +162,7 @@ export default function ForgotPasswordPage() {
  value={newPassword}
  onChange={(e) => setNewPassword(e.target.value)}
  placeholder="••••••••"
- className="h-16 w-full rounded-2xl border border-white/10 bg-white/5 pl-14 pr-6 text-lg text-white focus:border-gold/50 focus:outline-none transition-all"
+ className="h-16 w-full rounded-2xl border border-white/0 bg-white/5 pl-14 pr-6 text-lg text-white focus:border-white/5 focus:outline-none transition-all"
  />
  </div>
  </div>

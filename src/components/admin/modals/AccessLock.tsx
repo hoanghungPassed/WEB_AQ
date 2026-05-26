@@ -117,7 +117,7 @@ export default function AccessLock({ message, userName, onSendRequest, onLogout 
  </div>
 
  <h1 className="text-4xl font-black text-white tracking-tighter mb-4 uppercase">Hệ thống đã khóa</h1>
- <div className="bg-white/5 border border-white/5 rounded-2xl py-4 px-8 mb-8 inline-flex items-center gap-4">
+ <div className="bg-white/5 border border-white/0 rounded-2xl py-4 px-8 mb-8 inline-flex items-center gap-4">
  <Clock className="text-gold" size={24} />
  <span className="text-2xl font-mono font-black text-white">
  {currentTime.toLocaleTimeString('vi-VN')}
@@ -139,7 +139,7 @@ export default function AccessLock({ message, userName, onSendRequest, onLogout 
  )}
 
  {status ==="PENDING" && (
- <div className="h-16 px-10 rounded-2xl bg-white/5 border border-gold/50 text-gold font-black uppercase tracking-widest flex items-center justify-center gap-3 animate-pulse">
+ <div className="h-16 px-10 rounded-2xl bg-white/5 border border-white/5 text-gold font-black uppercase tracking-widest flex items-center justify-center gap-3 animate-pulse">
  <ShieldAlert size={24} /> Đang chờ phê duyệt...
  </div>
  )}
@@ -166,7 +166,7 @@ export default function AccessLock({ message, userName, onSendRequest, onLogout 
 
  <button 
  onClick={onLogout}
- className="h-16 px-10 rounded-2xl bg-white/5 border border-white/10 text-gray-400 font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 transition-all"
+ className="h-16 px-10 rounded-2xl bg-white/5 border border-white/0 text-gray-400 font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 transition-all"
  >
  <LogOut size={24} /> Đăng xuất
  </button>

@@ -229,7 +229,7 @@ export default function FinesReportPage() {
  <div className="flex items-center gap-4 shrink-0">
  <button
  onClick={() => router.push("/admin")}
- className="p-2 rounded-xl bg-sidebar border border-border-custom text-gray-400 hover:text-gray-900 text-white transition-all"
+ className="p-2 rounded-xl bg-sidebar border border-white/0 text-gray-400 hover:text-white transition-all"
  >
  <ArrowLeft size={20} />
  </button>
@@ -248,7 +248,7 @@ export default function FinesReportPage() {
  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
  <motion.div
  whileHover={{ scale: 1.02 }}
- className="bg-sidebar border border-border-custom rounded-2xl p-6 shadow-lg"
+ className="bg-sidebar border border-white/0 rounded-2xl p-6 shadow-lg"
  >
  <div className="flex items-center justify-between">
  <div>
@@ -265,7 +265,7 @@ export default function FinesReportPage() {
 
  <motion.div
  whileHover={{ scale: 1.02 }}
- className="bg-sidebar border border-border-custom rounded-2xl p-6 shadow-lg"
+ className="bg-sidebar border border-white/0 rounded-2xl p-6 shadow-lg"
  >
  <div className="flex items-center justify-between">
  <div>
@@ -343,7 +343,7 @@ export default function FinesReportPage() {
  placeholder="Tìm theo tên nhân viên hoặc lí do..."
  value={searchQuery}
  onChange={(e) => setSearchQuery(e.target.value)}
- className="w-full pl-10 pr-4 py-3 bg-sidebar border border-border-custom rounded-xl text-base text-white placeholder:text-gray-500 outline-none focus:border-gold/50 transition-all"
+ className="w-full pl-10 pr-4 py-3 bg-sidebar border border-white/0 rounded-xl text-base text-white placeholder:text-gray-500 outline-none focus:border-white/5 transition-all"
  />
  </div>
 
@@ -372,11 +372,11 @@ export default function FinesReportPage() {
  </div>
 
  {/* Fine Reports Table */}
- <div className="bg-sidebar border border-border-custom rounded-2xl shadow-2xl overflow-hidden flex-1 flex flex-col min-h-0">
+ <div className="bg-sidebar border border-white/0 rounded-2xl shadow-2xl overflow-hidden flex-1 flex flex-col min-h-0">
  <div className="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
  <table className="w-full relative">
- <thead className="sticky top-0 bg-[#0d0d0d] z-10 shadow-sm border-b border-white/5">
- <tr className="bg-white/[0.02]">
+ <thead className="sticky top-0 bg-[#0d0d0d] z-10 shadow-sm border-b border-white/0">
+ <tr className="bg-white/0">
  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-widest">
  Nhân Viên
  </th>
@@ -414,7 +414,7 @@ export default function FinesReportPage() {
  initial={{ opacity: 0, y: 10 }}
  animate={{ opacity: 1, y: 0 }}
  transition={{ delay: idx * 0.05 }}
- className="border-b border-border-custom hover:bg-white bg-zinc-900/[0.03] transition-colors"
+ className="border-b border-white/0 hover:bg-white bg-zinc-900/[0.03] transition-colors"
  >
  <td className="px-6 py-4">
  <div className="flex items-center gap-3">
@@ -479,7 +479,7 @@ export default function FinesReportPage() {
  </div>
 
  {/* Notes Section */}
- <div className="bg-sidebar border border-border-custom rounded-2xl p-6">
+ <div className="bg-sidebar border border-white/0 rounded-2xl p-6">
  <div className="flex items-center gap-2 mb-4">
  <AlertCircle className="text-gold" size={18} />
  <h3 className="text-base font-black text-white uppercase tracking-tight">Ghi Chú</h3>

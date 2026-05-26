@@ -297,7 +297,7 @@ export default function ReportsPage() {
  <div className="flex items-center gap-4">
  <button 
  onClick={() => router.push("/admin")}
- className="p-2 rounded-xl bg-sidebar border border-border-custom text-gray-400 hover:text-gray-900 text-white transition-all shadow-md"
+ className="p-2 rounded-xl bg-sidebar border border-white/0 text-gray-400 hover:text-white transition-all shadow-md"
  >
  <ArrowLeft size={20} />
  </button>
@@ -313,17 +313,17 @@ export default function ReportsPage() {
  </div>
 
  <div className="flex items-center gap-3">
- <div className="flex bg-sidebar border border-white/5 p-1 rounded-2xl shadow-inner">
+ <div className="flex bg-sidebar border border-white/0 p-1 rounded-2xl shadow-inner">
  <button
  onClick={() => setActiveTab("STATS")}
- className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab ==="STATS" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :"text-gray-500 hover:text-gray-900 text-white"}`}
+ className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab ==="STATS" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :"text-gray-500 hover:text-white"}`}
  >
  Hiệu Suất KPI
  </button>
  {(user?.role ==="01" || user?.role ==="02" || user?.role ==="ADMIN" || user?.role ==="QUẢN LÝ CÔNG VIỆC") && (
  <button
  onClick={() => setActiveTab("PAYROLL")}
- className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab ==="PAYROLL" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :"text-gray-500 hover:text-gray-900 text-white"}`}
+ className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab ==="PAYROLL" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :"text-gray-500 hover:text-white"}`}
  >
  Bảng Lương
  </button>
@@ -345,7 +345,7 @@ export default function ReportsPage() {
  <>
  {/* 4 Premium Stats Widgets */}
  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
- <div className="bg-sidebar border border-white/5 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-gold/30 transition-all">
+ <div className="bg-sidebar border border-white/0 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-white/0 transition-all">
  <div className="space-y-1">
  <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest block">Tỷ lệ hoàn thành KPI</span>
  <span className="text-3xl font-black text-white block">{stats.completionRate}%</span>
@@ -356,7 +356,7 @@ export default function ReportsPage() {
  </div>
  </div>
 
- <div className="bg-sidebar border border-white/5 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-indigo-500/30 transition-all">
+ <div className="bg-sidebar border border-white/0 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-indigo-500/30 transition-all">
  <div className="space-y-1">
  <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest block">Watch Hours lũy kế</span>
  <span className="text-3xl font-black text-indigo-400 block">450 / 2K<span className="text-sm text-gray-500"> Hrs</span></span>
@@ -367,7 +367,7 @@ export default function ReportsPage() {
  </div>
  </div>
 
- <div className="bg-sidebar border border-white/5 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-emerald-500/30 transition-all">
+ <div className="bg-sidebar border border-white/0 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-emerald-500/30 transition-all">
  <div className="space-y-1">
  <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest block">Tỷ lệ tài khoản LIVE</span>
  <span className="text-3xl font-black text-emerald-400 block">{stats.liveRatio}%</span>
@@ -378,7 +378,7 @@ export default function ReportsPage() {
  </div>
  </div>
 
- <div className="bg-sidebar border border-white/5 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-sky-500/30 transition-all">
+ <div className="bg-sidebar border border-white/0 rounded-[24px] p-6 shadow-xl flex items-center justify-between group hover:border-sky-500/30 transition-all">
  <div className="space-y-1">
  <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest block">Tổng Sản Lượng Mail</span>
  <span className="text-3xl font-black text-sky-400 block">{stats.total} <span className="text-sm text-gray-500">Accounts</span></span>
@@ -392,14 +392,14 @@ export default function ReportsPage() {
 
  {/* Visual Analytics Graphs Row */}
  {(mails || []).length === 0 ? (
- <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl flex items-center justify-center h-56 text-gray-500 font-bold uppercase tracking-widest">
+ <div className="bg-sidebar border border-white/0 rounded-[32px] p-6 shadow-2xl flex items-center justify-center h-56 text-gray-500 font-bold uppercase tracking-widest">
  Chưa có dữ liệu
  </div>
  ) : (
  <div className="grid grid-cols-1 gap-6">
  {/* SVG Cumulative Output Line Graph */}
- <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl flex flex-col justify-between">
- <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+ <div className="bg-sidebar border border-white/0 rounded-[32px] p-6 shadow-2xl flex flex-col justify-between">
+ <div className="flex items-center justify-between border-b border-white/0 pb-4 mb-4">
  <h3 className="text-md font-black text-white uppercase tracking-tighter flex items-center gap-2">
  <TrendingUp size={16} className="text-gold" />
  Sản lượng tích lũy tháng này (Tính theo Kênh đủ giờ)
@@ -436,7 +436,7 @@ export default function ReportsPage() {
  </svg>
  </div>
 
- <div className="flex justify-between text-[9px] text-gray-500 font-black uppercase tracking-widest mt-4 pt-3 border-t border-white/5">
+ <div className="flex justify-between text-[9px] text-gray-500 font-black uppercase tracking-widest mt-4 pt-3 border-t border-white/0">
  <span>Thứ 2</span>
  <span>Thứ 3</span>
  <span>Thứ 4</span>
@@ -449,8 +449,8 @@ export default function ReportsPage() {
  )}
 
  {/* Staff Productivity Report Leaderboard */}
- <div className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex-1 flex flex-col min-h-0">
- <div className="p-6 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+ <div className="bg-sidebar border border-white/0 rounded-[32px] overflow-hidden shadow-2xl flex-1 flex flex-col min-h-0">
+ <div className="p-6 border-b border-white/0 bg-white/0 flex items-center justify-between">
  <h3 className="text-lg font-black text-white uppercase tracking-tighter flex items-center gap-2">
  <Award size={18} className="text-gold animate-bounce" />
  Bảng hiệu suất nhân sự (KPI Leaderboard)
@@ -462,7 +462,7 @@ export default function ReportsPage() {
 
  <div className="flex-1 overflow-x-auto custom-scrollbar">
  <table className="w-full text-left text-base whitespace-nowrap min-w-[1000px]">
- <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5 sticky top-0 z-10">
+ <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0 sticky top-0 z-10">
  <tr>
  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center w-16">Hạng</th>
  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Nhân sự</th>
@@ -481,9 +481,9 @@ export default function ReportsPage() {
  <tr key={staff.username} className="hover:bg-white bg-zinc-900/[0.02] transition-colors group">
  <td className="py-4.5 px-6 text-center">
  <span className={`h-6 w-6 rounded-lg font-black text-sm inline-flex items-center justify-center border ${
- staff.rank === 1 ?"bg-gold/20 border-gold/50 text-gold" : 
+ staff.rank === 1 ?"bg-gold/20 border-white/5 text-gold" : 
  staff.rank === 2 ?"bg-gray-400/20 border-gray-400/30 text-gray-300" :
- staff.rank === 3 ?"bg-amber-700/20 border-amber-700/30 text-amber-500" :" border-white/5 text-gray-500"
+ staff.rank === 3 ?"bg-amber-700/20 border-amber-700/30 text-amber-500" :" border-white/0 text-gray-500"
  }`}>
  {staff.rank}
  </span>
@@ -532,8 +532,8 @@ export default function ReportsPage() {
  </>
  ) : (
  <div className="flex-1 flex flex-col gap-6">
- <div className="bg-sidebar border border-border-custom rounded-[32px] p-6 shadow-2xl">
- <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-4">
+ <div className="bg-sidebar border border-white/0 rounded-[32px] p-6 shadow-2xl">
+ <div className="flex items-center gap-2 border-b border-white/0 pb-4 mb-4">
  <Calculator size={18} className="text-gold" />
  <h3 className="text-lg font-black text-white uppercase tracking-tighter">Cấu hình Bảng lương</h3>
  </div>
@@ -542,7 +542,7 @@ export default function ReportsPage() {
  <div className="flex flex-col gap-2">
  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Chọn nhân viên</label>
  <select 
- className="h-12 px-4 rounded-xl bg-gray-800 text-white border border-gray-600 text-base focus:outline-none focus:border-gold/50 cursor-pointer"
+ className="h-12 px-4 rounded-xl bg-gray-800 text-white border border-gray-600 text-base focus:outline-none focus:border-white/5 cursor-pointer"
  value={selectedStaffId}
  onChange={(e) => setSelectedStaffId(e.target.value)}
  >
@@ -573,7 +573,7 @@ export default function ReportsPage() {
  type="text" 
  value={baseSalary ? Number(baseSalary).toLocaleString("vi-VN") :""}
  onChange={(e) => setBaseSalary(e.target.value.replace(/\D/g,""))}
- className="h-12 px-4 rounded-xl bg-gray-800 text-white border border-gray-600 text-base focus:outline-none focus:border-gold/50 font-bold" 
+ className="h-12 px-4 rounded-xl bg-gray-800 text-white border border-gray-600 text-base focus:outline-none focus:border-white/5 font-bold" 
  placeholder="Ví dụ: 5.000.000"
  />
  </div>
@@ -583,7 +583,7 @@ export default function ReportsPage() {
  type="text" 
  value={allowance ? Number(allowance).toLocaleString("vi-VN") :""}
  onChange={(e) => setAllowance(e.target.value.replace(/\D/g,""))}
- className="h-12 px-4 rounded-xl bg-gray-800 text-white border border-gray-600 text-base focus:outline-none focus:border-gold/50 font-bold" 
+ className="h-12 px-4 rounded-xl bg-gray-800 text-white border border-gray-600 text-base focus:outline-none focus:border-white/5 font-bold" 
  placeholder="Ví dụ: 500.000"
  />
  </div>
@@ -599,14 +599,14 @@ export default function ReportsPage() {
  </div>
  </div>
 
- <div className="bg-sidebar border border-border-custom rounded-[32px] overflow-hidden shadow-2xl flex-1 flex flex-col min-h-0">
- <div className="p-6 border-b border-white/5 bg-white/[0.02] flex items-center gap-2">
+ <div className="bg-sidebar border border-white/0 rounded-[32px] overflow-hidden shadow-2xl flex-1 flex flex-col min-h-0">
+ <div className="p-6 border-b border-white/0 bg-white/0 flex items-center gap-2">
  <Banknote size={18} className="text-green-400" />
  <h3 className="text-lg font-black text-white uppercase tracking-tighter">Bảng Tổng Hợp Lương (Payroll Table)</h3>
  </div>
  <div className="flex-1 overflow-x-auto custom-scrollbar">
  <table className="w-full text-left text-base whitespace-nowrap min-w-[1000px]">
- <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/5 sticky top-0 z-10">
+ <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0 sticky top-0 z-10">
  <tr>
  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Nhân viên</th>
  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Chức vụ</th>

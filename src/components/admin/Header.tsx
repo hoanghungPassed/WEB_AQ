@@ -201,12 +201,12 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
     <>
       <motion.header 
         animate={{ width: isCollapsed ? `calc(100% - ${windowWidth && windowWidth < 640 ? 0 : 80}px)` : "calc(100% - 280px)" }}
-        className="fixed top-0 right-0 z-30 flex h-20 items-center justify-between border-b border-zinc-800/80 bg-[#09090b]/80 backdrop-blur-md px-6 sm:px-10"
+        className="fixed top-0 right-0 z-30 flex h-20 items-center justify-between border-b border-white/0 bg-[#09090b]/80 backdrop-blur-md px-6 sm:px-10"
       >
         <div className="flex items-center gap-6 flex-1">
           <button 
             onClick={onToggle}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-[#a07800] hover:border-[#a07800] transition-all shadow-sm"
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 border border-white/0 text-zinc-400 hover:text-[#a07800] hover:border-[#a07800] transition-all shadow-sm"
           >
             {isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
           </button>
@@ -217,7 +217,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
               <input
                 type="text"
                 placeholder="Tìm kiếm nội dung..."
-                className="h-11 w-full rounded-xl border border-zinc-800 bg-zinc-900/50 pl-11 pr-6 text-sm text-zinc-100 placeholder-zinc-500 transition-all focus:border-[#a07800] focus:outline-none focus:ring-2 focus:ring-[#a07800]/10"
+                className="h-11 w-full rounded-xl border border-white/0 bg-zinc-900/50 pl-11 pr-6 text-sm text-zinc-100 placeholder-zinc-500 transition-all focus:border-[#a07800] focus:outline-none focus:ring-2 focus:ring-[#a07800]/10"
               />
             </div>
           </div>
@@ -225,7 +225,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
 
         <div className="flex items-center gap-6">
           {/* Real-time DateTime Widget */}
-          <div className="hidden xl:flex items-center gap-3 px-6 border-l border-zinc-800 h-8">
+          <div className="hidden xl:flex items-center gap-3 px-6 border-l border-white/0 h-8">
             <div className="flex flex-col items-end">
               <span className="text-[8px] font-black text-[#a07800] uppercase tracking-[0.2em] leading-none mb-1">Thời gian hệ thống</span>
               <div className="flex items-center gap-2">
@@ -239,7 +239,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           <div className="relative">
             <button 
               onClick={() => setIsNotifOpen(!isNotifOpen)}
-              className="relative flex h-10 w-10 items-center justify-center rounded-xl text-zinc-400 transition-all hover:bg-zinc-800/60 bg-zinc-900 border border-zinc-800 hover:text-[#a07800]"
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl text-zinc-400 transition-all hover:bg-zinc-800/60 bg-zinc-900 border border-white/0 hover:text-[#a07800]"
             >
               <Bell size={18} />
               {unreadCount > 0 && (
@@ -257,7 +257,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 top-full mt-3 z-20 w-80 rounded-2xl border border-zinc-800 bg-[#18181b] p-5 shadow-2xl backdrop-blur-md animate-fade-in"
+                    className="absolute right-0 top-full mt-3 z-20 w-80 rounded-2xl border border-white/0 bg-[#18181b] p-5 shadow-2xl backdrop-blur-md animate-fade-in"
                   >
                     <div className="flex items-center justify-between mb-4 px-1">
                       <p className="text-xs font-black uppercase tracking-[0.15em] text-zinc-100">Thông báo</p>
@@ -276,7 +276,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                             className={`p-4 rounded-xl border transition-all cursor-pointer group flex flex-col ${
                               !n.read 
                                 ? "bg-[#a07800]/5 border-[#a07800]/15 hover:bg-[#a07800]/10" 
-                                : "bg-zinc-950/20 border-zinc-800/60 hover:bg-zinc-800/40"
+                                : "bg-zinc-950/20 border-white/0 hover:bg-zinc-800/40"
                             }`}
                           >
                             <div className="flex items-start gap-3">
@@ -299,7 +299,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                     </div>
 
                     {/* View All Notifications Button */}
-                    <div className="border-t border-zinc-800/80 pt-3 mt-3">
+                    <div className="border-t border-white/0 pt-3 mt-3">
                       <button 
                         onClick={() => {
                           setIsNotifOpen(false);
@@ -317,7 +317,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           </div>
 
           {/* User Profile */}
-          <div className="relative flex items-center gap-4 pl-6 border-l border-zinc-800">
+          <div className="relative flex items-center gap-4 pl-6 border-l border-white/0">
             <div className="text-right hidden lg:block overflow-hidden">
               <p className="text-sm font-semibold text-zinc-100 leading-none uppercase tracking-tight">{safeText(user?.name) || "Người dùng"}</p>
               <p className="text-[8px] font-bold text-[#a07800] mt-1 uppercase tracking-[0.2em]">{getRoleLabel(user?.role)}</p>
@@ -325,7 +325,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
             
             <div 
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="h-10 w-10 rounded-xl border border-zinc-800 bg-zinc-900/50 p-0.5 flex items-center justify-center overflow-hidden cursor-pointer hover:border-[#a07800]/50 hover:bg-[#a07800]/5 transition-all shadow-sm active:scale-95"
+              className="h-10 w-10 rounded-xl border border-white/0 bg-zinc-900/50 p-0.5 flex items-center justify-center overflow-hidden cursor-pointer hover:border-[#a07800]/50 hover:bg-[#a07800]/5 transition-all shadow-sm active:scale-95"
             >
               {user?.avatar ? (
                 <img src={user?.avatar} className="h-full w-full object-cover rounded-lg" alt="" onError={(e) => e.currentTarget.src = "https://ui-avatars.com/api/?name=" + (user?.name || "U") + "&background=18181b&color=a07800"} />
@@ -344,9 +344,9 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 top-full mt-3 z-20 w-60 rounded-2xl border border-zinc-800 bg-[#18181b] p-2 shadow-2xl backdrop-blur-md"
+                    className="absolute right-0 top-full mt-3 z-20 w-60 rounded-2xl border border-white/0 bg-[#18181b] p-2 shadow-2xl backdrop-blur-md"
                   >
-                    <div className="p-3 border-b border-zinc-800/80 mb-1">
+                    <div className="p-3 border-b border-white/0 mb-1">
                       <p className="text-[8px] font-bold text-[#a07800] uppercase tracking-wider">{getRoleLabel(user?.role)}</p>
                       <p className="text-sm font-bold text-zinc-100 mt-1 uppercase truncate">{safeText(user?.name)}</p>
                       <p className="text-[8px] font-medium text-zinc-500 mt-0.5 tracking-wider truncate">@{safeText(user?.username)}</p>
@@ -393,9 +393,9 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#18181b] border border-zinc-800 rounded-2xl p-6 w-full max-w-2xl shadow-2xl relative max-h-[85vh] flex flex-col"
+              className="bg-[#18181b] border border-white/0 rounded-2xl p-6 w-full max-w-2xl shadow-2xl relative max-h-[85vh] flex flex-col"
             >
-              <div className="flex items-center justify-between mb-6 border-b border-zinc-800/80 pb-4">
+              <div className="flex items-center justify-between mb-6 border-b border-white/0 pb-4">
                 <div className="flex items-center gap-3">
                   <Bell className="text-[#a07800]" size={24} />
                   <h3 className="text-xl font-bold text-zinc-100 uppercase tracking-tight">Trung tâm thông báo</h3>
@@ -417,7 +417,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
               </div>
 
               {/* Tabs switcher */}
-              <div className="flex gap-3 mb-6 bg-zinc-950/40 p-1.5 rounded-xl border border-zinc-800">
+              <div className="flex gap-3 mb-6 bg-zinc-950/40 p-1.5 rounded-xl border border-white/0">
                 <button
                   onClick={() => setNotifTab("UNREAD")}
                   className={`flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
@@ -462,7 +462,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                       className={`p-4 rounded-xl border transition-all cursor-pointer group flex items-start gap-4 ${
                         !n.read
                           ? "bg-[#a07800]/5 border-[#a07800]/15 hover:bg-[#a07800]/10"
-                          : "bg-zinc-950/20 border-zinc-800/60 hover:bg-zinc-800/40"
+                          : "bg-zinc-950/20 border-white/0 hover:bg-zinc-800/40"
                       }`}
                     >
                       <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${
@@ -491,7 +491,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                     </div>
                   ))
                 ) : (
-                  <div className="py-12 text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-950/20">
+                  <div className="py-12 text-center border border-dashed border-white/0 rounded-xl bg-zinc-950/20">
                     <Bell className="mx-auto mb-2 text-zinc-500" size={32} />
                     <p className="text-xs font-bold text-zinc-500 italic">Không có thông báo nào trong mục này</p>
                   </div>

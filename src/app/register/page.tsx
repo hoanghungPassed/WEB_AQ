@@ -210,7 +210,7 @@ export default function RegisterPage() {
  <div className="absolute -bottom-20 -right-20 h-[500px] w-[500px] rounded-full bg-gold/5 blur-[120px]" />
 
  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="z-10 w-full max-w-2xl">
- <div className="rounded-[48px] border border-white/5 bg-[#161616] p-10 md:p-16 shadow-2xl">
+ <div className="rounded-[48px] border border-white/0 bg-[#161616] p-10 md:p-16 shadow-2xl">
  <div className="mb-12 text-center">
  <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[32px] bg-gold/5 border border-gold/10 p-2 shadow-2xl">
  <img src="/logo.png" alt="AQ MEDIA" className="h-full w-full object-contain" onError={(e) => e.currentTarget.src ="https://via.placeholder.com/150/d4af37/000000?text=AQ"} />
@@ -221,7 +221,7 @@ export default function RegisterPage() {
 
  {success ? (
  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-10 space-y-6">
- <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[32px] bg-gold/20 text-gold mb-6 border border-gold/30 animate-pulse">
+ <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[32px] bg-gold/20 text-gold mb-6 border border-white/0 animate-pulse">
  <Clock size={40} />
  </div>
  <div className="space-y-2">
