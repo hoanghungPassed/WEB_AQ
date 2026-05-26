@@ -35,14 +35,23 @@ body {
   background: #a07800;
 }
 
-/* Ensure interactive elements have a visible hover color transition
-   This helps when utility hover classes might be overridden or missed */
-a, button, .hoverable {
+/* Ensure interactive elements have a visible hover transition */
+a, .hoverable {
   transition: color .15s ease, background-color .15s ease;
 }
 
-a:hover, button:hover, .hoverable:hover {
+a:hover, .hoverable:hover {
   color: var(--color-gold);
+}
+
+/* Toàn bộ hệ thống: Khi trỏ chuột vào button KHÔNG đổi màu chữ, chỉ hiện viền màu vàng gold */
+button {
+  transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+}
+
+button:hover {
+  border-color: #a07800 !important;
+  box-shadow: 0 0 0 2px rgba(160, 120, 0, 0.6) !important;
 }
 /* Custom calendar and time picker indicator icons (Gold/Amber Theme) */
 input[type="time"]::-webkit-calendar-picker-indicator,
