@@ -92,32 +92,70 @@ export default function ReportsPage() {
  };
 
  const handleExportReport = () => {
- triggerToast("Đang kết xuất báo cáo thống kê chu kỳ... Đã xuất file CSV!");
- 
- // Generate CSV Content (Month)
- const currentMonth = new Date().getMonth();
- const currentYear = new Date().getFullYear();
+    triggerToast("Đang kết xuất báo cáo thống kê chu kỳ... Đã xuất file CSV!");
+    
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
 
- let csvContent ="Nhân viên,Username,Tổng số kênh đủ giờ trong tháng\n";
- 
- (staffList || []).filter((s: any) => s.role ==="04" || s.role ==="05" || s.role ==="NHÂN VIÊN" || s.role ==="NV THỬ VIỆC").forEach((staff: any) => {
- const myMails = (mails || []).filter(m => String(m.assigneeId) === String(staff.id));
- 
- const eligibleChannelsMonthly = (myMails || []).filter(m => m.type ==="SATELLITE" && m.updatedAt && new Date(m.updatedAt).getMonth() === currentMonth && new Date(m.updatedAt).getFullYear() === currentYear).reduce((sum, m) => {
- return sum + (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0);
- }, 0);
+    // Get current week's Monday
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    const monday = new Date(now.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
 
- csvContent += `"${staff.name}","${staff.username}",${eligibleChannelsMonthly}\n`;
- });
+    let csvContent = "STT,Nhân viên,Username,Chỉ tiêu ngày,Kênh đủ giờ (Tuần),Tổng tháng (Kênh đủ giờ),KPI Tuần (%),Xếp loại\n";
+    
+    const eligibleStaffList = (staffList || []).filter((s: any) => s.role === "04" || s.role === "05" || s.role === "NHÂN VIÊN" || s.role === "NV THỬ VIỆC");
+    
+    // Sort staff members by their monthly channel output
+    const calculatedStaff = (eligibleStaffList || []).map((staff: any) => {
+      const myMails = (mails || []).filter(m => String(m.assigneeId) === String(staff.id));
+      
+      const weeklyMails = myMails.filter(m => !m.updatedAt || new Date(m.updatedAt) >= monday);
+      
+      const eligibleChannelsWeekly = weeklyMails.filter(m => m.type === "SATELLITE").reduce((sum, m) => {
+        return sum + ((Array.isArray(m.links) ? m.links.filter((l: string) => typeof l === 'string' && l.trim() !== "").length : 0) || (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0));
+      }, 0);
 
- const element = document.createElement("a");
- const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], {type: 'text/csv;charset=utf-8;'});
- element.href = URL.createObjectURL(blob);
- element.download = `AQ_MEDIA_REPORT_MONTHLY_${currentMonth + 1}_${currentYear}.csv`;
- document.body.appendChild(element);
- element.click();
- document.body.removeChild(element);
- };
+      const eligibleChannelsMonthly = myMails.filter(m => {
+        if (m.type !== "SATELLITE" || !m.updatedAt) return false;
+        const d = new Date(m.updatedAt);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      }).reduce((sum, m) => {
+        return sum + ((Array.isArray(m.links) ? m.links.filter((l: string) => typeof l === 'string' && l.trim() !== "").length : 0) || (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0));
+      }, 0);
+
+      const targetWeekly = 300;
+      const progress = Math.round((eligibleChannelsWeekly / targetWeekly) * 100);
+      
+      let efficiency = "C";
+      if (progress >= 90) efficiency = "A+";
+      else if (progress >= 75) efficiency = "A";
+      else if (progress >= 50) efficiency = "B";
+
+      return {
+        name: staff.name,
+        username: staff.username,
+        weekly: eligibleChannelsWeekly,
+        monthly: eligibleChannelsMonthly,
+        progress,
+        efficiency
+      };
+    }).sort((a, b) => b.monthly - a.monthly);
+
+    calculatedStaff.forEach((staff, idx) => {
+      csvContent += `${idx + 1},"${staff.name}","${staff.username}","50 / ngày",${staff.weekly},${staff.monthly},"${staff.progress}%","${staff.efficiency}"\n`;
+    });
+
+    const element = document.createElement("a");
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], {type: 'text/csv;charset=utf-8;'});
+    element.href = URL.createObjectURL(blob);
+    element.download = `AQ_MEDIA_REPORT_MONTHLY_${currentMonth + 1}_${currentYear}.csv`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
 
  // 1. CALCULATE HIGH LEVEL STATS
  const stats = useMemo(() => {
@@ -149,6 +187,92 @@ export default function ReportsPage() {
  };
  }, [mails]);
 
+  // 1.5. CALCULATE CUMULATIVE OUTPUT DATA FOR CURRENT MONTH
+  const monthlyCumulativeData = useMemo(() => {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    
+    // Initialize daily eligible channels counts
+    const dailyCounts = Array(daysInMonth).fill(0);
+    
+    (mails || []).forEach(m => {
+      if (m.type === "SATELLITE" && m.updatedAt) {
+        const date = new Date(m.updatedAt);
+        if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+          const day = date.getDate();
+          const count = (Array.isArray(m.links) ? m.links.filter((l: string) => typeof l === 'string' && l.trim() !== "").length : 0) || (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0);
+          dailyCounts[day - 1] += count;
+        }
+      }
+    });
+    
+    // Calculate cumulative counts
+    let cumulativeSum = 0;
+    const cumulative = dailyCounts.map(count => {
+      cumulativeSum += count;
+      return cumulativeSum;
+    });
+    
+    return {
+      daysInMonth,
+      cumulative,
+      total: cumulativeSum
+    };
+  }, [mails]);
+
+  const chartSvgData = useMemo(() => {
+    const { daysInMonth, cumulative, total } = monthlyCumulativeData;
+    const maxVal = Math.max(10, total);
+    
+    const width = 500;
+    const height = 200;
+    const paddingLeft = 40;
+    const paddingRight = 20;
+    const paddingTop = 20;
+    const paddingBottom = 30;
+    
+    const chartWidth = width - paddingLeft - paddingRight;
+    const chartHeight = height - paddingTop - paddingBottom;
+    
+    const points = cumulative.map((val, idx) => {
+      const x = paddingLeft + idx * (chartWidth / (daysInMonth - 1));
+      const y = height - paddingBottom - (val / maxVal) * chartHeight;
+      return { x, y, val, day: idx + 1 };
+    });
+    
+    if (points.length === 0) return { linePath: "", areaPath: "", points: [], maxVal };
+    
+    // Build line path
+    let linePath = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      linePath += ` L ${points[i].x} ${points[i].y}`;
+    }
+    
+    // Build area path
+    const areaPath = `${linePath} L ${points[points.length - 1].x} ${height - paddingBottom} L ${points[0].x} ${height - paddingBottom} Z`;
+    
+    return {
+      linePath,
+      areaPath,
+      points,
+      maxVal
+    };
+  }, [monthlyCumulativeData]);
+
+  const xAxisLabels = useMemo(() => {
+    const { daysInMonth } = monthlyCumulativeData;
+    const labels = [];
+    const step = Math.ceil(daysInMonth / 6);
+    for (let i = 0; i < daysInMonth; i += step) {
+      labels.push(i + 1);
+    }
+    if (labels[labels.length - 1] !== daysInMonth) {
+      labels.push(daysInMonth);
+    }
+    return labels;
+  }, [monthlyCumulativeData]);
+
  // 2. CALCULATE STAFF LEADERBOARDS (WEEKLY RESET)
  const staffLeaderboard = useMemo<StaffPerformance[]>(() => {
  const list = (staffList || []).filter((s: any) => s.role ==="04" || s.role ==="05" || s.role ==="NHÂN VIÊN" || s.role ==="NV THỬ VIỆC");
@@ -179,12 +303,14 @@ export default function ReportsPage() {
  });
 
  const eligibleChannelsMonthly = monthlyMails.filter(m => m.type ==="SATELLITE").reduce((sum, m) => {
- return sum + (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0);
- }, 0);
+    const count = (Array.isArray(m.links) ? m.links.filter((l: string) => typeof l === 'string' && l.trim() !== "").length : 0) || (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0);
+    return sum + count;
+  }, 0);
 
- const eligibleChannelsWeekly = (myMails || []).filter(m => m.type ==="SATELLITE").reduce((sum, m) => {
- return sum + (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0);
- }, 0);
+  const eligibleChannelsWeekly = (myMails || []).filter(m => m.type ==="SATELLITE").reduce((sum, m) => {
+    const count = (Array.isArray(m.links) ? m.links.filter((l: string) => typeof l === 'string' && l.trim() !== "").length : 0) || (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0);
+    return sum + count;
+  }, 0);
 
  const targetWeekly = 300; // 50 channels per day -> 300 channels per week
  const progress = targetWeekly > 0 ? Math.round((eligibleChannelsWeekly / targetWeekly) * 100) : 0;
@@ -304,7 +430,7 @@ export default function ReportsPage() {
  <div>
  <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
  <BarChart3 className="text-gold" size={28} />
- Thống Kê & Nhân Sự (Reports & Payroll)
+ Thống Kê & Nhân Sự
  </h2>
  <p className="text-sm text-gray-500 font-medium uppercase tracking-widest mt-1">
  Phân tích hiệu suất làm việc và quản lý bảng lương tự động
@@ -408,42 +534,49 @@ export default function ReportsPage() {
  </div>
 
  <div className="flex-1 h-56 relative flex items-end">
- {/* SVG Interactive Line Chart representation */}
- <svg viewBox="0 0 500 200" className="w-full h-full">
- <defs>
- <linearGradient id="gradient-sky" x1="0" y1="0" x2="0" y2="1">
- <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.4" />
- <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.0" />
- </linearGradient>
- </defs>
- {/* Horizontal Grid lines */}
- <line x1="0" y1="50" x2="500" y2="50" stroke="rgba(255,255,255,0.03)" strokeDasharray="5" />
- <line x1="0" y1="100" x2="500" y2="100" stroke="rgba(255,255,255,0.03)" strokeDasharray="5" />
- <line x1="0" y1="150" x2="500" y2="150" stroke="rgba(255,255,255,0.03)" strokeDasharray="5" />
- 
- {/* Shaded Area */}
- <path d="M 0 170 Q 100 130 200 110 T 400 60 L 500 40 L 500 200 L 0 200 Z" fill="url(#gradient-sky)" />
- 
- {/* Curved Line */}
- <path d="M 0 170 Q 100 130 200 110 T 400 60 L 500 40" fill="none" stroke="#38bdf8" strokeWidth="3" />
- 
- {/* Point Markers */}
- <circle cx="100" cy="140" r="5" fill="#38bdf8" />
- <circle cx="200" cy="110" r="5" fill="#38bdf8" />
- <circle cx="300" cy="85" r="5" fill="#38bdf8" />
- <circle cx="400" cy="60" r="5" fill="#38bdf8" />
- <circle cx="500" cy="40" r="6" fill="#fbbf24" />
- </svg>
- </div>
+    {/* SVG Interactive Line Chart representation */}
+    <svg viewBox="0 0 500 200" className="w-full h-full">
+      <defs>
+        <linearGradient id="gradient-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.0" />
+        </linearGradient>
+      </defs>
+      {/* Horizontal Grid lines */}
+      <line x1="0" y1="50" x2="500" y2="50" stroke="rgba(255,255,255,0.03)" strokeDasharray="5" />
+      <line x1="0" y1="100" x2="500" y2="100" stroke="rgba(255,255,255,0.03)" strokeDasharray="5" />
+      <line x1="0" y1="150" x2="500" y2="150" stroke="rgba(255,255,255,0.03)" strokeDasharray="5" />
+      
+      {/* Shaded Area */}
+      {chartSvgData.areaPath && (
+        <path d={chartSvgData.areaPath} fill="url(#gradient-sky)" />
+      )}
+      
+      {/* Curved Line */}
+      {chartSvgData.linePath && (
+        <path d={chartSvgData.linePath} fill="none" stroke="#38bdf8" strokeWidth="3" />
+      )}
+      
+      {/* Point Markers */}
+      {(chartSvgData.points || []).map((pt, i) => (
+        <circle 
+          key={i} 
+          cx={pt.x} 
+          cy={pt.y} 
+          r={i === chartSvgData.points.length - 1 ? 6 : 4} 
+          fill={i === chartSvgData.points.length - 1 ? "#fbbf24" : "#38bdf8"} 
+        >
+          <title>Ngày {pt.day}: {pt.val} Kênh</title>
+        </circle>
+      ))}
+    </svg>
+  </div>
 
- <div className="flex justify-between text-[9px] text-gray-500 font-black uppercase tracking-widest mt-4 pt-3 border-t border-white/0">
- <span>Thứ 2</span>
- <span>Thứ 3</span>
- <span>Thứ 4</span>
- <span>Thứ 5</span>
- <span>Thứ 6</span>
- <span>Hôm nay</span>
- </div>
+  <div className="flex justify-between text-[9px] text-gray-500 font-black uppercase tracking-widest mt-4 pt-3 border-t border-white/0 px-10">
+    {xAxisLabels.map((day) => (
+      <span key={day}>Ngày {day}</span>
+    ))}
+  </div>
  </div>
  </div>
  )}
@@ -459,74 +592,71 @@ export default function ReportsPage() {
  Hạng xuất sắc nhất: {staffLeaderboard[0]?.name ||"Chưa có"}
  </span>
  </div>
-
  <div className="flex-1 overflow-x-auto custom-scrollbar">
  <table className="w-full text-left text-base whitespace-nowrap min-w-[1000px]">
- <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0 sticky top-0 z-10">
- <tr>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center w-16">Hạng</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Nhân sự</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Tài khoản</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Tổng mail gán</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Hoàn thành</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Kênh đủ giờ (Tuần)</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Kênh đủ giờ (Tháng)</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">KPI Tuần</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Xếp loại</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-white/5 text-gray-300">
- {(staffLeaderboard || []).length > 0 ? (
- (staffLeaderboard || []).map((staff, idx) => (
- <tr key={staff.username} className="hover:bg-white bg-zinc-900/[0.02] transition-colors group">
- <td className="py-4.5 px-6 text-center">
- <span className={`h-6 w-6 rounded-lg font-black text-sm inline-flex items-center justify-center border ${
- staff.rank === 1 ?"bg-gold/20 border-white/5 text-gold" : 
- staff.rank === 2 ?"bg-gray-400/20 border-gray-400/30 text-gray-300" :
- staff.rank === 3 ?"bg-amber-700/20 border-amber-700/30 text-amber-500" :" border-white/0 text-gray-500"
- }`}>
- {staff.rank}
- </span>
- </td>
- <td className="py-4.5 px-6 font-black text-white text-sm">{staff.name}</td>
- <td className="py-4.5 px-6 text-sm text-gray-400 font-mono">{staff.username}</td>
- <td className="py-4.5 px-6 text-center font-bold">{staff.assigned} Mail</td>
- <td className="py-4.5 px-6 text-center text-green-400 font-bold">{staff.completed} Mail</td>
- <td className="py-4.5 px-6 text-center font-bold text-blue-500">{staff.weeklyChannels}</td>
- <td className="py-4.5 px-6 text-center font-bold text-purple-500">{staff.monthlyChannels}</td>
- <td className="py-4.5 px-6">
- <div className="flex items-center gap-3 w-40">
- <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
- <div 
- className={`h-full rounded-full ${
- staff.kpiProgress >= 80 ?"bg-green-400" :
- staff.kpiProgress >= 50 ?"bg-gold" :"bg-red-400"
- }`}
- style={{ width: `${staff.kpiProgress}%` }}
- />
- </div>
- <span className="text-[10px] font-black text-white font-mono">{staff.kpiProgress}%</span>
- </div>
- </td>
- <td className="py-4.5 px-6 text-center">
- <span className={`h-6 px-3 rounded-lg font-black text-[10px] tracking-widest inline-flex items-center justify-center uppercase border ${
- staff.efficiency.includes("A") ?"bg-green-500/10 text-green-400 border-green-500/20" : 
- staff.efficiency.includes("B") ?"bg-gold/10 text-gold border-gold/20" :"bg-red-500/10 text-red-400 border-red-500/20"
- }`}>
- {staff.efficiency}
- </span>
- </td>
- </tr>
- ))
- ) : (
- <tr>
- <td colSpan={8} className="py-10 text-center font-bold uppercase tracking-widest">
- Chưa có dữ liệu
- </td>
- </tr>
- )}
- </tbody>
- </table>
+  <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0 sticky top-0 z-10">
+  <tr>
+  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center w-16">Hạng</th>
+  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Nhân sự</th>
+  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Tài khoản</th>
+  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Chỉ tiêu</th>
+  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Kênh đủ giờ (Tuần)</th>
+  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Tổng tháng</th>
+  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">KPI Tuần</th>
+  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Xếp loại</th>
+  </tr>
+  </thead>
+  <tbody className="divide-y divide-white/5 text-gray-300">
+  {(staffLeaderboard || []).length > 0 ? (
+  (staffLeaderboard || []).map((staff, idx) => (
+  <tr key={staff.username} className="hover:bg-zinc-800/50 bg-zinc-900/[0.02] transition-colors group">
+  <td className="py-4.5 px-6 text-center">
+  <span className={`h-6 w-6 rounded-lg font-black text-sm inline-flex items-center justify-center border ${
+  staff.rank === 1 ?"bg-gold/20 border-white/5 text-gold" : 
+  staff.rank === 2 ?"bg-gray-400/20 border-gray-400/30 text-gray-300" :
+  staff.rank === 3 ?"bg-amber-700/20 border-amber-700/30 text-amber-500" :" border-white/0 text-gray-500"
+  }`}>
+  {staff.rank}
+  </span>
+  </td>
+  <td className="py-4.5 px-6 font-black text-white text-sm">{staff.name}</td>
+  <td className="py-4.5 px-6 text-sm text-gray-400 font-mono">{staff.username}</td>
+  <td className="py-4.5 px-6 text-center font-bold text-gray-500">50 / ngày</td>
+  <td className="py-4.5 px-6 text-center font-bold text-blue-500">{staff.weeklyChannels}</td>
+  <td className="py-4.5 px-6 text-center font-bold text-purple-500">{staff.monthlyChannels}</td>
+  <td className="py-4.5 px-6">
+  <div className="flex items-center gap-3 w-40">
+  <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
+  <div 
+  className={`h-full rounded-full ${
+  staff.kpiProgress >= 80 ?"bg-green-400" :
+  staff.kpiProgress >= 50 ?"bg-gold" :"bg-red-400"
+  }`}
+  style={{ width: `${Math.min(100, staff.kpiProgress)}%` }}
+  />
+  </div>
+  <span className="text-[10px] font-black text-white font-mono">{staff.kpiProgress}%</span>
+  </div>
+  </td>
+  <td className="py-4.5 px-6 text-center">
+  <span className={`h-6 px-3 rounded-lg font-black text-[10px] tracking-widest inline-flex items-center justify-center uppercase border ${
+  staff.efficiency.includes("A") ?"bg-green-500/10 text-green-400 border-green-500/20" : 
+  staff.efficiency.includes("B") ?"bg-gold/10 text-gold border-gold/20" :"bg-red-500/10 text-red-400 border-red-500/20"
+  }`}>
+  {staff.efficiency}
+  </span>
+  </td>
+  </tr>
+  ))
+  ) : (
+  <tr>
+  <td colSpan={8} className="py-10 text-center font-bold uppercase tracking-widest">
+  Chưa có dữ liệu
+  </td>
+  </tr>
+  )}
+  </tbody>
+  </table>
  </div>
  </div>
  </>
@@ -620,7 +750,7 @@ export default function ReportsPage() {
  <tbody className="divide-y divide-white/5 text-gray-300">
  {(payrollRecords || []).length > 0 ? (
  (payrollRecords || []).map((record) => (
- <tr key={record.id} className="hover:bg-white bg-zinc-900/[0.02] transition-colors group">
+ <tr key={record.id} className="hover:bg-zinc-800/50 bg-zinc-900/[0.02] transition-colors group">
  <td className="py-4.5 px-6 font-black text-white text-sm">{record.name}</td>
  <td className="py-4.5 px-6 text-sm text-gray-400 font-bold">
  {record.role ==="01" ?"ADMIN" : record.role ==="02" ?"QL CÔNG VIỆC" : record.role ==="03" ?"QL NHÂN SỰ" :"NHÂN VIÊN"}

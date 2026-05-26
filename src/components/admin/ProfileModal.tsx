@@ -157,7 +157,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  <span className="h-6 w-1.5 rounded-full bg-gold shadow-[0_0_10px_#d4af37]" />
  Hồ sơ cá nhân
  </h2>
- <button onClick={onClose} className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-white bg-zinc-900/5 hover:text-white">
+ <button onClick={onClose} className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-zinc-800/50 bg-zinc-900/5 hover:text-white">
  <X size={24} />
  </button>
  </div>
@@ -259,7 +259,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  </div>
 
  {/* Footer */}
- <div className="flex items-center justify-end gap-4 border-t border-white/0 bg-zinc-900/[0.01] px-8 py-6">
+ <div className="flex items-center justify-end gap-4 border-t border-white/0 bg-zinc-950/20 px-8 py-6">
  <button onClick={onClose} className="px-8 py-3 text-sm font-black text-gray-500 uppercase tracking-widest hover:text-white transition-colors rounded-xl border border-gray-600">Hủy bỏ</button>
  <button 
  onClick={handleSave} disabled={isSaving}

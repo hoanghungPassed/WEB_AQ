@@ -363,7 +363,7 @@ export default function BatchesManagementPage() {
  setBatchToDelete(null);
  setShowDeleteConfirm(false);
  }} 
- className="flex-1 h-12 rounded-xl border border-white/0 text-white font-bold uppercase text-sm tracking-widest hover:bg-white bg-zinc-900/5 transition-all"
+ className="flex-1 h-12 rounded-xl border border-white/0 text-white font-bold uppercase text-sm tracking-widest hover:bg-zinc-800/50 bg-zinc-900/5 transition-all"
  >
  Hủy bỏ
  </button>
@@ -603,7 +603,7 @@ export default function BatchesManagementPage() {
  setSelectedBatchForDetail(null);
  setDetailSearchTerm("");
  }}
- className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-white bg-zinc-900/5 text-gray-500 hover:text-white transition-all"
+ className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-zinc-800/50 bg-zinc-900/5 text-gray-500 hover:text-white transition-all"
  >
  <X size={20} />
  </button>
@@ -637,7 +637,7 @@ export default function BatchesManagementPage() {
  setTimeout(() => setDetailCopyToast(""), 2000);
  };
  return (
- <tr key={mail._id || mail.id || idx} className="hover:bg-white bg-zinc-900/[0.02] transition-colors">
+ <tr key={mail._id || mail.id || idx} className="hover:bg-zinc-800/50 bg-zinc-900/[0.02] transition-colors">
  <td className="py-3 px-4 text-gray-500 font-bold">{idx + 1}</td>
  <td className="py-3 px-4 font-bold text-white cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.email,"Email")}>{mail.email}</td>
  <td className="py-3 px-4 text-gray-400 cursor-pointer hover:text-gold transition-colors" onClick={() => copyToClipboard(mail.recovery ||"","Mail KP")}>{mail.recovery ||"---"}</td>
@@ -695,7 +695,7 @@ export default function BatchesManagementPage() {
  initial={{ opacity: 0 }}
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
- className="fixed inset-0 z-[170] bg-white/95 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+ className="fixed inset-0 z-[170] bg-zinc-950/80 backdrop-blur-sm flex items-center justify-center p-4"
  >
  <motion.div
  initial={{ scale: 0.95, opacity: 0 }}

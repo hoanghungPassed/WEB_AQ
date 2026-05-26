@@ -1347,7 +1347,7 @@ export default function StaffManagementPage() {
       statusColor = "text-green-500/80";
       statusIcon = <CheckCircle2 size={18} className="text-green-500 group-hover/day:scale-110 transition-transform" />;
     } else if (day.status === "NOT_STARTED") {
-      statusText = "Chưa đi làm";
+      statusText = "Chưa làm việc";
       statusColor = "text-zinc-500";
       statusIcon = <Minus size={18} className="text-zinc-500 group-hover/day:scale-110 transition-transform" />;
       if (!isToday) borderStyle = "bg-white/5 border-white/0 opacity-55";
@@ -1407,11 +1407,11 @@ export default function StaffManagementPage() {
  {/* Daily Work Log Modal */}
  <AnimatePresence>
  {activeDetailDay && (
- <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
  <motion.div 
  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
  onClick={() => setActiveDetailDay(null)}
- className="absolute inset-0 bg-white/95 bg-black/90 backdrop-blur-md"
+ className="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm"
  />
  <motion.div 
  initial={{ scale: 0.95, opacity: 0, y: 20 }}

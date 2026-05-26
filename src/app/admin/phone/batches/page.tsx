@@ -610,7 +610,7 @@ export default function PhoneBatchesPage() {
  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
  activeTab === tab.key
  ?"bg-gold text-sidebar shadow-lg shadow-gold/20"
- :"text-gray-500 hover:text-white hover:bg-white bg-zinc-900/5"
+ :"text-gray-500 hover:text-white hover:bg-zinc-800/50 bg-zinc-900/5"
  }`}
  >
  {tab.icon} {tab.label}
@@ -685,7 +685,7 @@ export default function PhoneBatchesPage() {
  </thead>
  <tbody className="divide-y divide-white/5 text-gray-300">
  {(filteredWarehouse || []).map((p, idx) => (
- <tr key={p.id} className="hover:bg-white bg-zinc-900/[0.01]">
+ <tr key={p.id} className="hover:bg-zinc-800/50">
  <td className="py-3 px-4 text-gray-500 font-bold">{idx + 1}</td>
  <td className="py-3 px-4 font-bold text-white font-mono text-base">{p.number}</td>
  <td className="py-3 px-4 text-gray-400 font-mono text-[10px] max-w-[280px] truncate">
@@ -778,7 +778,7 @@ export default function PhoneBatchesPage() {
  </thead>
  <tbody className="divide-y divide-white/5 text-gray-300">
  {bPhones.map((p, idx) => (
- <tr key={p.id} className="hover:bg-zinc-900/[0.01]">
+ <tr key={p.id} className="hover:bg-zinc-800/50">
  <td className="py-2 px-4 text-gray-500 font-bold">{idx + 1}</td>
  <td className="py-2 px-4 font-bold text-white font-mono text-base">{p.number}</td>
  <td className="py-2 px-4 text-gray-400 font-mono text-[10px] max-w-[280px] truncate">
@@ -866,7 +866,7 @@ export default function PhoneBatchesPage() {
  className={`w-full text-left p-6 rounded-2xl border transition-all group ${
  isSelected
  ?"bg-gold/5 border-white/0 shadow-lg shadow-gold/5"
- :" bg-zinc-900/[0.01] border-white/0 hover:border-gray-300 hover:border-white/0 hover:bg-white bg-zinc-900/[0.02]"
+ :" border-white/0 hover:border-white/0 hover:bg-zinc-800/50 bg-zinc-900/[0.02]"
  }`}
  >
  <div className="flex items-center justify-between">
@@ -1003,7 +1003,7 @@ export default function PhoneBatchesPage() {
  {(empPhones || []).map((p, idx) => (
  <tr
  key={p.id}
- className={`hover:bg-white bg-zinc-900/[0.01] transition-colors ${
+ className={`hover:bg-zinc-800/50 transition-colors ${
  p.status ==="Lỗi"
  ?"bg-red-500/[0.03]"
  : p.status ==="XM lần 2"

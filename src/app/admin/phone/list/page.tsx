@@ -258,7 +258,7 @@ export default function EmployeePhoneListPage() {
  </thead>
  <tbody className="divide-y divide-white/5 text-gray-300">
  {(filteredPhones || []).map((p, idx) => (
- <tr key={p.id} className="hover:bg-white bg-zinc-900/[0.01] transition-colors">
+ <tr key={p.id} className="hover:bg-zinc-800/50 transition-colors">
  <td className="py-4 px-6 text-gray-500 font-bold">{idx + 1}</td>
  <td className="py-4 px-6 font-bold text-white font-mono text-base tracking-wide">{p.number}</td>
  <td className="py-4 px-6 text-gray-400 font-mono text-[10px] max-w-[240px] truncate">

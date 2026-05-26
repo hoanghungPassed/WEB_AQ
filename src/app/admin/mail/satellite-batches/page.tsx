@@ -703,7 +703,7 @@ export default function SatelliteBatchesPage() {
  setSelectedStaff(staff);
  setSelectedStaffToAssign(staff.id);
  }}
- className="flex items-center justify-between p-6 rounded-2xl bg-zinc-900/[0.01] hover:bg-white bg-zinc-900/[0.03] border border-white/0 hover:border-white/0 transition-all cursor-pointer group px-4"
+ className="flex items-center justify-between p-6 rounded-2xl bg-zinc-900/[0.03] hover:bg-zinc-800/50 border border-white/0 hover:border-white/0 transition-all cursor-pointer group px-4"
  >
  {/* Column 1: Info */}
  <div className="w-1/3 flex items-center gap-3">
@@ -935,7 +935,7 @@ export default function SatelliteBatchesPage() {
  setSelectedBatch(null);
  setSelectedChunkId("");
  }}
- className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-white bg-zinc-900/5 text-gray-500 hover:text-white transition-all border border-white/0"
+ className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-zinc-800/50 bg-zinc-900/5 text-gray-500 hover:text-white transition-all border border-white/0"
  >
  <X size={20} />
  </button>
@@ -1088,7 +1088,7 @@ export default function SatelliteBatchesPage() {
  initial={{ opacity: 0 }} 
  animate={{ opacity: 1 }} 
  exit={{ opacity: 0 }} 
- className="fixed inset-0 z-[200] bg-white/95 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+ className="fixed inset-0 z-[200] bg-zinc-950/80 backdrop-blur-sm flex items-center justify-center p-4"
  >
  <motion.div 
  initial={{ scale: 0.95, opacity: 0 }} 

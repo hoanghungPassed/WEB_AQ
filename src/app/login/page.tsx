@@ -58,6 +58,10 @@ function LoginForm() {
  if (msg ==="pending") {
  setMessage("Đăng ký thành công! Vui lòng chờ Admin phê duyệt tài khoản.");
  }
+ const err = searchParams.get("error");
+ if (err ==="system_closed") {
+ setError("Hệ thống đã đóng cửa làm việc. Vui lòng quay lại sau!");
+ }
  }, [searchParams]);
 
  const handleLogin = async (e: React.FormEvent) => {

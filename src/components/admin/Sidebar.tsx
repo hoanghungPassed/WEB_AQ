@@ -197,7 +197,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
     <motion.aside 
       initial={false}
       animate={{ width: isCollapsed ? (windowWidth && windowWidth < 640 ? 0 : 80) : 280 }}
-      className="fixed left-0 top-0 z-40 h-screen border-r border-white/0 bg-[#18181b] text-zinc-100 flex flex-col shadow-xl"
+      className="fixed left-0 top-0 z-50 h-screen border-r border-white/0 bg-[#18181b] text-zinc-100 flex flex-col shadow-xl"
     >
       {/* Logo */}
       <div className={cn("flex h-20 items-center transition-all duration-300",
@@ -227,7 +227,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
               {hasSubItems ? (
                 <button
                   onClick={() => toggleMenu(item.title)}
-                  className={cn("group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold uppercase tracking-wider transition-all hover:bg-zinc-800/40",
+                  className={cn("group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold uppercase tracking-wider transition-all hover:bg-zinc-800/50 hover:text-zinc-300",
                     (isOpen || isActive) && !isCollapsed ? "text-[#a07800] bg-zinc-800/30" : "text-zinc-400"
                   )}
                 >
@@ -246,7 +246,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
               ) : (
                 <Link
                   href={item.href || "#"}
-                  className={cn("group flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold uppercase tracking-wider transition-all hover:bg-zinc-800/40",
+                  className={cn("group flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold uppercase tracking-wider transition-all hover:bg-zinc-800/50 hover:text-zinc-300",
                     pathname === item.href ? "bg-zinc-800 text-[#a07800] border-l-2 border-[#a07800] rounded-l-none" : "text-zinc-400"
                   )}
                 >
@@ -279,7 +279,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
                             href={sub.href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block rounded-lg px-3 py-2 text-[10px] font-semibold uppercase tracking-wider transition-all text-zinc-500 hover:text-[#a07800] hover:bg-zinc-800/30 flex items-center"
+                            className="block rounded-lg px-3 py-2 text-[10px] font-semibold uppercase tracking-wider transition-all text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 hover:text-zinc-300 flex items-center"
                           >
                             {subContent}
                           </a>
@@ -289,7 +289,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
                         <Link
                           key={sub.title} 
                           href={sub.href}
-                          className={cn("block rounded-lg px-3 py-2 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:text-[#a07800]",
+                          className={cn("block rounded-lg px-3 py-2 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:text-zinc-300",
                             pathname === sub.href ? "text-[#a07800] bg-zinc-800/30 font-bold" : "text-zinc-500"
                           )}
                         >
@@ -307,7 +307,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
 
       {/* User Profile at bottom */}
       <div className="border-t border-white/0 p-3 bg-zinc-900/[0.05] space-y-2">
-        <div className={cn("flex items-center justify-between rounded-2xl p-2 transition-colors hover:bg-zinc-800/40 group",
+        <div className={cn("flex items-center justify-between rounded-2xl p-2 transition-colors hover:bg-zinc-800/50 hover:text-zinc-300 group",
           isCollapsed && "flex-col gap-3"
         )}>
           <div className="flex items-center gap-3 overflow-hidden">

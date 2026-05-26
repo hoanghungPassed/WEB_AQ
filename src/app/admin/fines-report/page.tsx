@@ -414,7 +414,7 @@ export default function FinesReportPage() {
  initial={{ opacity: 0, y: 10 }}
  animate={{ opacity: 1, y: 0 }}
  transition={{ delay: idx * 0.05 }}
- className="border-b border-white/0 hover:bg-white bg-zinc-900/[0.03] transition-colors"
+ className="border-b border-white/0 hover:bg-zinc-800/50 bg-zinc-900/[0.03] transition-colors"
  >
  <td className="px-6 py-4">
  <div className="flex items-center gap-3">

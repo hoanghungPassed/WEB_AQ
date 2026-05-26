@@ -1991,7 +1991,7 @@ export default function AdminDashboard() {
  { day:"Thứ Ba", name:"Trần Thị B", area:"Khu vực Pantry", status:"Chờ thực hiện" },
  { day:"Thứ Tư", name:"Lê Văn C", area:"Phòng họp lớn", status:"Chờ thực hiện" },
  ].map((row, i) => (
- <tr key={`schedule-${i}`} className="group hover:bg-white bg-zinc-900/[0.02]">
+ <tr key={`schedule-${i}`} className="group hover:bg-zinc-800/50 bg-zinc-900/[0.02]">
  <td className="py-4 px-2 text-base font-bold text-white">{row.day}</td>
  <td className="py-4 px-2 text-base font-medium text-gray-400">{row.name}</td>
  <td className="py-4 px-2 text-base text-gray-500">{row.area}</td>
@@ -2165,7 +2165,7 @@ export default function AdminDashboard() {
  initial={{ opacity: 0 }} 
  animate={{ opacity: 1 }} 
  exit={{ opacity: 0 }} 
- className="fixed inset-0 z-[400] bg-white/95 bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4"
+ className="fixed inset-0 z-[400] bg-zinc-950/80 backdrop-blur-sm flex items-center justify-center p-4"
  >
  <motion.div 
  initial={{ scale: 0.95, y: 20 }} 
@@ -2244,7 +2244,7 @@ export default function AdminDashboard() {
  </thead>
  <tbody className="divide-y divide-white/5 text-gray-300">
  {(channelsInBatch || []).map((row: any, idx: number) => (
- <tr key={`${row.mailId}-${row.chIdx}-${idx}`} className="hover:bg-white bg-zinc-900/[0.02] transition-colors group">
+ <tr key={`${row.mailId}-${row.chIdx}-${idx}`} className="hover:bg-zinc-800/50 bg-zinc-900/[0.02] transition-colors group">
  <td className="py-3 px-6 text-[10px] font-black text-gray-500">{row.stt}</td>
  <td className="py-3 px-6 text-sm text-white font-bold">{row.mailEmail}</td>
  <td className="py-3 px-6 font-bold text-gold uppercase tracking-tighter text-[10px]">

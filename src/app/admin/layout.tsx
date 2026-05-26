@@ -753,6 +753,50 @@ export default function AdminLayout({
  return () => clearInterval(checkUnlockInterval);
  }, [isLate, user]);
 
+  // Auto kick out when system is closed (Closing time check)
+  useEffect(() => {
+    if (!user) return;
+    
+    const checkSystemClosed = () => {
+      // Do not kick admin (role "01", "02" or ADMIN)
+      const roleStr = String(user.role || "").toUpperCase();
+      const isAdmin = roleStr === "01" || roleStr === "02" || roleStr === "ADMIN";
+      if (isAdmin) return;
+
+      // Get system closed time from global work config
+      let endTimeStr = "18:00";
+      const savedWorkConfigStr = localStorage.getItem("global_work_config");
+      if (savedWorkConfigStr) {
+        try {
+          const wc = JSON.parse(savedWorkConfigStr);
+          if (wc.endTime) endTimeStr = wc.endTime;
+        } catch (e) {}
+      }
+
+      const [h, m] = endTimeStr.split(":");
+      const closeTimeMins = parseInt(h) * 60 + parseInt(m);
+
+      const now = new Date();
+      const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+
+      if (currentTotalMinutes >= closeTimeMins) {
+        // Kick out
+        fetch("/api/auth/logout", { method: "POST" })
+          .finally(() => {
+            if (typeof window !== "undefined") {
+              sessionStorage.clear();
+              localStorage.removeItem("user");
+              window.location.href = "/login?error=system_closed";
+            }
+          });
+      }
+    };
+
+    checkSystemClosed();
+    const interval = setInterval(checkSystemClosed, 10000); // Check every 10s
+    return () => clearInterval(interval);
+  }, [user]);
+
  // Synchronize global_users with the real MongoDB database to eliminate mock users
   useEffect(() => {
     if (!user) return;

@@ -166,7 +166,7 @@ function MailTableContent() {
  </thead>
  <tbody className="divide-y divide-border-custom">
  {(currentItems || []).map((mail, idx) => (
- <tr key={mail.id} className="hover:bg-white bg-zinc-900/[0.03] transition-colors group animate-fade-in">
+ <tr key={mail.id} className="hover:bg-zinc-800/50 bg-zinc-900/[0.03] transition-colors group animate-fade-in">
  <td className="px-2 py-2 text-[10px] font-bold border-r border-white/0 text-center whitespace-nowrap">
  {startIndex + idx + 1}
  </td>

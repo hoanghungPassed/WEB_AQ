@@ -596,54 +596,99 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  };
 
  const handleConfirmBatchImport = async () => {
- if (!pendingMails || (pendingMails || []).length === 0) return;
- const batchNameInput = importBatchName.trim() || `Lô ngày ${new Date().toLocaleDateString("vi-VN")}`;
- const batchId = `batch-${Date.now()}`;
+    if (!pendingMails || (pendingMails || []).length === 0) return;
+    const baseBatchName = importBatchName.trim() || `Lô ngày ${new Date().toLocaleDateString("vi-VN")}`;
+    
+    // Check if we are importing SATELLITE mails
+    const isSatellite = pendingMails.some(m => m.type === "SATELLITE");
+    
+    let mappedMails: MailData[] = [];
+    
+    if (isSatellite) {
+      // Split into chunks of 17
+      const chunkSize = 17;
+      
+      // Parse starting number if any (e.g. "Lô 5" -> prefix "Lô ", startNum 5)
+      const numberMatch = baseBatchName.match(/(.*?)(\d+)$/);
+      let prefix = baseBatchName;
+      let startNum = 1;
+      let hasNumber = false;
+      
+      if (numberMatch) {
+        prefix = numberMatch[1];
+        startNum = parseInt(numberMatch[2], 10);
+        hasNumber = true;
+      }
+      
+      const totalMails = pendingMails.length;
+      for (let i = 0; i < totalMails; i += chunkSize) {
+        const chunkIndex = Math.floor(i / chunkSize);
+        let chunkBatchName = baseBatchName;
+        if (hasNumber) {
+          chunkBatchName = `${prefix}${startNum + chunkIndex}`;
+        } else {
+          if (totalMails > chunkSize) {
+            chunkBatchName = `${baseBatchName} - Phần ${chunkIndex + 1}`;
+          }
+        }
+        
+        const chunkBatchId = `batch-${Date.now()}-${chunkIndex}`;
+        const chunk = pendingMails.slice(i, i + chunkSize);
+        
+        chunk.forEach((m) => {
+          mappedMails.push({
+            ...m,
+            batchId: chunkBatchId,
+            batchName: chunkBatchName
+          });
+        });
+      }
+    } else {
+      // Non-satellite mails keep their original single batch logic
+      const batchId = `batch-${Date.now()}`;
+      mappedMails = (pendingMails || []).map(m => ({
+        ...m,
+        batchId,
+        batchName: baseBatchName
+      }));
+    }
 
- const mappedMails = (pendingMails || []).map(m => ({
- ...m,
- batchId,
- batchName: batchNameInput
- }));
+    try {
+      triggerToast(`Đang lưu ${(mappedMails || []).length} mail vào Server...`);
+      // 1. Send all new mails to the database
+      const res = await fetch("/api/admin/mails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mappedMails)
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Lỗi lưu dữ liệu");
+      }
+      
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || "Lỗi lưu dữ liệu");
+      }
 
+      setPendingMails(null);
+      setImportBatchName("");
+      setShowBatchNameModal(false);
+      triggerToast(`Đã lưu thành công ${(mappedMails || []).length} mail!`);
 
-
- try {
- triggerToast(`Đang lưu ${(mappedMails || []).length} mail vào Lô"${batchNameInput}" trên Server...`);
- // 1. Send all new mails to the database
- const res = await fetch("/api/admin/mails", {
- method:"POST",
- headers: {"Content-Type":"application/json" },
- body: JSON.stringify(mappedMails)
- });
- 
- if (!res.ok) {
- const errorData = await res.json();
- throw new Error(errorData.error ||"Lỗi lưu dữ liệu");
- }
- 
- const data = await res.json();
- if (!data.success) {
- throw new Error(data.error ||"Lỗi lưu dữ liệu");
- }
-
- setPendingMails(null);
- setImportBatchName("");
- setShowBatchNameModal(false);
- triggerToast(`Đã lưu thành công ${(mappedMails || []).length} mail vào Lô"${batchNameInput}"!`);
-
- // TRIGGER RELOAD AFTER POST COMPLETE
- window.dispatchEvent(new Event("storage"));
- } catch (err: unknown) {
- console.error("Lỗi khi gọi API POST mails:", err);
- // Giữ nguyên modal (không gọi setShowBatchNameModal(false))
- if (err instanceof Error) {
- triggerToast(`Lỗi kết nối Server: ${err.message}`);
- } else {
- triggerToast(`Lỗi kết nối Server: Không thể lưu mail!`);
- }
- }
- };
+      // TRIGGER RELOAD AFTER POST COMPLETE
+      window.dispatchEvent(new Event("storage"));
+    } catch (err: unknown) {
+      console.error("Lỗi khi gọi API POST mails:", err);
+      // Giữ nguyên modal (không gọi setShowBatchNameModal(false))
+      if (err instanceof Error) {
+        triggerToast(`Lỗi kết nối Server: ${err.message}`);
+      } else {
+        triggerToast(`Lỗi kết nối Server: Không thể lưu mail!`);
+      }
+    }
+  };
 
  const handleExport = () => {
   const data = (filteredMails || []).map((m, i) => ({
@@ -1153,8 +1198,10 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  const rowPadding = isStaff ?"py-1.5 px-6" :"py-3.5 px-6";
  const textSize = isStaff ?"text-sm" :"text-base";
  return (
- <tr key={mail._id || mail.id || index} className="hover:bg-white bg-zinc-900/[0.02] transition-colors group">
- <td className={`${rowPadding} text-[10px] font-black text-gray-500 whitespace-nowrap`}>{mail.stt || mail.originalSTT}</td>
+ <tr key={mail._id || mail.id || index} className="hover:bg-zinc-800/50 bg-zinc-900/[0.02] transition-colors group">
+  <td className={`${rowPadding} text-[10px] font-black text-gray-500 whitespace-nowrap`}>
+    {type === "SATELLITE" ? (currentPage - 1) * itemsPerPage + index + 1 : (mail.stt || mail.originalSTT)}
+  </td>
  <td className={`${rowPadding} cursor-pointer hover:text-gold transition-colors font-bold ${textSize} whitespace-nowrap`} onClick={() => copyToClipboard(mail.email,"Email")}>
  {mail.type ==="SATELLITE" && (() => {
  const linksCount = (mail.links || []).filter((l: string) => typeof l === 'string' && l.trim() !=="").length;
