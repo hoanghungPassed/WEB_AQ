@@ -3,6 +3,10 @@ import dbConnect from"@/lib/mongodb";
 import { User } from"@/models/User";
 import { logAction } from"@/lib/logger";
 
+export async function GET(req: Request) {
+  return POST(req);
+}
+
 export async function POST(req: Request) {
  try {
  await dbConnect();

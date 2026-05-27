@@ -1,7 +1,11 @@
-import { NextRequest, NextResponse } from"next/server";
-import dbConnect from"@/lib/mongodb";
-import User from"@/models/User";
-import { hashPassword } from"@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+import dbConnect from "@/lib/mongodb";
+import User from "@/models/User";
+import { hashPassword } from "@/lib/auth";
+import { Task } from "@/models/Task";
+import { SatelliteMail } from "@/models/SatelliteMail";
+import { RootMail } from "@/models/RootMail";
+import { MonetizedMail } from "@/models/MonetizedMail";
 
 // Cập nhật thông tin nhân sự
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -77,9 +81,24 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
  return NextResponse.json({ error:"Không thể tự xóa tài khoản của chính mình" }, { status: 400 });
  }
 
- const deletedUser = await User.findByIdAndDelete(id);
- 
- if (!deletedUser) {
+  // 6. BẢO TOÀN DỮ LIỆU KHI XÓA USER: Thu hồi toàn bộ Tasks và Mails về kho chung
+  // Update Tasks assigned to this user
+  await Task.updateMany(
+    { assigneeId: id },
+    { $set: { assigneeId: null, assigneeName: null, assignee: null } }
+  );
+
+  // Update Mails (Satellite, Root, Monetized) assigned to this user
+  const mailQuery = { $or: [{ assignee: id }, { assigneeId: String(id) }] };
+  const mailUpdate = { $set: { assignee: null, assigneeId: null, assignedTo: null } };
+
+  await SatelliteMail.updateMany(mailQuery, mailUpdate);
+  await RootMail.updateMany(mailQuery, mailUpdate);
+  await MonetizedMail.updateMany(mailQuery, mailUpdate);
+
+  const deletedUser = await User.findByIdAndDelete(id);
+  
+  if (!deletedUser) {
  return NextResponse.json({ error:"Không tìm thấy nhân viên" }, { status: 404 });
  }
 

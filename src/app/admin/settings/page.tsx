@@ -243,49 +243,77 @@ export default function SettingsPage() {
  window.location.href ="/login";
  }
 
- const loadSettings = () => {
- const savedSettings = localStorage.getItem("global_system_settings");
- if (savedSettings) {
- const parsed = JSON.parse(savedSettings);
- setAgencyName(parsed.agencyName ||"AQ MEDIA");
- setKpiTargetMails(parsed.kpiTargetMails || 500);
- setKpiTargetWatchHours(parsed.kpiTargetWatchHours || 2000);
- setChunkSize(parsed.chunkSize || 17);
- setApiSyncEndpoint(parsed.apiSyncEndpoint ||"/api/sync");
- }
+ const loadSettings = async () => {
+    try {
+      const res = await fetch("/api/admin/settings");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.data) {
+          const dbSettings = data.data;
+          setAgencyName(dbSettings.brandName || "AQ MEDIA");
+          setAgencyConfigName(dbSettings.brandName || "AQ MEDIA");
+          setWorkStartTime(dbSettings.openTime || "08:00");
+          setWorkEndTime(dbSettings.closeTime || "18:00");
+          setSystemCloseTime(dbSettings.checkInTime || "17:30");
 
- // Load Bank Config
- const savedBankConfig = localStorage.getItem("global_bank_config");
- if (savedBankConfig) {
- const bankConfig = JSON.parse(savedBankConfig);
- setBankAccountNumber(bankConfig.accountNumber ||"");
- setBankName(bankConfig.bankName ||"MB");
- setBankAccountHolder(bankConfig.accountHolder ||"");
- setBankQRCode(bankConfig.qrCode ||"");
- setBankQrImageUrl(bankConfig.qrImageUrl ||"");
- }
+          // Sync work config
+          const workConfig = {
+            startTime: dbSettings.openTime || "08:00",
+            endTime: dbSettings.closeTime || "18:00",
+            systemCloseTime: dbSettings.checkInTime || "17:30"
+          };
+          localStorage.setItem("global_work_config", JSON.stringify(workConfig));
 
- // Load Work Config
- const savedWorkConfig = localStorage.getItem("global_work_config");
- if (savedWorkConfig) {
- const workConfig = JSON.parse(savedWorkConfig);
- setWorkStartTime(workConfig.startTime ||"08:00");
- setWorkEndTime(workConfig.endTime ||"18:00");
- setSystemCloseTime(workConfig.systemCloseTime ||"17:30");
- setFineTier1(workConfig.fineTier1 ?? 10000);
- setFineTier2(workConfig.fineTier2 ?? 20000);
- setFineTier3(workConfig.fineTier3 ?? 50000);
- }
+          // Set time cookie
+          document.cookie = `close_time=${dbSettings.closeTime || "18:00"}; path=/; max-age=31536000`;
+        }
+      }
+    } catch (err) {
+      console.error("API settings load failed, using local storage", err);
+    }
 
- // Load Agency Config
- const savedAgencyConfig = localStorage.getItem("global_agency_config");
- if (savedAgencyConfig) {
- const agencyConfig = JSON.parse(savedAgencyConfig);
- setAgencyConfigName(agencyConfig.name ||"AQ MEDIA");
- }
- };
+    const savedSettings = localStorage.getItem("global_system_settings");
+    if (savedSettings) {
+      const parsed = JSON.parse(savedSettings);
+      setAgencyName(parsed.agencyName ||"AQ MEDIA");
+      setKpiTargetMails(parsed.kpiTargetMails || 500);
+      setKpiTargetWatchHours(parsed.kpiTargetWatchHours || 2000);
+      setChunkSize(parsed.chunkSize || 17);
+      setApiSyncEndpoint(parsed.apiSyncEndpoint ||"/api/sync");
+    }
 
- loadSettings();
+    // Load Bank Config
+    const savedBankConfig = localStorage.getItem("global_bank_config");
+    if (savedBankConfig) {
+      const bankConfig = JSON.parse(savedBankConfig);
+      setBankAccountNumber(bankConfig.accountNumber ||"");
+      setBankName(bankConfig.bankName ||"MB");
+      setBankAccountHolder(bankConfig.accountHolder ||"");
+      setBankQRCode(bankConfig.qrCode ||"");
+      setBankQrImageUrl(bankConfig.qrImageUrl ||"");
+    }
+
+    // Load Work Config
+    const savedWorkConfig = localStorage.getItem("global_work_config");
+    if (savedWorkConfig) {
+      const workConfig = JSON.parse(savedWorkConfig);
+      setWorkStartTime(workConfig.startTime ||"08:00");
+      setWorkEndTime(workConfig.endTime ||"18:00");
+      setSystemCloseTime(workConfig.systemCloseTime ||"17:30");
+      setFineTier1(workConfig.fineTier1 ?? 10000);
+      setFineTier2(workConfig.fineTier2 ?? 20000);
+      setFineTier3(workConfig.fineTier3 ?? 50000);
+    }
+
+    // Load Agency Config
+    const savedAgencyConfig = localStorage.getItem("global_agency_config");
+    if (savedAgencyConfig) {
+      const agencyConfig = JSON.parse(savedAgencyConfig);
+      setAgencyConfigName(agencyConfig.name ||"AQ MEDIA");
+    }
+  };
+
+  loadSettings();
  }, []);
 
  const triggerToast = (msg: string) => {
@@ -351,19 +379,30 @@ export default function SettingsPage() {
  };
  localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
 
+ // Sync to database
+ try {
+    await fetch("/api/admin/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ brandName: agencyName })
+    });
+  } catch (err) {
+    console.error("PUT general settings sync error:", err);
+  }
+
  // Sync state
  try {
- await fetch("/api/sync", {
- method:"POST",
- headers: {"Content-Type":"application/json" },
- body: JSON.stringify({
- global_system_settings: JSON.stringify(newSettings),
- global_kpi_data: localStorage.getItem("global_kpi_data")
- })
- });
- } catch (e) {
- console.error("Sync settings error:", e);
- }
+  await fetch("/api/sync", {
+  method:"POST",
+  headers: {"Content-Type":"application/json" },
+  body: JSON.stringify({
+  global_system_settings: JSON.stringify(newSettings),
+  global_kpi_data: localStorage.getItem("global_kpi_data")
+  })
+  });
+  } catch (e) {
+  console.error("Sync settings error:", e);
+  }
 
  triggerToast("Đã lưu và đồng bộ cài đặt hệ thống thành công!");
  };
@@ -533,63 +572,93 @@ export default function SettingsPage() {
  };
 
  // SAVE WORK CONFIG
- const handleSaveWorkConfig = () => {
- const workConfig = {
- startTime: workStartTime,
- endTime: workEndTime,
- systemCloseTime: systemCloseTime,
- fineTier1: Number(fineTier1),
- fineTier2: Number(fineTier2),
- fineTier3: Number(fineTier3),
- updatedAt: new Date().toLocaleString("vi-VN"),
- };
- localStorage.setItem("global_work_config", JSON.stringify(workConfig));
- window.dispatchEvent(new Event("storage"));
- triggerToast("Đã lưu cấu hình giờ giấc & phạt thành công!");
+ const handleSaveWorkConfig = async () => {
+  const workConfig = {
+  startTime: workStartTime,
+  endTime: workEndTime,
+  systemCloseTime: systemCloseTime,
+  fineTier1: Number(fineTier1),
+  fineTier2: Number(fineTier2),
+  fineTier3: Number(fineTier3),
+  updatedAt: new Date().toLocaleString("vi-VN"),
+  };
+  localStorage.setItem("global_work_config", JSON.stringify(workConfig));
+  window.dispatchEvent(new Event("storage"));
 
- // Add activity log
- const existingLogs = localStorage.getItem("global_system_logs");
- const logsList = existingLogs ? JSON.parse(existingLogs) : [];
- const newLog = {
- id: `log-${Date.now()}`,
- user: user?.name ||"Admin",
- role: user?.role ==="01" ?"ADMIN" :"QL CÔNG VIỆC",
- action:"Cập nhật cấu hình giờ giấc làm việc & mức phạt",
- type:"INFO",
- timestamp: new Date().toLocaleString("vi-VN"),
- };
- localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
- };
+  // Set close time cookie for middleware time check
+  document.cookie = `close_time=${workEndTime}; path=/; max-age=31536000`;
 
- // SAVE AGENCY CONFIG
- const handleSaveAgencyConfig = () => {
- const agencyConfig = {
- name: agencyConfigName,
- updatedAt: new Date().toLocaleString("vi-VN"),
- };
- localStorage.setItem("global_agency_config", JSON.stringify(agencyConfig));
+  // Sync to database
+  try {
+    await fetch("/api/admin/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        openTime: workStartTime,
+        closeTime: workEndTime,
+        checkInTime: systemCloseTime
+      })
+    });
+  } catch (err) {
+    console.error("PUT work settings sync error:", err);
+  }
 
- // Dispatch storage event so Header/Sidebar can pick up the change
- window.dispatchEvent(new StorageEvent("storage", {
- key:"global_agency_config",
- newValue: JSON.stringify(agencyConfig),
- }));
+  triggerToast("Đã lưu cấu hình giờ giấc & phạt thành công!");
 
- triggerToast("Đã lưu tên Agency thành công!");
+  // Add activity log
+  const existingLogs = localStorage.getItem("global_system_logs");
+  const logsList = existingLogs ? JSON.parse(existingLogs) : [];
+  const newLog = {
+  id: `log-${Date.now()}`,
+  user: user?.name ||"Admin",
+  role: user?.role ==="01" ?"ADMIN" :"QL CÔNG VIỆC",
+  action:"Cập nhật cấu hình giờ giấc làm việc & mức phạt",
+  type:"INFO",
+  timestamp: new Date().toLocaleString("vi-VN"),
+  };
+  localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
+  };
 
- // Add activity log
- const existingLogs = localStorage.getItem("global_system_logs");
- const logsList = existingLogs ? JSON.parse(existingLogs) : [];
- const newLog = {
- id: `log-${Date.now()}`,
- user: user?.name ||"Admin",
- role: user?.role ==="01" ?"ADMIN" :"QL CÔNG VIỆC",
- action: `Đổi tên Agency thành"${agencyConfigName}"`,
- type:"INFO",
- timestamp: new Date().toLocaleString("vi-VN"),
- };
- localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
- };
+  // SAVE AGENCY CONFIG
+  const handleSaveAgencyConfig = async () => {
+    const agencyConfig = {
+      name: agencyConfigName,
+      updatedAt: new Date().toLocaleString("vi-VN"),
+    };
+    localStorage.setItem("global_agency_config", JSON.stringify(agencyConfig));
+
+    // Dispatch storage event so Header/Sidebar can pick up the change
+    window.dispatchEvent(new StorageEvent("storage", {
+      key: "global_agency_config",
+      newValue: JSON.stringify(agencyConfig),
+    }));
+
+    // Sync to database
+    try {
+      await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brandName: agencyConfigName })
+      });
+    } catch (err) {
+      console.error("PUT brand settings sync error:", err);
+    }
+
+    triggerToast("Đã lưu tên Agency thành công!");
+
+    // Add activity log
+    const existingLogs = localStorage.getItem("global_system_logs");
+    const logsList = existingLogs ? JSON.parse(existingLogs) : [];
+    const newLog = {
+      id: `log-${Date.now()}`,
+      user: user?.name || "Admin",
+      role: user?.role === "01" ? "ADMIN" : "QL CÔNG VIỆC",
+      action: `Đổi tên Agency thành "${agencyConfigName}"`,
+      type: "INFO",
+      timestamp: new Date().toLocaleString("vi-VN"),
+    };
+    localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
+  };
 
  // GENERATE QR CODE FOR BANK TRANSFER
  const generateQRCode = async (e: React.FormEvent) => {
