@@ -6,8 +6,9 @@ import Header from"@/components/admin/Header";
 import ProfileModal from"@/components/admin/ProfileModal";
 import AccessLock from"@/components/admin/modals/AccessLock";
 import { useRouter } from"next/navigation";
-import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle, Plus, FileText, Download, Paperclip, Phone, Minus, Copy, ExternalLink, ShieldAlert } from"lucide-react";
-import { motion, AnimatePresence } from"framer-motion";
+import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle, Plus, FileText, Download, Paperclip, Phone, Minus, Copy, ExternalLink, ShieldAlert } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useSWR } from "@/lib/useSWR";
 
 const lastSyncedCache: Record<string, string | null> = {};
 
@@ -753,6 +754,143 @@ export default function AdminLayout({
  return () => clearInterval(checkUnlockInterval);
  }, [isLate, user]);
 
+  const syncRealUsersFromDB = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/users");
+      if (res.ok) {
+        const data = await res.json();
+        const realUsers = data.users || data.data || [];
+        if (realUsers.length > 0) {
+          const formattedUsers = realUsers.map((u: any) => ({
+            id: u.id || u._id || String(u.username),
+            name: u.name,
+            username: u.username,
+            role: u.role,
+            isOnline: u.isOnline || false,
+            lastActive: u.lastActive,
+            avatar: u.avatar || "",
+            status: u.status || "ACTIVE"
+          }));
+          
+          localStorage.setItem("global_users", JSON.stringify(formattedUsers));
+          
+          // Push to SyncStore so all other tabs are synchronized in real-time
+          fetch("/api/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ global_users: JSON.stringify(formattedUsers) })
+          }).catch(err => console.error("Sync post users error:", err));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to sync real users from DB in layout:", err);
+    }
+  }, [user]);
+
+  const loadChatData = React.useCallback(() => {
+    const savedCompany = localStorage.getItem("global_company_chat");
+    let companyArr = [];
+    if (savedCompany) {
+      companyArr = JSON.parse(savedCompany);
+      if (companyArr.some((m: any) => m.id === "company_1715000000000")) {
+        companyArr = [];
+        localStorage.setItem("global_company_chat", "[]");
+      }
+      setCompanyMessages(companyArr);
+    } else {
+      localStorage.setItem("global_company_chat", "[]");
+      setCompanyMessages([]);
+      companyArr = [];
+    }
+
+    const savedPrivate = localStorage.getItem("global_private_messages");
+    let privateArr = [];
+    if (savedPrivate) {
+      privateArr = JSON.parse(savedPrivate);
+      setPrivateMessages(privateArr);
+    } else {
+      localStorage.setItem("global_private_messages", "[]");
+      setPrivateMessages([]);
+    }
+
+    if (user && (privateArr || []).length > 0) {
+      const senders = new Set<string>();
+      privateArr.forEach((msg: any) => {
+        if (msg.receiver === user?.username) {
+          senders.add(msg.sender);
+        }
+      });
+      senders.forEach((sender) => {
+        const key = `chat_last_received_time_${user?.username}_${sender}`;
+        const currentVal = localStorage.getItem(key);
+        if (!currentVal || Number(currentVal) < Date.now() - 5000) {
+          localStorage.setItem(key, Date.now().toString());
+        }
+      });
+    }
+
+    const savedUsers = localStorage.getItem("global_users");
+    if (savedUsers) {
+      const allUsers = JSON.parse(savedUsers);
+      setChatUsers((allUsers || []).filter((u: any) => u.username !== user?.username));
+    }
+
+    let unread = 0;
+    if (user) {
+      const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}`);
+      const lastReadTime = lastReadTimeStr ? parseInt(lastReadTimeStr) : 0;
+      (companyArr || []).forEach((msg: any) => {
+        if (msg.sender !== user?.username) {
+          const msgTime = msg.timestamp ? parseInt(msg.timestamp) : Date.now();
+          if (msgTime > lastReadTime) {
+            unread++;
+          }
+        }
+      });
+
+      const privateUnreadMap: Record<string, number> = {};
+      (privateArr || []).forEach((msg: any) => {
+        if (msg.receiver === user?.username) {
+          const senderReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}_${msg.sender}`);
+          const senderReadTime = senderReadTimeStr ? parseInt(senderReadTimeStr) : 0;
+          const msgTime = msg.timestamp ? parseInt(msg.timestamp) : Date.now();
+          if (msgTime > senderReadTime) {
+            unread++;
+            privateUnreadMap[msg.sender] = (privateUnreadMap[msg.sender] || 0) + 1;
+          }
+        }
+      });
+    }
+    setUnreadCount(unread);
+  }, [user]);
+
+  // 4. Realtime useSWR Polling for chat and active users (3s interval)
+  useSWR("sync_users_rlt", async () => {
+    if (user) await syncRealUsersFromDB();
+    return Date.now();
+  }, { refreshInterval: 3000 });
+
+  useSWR("sync_chat_rlt", async () => {
+    if (user) loadChatData();
+    return Date.now();
+  }, { refreshInterval: 3000 });
+
+  useEffect(() => {
+    if (!user) return;
+    loadChatData();
+
+    const handleChatStorage = (e: StorageEvent) => {
+      if (e.key === "global_company_chat" || e.key === "global_private_messages" || e.key === "global_users") {
+        loadChatData();
+      }
+    };
+
+    window.addEventListener("storage", handleChatStorage);
+    return () => {
+      window.removeEventListener("storage", handleChatStorage);
+    };
+  }, [user, loadChatData]);
+
   // Auto kick out when system is closed (Closing time check)
   useEffect(() => {
     if (!user) return;
@@ -797,47 +935,11 @@ export default function AdminLayout({
     return () => clearInterval(interval);
   }, [user]);
 
- // Synchronize global_users with the real MongoDB database to eliminate mock users
+  // Synchronize global_users with the real MongoDB database to eliminate mock users
   useEffect(() => {
     if (!user) return;
-    
-    const syncRealUsersFromDB = async () => {
-      try {
-        const res = await fetch("/api/admin/users");
-        if (res.ok) {
-          const data = await res.json();
-          const realUsers = data.users || data.data || [];
-          if (realUsers.length > 0) {
-            const formattedUsers = realUsers.map((u: any) => ({
-              id: u.id || u._id || String(u.username),
-              name: u.name,
-              username: u.username,
-              role: u.role,
-              isOnline: u.isOnline || false,
-              lastActive: u.lastActive,
-              avatar: u.avatar || "",
-              status: u.status || "ACTIVE"
-            }));
-            
-            localStorage.setItem("global_users", JSON.stringify(formattedUsers));
-            
-            // Push to SyncStore so all other tabs are synchronized in real-time
-            fetch("/api/sync", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ global_users: JSON.stringify(formattedUsers) })
-            }).catch(err => console.error("Sync post users error:", err));
-          }
-        }
-      } catch (err) {
-        console.error("Failed to sync real users from DB in layout:", err);
-      }
-    };
-
     syncRealUsersFromDB();
-    const syncInterval = setInterval(syncRealUsersFromDB, 10000);
-    return () => clearInterval(syncInterval);
-  }, [user]);
+  }, [user, syncRealUsersFromDB]);
 
  const formatLateMins = (mins: number) => {
  if (mins < 60) return `${mins} phút`;
@@ -887,108 +989,6 @@ export default function AdminLayout({
  });
  return count;
  };
-
- useEffect(() => {
- const loadChatData = () => {
- const savedCompany = localStorage.getItem("global_company_chat");
- let companyArr = [];
- if (savedCompany) {
- companyArr = JSON.parse(savedCompany);
- // Thanh lọc Mock Data nếu còn sót
- if (companyArr.some((m: any) => m.id ==="company_1715000000000")) {
- companyArr = [];
- localStorage.setItem("global_company_chat","[]");
- }
- setCompanyMessages(companyArr);
- } else {
- localStorage.setItem("global_company_chat","[]");
- setCompanyMessages([]);
- companyArr = [];
- }
-
- const savedPrivate = localStorage.getItem("global_private_messages");
- let privateArr = [];
- if (savedPrivate) {
- privateArr = JSON.parse(savedPrivate);
- setPrivateMessages(privateArr);
- } else {
- localStorage.setItem("global_private_messages","[]");
- setPrivateMessages([]);
- }
-
- // Track received timestamps for incoming messages
- if (user && (privateArr || []).length > 0) {
- const senders = new Set<string>();
- privateArr.forEach((msg: any) => {
- if (msg.receiver === user?.username) {
- senders.add(msg.sender);
- }
- });
- senders.forEach((sender) => {
- const key = `chat_last_received_time_${user?.username}_${sender}`;
- const currentVal = localStorage.getItem(key);
- if (!currentVal || Number(currentVal) < Date.now() - 5000) {
- localStorage.setItem(key, Date.now().toString());
- }
- });
- }
-
- const savedUsers = localStorage.getItem("global_users");
- if (savedUsers) {
- const allUsers = JSON.parse(savedUsers);
- if (user) {
- setChatUsers((allUsers || []).filter((u: any) => u.username !== user?.username));
- } else {
- setChatUsers(allUsers);
- }
- }
-
- // Calculate unread count
- let unread = 0;
- if (user) {
- const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}`);
- const lastReadTime = lastReadTimeStr ? Number(lastReadTimeStr) : 0;
-
- companyArr.forEach((msg: any) => {
- const isMe = msg.senderName === (user?.name || user?.username);
- const msgTime = Number(msg.id.split("_")[1]) || 0;
- if (!isMe && msgTime > 0 && msgTime > lastReadTime) {
- unread++;
- }
- });
-
- privateArr.forEach((msg: any) => {
- const isMe = msg.sender === user?.username;
- const isForMe = msg.receiver === user?.username;
- const msgTime = Number(msg.id.split("_")[1]) || 0;
- if (!isMe && isForMe && msgTime > 0) {
- const senderReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}_${msg.sender}`);
- const senderReadTime = senderReadTimeStr ? Number(senderReadTimeStr) : 0;
- if (msgTime > senderReadTime) {
- unread++;
- }
- }
- });
- }
- setUnreadCount(unread);
- };
-
- loadChatData();
-
- const handleChatStorage = (e: StorageEvent) => {
- if (e.key ==="global_company_chat" || e.key ==="global_private_messages" || e.key ==="global_users") {
- loadChatData();
- }
- };
-
- window.addEventListener("storage", handleChatStorage);
- const interval = setInterval(loadChatData, 2000);
-
- return () => {
- window.removeEventListener("storage", handleChatStorage);
- clearInterval(interval);
- };
- }, [user]);
 
  useEffect(() => {
  if (!user) return;

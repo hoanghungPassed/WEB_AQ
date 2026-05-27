@@ -84,13 +84,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   // 6. BẢO TOÀN DỮ LIỆU KHI XÓA USER: Thu hồi toàn bộ Tasks và Mails về kho chung
   // Update Tasks assigned to this user
   await Task.updateMany(
-    { assigneeId: id },
-    { $set: { assigneeId: null, assigneeName: null, assignee: null } }
+    { $or: [{ assigneeId: id }, { assignee: id }, { assignedTo: id }] },
+    { $set: { assigneeId: null, assigneeName: null, assignee: null, assignedTo: null, isAssigned: false } }
   );
 
   // Update Mails (Satellite, Root, Monetized) assigned to this user
-  const mailQuery = { $or: [{ assignee: id }, { assigneeId: String(id) }] };
-  const mailUpdate = { $set: { assignee: null, assigneeId: null, assignedTo: null } };
+  const mailQuery = { $or: [{ assignee: id }, { assigneeId: String(id) }, { assignedTo: id }] };
+  const mailUpdate = { $set: { assignee: null, assigneeId: null, assignedTo: null, isAssigned: false } };
 
   await SatelliteMail.updateMany(mailQuery, mailUpdate);
   await RootMail.updateMany(mailQuery, mailUpdate);
