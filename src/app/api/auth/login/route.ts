@@ -108,7 +108,18 @@ export async function POST(req: NextRequest) {
     const dd = String(vnTime.getDate()).padStart(2, "0");
     const todayStr = `${yyyy}-${mm}-${dd}`;
 
-    let attendance = await Attendance.findOne({ userId: user._id, date: todayStr });
+    const startOfDay = new Date(vnTime.getFullYear(), vnTime.getMonth(), vnTime.getDate(), 0, 0, 0);
+    const endOfDay = new Date(vnTime.getFullYear(), vnTime.getMonth(), vnTime.getDate(), 23, 59, 59);
+
+    // Check both the datetime range and todayStr representation to strictly prevent double check-ins
+    let attendance = await Attendance.findOne({
+      userId: user._id,
+      $or: [
+        { date: { $gte: startOfDay, $lte: endOfDay } as any },
+        { date: todayStr }
+      ]
+    } as any);
+
     if (!attendance) {
       // Lấy giờ mở cửa làm mốc đi muộn từ SystemSetting
       let checkInLimitStr = "08:00";

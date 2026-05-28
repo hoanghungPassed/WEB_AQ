@@ -23,44 +23,73 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
  const { logAction } = await import('@/lib/logger');
  await logAction("system", `Cập nhật nhiệm vụ: ${task.title || id}`, `Cập nhật trạng thái/chi tiết nhiệm vụ.`);
 
- // Auto-update KPI if transitioning to COMPLETED
- if (body.status === 'COMPLETED' && oldTask.status !== 'COMPLETED') {
-   try {
-     // 1. Update Global KPI in SyncStore
-     const { SyncStore } = await import('@/models/SyncStore');
-     const syncKpi = await SyncStore.findOne({ key: 'global_kpi_data' });
-     if (syncKpi) {
-       const kpiData = JSON.parse(syncKpi.value || '{}');
-       if (task.mailType === 'MONETIZED') {
-         kpiData.currentMonetized = Math.min(kpiData.targetMonetized || 0, (kpiData.currentMonetized || 0) + 1);
-       } else {
-         kpiData.currentWatchHours = Math.min(kpiData.targetWatchHours || 0, (kpiData.currentWatchHours || 0) + 1);
-       }
-       syncKpi.value = JSON.stringify(kpiData);
-       await syncKpi.save();
-     }
+  // Auto-update KPI & Mail status if transitioning to COMPLETED
+  if (body.status === 'COMPLETED' && oldTask.status !== 'COMPLETED') {
+    try {
+      // 1. Cập nhật Mail vệ tinh thành ACTIVE
+      try {
+        const { SatelliteMail } = await import('@/models/SatelliteMail');
+        if (task.satelliteMailId) {
+          await SatelliteMail.findByIdAndUpdate(task.satelliteMailId, { status: 'ACTIVE' });
+        }
+        if (task.mailIds && task.mailIds.length > 0) {
+          await SatelliteMail.updateMany(
+            { _id: { $in: task.mailIds } },
+            { $set: { status: 'ACTIVE' } }
+          );
+        }
+      } catch (mailErr) {
+        console.error("Lỗi cập nhật trạng thái Mail vệ tinh:", mailErr);
+      }
 
-     // 2. Update/Create individual Kpi record
-     const { Kpi } = await import('@/models/Kpi');
-     const today = new Date();
-     today.setHours(0, 0, 0, 0);
-     let userKpi = await Kpi.findOne({ userId: task.assigneeId, date: today });
-     if (!userKpi) {
-       await Kpi.create({
-         userId: task.assigneeId,
-         date: today,
-         completedChannels: 1,
-         targetChannels: 50,
-         fineAmount: 0
-       });
-     } else {
-       userKpi.completedChannels = (userKpi.completedChannels || 0) + 1;
-       await userKpi.save();
-     }
-   } catch (kpiErr) {
-     console.error("Lỗi tự động cập nhật KPI:", kpiErr);
-   }
- }
+      // 2. Update Global KPI in SyncStore
+      try {
+        const { SyncStore } = await import('@/models/SyncStore');
+        const syncKpi = await SyncStore.findOne({ key: 'global_kpi_data' });
+        if (syncKpi) {
+          const kpiData = JSON.parse(syncKpi.value || '{}');
+          if (task.mailType === 'MONETIZED') {
+            kpiData.currentMonetized = Math.min(kpiData.targetMonetized || 0, (kpiData.currentMonetized || 0) + 1);
+          } else {
+            kpiData.currentWatchHours = Math.min(kpiData.targetWatchHours || 0, (kpiData.currentWatchHours || 0) + 1);
+          }
+          syncKpi.value = JSON.stringify(kpiData);
+          await syncKpi.save();
+        }
+      } catch (syncKpiErr) {
+        console.error("Lỗi cập nhật Global KPI:", syncKpiErr);
+      }
+
+      // 3. Cập nhật KPI cá nhân (Tăng completedChannels & eligibleChannels)
+      try {
+        const { Kpi } = await import('@/models/Kpi');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let userKpi = await Kpi.findOne({ userId: task.assigneeId, date: today });
+        if (!userKpi) {
+          await Kpi.create({
+            userId: task.assigneeId,
+            date: today,
+            completedChannels: 0,
+            eligibleChannels: 0,
+            targetChannels: 50,
+            fineAmount: 0
+          });
+        }
+
+        await Kpi.findOneAndUpdate(
+          { userId: task.assigneeId, date: today },
+          { $inc: { eligibleChannels: 1, completedChannels: 1 } },
+          { new: true }
+        );
+      } catch (kpiErr) {
+        console.error("Lỗi tự động cập nhật KPI:", kpiErr);
+      }
+    } catch (err) {
+      console.error("Lỗi đồng bộ Task -> Mail -> KPI:", err);
+    }
+  }
 
  // Check if COMPLETED but overdue
  if (body.status === 'COMPLETED' && task.deadline) {

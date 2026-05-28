@@ -1,22 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-/**
- * Next.js Production Proxy:
- * - Bảo vệ các subroute /admin/*: chỉ cho phép Admin (role 01, 02) và nhân sự (03, 04, 05) truy cập.
- * - Kiểm tra giờ làm việc (Auto-kick): nhân viên (03, 04, 05) truy cập ngoài giờ hành chính (sau closeTime hoặc 18:00) sẽ bị kick.
- * - Inject các header xác thực cho API routes.
- */
-
 const COOKIE_NAME = "aq_token";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const method = request.method.toUpperCase();
 
   const isAdminPage = pathname.startsWith("/admin");
-  const isAdminApi = pathname.startsWith("/api/admin");
+  const isApiCall = pathname.startsWith("/api");
 
-  if (!isAdminPage && !isAdminApi) {
+  // Chỉ xử lý các route /admin/* hoặc các route API /api/*
+  if (!isAdminPage && !isApiCall) {
     return NextResponse.next();
   }
 
@@ -24,7 +19,7 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
 
   if (!token) {
-    if (isAdminApi) {
+    if (isApiCall) {
       return NextResponse.json(
         { error: "Không có quyền truy cập. Vui lòng đăng nhập." },
         { status: 401 }
@@ -36,7 +31,7 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    // Verify JWT token signature using jose (Edge-compatible)
+    // Xác thực JWT token (Edge-compatible)
     const secret = new TextEncoder().encode(
       process.env.JWT_SECRET || "aq_media_jwt_secret_2026_xKp9mNvQ3rT8wZ"
     );
@@ -49,19 +44,27 @@ export async function middleware(request: NextRequest) {
     const validRoles = ["01", "02", "03", "04", "05"];
     const isValidRole = validRoles.includes(role);
 
-    // 1. PHÂN LUỒNG BẢO VỆ TUYỆT ĐỐI /admin/*
-    // Nếu truy cập /admin* mà không có role hợp lệ -> Redirect về /login
-    const isAdminPath = pathname.startsWith("/admin");
-
-    if (!isValidRole && isAdminPath) {
+    if (!isValidRole) {
+      if (isApiCall) {
+        return NextResponse.json({ error: "Không có quyền truy cập." }, { status: 403 });
+      }
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("error", "unauthorized");
       return NextResponse.redirect(loginUrl);
     }
 
-    // 2. TÍCH HỢP AUTO-KICK NGOÀI GIỜ HÀNH CHÍNH
-    // Nếu ngoài giờ hành chính VÀ role là nhân viên (03, 04, 05) -> Redirect về /login?error=system_closed
-    if (role === "03" || role === "04" || role === "05") {
+    const isStaff = role === "03" || role === "04" || role === "05";
+
+    // 1. KIỂM TRA PHÂN QUYỀN TRÊN GIAO DIỆN UI /admin/*
+    // Chặn role 03, 04, 05 truy cập các trang UI /admin/*
+    if (isAdminPage && isStaff) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("error", "unauthorized");
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // 2. KIỂM TRA GIỜ HÀNH CHÍNH (AUTO-KICK) CHO NHÂN VIÊN
+    if (isStaff) {
       const now = new Date();
       const utc = now.getTime() + now.getTimezoneOffset() * 60000;
       const vnTime = new Date(utc + 3600000 * 7); // GMT+7
@@ -70,7 +73,6 @@ export async function middleware(request: NextRequest) {
       const minutes = vnTime.getMinutes();
       const currentMinutes = hours * 60 + minutes;
 
-      // Mặc định giờ mở cửa là 08:00, giờ đóng cửa là 18:00
       let openHour = 8;
       let openMinute = 0;
       let closeHour = 18;
@@ -94,6 +96,12 @@ export async function middleware(request: NextRequest) {
       const closeMinutes = closeHour * 60 + closeMinute;
 
       if (currentMinutes < openMinutes || currentMinutes >= closeMinutes) {
+        if (isApiCall) {
+          return NextResponse.json(
+            { error: "Hệ thống đã đóng cửa ngoài giờ làm việc." },
+            { status: 403 }
+          );
+        }
         const loginUrl = new URL("/login", request.url);
         loginUrl.searchParams.set("error", "system_closed");
         const response = NextResponse.redirect(loginUrl);
@@ -102,7 +110,24 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // Token hợp lệ -> inject thông tin user vào headers cho API routes
+    // 3. KIỂM TRA PHÂN QUYỀN API CHO NHÂN VIÊN (Bypass ngoại lệ)
+    if (isApiCall && isStaff) {
+      const isAllowedEndpoint = 
+        pathname.startsWith("/api/admin/tasks") ||
+        pathname.startsWith("/api/admin/attendance") ||
+        pathname.startsWith("/api/admin/notifications") ||
+        pathname.startsWith("/api/messages") ||
+        (pathname.startsWith("/api/admin/users") && method === "GET");
+
+      if (!isAllowedEndpoint) {
+        return NextResponse.json(
+          { error: "Bạn không có quyền truy cập API này." },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Inject thông tin người dùng vào headers cho các API routes
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-user-id", userId);
     requestHeaders.set("x-user-role", role);
@@ -114,8 +139,7 @@ export async function middleware(request: NextRequest) {
       },
     });
   } catch (err) {
-    // Token không hợp lệ hoặc hết hạn
-    const response = isAdminApi
+    const response = isApiCall
       ? NextResponse.json(
           { error: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." },
           { status: 401 }
@@ -133,5 +157,8 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    '/admin/:path*',
+    '/api/:path*'
+  ],
 };

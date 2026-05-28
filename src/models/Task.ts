@@ -20,6 +20,7 @@ export interface ITask extends Document {
  selectedMailIds?: number[];
  batchName?: string;
  mailIds?: mongoose.Types.ObjectId[] | string[];
+ satelliteMailId?: mongoose.Types.ObjectId | string;
  createdAt: Date;
  updatedAt: Date;
 }
@@ -44,7 +45,8 @@ const TaskSchema: Schema = new Schema(
  mailType: { type: String },
  selectedMailIds: [{ type: Number }],
  batchName: { type: String },
- mailIds: [{ type: Schema.Types.ObjectId, ref: 'Mail' }]
+ mailIds: [{ type: Schema.Types.ObjectId, ref: 'Mail' }],
+ satelliteMailId: { type: Schema.Types.ObjectId, ref: 'SatelliteMail' }
  },
  { timestamps: true }
 );
