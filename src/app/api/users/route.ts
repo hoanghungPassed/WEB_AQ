@@ -26,6 +26,10 @@ export async function POST(req: NextRequest) {
     
     const data = await req.json();
     
+    // Không cho phép client gán trạng thái online khi tạo user
+    delete data.lastActive;
+    delete data.isOnline;
+
     // Kiểm tra username đã tồn tại chưa
     const existing = await User.findOne({ username: data.username });
     if (existing) {

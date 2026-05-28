@@ -39,8 +39,7 @@ export async function POST(req: NextRequest) {
       role: "05", // Mặc định là nhân viên thử việc (NV THỬ VIỆC) khi chưa duyệt
       isOnline: false,
       taskCount: 0,
-      kpiProgress: 0,
-      lastActive: new Date()
+      kpiProgress: 0
     });
 
     await newUser.save();
