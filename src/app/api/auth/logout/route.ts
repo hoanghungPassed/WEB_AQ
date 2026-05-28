@@ -13,7 +13,7 @@ export async function POST() {
       await dbConnect();
       await User.findByIdAndUpdate(authUser.userId, {
         isOnline: false,
-        lastActive: new Date().toISOString(),
+        lastActive: null,
         checkOutTime: new Date().toISOString(),
       });
 

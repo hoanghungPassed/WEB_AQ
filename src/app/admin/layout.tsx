@@ -944,7 +944,7 @@ export default function AdminLayout({
   useEffect(() => {
     if (!user) return;
     syncRealUsersFromDB();
-    const interval = setInterval(syncRealUsersFromDB, 10000);
+    const interval = setInterval(syncRealUsersFromDB, 5000);
     return () => clearInterval(interval);
   }, [user, syncRealUsersFromDB]);
 
@@ -1066,9 +1066,13 @@ const typingTimer = setInterval(checkTyping, 1000);
       if (chatTab === "PRIVATE" && activeChatUser) {
         const partnerId = activeChatUser.id || activeChatUser._id;
         
-        // 1. Gọi API GET để MongoDB cập nhật isRead = true
+        // 1. Gọi API POST mark-read để MongoDB cập nhật isRead = true cho tất cả tin nhắn từ partnerId
         if (partnerId) {
-          fetch(`/api/messages?partnerId=${partnerId}`).catch(err => {});
+          fetch("/api/messages/mark-read", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ partnerId })
+          }).catch(err => {});
         }
 
         localStorage.setItem(`chat_last_read_time_${user?.username}_${activeChatUser.username}`, Date.now().toString());

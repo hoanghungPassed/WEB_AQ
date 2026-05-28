@@ -96,6 +96,28 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   await RootMail.updateMany(mailQuery, mailUpdate);
   await MonetizedMail.updateMany(mailQuery, mailUpdate);
 
+  // DỌN DẸP DỮ LIỆU PHỤ THUỘC (CASCADE DELETE & ORPHAN CLEANUP)
+  try {
+    const { Attendance } = await import("@/models/Attendance");
+    const { Message } = await import("@/models/Message");
+    const { Kpi } = await import("@/models/Kpi");
+    const { Payroll } = await import("@/models/Payroll");
+    const { Fine } = await import("@/models/Fine");
+
+    // Dọn điểm danh
+    await Attendance.deleteMany({ userId: id });
+    // Dọn tin nhắn
+    await Message.deleteMany({ $or: [{ senderId: id }, { receiverId: id }] });
+    // Dọn KPI
+    await Kpi.deleteMany({ userId: id });
+    // Dọn lương
+    await Payroll.deleteMany({ userId: id });
+    // Dọn phạt
+    await Fine.deleteMany({ userId: id });
+  } catch (cleanErr) {
+    console.error("Lỗi khi dọn dẹp dữ liệu rác (orphan cleanup):", cleanErr);
+  }
+
   const deletedUser = await User.findByIdAndDelete(id);
   
   if (!deletedUser) {

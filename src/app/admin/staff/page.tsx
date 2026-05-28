@@ -26,9 +26,9 @@ export default function StaffManagementPage() {
  const searchParams = useSearchParams();
  const [staffList, setStaffList] = useState<StaffData[]>([]);
 
- // SWR real-time polling every 10s for staff list
+ // SWR real-time polling every 5s for staff list
  const { data: usersResponse, mutate: mutateUsers } = useSWR("/api/admin/users", fetcher, {
-   refreshInterval: 10000,
+   refreshInterval: 5000,
  });
 
  const [currentPage, setCurrentPage] = useState(1);
