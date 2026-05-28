@@ -3,11 +3,18 @@ import dbConnect from"@/lib/mongodb";
 import { RootMail } from"@/models/RootMail";
 import { SatelliteMail } from"@/models/SatelliteMail";
 import { MonetizedMail } from"@/models/MonetizedMail";
+import { getAuthUser } from "@/lib/auth";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
- try {
- const userId = req.headers.get("x-user-id");
- if (!userId) return NextResponse.json({ error:"Unauthorized" }, { status: 401 });
+  try {
+  let userId = req.headers.get("x-user-id");
+  if (!userId) {
+    const authUser = await getAuthUser();
+    if (authUser) {
+      userId = authUser.userId;
+    }
+  }
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
  await dbConnect();
  const body = await req.json();
@@ -31,9 +38,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
- try {
- const userId = req.headers.get("x-user-id");
- if (!userId) return NextResponse.json({ error:"Unauthorized" }, { status: 401 });
+  try {
+  let userId = req.headers.get("x-user-id");
+  if (!userId) {
+    const authUser = await getAuthUser();
+    if (authUser) {
+      userId = authUser.userId;
+    }
+  }
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
  await dbConnect();
  const { id } = await params;

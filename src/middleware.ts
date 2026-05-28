@@ -47,16 +47,16 @@ export async function middleware(request: NextRequest) {
     const username = String(payload.username || "");
 
     // 1. PHÂN LUỒNG BẢO VỆ TUYỆT ĐỐI /admin/*
-    // Nếu truy cập /admin/* mà role không phải 01 hoặc 02 -> Redirect về /
-    const isSubPath = pathname.startsWith("/admin/") && pathname !== "/admin";
+    // Nếu truy cập /admin* mà role không phải 01 hoặc 02 -> Redirect về /
+    const isAdminPath = pathname.startsWith("/admin");
     const isRestrictedRole = role !== "01" && role !== "02";
 
-    if (isRestrictedRole && isSubPath) {
+    if (isRestrictedRole && isAdminPath) {
       return NextResponse.redirect(new URL("/", request.url));
     }
 
     // 2. TÍCH HỢP AUTO-KICK NGOÀI GIỜ HÀNH CHÍNH
-    // Nếu ngoài giờ hành chính VÀ role là nhân viên (03, 04) -> Redirect về /login?error=closed
+    // Nếu ngoài giờ hành chính VÀ role là nhân viên (03, 04) -> Redirect về /login?error=system_closed
     if (role === "03" || role === "04") {
       const now = new Date();
       const utc = now.getTime() + now.getTimezoneOffset() * 60000;
@@ -91,7 +91,7 @@ export async function middleware(request: NextRequest) {
 
       if (currentMinutes < openMinutes || currentMinutes >= closeMinutes) {
         const loginUrl = new URL("/login", request.url);
-        loginUrl.searchParams.set("error", "closed");
+        loginUrl.searchParams.set("error", "system_closed");
         const response = NextResponse.redirect(loginUrl);
         response.cookies.delete(COOKIE_NAME);
         return response;
@@ -124,5 +124,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };

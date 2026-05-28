@@ -3,13 +3,20 @@ import dbConnect from"@/lib/mongodb";
 import { RootMail } from"@/models/RootMail";
 import { SatelliteMail } from"@/models/SatelliteMail";
 import { MonetizedMail } from"@/models/MonetizedMail";
+import { getAuthUser } from "@/lib/auth";
 
 export const dynamic ="force-dynamic";
 
 export async function GET(req: Request) {
  try {
- const userId = req.headers.get("x-user-id");
- if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  let userId = req.headers.get("x-user-id");
+  if (!userId) {
+    const authUser = await getAuthUser();
+    if (authUser) {
+      userId = authUser.userId;
+    }
+  }
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
  await dbConnect();
  const { searchParams } = new URL(req.url);
@@ -43,9 +50,15 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
- try {
- const userId = req.headers.get("x-user-id");
- if (!userId) return NextResponse.json({ error:"Unauthorized" }, { status: 401 });
+  try {
+  let userId = req.headers.get("x-user-id");
+  if (!userId) {
+    const authUser = await getAuthUser();
+    if (authUser) {
+      userId = authUser.userId;
+    }
+  }
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
  await dbConnect();
  const body = await req.json();
@@ -124,9 +137,15 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
- try {
- const userId = req.headers.get("x-user-id");
- if (!userId) return NextResponse.json({ error:"Unauthorized" }, { status: 401 });
+  try {
+  let userId = req.headers.get("x-user-id");
+  if (!userId) {
+    const authUser = await getAuthUser();
+    if (authUser) {
+      userId = authUser.userId;
+    }
+  }
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
  await dbConnect();
  const { searchParams } = new URL(req.url);

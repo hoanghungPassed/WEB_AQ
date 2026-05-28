@@ -42,12 +42,13 @@ export async function POST(req: Request) {
         // Cập nhật bản ghi Attendance của ngày hôm nay
         const attendance = await Attendance.findOne({ userId: staff._id, date: todayStr });
         if (attendance && attendance.checkInTime) {
-          attendance.checkOutTime = checkoutTime;
-          const checkInMs = new Date(attendance.checkInTime).getTime();
-          const checkOutMs = checkoutTime.getTime();
-          const workedHours = (checkOutMs - checkInMs) / 3600000;
+          const checkOutTime = checkoutTime;
+          attendance.checkOutTime = checkOutTime;
           
-          attendance.totalHours = parseFloat((workedHours > 0 ? workedHours : 0).toFixed(2));
+          const diffInMs = checkOutTime.getTime() - new Date(attendance.checkInTime).getTime();
+          const totalHours = diffInMs / (1000 * 60 * 60);
+          
+          attendance.totalHours = parseFloat((totalHours > 0 ? totalHours : 0).toFixed(2));
           await attendance.save();
         }
 

@@ -29,14 +29,13 @@ export async function POST() {
 
       const attendance = await Attendance.findOne({ userId: authUser.userId, date: todayStr });
       if (attendance && attendance.checkInTime) {
-        attendance.checkOutTime = now;
+        const checkOutTime = now;
+        attendance.checkOutTime = checkOutTime;
         
-        // Tự động tính totalHours: (checkOutTime.getTime() - checkInTime.getTime()) / 3600000
-        const checkInMs = new Date(attendance.checkInTime).getTime();
-        const checkOutMs = now.getTime();
-        const workedHours = (checkOutMs - checkInMs) / 3600000;
+        const diffInMs = checkOutTime.getTime() - new Date(attendance.checkInTime).getTime();
+        const totalHours = diffInMs / (1000 * 60 * 60);
         
-        attendance.totalHours = parseFloat(workedHours.toFixed(2));
+        attendance.totalHours = parseFloat((totalHours > 0 ? totalHours : 0).toFixed(2));
         await attendance.save();
       }
     } catch (dbErr) {

@@ -93,7 +93,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  const [importBatchName, setImportBatchName] = useState("");
  const [showBatchNameModal, setShowBatchNameModal] = useState(false);
  const [showHistoryModal, setShowHistoryModal] = useState(false);
- const itemsPerPage = 20;
+ const itemsPerPage = 15;
 
  const triggerToast = useCallback((msg: string) => {
  setToastMsg(msg);
@@ -138,11 +138,11 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  return () => window.removeEventListener("storage", loadData);
  }, [triggerToast]);
 
- useEffect(() => {
- if (currentPage !== 1) {
- requestAnimationFrame(() => setCurrentPage(1));
- }
- }, [searchTerm, statusFilter, assignmentFilter, dateFilter, selectedBatch, selectedBatchFilter, type, currentPage]);
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [searchTerm, statusFilter, assignmentFilter, dateFilter, selectedBatch, selectedBatchFilter, type]);
 
  useEffect(() => {
  requestAnimationFrame(() => setSelectedBatchFilter("ALL"));
@@ -471,11 +471,17 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  if (!row || (row || []).length === 0) continue;
  const email = String(row[emailIdx] ||"").trim();
  if (!email) continue;
+ const phone = phoneIdx !== -1 && row[phoneIdx] ? String(row[phoneIdx]).trim() : "";
 
- const isDuplicate = importedMails.some(im => im.email.toLowerCase() === email.toLowerCase()) ||
- mails.some(m => m.email.toLowerCase() === email.toLowerCase());
+ const isEmailDuplicate = importedMails.some(im => im.email?.toLowerCase() === email.toLowerCase()) ||
+ mails.some(m => m.email?.toLowerCase() === email.toLowerCase());
 
- if (isDuplicate) {
+ const isPhoneDuplicate = phone && (
+ importedMails.some(im => im.phone && im.phone.trim() === phone) ||
+ mails.some(m => m.phone && m.phone.trim() === phone)
+ );
+
+ if (isEmailDuplicate || isPhoneDuplicate) {
  duplicateCount++;
  continue;
  }
@@ -551,11 +557,17 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  const parts = line.split(/[\t|]|\s{2,}/);
  const email = String(parts[0] ||"").trim();
  if (!email) return;
+ const phone = String(parts[4] ||"").trim();
 
- const isDuplicate = newItems.some(ni => ni.email.toLowerCase() === email.toLowerCase()) ||
- mails.some(m => m.email.toLowerCase() === email.toLowerCase());
+ const isEmailDuplicate = newItems.some(ni => ni.email?.toLowerCase() === email.toLowerCase()) ||
+ mails.some(m => m.email?.toLowerCase() === email.toLowerCase());
 
- if (isDuplicate) {
+ const isPhoneDuplicate = phone && (
+ newItems.some(ni => ni.phone && ni.phone.trim() === phone) ||
+ mails.some(m => m.phone && m.phone.trim() === phone)
+ );
+
+ if (isEmailDuplicate || isPhoneDuplicate) {
  duplicateCount++;
  return;
  }
@@ -596,88 +608,52 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  };
 
  const handleConfirmBatchImport = async () => {
-    if (!pendingMails || (pendingMails || []).length === 0) return;
-    const baseBatchName = importBatchName.trim() || `Lô ngày ${new Date().toLocaleDateString("vi-VN")}`;
-    
-    // Check if we are importing SATELLITE mails
-    const isSatellite = pendingMails.some(m => m.type === "SATELLITE");
-    
-    let mappedMails: MailData[] = [];
-    const mailsList = pendingMails;
-    
-    if (isSatellite) {
-      // Split into chunks of 17 (batchSize)
-      const batchSize = 17;
-      const totalMails = mailsList.length;
-      const uniquePrefix = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-      
-      for (let i = 0; i < totalMails; i += batchSize) {
-        const chunkIndex = Math.floor(i / batchSize);
-        let chunkBatchName = baseBatchName;
-        
-        // BẮT BUỘC phải nối thêm Index vào tên để tránh trùng lặp
-        if (totalMails > batchSize) {
-          chunkBatchName = `${baseBatchName} - Phần ${chunkIndex + 1}`;
-        }
-        
-        const chunkBatchId = `batch-${uniquePrefix}-${chunkIndex + 1}`;
-        const chunk = mailsList.slice(i, i + batchSize);
-        
-        chunk.forEach((m) => {
-          mappedMails.push({
-            ...m,
-            batchId: chunkBatchId,
-            batchName: chunkBatchName
-          });
-        });
-      }
+     if (!pendingMails || (pendingMails || []).length === 0) return;
+     const baseBatchName = importBatchName.trim() || `Lô ngày ${new Date().toLocaleDateString("vi-VN")}`;
+     
+     // Check if we are importing SATELLITE mails
+     const isSatellite = pendingMails.some(m => m.type === "SATELLITE");
+     
+     const uniquePrefix = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+     const batchId = `batch-${uniquePrefix}`;
+     
+     const mappedMails = (pendingMails || []).map(m => ({
+       ...m,
+       batchId,
+       batchName: baseBatchName
+     }));
 
-      // Tự động thêm các lô mới vào danh sách lô mail vệ tinh để Frontend render đầy đủ
-      try {
-        const savedBatches = localStorage.getItem("global_satellite_batches");
-        const batchList = savedBatches ? JSON.parse(savedBatches) : [];
-        const newBatchesToAdd: any[] = [];
-        const uniqueNames = Array.from(new Set(mappedMails.map(m => m.batchName).filter(Boolean)));
-        
-        uniqueNames.forEach(bName => {
-          const exists = batchList.some((b: any) => b.name === bName);
-          if (!exists) {
-            const matchMail = mappedMails.find(m => m.batchName === bName);
-            newBatchesToAdd.push({
-              id: matchMail?.batchId || `sat-batch-${Date.now()}-${bName}`,
-              name: bName,
-              type: "SATELLITE",
-              importedAt: new Date().toISOString().split("T")[0],
-              mailCount: mappedMails.filter(m => m.batchName === bName).length,
-              importedBy: user?.name || "Admin"
-            });
-          }
-        });
-
-        if (newBatchesToAdd.length > 0) {
-          const updatedBatches = [...batchList, ...newBatchesToAdd];
-          localStorage.setItem("global_satellite_batches", JSON.stringify(updatedBatches));
-          
-          fetch("/api/sync", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              global_satellite_batches: JSON.stringify(updatedBatches)
-            })
-          }).catch(err => console.error("Lỗi đồng bộ lô mail vệ tinh:", err));
-        }
-      } catch (err) {
-        console.error("Lỗi tự động đăng ký lô mail vệ tinh:", err);
-      }
-    } else {
-      // Non-satellite mails keep their original single batch logic
-      const batchId = `batch-${Date.now()}`;
-      mappedMails = (mailsList || []).map(m => ({
-        ...m,
-        batchId,
-        batchName: baseBatchName
-      }));
-    }
+     if (isSatellite) {
+       // Tự động thêm Lô mới vào danh sách Lô mail vệ tinh để Frontend render đầy đủ
+       try {
+         const savedBatches = localStorage.getItem("global_satellite_batches");
+         const batchList = savedBatches ? JSON.parse(savedBatches) : [];
+         const exists = batchList.some((b: any) => b.name === baseBatchName);
+         
+         if (!exists) {
+           const newBatch = {
+             id: batchId,
+             name: baseBatchName,
+             type: "SATELLITE",
+             importedAt: new Date().toISOString().split("T")[0],
+             mailCount: mappedMails.length,
+             importedBy: user?.name || "Admin"
+           };
+           const updatedBatches = [...batchList, newBatch];
+           localStorage.setItem("global_satellite_batches", JSON.stringify(updatedBatches));
+           
+           fetch("/api/sync", {
+             method: "POST",
+             headers: { "Content-Type": "application/json" },
+             body: JSON.stringify({
+               global_satellite_batches: JSON.stringify(updatedBatches)
+             })
+           }).catch(err => console.error("Lỗi đồng bộ lô mail vệ tinh:", err));
+         }
+       } catch (err) {
+         console.error("Lỗi tự động đăng ký lô mail vệ tinh:", err);
+       }
+     }
 
     try {
       triggerToast(`Đang lưu ${(mappedMails || []).length} mail vào Server...`);
@@ -777,10 +753,10 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  }
 
  const term = searchTerm.toLowerCase().trim();
- const matchesSearch = m.email.toLowerCase().includes(term) ||
- m.recovery.toLowerCase().includes(term) ||
- m.pass.toLowerCase().includes(term) ||
- (m.phone?.toLowerCase() ||"").includes(term);
+ const matchesSearch = (m.email?.toLowerCase() || "").includes(term) ||
+ (m.recovery?.toLowerCase() || "").includes(term) ||
+ (m.password?.toLowerCase() || m.pass?.toLowerCase() || "").includes(term) ||
+ (m.phone?.toLowerCase() || "").includes(term);
 
  let matchesStatus = true;
  if (statusFilter !=="ALL") {
@@ -852,8 +828,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  };
  }, [mails, user]);
 
- const totalPages = isStaff && type ==="SATELLITE" ? 1 : Math.ceil((filteredMails || []).length / itemsPerPage);
- const currentItems = isStaff && type ==="SATELLITE" ? filteredMails : filteredMails.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil((filteredMails || []).length / itemsPerPage);
+  const displayedMails = filteredMails.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
  const staffBatches = useMemo(() => {
  if (!isStaff || type !=="SATELLITE") return [];
@@ -1239,13 +1215,13 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  </tr>
  </thead>
  <tbody className="divide-y divide-white/5 text-gray-300">
- {(currentItems || []).length > 0 ? (currentItems || []).map((mail: MailData & { originalSTT: number }, index: number) => {
+ {(displayedMails || []).length > 0 ? (displayedMails || []).map((mail: MailData & { originalSTT: number }, index: number) => {
  const rowPadding = isStaff ?"py-1.5 px-6" :"py-3.5 px-6";
  const textSize = isStaff ?"text-sm" :"text-base";
  return (
  <tr key={mail._id || mail.id || index} className="hover:bg-zinc-800/50 bg-zinc-900/[0.02] transition-colors group">
   <td className={`${rowPadding} text-[10px] font-black text-gray-500 whitespace-nowrap`}>
-    {type === "SATELLITE" ? (currentPage - 1) * itemsPerPage + index + 1 : (mail.stt || mail.originalSTT)}
+    {(currentPage - 1) * itemsPerPage + index + 1}
   </td>
  <td className={`${rowPadding} cursor-pointer hover:text-gold transition-colors font-bold ${textSize} whitespace-nowrap`} onClick={() => copyToClipboard(mail.email,"Email")}>
  {mail.type ==="SATELLITE" && (() => {
@@ -1386,15 +1362,13 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  </div>
  </div>
 
- {!(isStaff && type ==="SATELLITE") && (
- <div className="p-6 border-t border-white/0 bg-black/20 flex items-center justify-between">
- <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-white font-black">{currentPage}</span> / {totalPages || 1}</span>
- <div className="flex gap-2">
- <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/0 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
- <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/0 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
- </div>
- </div>
- )}
+  <div className="p-6 border-t border-white/0 bg-black/20 flex items-center justify-between">
+  <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">Trang <span className="text-white font-black">{currentPage}</span> / {totalPages || 1}</span>
+  <div className="flex gap-2">
+  <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/0 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
+  <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage >= totalPages} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/0 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
+  </div>
+  </div>
  </div>
  )}
 
