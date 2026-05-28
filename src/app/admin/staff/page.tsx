@@ -214,7 +214,17 @@ export default function StaffManagementPage() {
   // Sync SWR usersResponse into staffList state & compute isOnline dynamically using standard 15-minute formula
   useEffect(() => {
     if (usersResponse) {
-      const users: StaffData[] = (usersResponse.users || usersResponse.data || usersResponse || []).map((u: any) => {
+      const rawUsers = Array.isArray(usersResponse.users)
+        ? usersResponse.users
+        : Array.isArray(usersResponse.data)
+        ? usersResponse.data
+        : Array.isArray(usersResponse)
+        ? usersResponse
+        : null;
+
+      if (!rawUsers) return;
+
+      const users: StaffData[] = rawUsers.map((u: any) => {
         const lastActiveDate = u.lastActive ? new Date(u.lastActive) : null;
         const isOnline = lastActiveDate
           ? (Date.now() - lastActiveDate.getTime() < 15 * 60 * 1000)
