@@ -12,7 +12,7 @@ export async function GET(req: Request) {
  }
 
  await dbConnect();
- const fines = await Fine.find({}).populate('userId', 'name username role').sort({ createdAt: -1 });
+ const fines = await Fine.find({}).populate('userId').sort({ createdAt: -1 });
  return NextResponse.json(fines || []);
  } catch (error: any) {
  console.error("Error fetching fines data:", error);
@@ -62,12 +62,23 @@ export async function PUT(req: Request) {
  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
  }
 
- await dbConnect();
- const body = await req.json();
- const { id, status } = body;
+  await dbConnect();
+  const body = await req.json();
+  const { id, status, amount } = body;
 
- const fine = await Fine.findByIdAndUpdate(id, { status }, { new: true }).populate('userId', 'name');
- if (!fine) return NextResponse.json({ success: false, error:"Not found" }, { status: 404 });
+  const existingFine = await Fine.findById(id);
+  if (!existingFine) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+
+  const updateData: any = {};
+  if (status !== undefined) updateData.status = status;
+  if (amount !== undefined) {
+    updateData.amount = amount;
+  } else {
+    updateData.amount = existingFine.amount; // Preserve original amount
+  }
+
+  const fine = await Fine.findByIdAndUpdate(id, { $set: updateData }, { new: true }).populate('userId', 'name');
+  if (!fine) return NextResponse.json({ success: false, error:"Not found" }, { status: 404 });
 
  // Create log
  try {

@@ -19,19 +19,19 @@ export async function GET(req: NextRequest) {
   // Thiết lập truy vấn lọc theo trạng thái online
   let query: any = {};
   if (statusParam === "online") {
-  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-  query.lastActive = { $gte: tenMinutesAgo };
+  const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+  query.lastActive = { $gte: fifteenMinutesAgo };
   query.status = "ACTIVE";
   }
 
   // Tìm các users, loại bỏ mật khẩu
   const users = await User.find(query).select('-password').sort({ role: 1, createdAt: -1 });
   
-  // Tính toán động trường isOnline dựa trên lastActive trong 10 phút gần nhất
+  // Tính toán động trường isOnline dựa trên lastActive trong 15 phút gần nhất
   const mappedUsers = users.map(u => {
   const userObj = u.toObject() as any;
   const lastActiveDate = u.lastActive ? new Date(u.lastActive) : null;
-  userObj.isOnline = lastActiveDate ? (lastActiveDate.getTime() > Date.now() - 10 * 60 * 1000) : false;
+  userObj.isOnline = lastActiveDate ? (lastActiveDate.getTime() > Date.now() - 15 * 60 * 1000) : false;
   userObj.id = userObj._id.toString();
   return userObj;
   });

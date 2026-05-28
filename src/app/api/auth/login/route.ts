@@ -4,6 +4,7 @@ import User from"@/models/User";
 import { Attendance } from "@/models/Attendance";
 import { SystemSetting } from "@/models/SystemSetting";
 import { Notification } from "@/models/Notification";
+import { Fine } from "@/models/Fine";
 import {
  comparePassword,
  isHashed,
@@ -119,7 +120,9 @@ export async function POST(req: NextRequest) {
       const limitTotalMins = (limitHour || 8) * 60 + (limitMinute || 0);
       const currentTotalMins = vnTime.getHours() * 60 + vnTime.getMinutes();
 
-      const isLate = currentTotalMins > limitTotalMins;
+      // Quyền Admin (01) và QL Công việc (02) không bao giờ bị tính đi muộn hay phạt
+      const isAdminOrWorkManager = user.role === "01" || user.role === "02";
+      const isLate = !isAdminOrWorkManager && (currentTotalMins > limitTotalMins);
       const status = isLate ? "Đi muộn" : "Đúng giờ";
 
       attendance = await Attendance.create({
@@ -137,12 +140,31 @@ export async function POST(req: NextRequest) {
           minute: "2-digit",
         });
 
+        // 1. Tạo thông báo đi muộn gửi Admin
         await Notification.create({
           title: "Cảnh báo đi muộn",
           message: `Nhân viên ${user.name} vừa đăng nhập đi muộn vào lúc ${timeString}`,
           type: "LATE_WARNING",
           author: user._id,
           isRead: false,
+        });
+
+        // 2. Tạo bản ghi Fine (phạt) với mức phí lũy tiến: dưới 5 phút phạt 10k, dưới 20 phút phạt 20k, trên 20 phút phạt 50k
+        const lateMinutes = currentTotalMins - limitTotalMins;
+        let fineAmount = 20000; // Mặc định 20k
+        if (lateMinutes < 5) {
+          fineAmount = 10000;
+        } else if (lateMinutes <= 20) {
+          fineAmount = 20000;
+        } else {
+          fineAmount = 50000;
+        }
+
+        await Fine.create({
+          userId: user._id,
+          reason: `Đi muộn ${lateMinutes} phút (Đăng nhập lúc ${timeString}, giờ quy định ${checkInLimitStr})`,
+          amount: fineAmount,
+          status: "UNPAID",
         });
       }
     }

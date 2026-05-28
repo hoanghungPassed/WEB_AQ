@@ -38,9 +38,9 @@ export async function POST(req: NextRequest) {
     // --- BẮT ĐẦU: GỬI THÔNG BÁO CHO ADMIN ---
     try {
       await Notification.create({
-        type: "REGISTRATION",
-        title: "Nhân viên mới đăng ký",
-        message: `Nhân viên ${data.name || data.username} vừa đăng ký tài khoản mới vào hệ thống.`,
+        title: "Yêu cầu đăng ký mới",
+        message: `Nhân viên ${data.name || data.username} vừa đăng ký tài khoản và chờ duyệt`,
+        type: "SYSTEM",
         isRead: false,
         author: newUser._id,
         createdAt: new Date()

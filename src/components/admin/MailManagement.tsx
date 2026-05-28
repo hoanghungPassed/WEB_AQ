@@ -603,37 +603,25 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     const isSatellite = pendingMails.some(m => m.type === "SATELLITE");
     
     let mappedMails: MailData[] = [];
+    const mailsList = pendingMails;
     
     if (isSatellite) {
-      // Split into chunks of 17
-      const chunkSize = 17;
+      // Split into chunks of 17 (batchSize)
+      const batchSize = 17;
+      const totalMails = mailsList.length;
+      const uniquePrefix = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
       
-      // Parse starting number if any (e.g. "Lô 5" -> prefix "Lô ", startNum 5)
-      const numberMatch = baseBatchName.match(/(.*?)(\d+)$/);
-      let prefix = baseBatchName;
-      let startNum = 1;
-      let hasNumber = false;
-      
-      if (numberMatch) {
-        prefix = numberMatch[1];
-        startNum = parseInt(numberMatch[2], 10);
-        hasNumber = true;
-      }
-      
-      const totalMails = pendingMails.length;
-      for (let i = 0; i < totalMails; i += chunkSize) {
-        const chunkIndex = Math.floor(i / chunkSize);
+      for (let i = 0; i < totalMails; i += batchSize) {
+        const chunkIndex = Math.floor(i / batchSize);
         let chunkBatchName = baseBatchName;
-        if (hasNumber) {
-          chunkBatchName = `${prefix}${startNum + chunkIndex}`;
-        } else {
-          if (totalMails > chunkSize) {
-            chunkBatchName = `${baseBatchName} - Phần ${chunkIndex + 1}`;
-          }
+        
+        // BẮT BUỘC phải nối thêm Index vào tên để tránh trùng lặp
+        if (totalMails > batchSize) {
+          chunkBatchName = `${baseBatchName} - Phần ${chunkIndex + 1}`;
         }
         
-        const chunkBatchId = `batch-${Date.now()}-${chunkIndex}`;
-        const chunk = pendingMails.slice(i, i + chunkSize);
+        const chunkBatchId = `batch-${uniquePrefix}-${chunkIndex + 1}`;
+        const chunk = mailsList.slice(i, i + batchSize);
         
         chunk.forEach((m) => {
           mappedMails.push({
@@ -643,10 +631,48 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           });
         });
       }
+
+      // Tự động thêm các lô mới vào danh sách lô mail vệ tinh để Frontend render đầy đủ
+      try {
+        const savedBatches = localStorage.getItem("global_satellite_batches");
+        const batchList = savedBatches ? JSON.parse(savedBatches) : [];
+        const newBatchesToAdd: any[] = [];
+        const uniqueNames = Array.from(new Set(mappedMails.map(m => m.batchName).filter(Boolean)));
+        
+        uniqueNames.forEach(bName => {
+          const exists = batchList.some((b: any) => b.name === bName);
+          if (!exists) {
+            const matchMail = mappedMails.find(m => m.batchName === bName);
+            newBatchesToAdd.push({
+              id: matchMail?.batchId || `sat-batch-${Date.now()}-${bName}`,
+              name: bName,
+              type: "SATELLITE",
+              importedAt: new Date().toISOString().split("T")[0],
+              mailCount: mappedMails.filter(m => m.batchName === bName).length,
+              importedBy: user?.name || "Admin"
+            });
+          }
+        });
+
+        if (newBatchesToAdd.length > 0) {
+          const updatedBatches = [...batchList, ...newBatchesToAdd];
+          localStorage.setItem("global_satellite_batches", JSON.stringify(updatedBatches));
+          
+          fetch("/api/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              global_satellite_batches: JSON.stringify(updatedBatches)
+            })
+          }).catch(err => console.error("Lỗi đồng bộ lô mail vệ tinh:", err));
+        }
+      } catch (err) {
+        console.error("Lỗi tự động đăng ký lô mail vệ tinh:", err);
+      }
     } else {
       // Non-satellite mails keep their original single batch logic
       const batchId = `batch-${Date.now()}`;
-      mappedMails = (pendingMails || []).map(m => ({
+      mappedMails = (mailsList || []).map(m => ({
         ...m,
         batchId,
         batchName: baseBatchName
@@ -670,6 +696,25 @@ export default function MailManagement({ type, user }: MailManagementProps) {
       const data = await res.json();
       if (!data.success) {
         throw new Error(data.error || "Lỗi lưu dữ liệu");
+      }
+
+      // 2. Đồng bộ vào localStorage global_mails_data và API sync store
+      try {
+        const savedMails = localStorage.getItem("global_mails_data");
+        const currentMails = savedMails ? JSON.parse(savedMails) : [];
+        const newMailsFiltered = (mappedMails || []).filter(nm => !currentMails.some((cm: any) => cm.email === nm.email));
+        const updatedMails = [...currentMails, ...newMailsFiltered];
+        localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
+        
+        await fetch("/api/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            global_mails_data: JSON.stringify(updatedMails)
+          })
+        }).catch(err => console.error("Lỗi đồng bộ sync store global_mails_data:", err));
+      } catch (err) {
+        console.error("Lỗi đồng bộ global_mails_data:", err);
       }
 
       setPendingMails(null);

@@ -120,6 +120,15 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
   const markAllRead = () => {
     const updated = (notifications || []).map(n => {
       if (!n.targetUsername || n.targetUsername.toLowerCase() === user?.username?.toLowerCase()) {
+        if (!n.read && n.id && !n.id.startsWith("access-")) {
+          fetch(`/api/admin/notifications/${n.id}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "x-user-id": user?.id || ""
+            }
+          }).catch(err => console.error("Error setting notification read in DB:", err));
+        }
         return { ...n, read: true };
       }
       return n;
@@ -148,6 +157,16 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
       return n;
     });
     setNotifications(updated);
+
+    if (id && !id.startsWith("access-")) {
+      fetch(`/api/admin/notifications/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || ""
+        }
+      }).catch(err => console.error("Error setting notification read in DB:", err));
+    }
     
     // Chỉ cập nhật trạng thái đã đọc cho đúng thông báo hệ thống trong localStorage
     try {

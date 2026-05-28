@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
+import { Notification } from "@/models/Notification";
 import { hashPassword } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,19 @@ export async function POST(req: NextRequest) {
     });
 
     await newUser.save();
+
+    // Gửi thông báo phê duyệt đăng ký cho Admin
+    try {
+      await Notification.create({
+        title: "Yêu cầu đăng ký mới",
+        message: `Nhân viên ${name} vừa đăng ký tài khoản và chờ duyệt`,
+        type: "SYSTEM",
+        author: newUser._id,
+        isRead: false
+      });
+    } catch (notifErr) {
+      console.error("Lỗi tự động tạo thông báo đăng ký:", notifErr);
+    }
 
     // Ghi Log hoạt động hệ thống
     try {

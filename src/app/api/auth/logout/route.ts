@@ -8,18 +8,42 @@ export async function POST() {
  // Decode token trước khi xóa để cập nhật trạng thái offline
  const authUser = await getAuthUser();
 
- if (authUser) {
- try {
- await dbConnect();
- await User.findByIdAndUpdate(authUser.userId, {
- isOnline: false,
- lastActive: new Date().toISOString(),
- });
- } catch (dbErr) {
- // Vẫn cho logout ngay cả khi DB lỗi
- console.error("Logout DB update error:", dbErr);
- }
- }
+  if (authUser) {
+    try {
+      await dbConnect();
+      await User.findByIdAndUpdate(authUser.userId, {
+        isOnline: false,
+        lastActive: new Date().toISOString(),
+        checkOutTime: new Date().toISOString(),
+      });
+
+      // Cập nhật bản ghi Attendance khi logout
+      const { Attendance } = await import("@/models/Attendance");
+      const now = new Date();
+      const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+      const vnTime = new Date(utc + 3600000 * 7); // Vietnam GMT+7
+      const yyyy = vnTime.getFullYear();
+      const mm = String(vnTime.getMonth() + 1).padStart(2, "0");
+      const dd = String(vnTime.getDate()).padStart(2, "0");
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+
+      const attendance = await Attendance.findOne({ userId: authUser.userId, date: todayStr });
+      if (attendance && attendance.checkInTime) {
+        attendance.checkOutTime = now;
+        
+        // Tự động tính totalHours: (checkOutTime.getTime() - checkInTime.getTime()) / 3600000
+        const checkInMs = new Date(attendance.checkInTime).getTime();
+        const checkOutMs = now.getTime();
+        const workedHours = (checkOutMs - checkInMs) / 3600000;
+        
+        attendance.totalHours = parseFloat(workedHours.toFixed(2));
+        await attendance.save();
+      }
+    } catch (dbErr) {
+      // Vẫn cho logout ngay cả khi DB lỗi
+      console.error("Logout DB update error:", dbErr);
+    }
+  }
 
  // Xóa cookie
  const response = NextResponse.json({
