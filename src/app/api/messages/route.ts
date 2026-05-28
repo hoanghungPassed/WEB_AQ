@@ -1,9 +1,8 @@
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import { Message } from "@/models/Message";
 import User from "@/models/User";
-
-export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {

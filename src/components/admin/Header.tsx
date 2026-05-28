@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Search, Bell, Menu, User, PanelLeftClose, PanelLeftOpen, LogOut, UserSearch, UserPlus, CheckCircle2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { mutate } from "swr";
 
 interface HeaderProps {
   isCollapsed: boolean;
@@ -226,6 +227,23 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
     sessionStorage.removeItem("user");
     localStorage.removeItem("user");
     window.location.href = "/login";
+  };
+
+  const handleMessageClick = async (partnerId?: string) => {
+    try {
+      await fetch('/api/messages/mark-read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id || user?._id || ''
+        },
+        body: JSON.stringify({ partnerId })
+      });
+      if (typeof (window as any).mutateMessages === 'function') {
+        (window as any).mutateMessages();
+      }
+      mutate('/api/messages');
+    } catch (err) {}
   };
 
   return (

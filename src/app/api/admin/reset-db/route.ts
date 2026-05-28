@@ -29,6 +29,12 @@ export async function POST(request: Request) {
   const User = (await import("@/models/User")).default;
   await User.deleteMany({ role: { $ne: "01" } });
 
+  // Explicitly wipe direct messages and templates to avoid ghost data
+  const { Message } = await import("@/models/Message");
+  const { AutoMessage } = await import("@/models/AutoMessage");
+  await Message.deleteMany({});
+  await AutoMessage.deleteMany({});
+
  try {
  const { logAction } = await import('@/lib/logger');
  await logAction("system","Reset Database","Đã xóa toàn bộ dữ liệu (trừ Users).");

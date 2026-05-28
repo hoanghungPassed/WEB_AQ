@@ -88,6 +88,27 @@ export default function AdminLayout({
  const [unreadCount, setUnreadCount] = useState(0);
   const [brandName, setBrandName] = useState("AQ MEDIA");
 
+  const handleMessageClick = async (partner: any) => {
+    setActiveChatUser(partner);
+    const partnerId = partner.id || partner._id;
+    if (partnerId) {
+      try {
+        await fetch('/api/messages/mark-read', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': user?.id || user?._id || ''
+          },
+          body: JSON.stringify({ partnerId })
+        });
+        if (typeof mutateChat === 'function') {
+          await mutateChat();
+        }
+        router.refresh();
+      } catch (e) {}
+    }
+  };
+
   useEffect(() => {
     const loadAgencyConfig = () => {
       const savedConfig = localStorage.getItem("global_agency_config");
@@ -2052,7 +2073,7 @@ const typingTimer = setInterval(checkTyping, 1000);
  {(chatUsers || []).map((u: any) => (
  <button
  key={u.id}
- onClick={() => setActiveChatUser(u)}
+ onClick={() => handleMessageClick(u)}
  className="w-full p-3 flex items-center gap-3 rounded-xl hover:bg-white/[0.08] bg-white/5 transition-all text-left group"
  >
  <div className="relative">

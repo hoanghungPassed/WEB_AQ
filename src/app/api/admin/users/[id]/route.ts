@@ -28,6 +28,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
  data.password = await hashPassword(data.password);
  }
 
+  const body = data;
+  if (body.status === 'APPROVED' || body.status === 'ACTIVE') {
+    body.lastActive = null;
+  }
+
  // { new: true } trả về document sau khi đã update, select('-password') bỏ mật khẩu
  const updatedUser = await User.findByIdAndUpdate(id, data, { new: true }).select('-password');
  

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from"react";
 import { useRouter, usePathname } from"next/navigation";
 import { StaffData } from"@/types/admin";
+import { mutate } from "swr";
 
 interface AuthContextType {
  user: StaffData | null;
@@ -95,12 +96,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
  const logout = async () => {
  try {
  setLoading(true);
- await fetch("/api/auth/logout", { method:"POST" });
+ // Ensure the fetch is fully awaited and completed first
+ const logoutResponse = await fetch("/api/auth/logout", { method: "POST" });
+ if (logoutResponse.ok) {
+   // completed successfully
+ }
  setUser(null);
  if (typeof window !=="undefined") {
  sessionStorage.removeItem("user");
  localStorage.removeItem("user");
  }
+ // Flush browser SWR cache next
+ mutate(() => true, undefined, { revalidate: false });
+ // Finally navigate to login
  router.push("/login");
  } catch (error) {
  console.error("Logout failed:", error);
