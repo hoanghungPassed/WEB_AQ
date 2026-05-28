@@ -18,9 +18,9 @@ export async function POST(req: NextRequest) {
     const lowercaseUsername = username.toLowerCase();
 
     // Kiểm tra username đã tồn tại chưa trong MongoDB User collection
-    const existing = await User.findOne({ username: lowercaseUsername });
-    if (existing) {
-      return NextResponse.json({ error: "Username đã tồn tại" }, { status: 400 });
+    const existingUser = await User.findOne({ username: lowercaseUsername });
+    if (existingUser) {
+      return NextResponse.json({ error: "Tên đăng nhập đã tồn tại" }, { status: 400 });
     }
 
     // Hash mật khẩu
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       isOnline: false,
       taskCount: 0,
       kpiProgress: 0,
-      lastActive: "Mới đăng ký"
+      lastActive: new Date()
     });
 
     await newUser.save();

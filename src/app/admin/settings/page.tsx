@@ -910,7 +910,8 @@ export default function SettingsPage() {
  value={workStartTime}
  onChange={(e) => setWorkStartTime(e.target.value)}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ disabled={user?.role !== '01' && user?.role !== '02'}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark] disabled:opacity-50 disabled:cursor-not-allowed"
  />
  </div>
  </div>
@@ -922,7 +923,8 @@ export default function SettingsPage() {
  value={workEndTime}
  onChange={(e) => setWorkEndTime(e.target.value)}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ disabled={user?.role !== '01' && user?.role !== '02'}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark] disabled:opacity-50 disabled:cursor-not-allowed"
  />
  </div>
  </div>
@@ -934,7 +936,8 @@ export default function SettingsPage() {
  value={systemCloseTime}
  onChange={(e) => setSystemCloseTime(e.target.value)}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-lg text-amber-500 outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ disabled={user?.role !== '01' && user?.role !== '02'}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-lg text-amber-500 outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark] disabled:opacity-50 disabled:cursor-not-allowed"
  />
  </div>
  </div>

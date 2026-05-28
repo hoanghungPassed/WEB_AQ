@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     // Kiểm tra username đã tồn tại chưa
     const existing = await User.findOne({ username: data.username });
     if (existing) {
-      return NextResponse.json({ error: "Username đã tồn tại" }, { status: 400 });
+      return NextResponse.json({ error: "Tên đăng nhập đã tồn tại" }, { status: 400 });
     }
 
     const newUser = new User(data);

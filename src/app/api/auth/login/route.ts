@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from"next/server";
 import dbConnect from"@/lib/mongodb";
 import User from"@/models/User";
+import { Attendance } from "@/models/Attendance";
+import { SystemSetting } from "@/models/SystemSetting";
+import { Notification } from "@/models/Notification";
 import {
  comparePassword,
  isHashed,
@@ -85,14 +88,68 @@ export async function POST(req: NextRequest) {
  );
  }
 
- // Cập nhật trạng thái online và check-in
- user.isOnline = true;
- user.lastActive = now;
- if (!user.checkInTime || !user.checkInTime.startsWith(now.toISOString().split("T")[0])) {
- user.checkInTime = now.toISOString();
- user.checkOutTime = undefined; // Reset checkout for new day
- }
- await user.save();
+  // Cập nhật trạng thái online và check-in
+  user.isOnline = true;
+  user.lastActive = now;
+  if (!user.checkInTime || !user.checkInTime.startsWith(now.toISOString().split("T")[0])) {
+    user.checkInTime = now.toISOString();
+    user.checkOutTime = undefined; // Reset checkout for new day
+  }
+  await user.save();
+
+  // --- AUTOMATIC CHECK-IN & LATENESS CHECK ---
+  try {
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    const vnTime = new Date(utc + 3600000 * 7); // Vietnam GMT+7
+    const yyyy = vnTime.getFullYear();
+    const mm = String(vnTime.getMonth() + 1).padStart(2, "0");
+    const dd = String(vnTime.getDate()).padStart(2, "0");
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+
+    let attendance = await Attendance.findOne({ userId: user._id, date: todayStr });
+    if (!attendance) {
+      // Lấy giờ mở cửa làm mốc đi muộn từ SystemSetting
+      let checkInLimitStr = "08:00";
+      const settings = await SystemSetting.findOne();
+      if (settings && settings.openTime) {
+        checkInLimitStr = settings.openTime;
+      }
+
+      const [limitHour, limitMinute] = checkInLimitStr.split(":").map(Number);
+      const limitTotalMins = (limitHour || 8) * 60 + (limitMinute || 0);
+      const currentTotalMins = vnTime.getHours() * 60 + vnTime.getMinutes();
+
+      const isLate = currentTotalMins > limitTotalMins;
+      const status = isLate ? "Đi muộn" : "Đúng giờ";
+
+      attendance = await Attendance.create({
+        userId: user._id,
+        username: user.username,
+        name: user.name,
+        date: todayStr,
+        checkInTime: now,
+        status,
+      });
+
+      if (isLate) {
+        const timeString = vnTime.toLocaleTimeString("vi-VN", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+        await Notification.create({
+          title: "Cảnh báo đi muộn",
+          message: `Nhân viên ${user.name} vừa đăng nhập đi muộn vào lúc ${timeString}`,
+          type: "LATE_WARNING",
+          author: user._id,
+          isRead: false,
+        });
+      }
+    }
+  } catch (attError) {
+    console.error("Lỗi tự động điểm danh khi đăng nhập:", attError);
+  }
+  // --- KẾT THÚC ---
 
  // Tạo JWT token
  const token = signToken({

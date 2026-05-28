@@ -895,43 +895,48 @@ export default function AdminLayout({
   useEffect(() => {
     if (!user) return;
     
-    const checkSystemClosed = () => {
-      // Do not kick admin (role "01", "02" or ADMIN)
-      const roleStr = String(user.role || "").toUpperCase();
-      const isAdmin = roleStr === "01" || roleStr === "02" || roleStr === "ADMIN";
-      if (isAdmin) return;
+    const checkSystemClosed = async () => {
+      const roleStr = String(user.role || "");
+      const isStaff = roleStr === "03" || roleStr === "04";
+      if (!isStaff) return;
 
-      // Get system closed time from global work config
-      let endTimeStr = "18:00";
-      const savedWorkConfigStr = localStorage.getItem("global_work_config");
-      if (savedWorkConfigStr) {
-        try {
-          const wc = JSON.parse(savedWorkConfigStr);
-          if (wc.endTime) endTimeStr = wc.endTime;
-        } catch (e) {}
-      }
+      try {
+        const res = await fetch("/api/admin/settings");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data) {
+            const dbSettings = data.data;
+            const closeTime = dbSettings.closeTime || "18:00";
+            
+            const [h, m] = closeTime.split(":");
+            const closeTimeMins = parseInt(h, 10) * 60 + parseInt(m, 10);
 
-      const [h, m] = endTimeStr.split(":");
-      const closeTimeMins = parseInt(h) * 60 + parseInt(m);
+            // VN time conversion
+            const now = new Date();
+            const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+            const vnTime = new Date(utc + 3600000 * 7);
+            const currentTotalMinutes = vnTime.getHours() * 60 + vnTime.getMinutes();
 
-      const now = new Date();
-      const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
-
-      if (currentTotalMinutes >= closeTimeMins) {
-        // Kick out
-        fetch("/api/auth/logout", { method: "POST" })
-          .finally(() => {
-            if (typeof window !== "undefined") {
-              sessionStorage.clear();
-              localStorage.removeItem("user");
-              window.location.href = "/login?error=system_closed";
+            if (currentTotalMinutes >= closeTimeMins) {
+              // Kick out by calling logout API and cleaning state
+              fetch("/api/auth/logout", { method: "POST" })
+                .finally(() => {
+                  if (typeof window !== "undefined") {
+                    sessionStorage.clear();
+                    localStorage.removeItem("user");
+                    window.location.href = "/login?error=system_closed";
+                  }
+                });
             }
-          });
+          }
+        }
+      } catch (err) {
+        console.error("Auto-kick check failed:", err);
       }
     };
 
     checkSystemClosed();
-    const interval = setInterval(checkSystemClosed, 10000); // Check every 10s
+    const interval = setInterval(checkSystemClosed, 60000); // Check every 1 minute (60000ms)
     return () => clearInterval(interval);
   }, [user]);
 

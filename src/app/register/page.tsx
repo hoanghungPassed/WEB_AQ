@@ -145,7 +145,7 @@ export default function RegisterPage() {
     isOnline: false,
     taskCount: 0,
     kpiProgress: 0,
-    lastActive: "Mới đăng ký"
+    lastActive: new Date()
   };
 
   // Loại bỏ trùng lặp nếu có trong global_users
