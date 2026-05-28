@@ -64,59 +64,60 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 // Xóa nhân sự
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
- try {
- await dbConnect();
- 
- const { id } = await params;
- const reqUserId = req.headers.get("x-user-id");
- const role = req.headers.get("x-user-role");
-
- if (role !=="01" && role !=="03") {
- return NextResponse.json({ error:"Không có quyền xóa nhân sự" }, { status: 403 });
- }
-
- // Không cho phép tự xóa chính mình
- if (id === reqUserId) {
- return NextResponse.json({ error:"Không thể tự xóa tài khoản của chính mình" }, { status: 400 });
- }
-
-  // 6. BẢO TOÀN DỮ LIỆU KHI XÓA USER: Thu hồi toàn bộ Tasks và Mails về kho chung
-  // Update Tasks assigned to this user
-  await Task.updateMany(
-    { $or: [{ assigneeId: id }, { assignee: id }, { assignedTo: id }] },
-    { $set: { assigneeId: null, assigneeName: null, assignee: null, assignedTo: null, isAssigned: false } }
-  );
-
-  // Update Mails (Satellite, Root, Monetized) assigned to this user
-  const mailQuery = { $or: [{ assignee: id }, { assigneeId: String(id) }, { assignedTo: id }] };
-  const mailUpdate = { $set: { assignee: null, assigneeId: null, assignedTo: null, isAssigned: false } };
-
-  await SatelliteMail.updateMany(mailQuery, mailUpdate);
-  await RootMail.updateMany(mailQuery, mailUpdate);
-  await MonetizedMail.updateMany(mailQuery, mailUpdate);
-
-  // DỌN DẸP DỮ LIỆU PHỤ THUỘC (CASCADE DELETE & ORPHAN CLEANUP)
+export async function DELETE(req: NextRequest, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
   try {
-    const { Attendance } = await import("@/models/Attendance");
-    const { Message } = await import("@/models/Message");
-    const { Kpi } = await import("@/models/Kpi");
-    const { Payroll } = await import("@/models/Payroll");
-    const { Fine } = await import("@/models/Fine");
+  await dbConnect();
+  
+  const params = await paramsPromise;
+  const id = params.id;
+  const reqUserId = req.headers.get("x-user-id");
+  const role = req.headers.get("x-user-role");
 
-    // Dọn điểm danh
-    await Attendance.deleteMany({ userId: id });
-    // Dọn tin nhắn
-    await Message.deleteMany({ $or: [{ senderId: id }, { receiverId: id }] });
-    // Dọn KPI
-    await Kpi.deleteMany({ userId: id });
-    // Dọn lương
-    await Payroll.deleteMany({ userId: id });
-    // Dọn phạt
-    await Fine.deleteMany({ userId: id });
-  } catch (cleanErr) {
-    console.error("Lỗi khi dọn dẹp dữ liệu rác (orphan cleanup):", cleanErr);
+  if (role !=="01" && role !=="03") {
+  return NextResponse.json({ error:"Không có quyền xóa nhân sự" }, { status: 403 });
   }
+
+  // Không cho phép tự xóa chính mình
+  if (id === reqUserId) {
+  return NextResponse.json({ error:"Không thể tự xóa tài khoản của chính mình" }, { status: 400 });
+  }
+
+  // Dynamically import dependent models to prevent schema registration errors
+  const { Attendance } = await import("@/models/Attendance");
+  const { Message } = await import("@/models/Message");
+  const { Kpi } = await import("@/models/Kpi");
+  const { Payroll } = await import("@/models/Payroll");
+  const { Fine } = await import("@/models/Fine");
+  const { Notification } = await import("@/models/Notification");
+
+  // CHUỖI LỆNH DỌN SẠCH MỌI DỮ LIỆU LIÊN QUAN ĐẾN USER (BẮT BUỘC)
+  await Attendance.deleteMany({ userId: params.id });
+  await Message.deleteMany({ $or: [{ senderId: params.id }, { receiverId: params.id }] });
+  await Task.updateMany({ assignedTo: params.id }, { assignedTo: null, isAssigned: false, status: 'PENDING' });
+  await SatelliteMail.updateMany({ assignedTo: params.id }, { assignedTo: null, isAssigned: false });
+  await RootMail.updateMany({ assignedTo: params.id }, { assignedTo: null, isAssigned: false });
+  await Kpi.deleteMany({ userId: params.id });
+  await Payroll.deleteMany({ userId: params.id });
+  await Fine.deleteMany({ userId: params.id });
+  await Notification.deleteMany({ author: params.id });
+
+  // Additional cleanup to safeguard fallback assignee fields and monetized mails
+  await Task.updateMany(
+    { $or: [{ assigneeId: params.id }, { assignee: params.id }] },
+    { $set: { assigneeId: null, assigneeName: null, assignee: null, isAssigned: false, status: 'PENDING' } }
+  );
+  await SatelliteMail.updateMany(
+    { $or: [{ assignee: params.id }, { assigneeId: String(params.id) }] },
+    { $set: { assignee: null, assigneeId: null, isAssigned: false } }
+  );
+  await RootMail.updateMany(
+    { $or: [{ assignee: params.id }, { assigneeId: String(params.id) }] },
+    { $set: { assignee: null, assigneeId: null, isAssigned: false } }
+  );
+  await MonetizedMail.updateMany(
+    { $or: [{ assignee: params.id }, { assigneeId: String(params.id) }, { assignedTo: params.id }] },
+    { $set: { assignee: null, assigneeId: null, assignedTo: null, isAssigned: false } }
+  );
 
   const deletedUser = await User.findByIdAndDelete(id);
   

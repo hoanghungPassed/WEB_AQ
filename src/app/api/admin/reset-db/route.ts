@@ -12,18 +12,22 @@ export async function POST(request: Request) {
 
  await dbConnect();
 
- const db = mongoose.connection.db;
- if (!db) {
- return NextResponse.json({ error:"Không thể kết nối Database" }, { status: 500 });
- }
+  const db = mongoose.connection.db;
+  if (!db) {
+  return NextResponse.json({ error:"Không thể kết nối Database" }, { status: 500 });
+  }
 
- const collections = await db.listCollections().toArray();
- 
- for (const col of collections) {
- if (col.name !=="users" && !col.name.startsWith("system.")) {
- await db.dropCollection(col.name);
- }
- }
+  const collections = await db.listCollections().toArray();
+  
+  for (const col of collections) {
+    if (col.name !=="users" && col.name !=="system_settings" && col.name !=="systemsettings" && !col.name.startsWith("system.")) {
+      await db.dropCollection(col.name);
+    }
+  }
+
+  // Delete all users EXCEPT role Admin ('01') to safeguard main account
+  const User = (await import("@/models/User")).default;
+  await User.deleteMany({ role: { $ne: "01" } });
 
  try {
  const { logAction } = await import('@/lib/logger');

@@ -870,7 +870,7 @@ export default function AdminLayout({
     return Date.now();
   }, { refreshInterval: 3000 });
 
-  useSWR("sync_chat_rlt", async () => {
+  const { mutate: mutateChat } = useSWR("sync_chat_rlt", async () => {
     if (user) loadChatData();
     return Date.now();
   }, { refreshInterval: 3000 });
@@ -1070,8 +1070,16 @@ const typingTimer = setInterval(checkTyping, 1000);
         if (partnerId) {
           fetch("/api/messages/mark-read", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+              "Content-Type": "application/json",
+              "x-user-id": user?.id || user?._id || ""
+            },
             body: JSON.stringify({ partnerId })
+          }).then(() => {
+            if (typeof mutateChat === "function") {
+              mutateChat();
+            }
+            router.refresh();
           }).catch(err => {});
         }
 

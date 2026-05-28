@@ -122,14 +122,15 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
       if (!n.targetUsername || n.targetUsername.toLowerCase() === user?.username?.toLowerCase()) {
         if (!n.read && n.id && !n.id.startsWith("access-")) {
           try {
-            await fetch(`/api/admin/notifications/${n.id}`, {
+            await fetch('/api/admin/notifications/' + n.id, {
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
-                "x-user-id": user?.id || ""
+                "x-user-id": user?.id || user?._id || ""
               },
               body: JSON.stringify({ isRead: true })
             });
+            router.refresh();
           } catch (err) {
             console.error("Error setting notification read in DB:", err);
           }
@@ -165,14 +166,15 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
 
     if (id && !id.startsWith("access-")) {
       try {
-        await fetch(`/api/admin/notifications/${id}`, {
+        await fetch('/api/admin/notifications/' + id, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            "x-user-id": user?.id || ""
+            "x-user-id": user?.id || user?._id || ""
           },
           body: JSON.stringify({ isRead: true })
         });
+        router.refresh();
       } catch (err) {
         console.error("Error setting notification read in DB:", err);
       }
