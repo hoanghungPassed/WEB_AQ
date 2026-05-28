@@ -92,7 +92,7 @@ export default function SatelliteBatchesPage() {
  window.location.href ="/login";
  }
 
- const loadData = () => {
+ const loadData = async () => {
  // 1. Load Batches
  const savedBatches = localStorage.getItem("global_satellite_batches");
  const savedMails = localStorage.getItem("global_mails_data");
@@ -123,13 +123,27 @@ export default function SatelliteBatchesPage() {
  });
  setBatches(syncedList);
 
- // 2. Load Staff (All staff members, display online status)
- const savedUsers = localStorage.getItem("global_users");
- const users = savedUsers ? JSON.parse(savedUsers) : [];
- const staffOnly = (users || []).filter((u: any) => 
- u.role ==="04" || u.role ==="05" || u.role ==="03" || u.role ==="NHÂN VIÊN" || u.role ==="NV THỬ VIỆC" || u.role ==="QUẢN LÝ NHÂN SỰ"
- );
- setStaffList(staffOnly);
+  // 2. Load Staff from API (real-time online status from DB)
+  try {
+    const staffRes = await fetch("/api/admin/users");
+    if (staffRes.ok) {
+      const staffData = await staffRes.json();
+      const allUsers = staffData.users || staffData.data || [];
+      const staffOnly = (allUsers || []).filter((u: any) => 
+        u.role ==="04" || u.role ==="05" || u.role ==="03" || u.role ==="NHÂN VIÊN" || u.role ==="NV THỬ VIỆC" || u.role ==="QUẢN LÝ NHÂN SỰ"
+      );
+      setStaffList(staffOnly);
+    }
+  } catch (err) {
+    console.error("Lỗi fetch danh sách nhân sự:", err);
+    // Fallback to localStorage if API fails
+    const savedUsers = localStorage.getItem("global_users");
+    const users = savedUsers ? JSON.parse(savedUsers) : [];
+    const staffOnly = (users || []).filter((u: any) => 
+      u.role ==="04" || u.role ==="05" || u.role ==="03" || u.role ==="NHÂN VIÊN" || u.role ==="NV THỬ VIỆC" || u.role ==="QUẢN LÝ NHÂN SỰ"
+    );
+    setStaffList(staffOnly);
+  }
  };
 
  loadData();
