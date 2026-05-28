@@ -55,12 +55,24 @@ export async function middleware(request: NextRequest) {
 
     const isStaff = role === "03" || role === "04" || role === "05";
 
-    // 1. KIỂM TRA PHÂN QUYỀN TRÊN GIAO DIỆN UI /admin/*
-    // Chặn role 03, 04, 05 truy cập các trang UI /admin/*
+    // 1. KIỂM TRA PHÂN QUYỀN TRÊN GIAO DIỆN UI /admin/* (Sử dụng Blacklist)
+    // Chặn role 03, 04, 05 truy cập các trang nhạy cảm và redirect họ về /admin/tasks
     if (isAdminPage && isStaff) {
-      const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("error", "unauthorized");
-      return NextResponse.redirect(loginUrl);
+      const blacklist = [
+        "/admin/staff",
+        "/admin/settings",
+        "/admin/payroll",
+        "/admin/mail",
+        "/admin/phone"
+      ];
+
+      const isBlacklisted = blacklist.some(
+        (path) => pathname === path || pathname.startsWith(path + "/")
+      );
+
+      if (isBlacklisted) {
+        return NextResponse.redirect(new URL("/admin/tasks", request.url));
+      }
     }
 
     // 2. KIỂM TRA GIỜ HÀNH CHÍNH (AUTO-KICK) CHO NHÂN VIÊN
@@ -110,18 +122,21 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // 3. KIỂM TRA PHÂN QUYỀN API CHO NHÂN VIÊN (Bypass ngoại lệ)
-    if (isApiCall && isStaff) {
+    // 3. KIỂM TRA PHÂN QUYỀN API CHO NHÂN VIÊN (Bypass ngoại lệ theo yêu cầu bảo mật)
+    if (isApiCall && isStaff && pathname.startsWith("/api/admin")) {
       const isAllowedEndpoint = 
         pathname.startsWith("/api/admin/tasks") ||
         pathname.startsWith("/api/admin/attendance") ||
         pathname.startsWith("/api/admin/notifications") ||
+        pathname.startsWith("/api/admin/messages") ||
         pathname.startsWith("/api/messages") ||
+        pathname.startsWith("/api/admin/fines") ||
+        (pathname.startsWith("/api/admin/settings") && method === "GET") ||
         (pathname.startsWith("/api/admin/users") && method === "GET");
 
       if (!isAllowedEndpoint) {
         return NextResponse.json(
-          { error: "Bạn không có quyền truy cập API này." },
+          { error: "Bạn không có quyền truy cập API này" },
           { status: 403 }
         );
       }

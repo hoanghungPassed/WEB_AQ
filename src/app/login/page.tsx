@@ -88,7 +88,12 @@ function LoginForm() {
  if (res.ok) {
  // Lưu thông tin user vào context
  login(data.user);
- router.push("/admin");
+ const role = String(data.user.role || "").toUpperCase();
+ if (role === "01" || role === "02" || role === "ADMIN" || role === "QL CÔNG VIỆC" || role === "QUẢN LÝ CÔNG VIỆC") {
+   router.push("/admin");
+ } else {
+   router.push("/admin/tasks");
+ }
  } else {
  setError(data.error ||"Đăng nhập thất bại");
  }
