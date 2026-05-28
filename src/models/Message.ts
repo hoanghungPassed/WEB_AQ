@@ -11,6 +11,7 @@ export interface IMessage extends Document {
   isSent: boolean;
   isDelivered: boolean;
   isRead: boolean;
+  isDeleted?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,7 +27,8 @@ const MessageSchema: Schema = new Schema(
     content: { type: String, required: true },
     isSent: { type: Boolean, default: true },
     isDelivered: { type: Boolean, default: false },
-    isRead: { type: Boolean, default: false }
+    isRead: { type: Boolean, default: false },
+    isDeleted: { type: Boolean, default: false }
   },
   { timestamps: true }
 );

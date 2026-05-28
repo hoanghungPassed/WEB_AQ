@@ -2,20 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
 /**
- * Proxy bảo mật (Next.js 16): Kiểm tra JWT token cho các route cần xác thực.
- * - /admin/* -> Yêu cầu đăng nhập (có cookie aq_token hợp lệ)
- * - /api/admin/* -> Yêu cầu đăng nhập + inject role headers
- * - Thêm kiểm tra giờ làm việc (Auto-kick) cho các tài khoản không phải Admin
- *
- * Sử dụng thư viện `jose` để verify JWT signature (tương thích Edge Runtime).
+ * Next.js Production Middleware:
+ * - Bảo vệ các subroute /admin/*: chỉ cho phép Admin (role 01, 02) truy cập.
+ * - Kiểm tra giờ làm việc (Auto-kick): nhân viên (03, 04) truy cập ngoài giờ hành chính (sau closeTime hoặc 18:00) sẽ bị kick.
+ * - Inject các header xác thực cho API routes.
  */
 
 const COOKIE_NAME = "aq_token";
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Chỉ bảo vệ các route /admin và /api/admin
   const isAdminPage = pathname.startsWith("/admin");
   const isAdminApi = pathname.startsWith("/api/admin");
 
@@ -39,7 +36,7 @@ export async function proxy(request: NextRequest) {
   }
 
   try {
-    // Verify JWT signature + check expiry bằng jose
+    // Verify JWT token signature using jose (Edge-compatible)
     const secret = new TextEncoder().encode(
       process.env.JWT_SECRET || "aq_media_jwt_secret_2026_xKp9mNvQ3rT8wZ"
     );
@@ -49,32 +46,50 @@ export async function proxy(request: NextRequest) {
     const role = String(payload.role || "").toUpperCase();
     const username = String(payload.username || "");
 
-    // 2. BẢO MẬT PROXY (AUTO-KICK HẾT GIỜ LÀM VIỆC)
-    // Check if user role is NOT Admin ("01" or "ADMIN")
-    const isAdmin = role === "01" || role === "ADMIN";
+    // 1. PHÂN LUỒNG BẢO VỆ TUYỆT ĐỐI /admin/*
+    // Nếu truy cập /admin/* mà role không phải 01 hoặc 02 -> Redirect về /
+    const isSubPath = pathname.startsWith("/admin/") && pathname !== "/admin";
+    const isRestrictedRole = role !== "01" && role !== "02";
 
-    if (!isAdmin) {
-      // Get current Vietnam time (GMT+7)
+    if (isRestrictedRole && isSubPath) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    // 2. TÍCH HỢP AUTO-KICK NGOÀI GIỜ HÀNH CHÍNH
+    // Nếu ngoài giờ hành chính VÀ role là nhân viên (03, 04) -> Redirect về /login?error=closed
+    if (role === "03" || role === "04") {
       const now = new Date();
       const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-      const vnTime = new Date(utc + 3600000 * 7);
+      const vnTime = new Date(utc + 3600000 * 7); // GMT+7
 
       const hours = vnTime.getHours();
       const minutes = vnTime.getMinutes();
+      const currentMinutes = hours * 60 + minutes;
 
-      // Retrieve closeTime configuration (default: 18:00)
-      let limitHour = 18;
-      let limitMinute = 0;
+      // Mặc định giờ mở cửa là 08:00, giờ đóng cửa là 18:00
+      let openHour = 8;
+      let openMinute = 0;
+      let closeHour = 18;
+      let closeMinute = 0;
+
+      const openTimeCookie = request.cookies.get("open_time")?.value;
+      if (openTimeCookie && openTimeCookie.includes(":")) {
+        const parts = openTimeCookie.split(":");
+        openHour = parseInt(parts[0], 10) || 8;
+        openMinute = parseInt(parts[1], 10) || 0;
+      }
 
       const closeTimeCookie = request.cookies.get("close_time")?.value;
       if (closeTimeCookie && closeTimeCookie.includes(":")) {
         const parts = closeTimeCookie.split(":");
-        limitHour = parseInt(parts[0], 10) || 18;
-        limitMinute = parseInt(parts[1], 10) || 0;
+        closeHour = parseInt(parts[0], 10) || 18;
+        closeMinute = parseInt(parts[1], 10) || 0;
       }
 
-      // If outside working hours, automatically kick user out
-      if (hours > limitHour || (hours === limitHour && minutes >= limitMinute)) {
+      const openMinutes = openHour * 60 + openMinute;
+      const closeMinutes = closeHour * 60 + closeMinute;
+
+      if (currentMinutes < openMinutes || currentMinutes >= closeMinutes) {
         const loginUrl = new URL("/login", request.url);
         loginUrl.searchParams.set("error", "closed");
         const response = NextResponse.redirect(loginUrl);
@@ -94,7 +109,7 @@ export async function proxy(request: NextRequest) {
         headers: requestHeaders,
       },
     });
-  } catch {
+  } catch (err) {
     // Token không hợp lệ hoặc hết hạn
     const response = isAdminApi
       ? NextResponse.json(

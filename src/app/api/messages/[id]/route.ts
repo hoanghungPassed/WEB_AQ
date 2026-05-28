@@ -31,7 +31,8 @@ export async function PUT(
     }
 
     // Recall message content
-    message.content = "Tin nhắn đã được thu hồi";
+    message.content = "Tin nhắn đã bị thu hồi";
+    message.isDeleted = true;
     await message.save();
 
     return NextResponse.json({ success: true, data: message });
