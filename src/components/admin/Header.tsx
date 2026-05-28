@@ -117,22 +117,27 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
 
   const unreadCount = (uniqueNotifications || []).filter(n => !n.read).length;
 
-  const markAllRead = () => {
-    const updated = (notifications || []).map(n => {
+  const markAllRead = async () => {
+    const updated = await Promise.all((notifications || []).map(async (n) => {
       if (!n.targetUsername || n.targetUsername.toLowerCase() === user?.username?.toLowerCase()) {
         if (!n.read && n.id && !n.id.startsWith("access-")) {
-          fetch(`/api/admin/notifications/${n.id}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              "x-user-id": user?.id || ""
-            }
-          }).catch(err => console.error("Error setting notification read in DB:", err));
+          try {
+            await fetch(`/api/admin/notifications/${n.id}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                "x-user-id": user?.id || ""
+              },
+              body: JSON.stringify({ isRead: true })
+            });
+          } catch (err) {
+            console.error("Error setting notification read in DB:", err);
+          }
         }
         return { ...n, read: true };
       }
       return n;
-    });
+    }));
     setNotifications(updated);
     
     // Chỉ cập nhật trạng thái đã đọc cho các thông báo hệ thống nằm trong localStorage
@@ -149,7 +154,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
     window.dispatchEvent(new Event("storage"));
   };
 
-  const markSingleAsRead = (id: string) => {
+  const markSingleAsRead = async (id: string) => {
     const updated = (notifications || []).map(n => {
       if (n.id === id) {
         return { ...n, read: true };
@@ -159,13 +164,18 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
     setNotifications(updated);
 
     if (id && !id.startsWith("access-")) {
-      fetch(`/api/admin/notifications/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-id": user?.id || ""
-        }
-      }).catch(err => console.error("Error setting notification read in DB:", err));
+      try {
+        await fetch(`/api/admin/notifications/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": user?.id || ""
+          },
+          body: JSON.stringify({ isRead: true })
+        });
+      } catch (err) {
+        console.error("Error setting notification read in DB:", err);
+      }
     }
     
     // Chỉ cập nhật trạng thái đã đọc cho đúng thông báo hệ thống trong localStorage

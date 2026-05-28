@@ -58,12 +58,6 @@ const NotificationSchema: Schema = new Schema(
  }
 );
 
-if (mongoose.models.Notification) {
- delete mongoose.models.Notification;
-}
-
-export const Notification: Model<INotification> = mongoose.model<INotification>("Notification", NotificationSchema,"notifications");
-
 // Add a virtual `read` property that maps to `isRead` to match frontend expectations
 NotificationSchema.virtual('read')
 	.get(function (this: any) {
@@ -72,3 +66,9 @@ NotificationSchema.virtual('read')
 	.set(function (this: any, val: boolean) {
 		this.isRead = val;
 	});
+
+if (mongoose.models.Notification) {
+ delete mongoose.models.Notification;
+}
+
+export const Notification: Model<INotification> = mongoose.model<INotification>("Notification", NotificationSchema,"notifications");

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from"react";
 import { motion, AnimatePresence } from"framer-motion";
+import useSWR from "swr";
 import { 
  Users, UserPlus, Search, Filter, MoreHorizontal, 
  CheckCircle2, XCircle, Shield, Activity, 
@@ -18,10 +19,18 @@ const getStableDateString = () => {
  return `${year}-${month}-${day}`;
 };
 
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 export default function StaffManagementPage() {
  const router = useRouter();
  const searchParams = useSearchParams();
  const [staffList, setStaffList] = useState<StaffData[]>([]);
+
+ // SWR real-time polling every 10s for staff list
+ const { data: usersResponse, mutate: mutateUsers } = useSWR("/api/admin/users", fetcher, {
+   refreshInterval: 10000,
+ });
+
  const [currentPage, setCurrentPage] = useState(1);
  const [searchQuery, setSearchQuery] = useState("");
  const [roleFilter, setRoleFilter] = useState("ALL");
@@ -164,21 +173,11 @@ export default function StaffManagementPage() {
 
  // === FETCH STAFF LIST TỪ API ===
  const reloadStaffList = async () => {
- try {
- const res = await fetch("/api/admin/users");
- if (res.ok) {
- const data = await res.json();
- const users: StaffData[] = (data.users || data || []).map((u: any) => ({
- ...u,
- id: u.id || u._id?.toString(),
- }));
- setStaffList(users);
- } else {
- console.warn("Staff fetch failed, status:", res.status);
- }
- } catch (err) {
- console.error("Error loading staff from API:", err);
- }
+   try {
+     await mutateUsers();
+   } catch (err) {
+     console.error("Error loading staff from API:", err);
+   }
  };
 
  const loadAccessRequests = async () => {
@@ -212,34 +211,51 @@ export default function StaffManagementPage() {
  }
  };
 
- // Initialize data from API
- useEffect(() => {
- const syncUser = () => {
- const userStr = sessionStorage.getItem("user") || localStorage.getItem("user");
- if (userStr) setCurrentUser(JSON.parse(userStr));
- };
+  // Sync SWR usersResponse into staffList state & compute isOnline dynamically using standard 15-minute formula
+  useEffect(() => {
+    if (usersResponse) {
+      const users: StaffData[] = (usersResponse.users || usersResponse.data || usersResponse || []).map((u: any) => {
+        const lastActiveDate = u.lastActive ? new Date(u.lastActive) : null;
+        const isOnline = lastActiveDate
+          ? (Date.now() - lastActiveDate.getTime() < 15 * 60 * 1000)
+          : false;
+        return {
+          ...u,
+          id: u.id || u._id?.toString(),
+          isOnline,
+        };
+      });
+      setStaffList(users);
+    }
+  }, [usersResponse]);
 
- syncUser();
- reloadStaffList();
- loadAccessRequests();
- loadDutyRoster();
+  // Initialize data from API
+  useEffect(() => {
+    const syncUser = () => {
+      const userStr = sessionStorage.getItem("user") || localStorage.getItem("user");
+      if (userStr) setCurrentUser(JSON.parse(userStr));
+    };
 
- // Poll định kỳ để bắt kịp thay đổi từ các user khác
- const pollInterval = setInterval(() => {
- reloadStaffList();
- loadAccessRequests();
- }, 5000);
+    syncUser();
+    reloadStaffList();
+    loadAccessRequests();
+    loadDutyRoster();
 
- const handleStorage = () => {
- syncUser();
- };
- window.addEventListener("storage", handleStorage);
+    // Poll định kỳ để bắt kịp thay đổi về access request
+    const pollInterval = setInterval(() => {
+      loadAccessRequests();
+    }, 10000);
 
- return () => {
- window.removeEventListener("storage", handleStorage);
- clearInterval(pollInterval);
- };
- }, []);
+    const handleStorage = () => {
+      syncUser();
+    };
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      clearInterval(pollInterval);
+    };
+  }, []);
 
  useEffect(() => {
    if (activeTab === "AUTO_MESSAGES") {

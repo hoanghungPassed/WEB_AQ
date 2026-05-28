@@ -26,9 +26,8 @@ export async function GET() {
  );
  }
 
- // Cập nhật lastActive khi người dùng tương tác/gọi API
- user.lastActive = new Date();
- await user.save();
+  // Cập nhật lastActive khi người dùng tương tác/gọi API
+  await User.findByIdAndUpdate(user._id, { lastActive: new Date() });
 
  const userObj = user.toObject() as any;
  userObj.id = userObj._id.toString();

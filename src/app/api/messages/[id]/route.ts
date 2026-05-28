@@ -22,6 +22,21 @@ export async function PUT(
       return NextResponse.json({ success: false, error: "Không tìm thấy tin nhắn" }, { status: 404 });
     }
 
+    const body = await req.json().catch(() => ({}));
+    if (body.isRead !== undefined) {
+      const isReceiver = String(message.receiverId) === String(userId);
+      const isSender = String(message.senderId) === String(userId);
+      const isAdmin = userRole === "01" || userRole === "ADMIN" || userRole === "02";
+
+      if (!isReceiver && !isSender && !isAdmin) {
+        return NextResponse.json({ error: "Forbidden: Bạn không có quyền cập nhật tin nhắn này" }, { status: 403 });
+      }
+
+      message.isRead = !!body.isRead;
+      await message.save();
+      return NextResponse.json({ success: true, data: message });
+    }
+
     // Only the message sender or Admin/Manager can recall the message
     const isSender = String(message.senderId) === String(userId);
     const isAdmin = userRole === "01" || userRole === "ADMIN" || userRole === "02";

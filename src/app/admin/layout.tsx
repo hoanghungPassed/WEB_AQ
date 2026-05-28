@@ -944,6 +944,8 @@ export default function AdminLayout({
   useEffect(() => {
     if (!user) return;
     syncRealUsersFromDB();
+    const interval = setInterval(syncRealUsersFromDB, 10000);
+    return () => clearInterval(interval);
   }, [user, syncRealUsersFromDB]);
 
  const formatLateMins = (mins: number) => {
@@ -1051,51 +1053,83 @@ export default function AdminLayout({
  });
  setCompanyTypingUsers(typingList);
  };
-
- const typingTimer = setInterval(checkTyping, 1000);
+const typingTimer = setInterval(checkTyping, 1000);
  return () => clearInterval(typingTimer);
  }, [user, chatTab, activeChatUser, chatUsers]);
 
- // Update last read time when chat is open or when new message is loaded
- useEffect(() => {
- if (isChatOpen && user) {
- localStorage.setItem(`chat_last_read_time_${user?.username}`, Date.now().toString());
+  // Update last read time when chat is open or when new message is loaded
+  useEffect(() => {
+    if (isChatOpen && user) {
+      localStorage.setItem(`chat_last_read_time_${user?.username}`, Date.now().toString());
 
- // If we are actively chatting with a private partner
- if (chatTab ==="PRIVATE" && activeChatUser) {
- localStorage.setItem(`chat_last_read_time_${user?.username}_${activeChatUser.username}`, Date.now().toString());
- }
+      // If we are actively chatting with a private partner
+      if (chatTab === "PRIVATE" && activeChatUser) {
+        const partnerId = activeChatUser.id || activeChatUser._id;
+        
+        // 1. Gọi API GET để MongoDB cập nhật isRead = true
+        if (partnerId) {
+          fetch(`/api/messages?partnerId=${partnerId}`).catch(err => {});
+        }
 
- // Trigger a local state recalculation to instantly clear badge
- const savedCompany = localStorage.getItem("global_company_chat");
- const savedPrivate = localStorage.getItem("global_private_messages");
- let unread = 0;
+        localStorage.setItem(`chat_last_read_time_${user?.username}_${activeChatUser.username}`, Date.now().toString());
+        
+        // 2. Đồng thời cập nhật trạng thái isRead = true cho các tin nhắn trong localStorage và SyncStore
+        const savedPrivate = localStorage.getItem("global_private_messages");
+        if (savedPrivate) {
+          try {
+            const privateArr = JSON.parse(savedPrivate);
+            let hasUnread = false;
+            const updated = privateArr.map((msg: any) => {
+              if (msg.sender === activeChatUser.username && msg.receiver === user?.username && !msg.isRead) {
+                hasUnread = true;
+                return { ...msg, isRead: true };
+              }
+              return msg;
+            });
+            if (hasUnread) {
+              safeSetLocalStorage("global_private_messages", updated);
+              setPrivateMessages(updated);
+              fetch("/api/sync", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ global_private_messages: JSON.stringify(updated) })
+              }).catch(err => console.error("Sync read messages error:", err));
+              window.dispatchEvent(new Event("storage"));
+            }
+          } catch (e) {}
+        }
+      }
 
- const companyArr = savedCompany ? JSON.parse(savedCompany) : [];
- companyArr.forEach((msg: any) => {
- const isMe = msg.senderName === (user?.name || user?.username);
- const msgTime = Number(msg.id.split("_")[1]) || 0;
- if (!isMe && msgTime > 0 && msgTime > Date.now()) {
- unread++;
- }
- });
+      // Trigger a local state recalculation to instantly clear badge
+      const savedCompany = localStorage.getItem("global_company_chat");
+      const savedPrivate = localStorage.getItem("global_private_messages");
+      let unread = 0;
 
- const privateArr = savedPrivate ? JSON.parse(savedPrivate) : [];
- privateArr.forEach((msg: any) => {
- const isMe = msg.sender === user?.username;
- const isForMe = msg.receiver === user?.username;
- const msgTime = Number(msg.id.split("_")[1]) || 0;
- if (!isMe && isForMe && msgTime > 0) {
- const senderReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}_${msg.sender}`);
- const senderReadTime = senderReadTimeStr ? Number(senderReadTimeStr) : 0;
- if (msgTime > senderReadTime) {
- unread++;
- }
- }
- });
- setUnreadCount(unread);
- }
- }, [isChatOpen, chatTab, activeChatUser, companyMessages, privateMessages, user]);
+      const companyArr = savedCompany ? JSON.parse(savedCompany) : [];
+      companyArr.forEach((msg: any) => {
+        const isMe = msg.senderName === (user?.name || user?.username);
+        const msgTime = Number(msg.id.split("_")[1]) || 0;
+        if (!isMe && msgTime > 0 && msgTime > Date.now()) {
+          unread++;
+        }
+      });
+
+      const privateArr = savedPrivate ? JSON.parse(savedPrivate) : [];
+      privateArr.forEach((msg: any) => {
+        const isMe = msg.sender === user?.username;
+        const isForMe = msg.receiver === user?.username;
+        const msgTime = Number(msg.id.split("_")[1]) || 0;
+        if (!isMe && isForMe && msgTime > 0) {
+          const senderReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}_${msg.sender}`);
+          const senderReadTime = senderReadTimeStr ? Number(senderReadTimeStr) : 0;
+          if (msgTime > senderReadTime && !msg.isRead) {
+            unread++;
+          }
+        }
+      });
+      setUnreadCount(unread);
+    }
+  }, [isChatOpen, chatTab, activeChatUser, companyMessages, privateMessages, user]);
 
  const scrollToBottom = () => {
  setTimeout(() => {
@@ -1244,7 +1278,20 @@ export default function AdminLayout({
  headers: {"Content-Type":"application/json" },
  body: JSON.stringify({ global_private_messages: JSON.stringify(updated) })
  }).catch(err => console.error("Chat sync error:", err));
- };
+
+  fetch("/api/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-user-id": user?.id || ""
+    },
+    body: JSON.stringify({
+      content: chatMessage || (selectedChatFile ? `[Tệp tin] ${selectedChatFile.name}` : "[Tệp tin]"),
+      receiverId: activeChatUser.id || activeChatUser._id,
+      isCompanyChat: false
+    })
+  }).catch(err => console.error("POST message to DB error:", err));
+  };
 
  // Kiểm tra giờ làm việc & ngày Chủ Nhật
  const now = new Date();

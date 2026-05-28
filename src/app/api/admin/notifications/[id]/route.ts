@@ -15,10 +15,13 @@ export async function PUT(
     const { id } = await params;
     await dbConnect();
 
+    const body = await req.json().catch(() => ({}));
+    const isRead = body.isRead !== undefined ? !!body.isRead : true;
+
     // Set notification as read
     const notification = await Notification.findByIdAndUpdate(
       id,
-      { $set: { isRead: true } },
+      { $set: { isRead } },
       { new: true }
     );
 
