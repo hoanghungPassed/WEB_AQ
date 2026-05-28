@@ -44,8 +44,9 @@ export async function GET(req: Request) {
  mails.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
  return NextResponse.json({ success: true, data: mails });
- } catch (error: any) {
- return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
  }
 }
 
@@ -130,9 +131,10 @@ export async function POST(req: Request) {
  }
  
  return NextResponse.json({ success: true, data: Array.isArray(payload) ? newMails : newMails[0] }, { status: 201 });
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("LỖI API POST:", error);
- return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
  }
 }
 
@@ -174,8 +176,9 @@ export async function DELETE(req: Request) {
  }
  
  return NextResponse.json({ success: true, deletedCount }, { status: 200 });
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("LỖI API DELETE:", error);
- return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
  }
 }

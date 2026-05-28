@@ -45,8 +45,9 @@ export async function DELETE(
       message: `Đã xóa thành công lô SĐT ${id}`,
       deletedCount: result.deletedCount
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("DELETE phone batch API error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }

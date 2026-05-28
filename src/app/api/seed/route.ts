@@ -27,8 +27,9 @@ export async function GET() {
  await User.insertMany(defaultUsers);
 
  return NextResponse.json({ message:"Đã khởi tạo dữ liệu mẫu thành công" });
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("Seed error:", error);
- return NextResponse.json({ error:"Lỗi khi khởi tạo dữ liệu:" + error.message }, { status: 500 });
+ return NextResponse.json({ error:"Lỗi khi khởi tạo dữ liệu:" + errorMessage }, { status: 500 });
  }
 }

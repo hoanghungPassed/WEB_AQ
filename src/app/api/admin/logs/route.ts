@@ -13,7 +13,8 @@ export async function GET(req: Request) {
  await dbConnect();
  const logs = await Log.find({}).populate('user', 'name username').sort({ createdAt: -1 });
  return NextResponse.json(logs || []);
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("Error fetching system logs:", error);
  return NextResponse.json([], { status: 500 });
  }
@@ -28,9 +29,10 @@ export async function POST(req: Request) {
  const body = await req.json();
  const log = await Log.create(body);
  return NextResponse.json({ success: true, data: log }, { status: 201 });
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("Error creating system log:", error);
- return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
  }
 }
 
@@ -50,8 +52,9 @@ export async function DELETE(req: Request) {
     }
 
     return NextResponse.json({ success: true, message: "Cleared all logs" });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("Error clearing system logs:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }

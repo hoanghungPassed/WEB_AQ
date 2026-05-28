@@ -50,9 +50,10 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, message: "Đổi mật khẩu thành công!" });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("Quên mật khẩu error:", error);
-    return NextResponse.json({ error: "Lỗi máy chủ: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Lỗi máy chủ: " + errorMessage }, { status: 500 });
   }
 }
 export const dynamic = 'force-dynamic';

@@ -18,8 +18,9 @@ export async function GET(req: Request) {
 
  const tasks = await Task.find(query).populate('assigneeId').sort({ createdAt: -1 });
  return NextResponse.json({ success: true, data: tasks });
- } catch (error: any) {
- return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
  }
 }
 
@@ -41,7 +42,8 @@ export async function POST(req: Request) {
  }
 
  return NextResponse.json({ success: true, data: task }, { status: 201 });
- } catch (error: any) {
- return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 400 });
  }
 }

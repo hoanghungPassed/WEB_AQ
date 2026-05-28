@@ -64,7 +64,6 @@ export async function POST(req: NextRequest) {
 
  if (passwordMatch) {
  // Auto-migration: Hash lại mật khẩu plaintext và lưu vào DB
- console.log(`🔄 Auto-hashing password for user: ${user?.username}`);
  user.password = await hashPassword(password);
  await user.save();
  }

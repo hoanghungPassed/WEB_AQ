@@ -120,7 +120,6 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  try {
  const res = await fetch('/api/admin/mails');
  const data = await res.json();
- console.log("Dữ liệu nhận từ DB:", data);
  if (data.success) {
 
  setMails(data.data || []);

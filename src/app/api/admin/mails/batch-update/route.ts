@@ -31,7 +31,8 @@ export async function PUT(req: Request) {
     const totalModified = resRoot.modifiedCount + resSat.modifiedCount + resMon.modifiedCount;
 
     return NextResponse.json({ success: true, modifiedCount: totalModified });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }

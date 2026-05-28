@@ -33,8 +33,9 @@ export async function POST(req: Request) {
  const newPost = await Notification.create(body);
  const populated = await newPost.populate('author', 'name username role avatar');
  return NextResponse.json({ success: true, data: populated }, { status: 201 });
- } catch (error: any) {
- return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
  }
 }
 
@@ -85,8 +86,9 @@ export async function PUT(req: Request) {
  .populate('comments.replies.userId', 'name username role avatar');
  
  return NextResponse.json({ success: true, data: populated });
- } catch (error: any) {
- return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
  }
 }
 
@@ -110,8 +112,9 @@ export async function DELETE(req: Request) {
  } else {
  return NextResponse.json({ success: false, error:"Forbidden: You don't have permission to delete this post." }, { status: 403 });
  }
- } catch (error: any) {
- return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
  }
 }
 

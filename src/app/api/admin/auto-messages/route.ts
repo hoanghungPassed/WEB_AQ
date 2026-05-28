@@ -16,9 +16,10 @@ export async function GET(req: NextRequest) {
 
     const messages = await AutoMessage.find().sort({ createdAt: -1 });
     return NextResponse.json({ success: true, messages });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("Get auto messages error:", error);
-    return NextResponse.json({ error: "Lỗi máy chủ: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Lỗi máy chủ: " + errorMessage }, { status: 500 });
   }
 }
 
@@ -45,8 +46,9 @@ export async function POST(req: NextRequest) {
       message: "Tạo tin nhắn mẫu thành công", 
       data: newMessage 
     }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("Create auto message error:", error);
-    return NextResponse.json({ error: "Lỗi máy chủ: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Lỗi máy chủ: " + errorMessage }, { status: 500 });
   }
 }

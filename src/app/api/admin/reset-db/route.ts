@@ -35,8 +35,9 @@ export async function POST(request: Request) {
  } catch(e) {}
 
  return NextResponse.json({ message:"Đã reset database thành công!" });
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("Reset DB error:", error);
- return NextResponse.json({ error:"Lỗi khi reset database:" + error.message }, { status: 500 });
+ return NextResponse.json({ error:"Lỗi khi reset database:" + errorMessage }, { status: 500 });
  }
 }

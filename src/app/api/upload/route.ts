@@ -25,9 +25,10 @@ export async function POST(req: NextRequest) {
     // Trả về URL tương đối để truy cập qua static files
     const url = `/uploads/${filename}`;
     return NextResponse.json({ success: true, url });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("Lỗi upload ảnh:", error);
-    return NextResponse.json({ error: "Lỗi upload file: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Lỗi upload file: " + errorMessage }, { status: 500 });
   }
 }
 export const dynamic = 'force-dynamic';

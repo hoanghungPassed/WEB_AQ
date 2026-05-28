@@ -12,7 +12,8 @@ export async function POST(req: Request) {
 
     const record = await Payroll.create(body);
     return NextResponse.json({ success: true, data: record });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }

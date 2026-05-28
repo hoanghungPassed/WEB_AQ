@@ -9,14 +9,11 @@ import { MonetizedMail } from "@/models/MonetizedMail";
 
 // Cập nhật thông tin nhân sự
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
- console.log("--- BẮT ĐẦU XỬ LÝ API (USER PUT) ---");
- console.log("Request Method:", req.method);
  try {
  await dbConnect();
  
  const { id } = await params;
  const data = await req.json();
- console.log("Payload nhận được:", data);
 
  const reqUserId = req.headers.get("x-user-id");
  const role = req.headers.get("x-user-role");
@@ -51,15 +48,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
  console.error("Log error:", logErr);
  }
  
- console.log("Kết quả lưu vào MongoDB (User):", updatedUser);
-
  return NextResponse.json({ 
  message:"Cập nhật thành công", 
  user: updatedUser 
  });
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("LỖI CHI TIẾT TẠI BACKEND (User Update):", error);
- return NextResponse.json({ error:"Lỗi máy chủ:" + error.message }, { status: 500 });
+ return NextResponse.json({ error:"Lỗi máy chủ:" + errorMessage }, { status: 500 });
  }
 }
 
@@ -139,8 +135,9 @@ export async function DELETE(req: NextRequest, { params: paramsPromise }: { para
  }
 
  return NextResponse.json({ message:"Đã xóa nhân viên thành công" });
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("Delete user error:", error);
- return NextResponse.json({ error:"Lỗi máy chủ:" + error.message }, { status: 500 });
+ return NextResponse.json({ error:"Lỗi máy chủ:" + errorMessage }, { status: 500 });
  }
 }

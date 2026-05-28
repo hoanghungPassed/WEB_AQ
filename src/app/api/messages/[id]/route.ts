@@ -51,9 +51,10 @@ export async function PUT(
     await message.save();
 
     return NextResponse.json({ success: true, data: message });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("PUT message error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
 
@@ -88,8 +89,9 @@ export async function DELETE(
     await Message.findByIdAndDelete(id);
 
     return NextResponse.json({ success: true, message: "Đã xóa tin nhắn thành công" });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("DELETE message error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }

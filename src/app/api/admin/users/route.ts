@@ -37,9 +37,10 @@ export async function GET(req: NextRequest) {
   });
   
   return NextResponse.json({ success: true, data: mappedUsers, users: mappedUsers });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
   console.error("Get users error:", error);
-  return NextResponse.json({ error:"Lỗi máy chủ:" + error.message }, { status: 500 });
+  return NextResponse.json({ error:"Lỗi máy chủ:" + errorMessage }, { status: 500 });
   }
 }
 
@@ -98,8 +99,9 @@ export async function POST(req: NextRequest) {
  message:"Tạo nhân viên thành công", 
  user: userObj 
  }, { status: 201 });
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("Create user error:", error);
- return NextResponse.json({ error:"Lỗi máy chủ:" + error.message }, { status: 500 });
+ return NextResponse.json({ error:"Lỗi máy chủ:" + errorMessage }, { status: 500 });
  }
 }

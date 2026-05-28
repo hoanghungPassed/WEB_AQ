@@ -31,9 +31,10 @@ export async function POST(req: NextRequest) {
       message: `Đã đánh dấu đã đọc ${result.modifiedCount} tin nhắn`,
       modifiedCount: result.modifiedCount
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("mark-read API error:", error);
-    return NextResponse.json({ error: "Lỗi máy chủ: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Lỗi máy chủ: " + errorMessage }, { status: 500 });
   }
 }
 export const dynamic = 'force-dynamic';

@@ -39,7 +39,6 @@ if (!globalThis.mongoose) {
  * Returns the cached Mongoose instance if a connection already exists.
  */
 async function dbConnect(): Promise<typeof mongoose> {
- console.log("URI:", process.env.MONGODB_URI);
  const MONGODB_URI = process.env.MONGODB_URI;
 
  if (!MONGODB_URI) {
@@ -61,7 +60,6 @@ async function dbConnect(): Promise<typeof mongoose> {
  cached.promise = mongoose
  .connect(MONGODB_URI as string, opts)
  .then((mongooseInstance) => {
- console.log("✅ MongoDB connected successfully");
  return mongooseInstance;
  });
  }

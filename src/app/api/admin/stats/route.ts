@@ -27,8 +27,9 @@ export async function GET(req: Request) {
  const totalFines = (priceAggregation[0]?.total as number) || 0;
 
  return NextResponse.json({ totalMails, activeStaff, totalFines });
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("Error fetching admin stats:", error);
- return NextResponse.json({ error: error.message, totalMails: 0, activeStaff: 0, totalFines: 0 }, { status: 500 });
+ return NextResponse.json({ error: errorMessage, totalMails: 0, activeStaff: 0, totalFines: 0 }, { status: 500 });
  }
 }

@@ -25,9 +25,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       message: "Cập nhật tin nhắn mẫu thành công", 
       data: updated 
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("Update auto message error:", error);
-    return NextResponse.json({ error: "Lỗi máy chủ: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Lỗi máy chủ: " + errorMessage }, { status: 500 });
   }
 }
 
@@ -52,8 +53,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       success: true, 
       message: "Xóa tin nhắn mẫu thành công" 
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("Delete auto message error:", error);
-    return NextResponse.json({ error: "Lỗi máy chủ: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Lỗi máy chủ: " + errorMessage }, { status: 500 });
   }
 }

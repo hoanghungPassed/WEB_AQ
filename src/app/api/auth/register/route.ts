@@ -78,8 +78,9 @@ export async function POST(req: NextRequest) {
       message: "Đăng ký thành công, vui lòng chờ duyệt",
       user: userObj
     }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("Registration api error:", error);
-    return NextResponse.json({ error: "Lỗi máy chủ: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Lỗi máy chủ: " + errorMessage }, { status: 500 });
   }
 }

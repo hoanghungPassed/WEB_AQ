@@ -62,8 +62,9 @@ export async function POST() {
  }
 
  return NextResponse.json({ success: true, message: `Auto fines calculation completed for ${staffs.length} staff members. Fined: ${count}` });
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("Error auto calculating fines:", error);
- return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
  }
 }

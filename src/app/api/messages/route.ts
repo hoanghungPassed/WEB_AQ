@@ -47,9 +47,10 @@ export async function GET(req: Request) {
       .limit(100); // cap to 100 messages for performance
 
     return NextResponse.json({ success: true, data: messages });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("GET messages API error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
 
@@ -96,8 +97,9 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ success: true, data: newMessage }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("POST messages API error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }

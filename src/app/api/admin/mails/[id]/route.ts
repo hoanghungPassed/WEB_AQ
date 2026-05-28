@@ -32,8 +32,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
  return NextResponse.json({ success: false, error:"Mail not found" }, { status: 404 });
  }
  return NextResponse.json({ success: true, data: mail });
- } catch (error: any) {
- return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 400 });
  }
 }
 
@@ -63,7 +64,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
  return NextResponse.json({ success: false, error:"Mail not found" }, { status: 404 });
  }
  return NextResponse.json({ success: true, data: {} });
- } catch (error: any) {
- return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 400 });
  }
 }

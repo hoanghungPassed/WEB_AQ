@@ -14,7 +14,8 @@ export async function GET() {
  result[doc.key] = doc.value;
  }
  return NextResponse.json(result);
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("Sync GET error:", error);
  return NextResponse.json({});
  }
@@ -39,10 +40,11 @@ export async function POST(req: Request) {
  }
 
  return NextResponse.json({ success: true });
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("Sync POST error:", error);
  return NextResponse.json(
- { success: false, error: error.message },
+ { success: false, error: errorMessage },
  { status: 500 }
  );
  }
@@ -63,10 +65,11 @@ export async function DELETE(req: Request) {
  }
 
  return NextResponse.json({ success: true });
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("Sync DELETE error:", error);
  return NextResponse.json(
- { success: false, error: error.message },
+ { success: false, error: errorMessage },
  { status: 500 }
  );
  }

@@ -14,7 +14,8 @@ export async function GET(req: Request) {
  await dbConnect();
  const fines = await Fine.find({}).populate('userId').sort({ createdAt: -1 });
  return NextResponse.json(fines || []);
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("Error fetching fines data:", error);
  return NextResponse.json([], { status: 500 });
  }
@@ -48,9 +49,10 @@ export async function POST(req: Request) {
  }
 
  return NextResponse.json({ success: true, data: newFine }, { status: 201 });
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("Error creating fine:", error);
- return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
  }
 }
 
@@ -94,8 +96,9 @@ export async function PUT(req: Request) {
  }
 
  return NextResponse.json({ success: true, data: fine });
- } catch (error: any) {
- return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
  }
 }
 
@@ -128,7 +131,8 @@ export async function DELETE(req: Request) {
  }
 
  return NextResponse.json({ success: true });
- } catch (error: any) {
- return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
  }
 }

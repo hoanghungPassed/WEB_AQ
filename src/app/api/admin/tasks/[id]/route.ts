@@ -123,8 +123,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
  console.error("Log error:", logErr);
  }
  return NextResponse.json({ success: true, data: task });
- } catch (error: any) {
- return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 400 });
  }
 }
 
@@ -146,7 +147,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
  console.error("Log error:", logErr);
  }
  return NextResponse.json({ success: true, data: {} });
- } catch (error: any) {
- return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+ return NextResponse.json({ success: false, error: errorMessage }, { status: 400 });
  }
 }

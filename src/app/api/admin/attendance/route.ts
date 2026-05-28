@@ -25,10 +25,16 @@ export async function GET(req: NextRequest) {
  checkInTime: user.checkInTime,
  checkOutTime: user.checkOutTime,
  isOnline: user.isOnline,
+ data: {
+    checkInTime: user.checkInTime,
+    checkOutTime: user.checkOutTime,
+    isOnline: user.isOnline,
+  }
  });
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  return NextResponse.json(
- { success: false, error: error.message },
+ { success: false, error: errorMessage },
  { status: 500 }
  );
  }
@@ -81,6 +87,11 @@ export async function POST(req: NextRequest) {
  action:"CHECK_IN",
  time: timeStr,
  checkInTime: user.checkInTime,
+ data: {
+    action: "CHECK_IN",
+    time: timeStr,
+    checkInTime: user.checkInTime
+  }
  });
  } else if (action ==="CHECK_OUT") {
  user.checkOutTime = now.toISOString();
@@ -115,6 +126,12 @@ export async function POST(req: NextRequest) {
  time: timeStr,
  checkOutTime: user.checkOutTime,
  totalWorkingHours: (totalWorkingMins / 60).toFixed(2),
+ data: {
+    action: "CHECK_OUT",
+    time: timeStr,
+    checkOutTime: user.checkOutTime,
+    totalWorkingHours: (totalWorkingMins / 60).toFixed(2)
+  }
  });
  }
 
@@ -122,9 +139,10 @@ export async function POST(req: NextRequest) {
  { error:"Invalid action. Use CHECK_IN or CHECK_OUT" },
  { status: 400 }
  );
- } catch (error: any) {
+ } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  return NextResponse.json(
- { success: false, error: error.message },
+ { success: false, error: errorMessage },
  { status: 500 }
  );
  }
