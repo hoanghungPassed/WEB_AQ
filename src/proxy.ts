@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
 /**
- * Next.js Production Middleware:
- * - Bảo vệ các subroute /admin/*: chỉ cho phép Admin (role 01, 02) truy cập.
- * - Kiểm tra giờ làm việc (Auto-kick): nhân viên (03, 04) truy cập ngoài giờ hành chính (sau closeTime hoặc 18:00) sẽ bị kick.
+ * Next.js Production Proxy:
+ * - Bảo vệ các subroute /admin/*: chỉ cho phép Admin (role 01, 02) và nhân sự (03, 04, 05) truy cập.
+ * - Kiểm tra giờ làm việc (Auto-kick): nhân viên (03, 04, 05) truy cập ngoài giờ hành chính (sau closeTime hoặc 18:00) sẽ bị kick.
  * - Inject các header xác thực cho API routes.
  */
 
@@ -46,18 +46,22 @@ export async function middleware(request: NextRequest) {
     const role = String(payload.role || "").toUpperCase();
     const username = String(payload.username || "");
 
-    // 1. PHÂN LUỒNG BẢO VỆ TUYỆT ĐỐI /admin/*
-    // Nếu truy cập /admin* mà role không phải 01 hoặc 02 -> Redirect về /
-    const isAdminPath = pathname.startsWith("/admin");
-    const isRestrictedRole = role !== "01" && role !== "02";
+    const validRoles = ["01", "02", "03", "04", "05"];
+    const isValidRole = validRoles.includes(role);
 
-    if (isRestrictedRole && isAdminPath) {
-      return NextResponse.redirect(new URL("/", request.url));
+    // 1. PHÂN LUỒNG BẢO VỆ TUYỆT ĐỐI /admin/*
+    // Nếu truy cập /admin* mà không có role hợp lệ -> Redirect về /login
+    const isAdminPath = pathname.startsWith("/admin");
+
+    if (!isValidRole && isAdminPath) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("error", "unauthorized");
+      return NextResponse.redirect(loginUrl);
     }
 
     // 2. TÍCH HỢP AUTO-KICK NGOÀI GIỜ HÀNH CHÍNH
-    // Nếu ngoài giờ hành chính VÀ role là nhân viên (03, 04) -> Redirect về /login?error=system_closed
-    if (role === "03" || role === "04") {
+    // Nếu ngoài giờ hành chính VÀ role là nhân viên (03, 04, 05) -> Redirect về /login?error=system_closed
+    if (role === "03" || role === "04" || role === "05") {
       const now = new Date();
       const utc = now.getTime() + now.getTimezoneOffset() * 60000;
       const vnTime = new Date(utc + 3600000 * 7); // GMT+7
@@ -121,6 +125,11 @@ export async function middleware(request: NextRequest) {
     response.cookies.delete(COOKIE_NAME);
     return response;
   }
+}
+
+// Proxy alias export to satisfy both old/new Next.js configurations
+export async function proxy(request: NextRequest) {
+  return middleware(request);
 }
 
 export const config = {
