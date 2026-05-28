@@ -223,7 +223,13 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
     return "GUEST";
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Gọi API logout để backend set lastActive=null, isOnline=false TRƯỚC
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error("Logout API error:", err);
+    }
     sessionStorage.removeItem("user");
     localStorage.removeItem("user");
     window.location.href = "/login";

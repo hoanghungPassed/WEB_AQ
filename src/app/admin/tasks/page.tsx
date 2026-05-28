@@ -1215,17 +1215,21 @@ setNotification("Đã cập nhật chi tiết mail thành công.");
  <select 
  value={selectedLo}
  onChange={(e) => setSelectedLo(e.target.value)}
- className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all"
+ disabled={!targetStaffId}
+ className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all ${!targetStaffId ? 'opacity-40 cursor-not-allowed' : ''}`}
  >
- <option value="" className="bg-sidebar text-white">-- Chọn Lô --</option>
+ <option value="" className="bg-sidebar text-white">{!targetStaffId ? '-- Vui lòng chọn nhân viên trước --' : '-- Chọn Lô --'}</option>
  {(dynamicStaffBatches || []).map(b => (
  <option key={b.name} value={b.name} className="bg-sidebar text-white">
  {b.name} (STT {b.range})
  </option>
  ))}
  </select>
- {(dynamicStaffBatches || []).length === 0 && (
+ {targetStaffId && (dynamicStaffBatches || []).length === 0 && (
  <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">Không có lô vệ tinh chưa gán nào khả dụng trong hệ thống!</p>
+ )}
+ {!targetStaffId && (
+ <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">⚠ Hãy chọn nhân viên phía trên trước khi chọn Lô vệ tinh.</p>
  )}
  </div>
  </div>
@@ -1301,15 +1305,19 @@ setNotification("Đã cập nhật chi tiết mail thành công.");
  <select 
  value={selectedMoiKenhLo}
  onChange={(e) => setSelectedMoiKenhLo(e.target.value)}
- className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all"
+ disabled={!targetStaffId}
+ className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all ${!targetStaffId ? 'opacity-40 cursor-not-allowed' : ''}`}
  >
- <option value="" className="bg-sidebar text-white">-- Chọn Lô Vệ Tinh --</option>
+ <option value="" className="bg-sidebar text-white">{!targetStaffId ? '-- Vui lòng chọn nhân viên trước --' : '-- Chọn Lô Vệ Tinh --'}</option>
  {(targetStaffBatches || []).length > 0 ? (targetStaffBatches || []).map(b => (
  <option key={b} value={b} className="bg-sidebar text-white">{b}</option>
  )) : (
- <option disabled className="bg-sidebar text-white">Nhân viên này chưa có lô vệ tinh nào</option>
+ <option disabled className="bg-sidebar text-white">Không có lô vệ tinh khả dụng</option>
  )}
  </select>
+ {!targetStaffId && (
+ <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">⚠ Hãy chọn nhân viên phía trên trước khi chọn Lô vệ tinh.</p>
+ )}
  </div>
  </div>
  )}

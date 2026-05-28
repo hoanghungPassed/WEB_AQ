@@ -1433,7 +1433,7 @@ export default function StaffManagementPage() {
  {/* Daily Work Log Modal */}
  <AnimatePresence>
  {activeDetailDay && (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+ <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
  <motion.div 
  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
  onClick={() => setActiveDetailDay(null)}
