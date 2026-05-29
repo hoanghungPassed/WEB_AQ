@@ -22,6 +22,7 @@ export default function RegisterPage() {
  const [success, setSuccess] = useState(false);
  const [isWaitingApproval, setIsWaitingApproval] = useState(false);
  const [approvalStatus, setApprovalStatus] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
+ const [isUsernameDuplicate, setIsUsernameDuplicate] = useState(false);
 
  const years = Array.from({ length: 2010 - 1970 + 1 }, (_, i) => (2010 - i).toString());
 
@@ -59,6 +60,16 @@ export default function RegisterPage() {
 
  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
  const { name, value } = e.target;
+ if (name === "username") {
+    setIsUsernameDuplicate(false);
+    setErrors(prev => {
+      const next = { ...prev };
+      if (next.username === "Tên đăng nhập đã tồn tại, vui lòng chọn tên khác") {
+        delete next.username;
+      }
+      return next;
+    });
+ }
  if (name ==="phone") {
  const numericValue = value.replace(/[^0-9]/g,"");
  setFormData(prev => ({ ...prev, [name]: numericValue }));
@@ -68,6 +79,33 @@ export default function RegisterPage() {
  setFormData(prev => ({ ...prev, [name]: value }));
  validateField(name, value);
  };
+
+ const handleUsernameBlur = async () => {
+    const username = formData.username.trim();
+    if ((username || "").length < 3) return;
+
+    try {
+      const res = await fetch(`/api/auth/check-username?username=${encodeURIComponent(username)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.exists) {
+          setErrors(prev => ({ ...prev, username: "Tên đăng nhập đã tồn tại, vui lòng chọn tên khác" }));
+          setIsUsernameDuplicate(true);
+        } else {
+          setIsUsernameDuplicate(false);
+          setErrors(prev => {
+            const next = { ...prev };
+            if (next.username === "Tên đăng nhập đã tồn tại, vui lòng chọn tên khác") {
+              delete next.username;
+            }
+            return next;
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Lỗi kiểm tra username:", err);
+    }
+  };
 
  const handleRegister = async (e: React.FormEvent) => {
  e.preventDefault();
@@ -298,7 +336,7 @@ export default function RegisterPage() {
  <label className={labelClass}>Username</label>
  <div className="relative group">
  <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.username ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
- <input type="text" name="username" required value={formData.username} onChange={handleInputChange} placeholder="username_01" className={inputClass("username")} />
+ <input type="text" name="username" required value={formData.username} onChange={handleInputChange} onBlur={handleUsernameBlur} placeholder="username_01" className={inputClass("username")} />
  </div>
  {errors.username && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.username}</p>}
  </div>
@@ -354,7 +392,7 @@ export default function RegisterPage() {
  )}
  </div>
 
- <button type="submit" disabled={isLoading || (formData.password !== '' && formData.confirmPassword !== formData.password)} className="md:col-span-2 mt-8 h-16 w-full rounded-2xl bg-gold font-black uppercase tracking-[0.2em] text-[#0a0a0a] text-sm transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-70 shadow-2xl shadow-gold/20 flex items-center justify-center gap-3">
+ <button type="submit" disabled={isLoading || isUsernameDuplicate || (formData.password !== '' && formData.confirmPassword !== formData.password)} className="md:col-span-2 mt-8 h-16 w-full rounded-2xl bg-gold font-black uppercase tracking-[0.2em] text-[#0a0a0a] text-sm transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-70 shadow-2xl shadow-gold/20 flex items-center justify-center gap-3">
  {isLoading ? (
  <div className="flex items-center gap-3">
  <Loader2 className="animate-spin" size={24} />

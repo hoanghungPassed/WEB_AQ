@@ -15,7 +15,8 @@ import {
  CheckCircle2,
  FolderOpen,
  UserCheck,
- RefreshCcw
+ RefreshCcw,
+ Loader2
 } from"lucide-react";
 import { motion, AnimatePresence } from"framer-motion";
 import { useRouter } from"next/navigation";
@@ -27,6 +28,7 @@ interface BatchItem {
  importedAt: string;
  mailCount: number;
  importedBy: string;
+ assignedTo?: string;
 }
 
 export default function SatelliteBatchesPage() {
@@ -38,6 +40,8 @@ export default function SatelliteBatchesPage() {
  const [staffList, setStaffList] = useState<any[]>([]);
  const [selectedStaff, setSelectedStaff] = useState<any | null>(null);
  const [assignmentFilter, setAssignmentFilter] = useState<"ALL" |"ASSIGNED" |"UNASSIGNED">("ALL");
+ const [staffSearchTerm, setStaffSearchTerm] = useState("");
+ const [onlineFilter, setOnlineFilter] = useState<"ALL" | "ONLINE" | "OFFLINE">("ALL");
 
  // State for selected batch detail
  const [selectedBatch, setSelectedBatch] = useState<BatchItem | null>(null);
@@ -49,6 +53,10 @@ export default function SatelliteBatchesPage() {
  const [selectedChunkId, setSelectedChunkId] = useState("");
  const [batchToDelete, setBatchToDelete] = useState<BatchItem | null>(null);
  const [batchToReset, setBatchToReset] = useState<BatchItem | null>(null);
+ const [showCreateModal, setShowCreateModal] = useState(false);
+ const [newBatchName, setNewBatchName] = useState("");
+ const [targetStaffId, setTargetStaffId] = useState("");
+ const [isSubmitting, setIsSubmitting] = useState(false);
 
  // Group unassigned satellite mails in chunks of 17 (cuốn chiếu)
  const unassignedMailChunks = useMemo(() => {
@@ -93,28 +101,41 @@ export default function SatelliteBatchesPage() {
  }
 
  const loadData = async () => {
- // 1. Load Batches
- const savedBatches = localStorage.getItem("global_satellite_batches");
- const savedMails = localStorage.getItem("global_mails_data");
- const mails = savedMails ? JSON.parse(savedMails) : [];
+  // 1. Load Batches
+  const savedBatches = localStorage.getItem("global_satellite_batches");
+  const savedMails = localStorage.getItem("global_mails_data");
+  const mails = savedMails ? JSON.parse(savedMails) : [];
 
- let list: BatchItem[] = [];
- if (!savedBatches) {
- // Seed 6 default batches
- const nowStr = new Date().toISOString().split("T")[0];
- const defaultBatches: BatchItem[] = Array.from({ length: 6 }, (_, i) => ({
- id: `sat-batch-${i + 1}`,
- name: `Lô ${i + 1}`,
- type:"SATELLITE",
- importedAt: nowStr,
- mailCount: 0,
- importedBy:"Hệ thống"
- }));
- localStorage.setItem("global_satellite_batches", JSON.stringify(defaultBatches));
- list = defaultBatches;
- } else {
- list = JSON.parse(savedBatches);
- }
+  let list: BatchItem[] = [];
+  try {
+    const res = await fetch("/api/admin/mail/satellite-batches");
+    if (res.ok) {
+      const data = await res.json();
+      list = data.batches || [];
+      localStorage.setItem("global_satellite_batches", JSON.stringify(list));
+    }
+  } catch (err) {
+    console.error("Lỗi fetch batches từ DB:", err);
+  }
+
+  if ((list || []).length === 0) {
+    if (!savedBatches) {
+      // Seed 6 default batches
+      const nowStr = new Date().toISOString().split("T")[0];
+      const defaultBatches: BatchItem[] = Array.from({ length: 6 }, (_, i) => ({
+        id: `sat-batch-${i + 1}`,
+        name: `Lô ${i + 1}`,
+        type: "SATELLITE",
+        importedAt: nowStr,
+        mailCount: 0,
+        importedBy: "Hệ thống"
+      }));
+      localStorage.setItem("global_satellite_batches", JSON.stringify(defaultBatches));
+      list = defaultBatches;
+    } else {
+      list = JSON.parse(savedBatches);
+    }
+  }
 
  // Sync mail counts dynamically
  const syncedList = (list || []).map(b => {
@@ -156,23 +177,68 @@ export default function SatelliteBatchesPage() {
  setTimeout(() => setToastMsg(""), 3000);
  };
 
- const handleCreateBatch = () => {
- const nextNum = (batches || []).length + 1;
- const name = `Lô ${nextNum}`;
- const newBatch: BatchItem = {
- id: `sat-batch-${Date.now()}`,
- name,
- type:"SATELLITE",
- importedAt: new Date().toISOString().split("T")[0],
- mailCount: 0,
- importedBy: user?.name ||"Admin"
- };
+  const handleCreateBatch = () => {
+    const nextNum = (batches || []).length + 1;
+    setNewBatchName(`Lô ${nextNum}`);
+    setTargetStaffId(selectedStaff?.id || "");
+    setShowCreateModal(true);
+  };
 
- const updated = [...batches, newBatch];
- setBatches(updated);
- localStorage.setItem("global_satellite_batches", JSON.stringify(updated));
- triggerToast(`Đã tạo thành công ${name}!`);
- };
+  const handleSubmitNewBatch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBatchName.trim()) {
+      triggerToast("Vui lòng điền tên lô!");
+      return;
+    }
+    // Ưu tiên selectedStaff đã chọn từ màn hình ngoài, fallback sang dropdown
+    const resolvedStaffId = targetStaffId || selectedStaff?.id || "";
+    if (!resolvedStaffId) {
+      triggerToast("Vui lòng chọn nhân viên nhận gán!");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/admin/mail/satellite-batches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newBatchName.trim(),
+          assignedTo: resolvedStaffId,
+          importedBy: user?.name || "Admin"
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        triggerToast(`Đã tạo thành công ${newBatchName.trim()}!`);
+        setShowCreateModal(false);
+        setNewBatchName("");
+
+        // Cập nhật lại global_mails_data trong localStorage
+        try {
+          const mailRes = await fetch("/api/admin/mails?type=SATELLITE&all=true");
+          if (mailRes.ok) {
+            const mailData = await mailRes.json();
+            if (mailData.success && mailData.data) {
+              localStorage.setItem("global_mails_data", JSON.stringify(mailData.data));
+            }
+          }
+        } catch (_) {}
+
+        // Re-load to update list
+        // Note: loadData is defined inside useEffect, so we'd typically trigger a refresh logic here
+        window.dispatchEvent(new Event("storage"));
+      } else {
+        triggerToast(data.error || "Không thể tạo lô mail!");
+      }
+    } catch (err) {
+      console.error("Lỗi khi tạo lô mail vệ tinh:", err);
+      triggerToast("Lỗi kết nối máy chủ!");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
  // When a batch is selected, load its mails and unassigned satellite mails
  useEffect(() => {
@@ -594,7 +660,9 @@ export default function SatelliteBatchesPage() {
  const savedMails = typeof window !=="undefined" ? localStorage.getItem("global_mails_data") : null;
  const mails = savedMails ? JSON.parse(savedMails) : [];
  
- return (batches || []).map(b => {
+ const staffBatches = (batches || []).filter(b => String(b.assignedTo) === String(selectedStaff.id));
+ 
+ return staffBatches.map(b => {
  const count = (mails || []).filter((m: any) => 
  m.type ==="SATELLITE" && 
  m.batchName === b.name && 
@@ -622,13 +690,30 @@ export default function SatelliteBatchesPage() {
  const allMails = savedMails ? JSON.parse(savedMails) : [];
  const satelliteMails = (allMails || []).filter((m: any) => m.type ==="SATELLITE");
 
- // Filter staff members based on their assignment status
+ // Filter staff members based on search, online status, and assignment status
  const filteredStaffList = (staffList || []).filter(staff => {
  const staffMails = (satelliteMails || []).filter((m: any) => String(m.assigneeId) === String(staff.id));
  const hasAssignment = (staffMails || []).length > 0;
  
- if (assignmentFilter ==="ASSIGNED") return hasAssignment;
- if (assignmentFilter ==="UNASSIGNED") return !hasAssignment;
+ // Check online status
+ const isOnline = staff.lastActive ? (Date.now() - new Date(staff.lastActive).getTime() < 15 * 60000) : (staff.isOnline === true);
+
+ // Apply assignment filter
+ if (assignmentFilter ==="ASSIGNED" && !hasAssignment) return false;
+ if (assignmentFilter ==="UNASSIGNED" && hasAssignment) return false;
+
+ // Apply search filter
+ if (staffSearchTerm) {
+   const term = staffSearchTerm.toLowerCase();
+   if (!staff.name?.toLowerCase().includes(term) && !staff.username?.toLowerCase().includes(term)) {
+     return false;
+   }
+ }
+
+ // Apply online filter
+ if (onlineFilter === "ONLINE" && !isOnline) return false;
+ if (onlineFilter === "OFFLINE" && isOnline) return false;
+
  return true;
  });
 
@@ -654,8 +739,57 @@ export default function SatelliteBatchesPage() {
  </div>
 
  {/* Filter Bar */}
- <div className="flex bg-sidebar/50 border border-white/0 p-6 rounded-[20px] flex-shrink-0 items-center">
+ <div className="flex flex-col lg:flex-row bg-sidebar/50 border border-white/0 p-6 rounded-[20px] flex-shrink-0 gap-6 lg:items-center justify-between">
+ {/* Search */}
+ <div className="relative group flex-1">
+   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
+   <input 
+     placeholder="Tìm kiếm nhân sự..."
+     className="w-full bg-black/40 border border-white/0 rounded-xl pl-12 pr-4 h-12 text-sm text-white outline-none focus:border-white/5 transition-all"
+     type="text" 
+     value={staffSearchTerm}
+     onChange={(e) => setStaffSearchTerm(e.target.value)}
+   />
+ </div>
+
  {/* Filters */}
+ <div className="flex flex-wrap items-center gap-6">
+ <div className="flex items-center gap-3">
+ <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">Lọc Online:</span>
+ <div className="flex bg-black/40 border border-white/0 rounded-xl p-1">
+ <button
+ onClick={() => setOnlineFilter("ALL")}
+ className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+ onlineFilter ==="ALL" 
+ ?"bg-gold text-sidebar shadow-md" 
+ :" text-gray-400 hover:text-white"
+ }`}
+ >
+ Tất cả
+ </button>
+ <button
+ onClick={() => setOnlineFilter("ONLINE")}
+ className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+ onlineFilter ==="ONLINE" 
+ ?"bg-gold text-sidebar shadow-md" 
+ :" text-gray-400 hover:text-white"
+ }`}
+ >
+ Online
+ </button>
+ <button
+ onClick={() => setOnlineFilter("OFFLINE")}
+ className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+ onlineFilter ==="OFFLINE" 
+ ?"bg-gold text-sidebar shadow-md" 
+ :" text-gray-400 hover:text-white"
+ }`}
+ >
+ Offline
+ </button>
+ </div>
+ </div>
+
  <div className="flex items-center gap-3">
  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">Lọc Trạng Thái:</span>
  <div className="flex bg-black/40 border border-white/0 rounded-xl p-1">
@@ -692,6 +826,7 @@ export default function SatelliteBatchesPage() {
  </div>
  </div>
  </div>
+ </div>
 
  {/* Staff List Table-like Structure */}
  <div className="flex-1 min-h-0 bg-sidebar border border-white/0 rounded-[24px] p-6 shadow-xl flex flex-col justify-between">
@@ -706,7 +841,7 @@ export default function SatelliteBatchesPage() {
  {(filteredStaffList || []).map((staff) => {
  const staffMails = (satelliteMails || []).filter((m: any) => String(m.assigneeId) === String(staff.id));
  const uniqueBatches = Array.from(new Set((staffMails || []).map((m: any) => m.batchName).filter(Boolean)));
- const isOnline = staff.isOnline === true;
+ const isOnline = staff.lastActive ? (Date.now() - new Date(staff.lastActive).getTime() < 15 * 60000) : (staff.isOnline === true);
  const hasAssignment = (staffMails || []).length > 0;
  const unassignedCountForStaff = Math.max(0, (batches || []).length - (uniqueBatches || []).length);
 
@@ -825,7 +960,7 @@ export default function SatelliteBatchesPage() {
  className="bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest px-5 h-10 rounded-xl transition-all shadow-lg shadow-gold/25 flex items-center gap-2 shrink-0"
  >
  <PlusCircle size={16} />
- Tạo thêm lô
+ Tạo Lô Mới Cho Nhân Viên Này
  </button>
  </div>
  </div>
@@ -1230,6 +1365,7 @@ export default function SatelliteBatchesPage() {
  </motion.div>
  )}
  </AnimatePresence>
+
  {/* Custom Confirm Reset Batch Modal */}
  <AnimatePresence>
  {batchToReset && (
@@ -1280,6 +1416,116 @@ export default function SatelliteBatchesPage() {
  Xác nhận Reset
  </button>
  </div>
+ </motion.div>
+ </motion.div>
+ )}
+ </AnimatePresence>
+
+ {/* Custom Create Batch Modal with double click prevention */}
+ <AnimatePresence>
+ {showCreateModal && (
+ <motion.div
+ initial={{ opacity: 0 }}
+ animate={{ opacity: 1 }}
+ exit={{ opacity: 0 }}
+ className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+ >
+ <motion.div
+ initial={{ scale: 0.95, y: 20 }}
+ animate={{ scale: 1, y: 0 }}
+ exit={{ scale: 0.95, y: 20 }}
+ transition={{ type: "spring", duration: 0.5 }}
+ className="bg-sidebar border border-white/10 w-full max-w-md rounded-[32px] p-8 shadow-2xl relative overflow-hidden"
+ >
+ <div className="absolute top-0 right-0 h-40 w-40 bg-gold/5 blur-[50px] -mr-20 -mt-20" />
+ 
+ <div className="flex items-center gap-4 mb-6 relative z-10">
+ <div className="h-12 w-12 rounded-2xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20">
+ <PlusCircle size={24} />
+ </div>
+ <div>
+ <h3 className="text-xl font-black text-white uppercase tracking-tight">Tạo Lô Mail Mới</h3>
+ <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Tự động phát 17 mail rảnh</p>
+ </div>
+ </div>
+
+ <form onSubmit={handleSubmitNewBatch} className="space-y-6 relative z-10">
+ <div className="space-y-2">
+ <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">
+ Tên Lô Mail
+ </label>
+ <input
+ type="text"
+ required
+ disabled={isSubmitting}
+ value={newBatchName}
+ onChange={(e) => setNewBatchName(e.target.value)}
+ placeholder="Ví dụ: Lô 7"
+ className="w-full bg-black/40 border border-white/10 rounded-2xl h-14 px-5 text-sm font-black text-white outline-none focus:border-gold disabled:opacity-50 transition-all"
+ />
+ </div>
+
+ {/* Chỉ hiển thị dropdown chọn nhân viên nếu chưa có selectedStaff từ màn hình ngoài */}
+ {!selectedStaff ? (
+ <div className="space-y-2">
+ <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">
+ Nhân viên nhận gán
+ </label>
+ <select
+ required
+ disabled={isSubmitting}
+ value={targetStaffId}
+ onChange={(e) => setTargetStaffId(e.target.value)}
+ className="w-full bg-black/40 border border-white/10 rounded-2xl h-14 px-5 text-sm font-black text-white outline-none focus:border-gold disabled:opacity-50 cursor-pointer transition-all"
+ >
+ <option value="" className="bg-zinc-900 text-white">--- Chọn nhân viên ---</option>
+ {(staffList || []).map((staff) => (
+ <option key={staff.id} value={staff.id} className="bg-zinc-900 text-white">
+ {staff.name} (@{staff.username}) {staff.isOnline ? "🟢" : "🔴"}
+ </option>
+ ))}
+ </select>
+ </div>
+ ) : (
+ <div className="bg-gold/5 border border-gold/15 rounded-2xl px-5 py-4 flex items-center gap-3">
+ <div className="h-9 w-9 rounded-xl bg-gold/15 text-gold flex items-center justify-center font-black text-sm border border-gold/20">
+ {selectedStaff.name?.charAt(0)}
+ </div>
+ <div>
+ <p className="text-sm font-black text-white uppercase">{selectedStaff.name}</p>
+ <p className="text-[10px] text-gray-500 font-bold">@{selectedStaff.username}</p>
+ </div>
+ </div>
+ )}
+
+ <div className="flex gap-4 pt-4 border-t border-white/5">
+ <button
+ type="button"
+ disabled={isSubmitting}
+ onClick={() => {
+ setShowCreateModal(false);
+ setNewBatchName("");
+ }}
+ className="flex-1 h-14 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold uppercase text-xs tracking-widest rounded-2xl transition-all disabled:opacity-50"
+ >
+ Hủy bỏ
+ </button>
+ <button
+ type="submit"
+ disabled={isSubmitting || !newBatchName.trim() || (!targetStaffId && !selectedStaff?.id)}
+ className="flex-1 h-14 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-xs tracking-widest rounded-2xl transition-all shadow-xl shadow-gold/20 disabled:opacity-50 flex items-center justify-center gap-2"
+ >
+ {isSubmitting ? (
+ <>
+ <Loader2 className="animate-spin" size={16} />
+ <span>Đang lưu...</span>
+ </>
+ ) : (
+ <span>Lưu Lô Mail</span>
+ )}
+ </button>
+ </div>
+ </form>
  </motion.div>
  </motion.div>
  )}

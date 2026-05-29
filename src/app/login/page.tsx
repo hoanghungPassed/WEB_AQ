@@ -294,16 +294,17 @@ function LoginForm() {
                   Mã xác thực 2FA hoặc Mã dự phòng
                 </label>
                 <div className="group relative">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors">
-                    <Lock size={20} />
-                  </div>
                   <input
                     type="text"
                     required
+                    maxLength={6}
                     value={totpCode}
-                    onChange={(e) => setTotpCode(e.target.value)}
-                    placeholder="Nhập mã 6 chữ số hoặc mã backup..."
-                    className="w-full rounded-xl border border-gray-600 bg-gray-800 px-4 py-3 pl-14 text-lg text-white transition-all focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500 shadow-inner text-center font-mono tracking-widest placeholder-gray-400"
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9a-zA-Z]/g, "");
+                      setTotpCode(val);
+                    }}
+                    placeholder="000000"
+                    className="w-full rounded-2xl border border-gold/30 bg-black/40 px-6 py-5 text-4xl font-black text-gold text-center tracking-[0.5em] focus:border-gold focus:outline-none focus:ring-4 focus:ring-gold/15 transition-all shadow-inner placeholder-gold/10 font-mono uppercase"
                   />
                 </div>
                 <button

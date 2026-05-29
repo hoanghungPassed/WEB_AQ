@@ -31,6 +31,40 @@ export async function GET(req: NextRequest) {
   }
 }
 
+function calculateEndTime(workStart: string, breakStart: string, breakEnd: string): string {
+  try {
+    const parseTime = (timeStr: string) => {
+      const [h, m] = timeStr.split(':').map(Number);
+      return (h * 60) + m;
+    };
+
+    const startMins = parseTime(workStart);
+    const breakStartMins = parseTime(breakStart);
+    const breakEndMins = parseTime(breakEnd);
+
+    // Calculate break duration in minutes
+    let breakDuration = 0;
+    if (breakEndMins >= breakStartMins) {
+      breakDuration = breakEndMins - breakStartMins;
+    } else {
+      // Handle cross-day break (unlikely but safe to have)
+      breakDuration = (24 * 60 - breakStartMins) + breakEndMins;
+    }
+
+    // 8 hours = 480 minutes
+    const totalDuration = 480 + breakDuration;
+    const endMins = (startMins + totalDuration) % (24 * 60);
+
+    const endH = Math.floor(endMins / 60);
+    const endM = endMins % 60;
+
+    return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+  } catch (e) {
+    console.error("Error calculating end time:", e);
+    return "17:30"; // Fallback
+  }
+}
+
 export async function PUT(req: NextRequest) {
   try {
     const userId = req.headers.get("x-user-id");
@@ -50,22 +84,20 @@ export async function PUT(req: NextRequest) {
     
     // Support both workStartTime/workEndTime and openTime/closeTime naming conventions
     let start = data.workStartTime !== undefined ? data.workStartTime : data.openTime;
-    let end = data.workEndTime !== undefined ? data.workEndTime : data.closeTime;
-
-    if (start !== undefined && end === undefined) {
-      // Automatically add 8 hours to start time to calculate closeTime (workEndTime)
-      const parts = start.split(":");
-      const hours = parseInt(parts[0]) || 0;
-      const minutes = parseInt(parts[1]) || 0;
-      const endHours = (hours + 8) % 24;
-      end = `${String(endHours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-    }
+    let bStart = data.breakStartTime !== undefined ? data.breakStartTime : "12:00";
+    let bEnd = data.breakEndTime !== undefined ? data.breakEndTime : "13:30";
 
     const updateData: any = {};
     if (data.brandName !== undefined) updateData.brandName = data.brandName;
     if (start !== undefined) updateData.openTime = start;
-    if (end !== undefined) updateData.closeTime = end;
+    if (bStart !== undefined) updateData.breakStartTime = bStart;
+    if (bEnd !== undefined) updateData.breakEndTime = bEnd;
     if (data.checkInTime !== undefined) updateData.checkInTime = data.checkInTime;
+
+    // Automatically calculate closeTime (workEndTime)
+    if (start !== undefined) {
+       updateData.closeTime = calculateEndTime(start, updateData.breakStartTime || bStart, updateData.breakEndTime || bEnd);
+    }
 
     const settings = await SystemSetting.findOneAndUpdate(
       {},

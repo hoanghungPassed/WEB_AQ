@@ -5,6 +5,8 @@ export interface ISystemSetting extends Document {
   openTime: string;
   closeTime: string;
   checkInTime: string;
+  breakStartTime: string;
+  breakEndTime: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -13,8 +15,10 @@ const SystemSettingSchema: Schema = new Schema(
   {
     brandName: { type: String, default: "AQ MEDIA" },
     openTime: { type: String, default: "08:00" },
-    closeTime: { type: String, default: "18:00" },
-    checkInTime: { type: String, default: "17:30" }
+    closeTime: { type: String, default: "17:30" }, // Automatically calculated in API
+    checkInTime: { type: String, default: "17:30" }, // System close time
+    breakStartTime: { type: String, default: "12:00" },
+    breakEndTime: { type: String, default: "13:30" }
   },
   { timestamps: true }
 );

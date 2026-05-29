@@ -17,6 +17,7 @@ export interface ISatelliteMail extends Document {
  assignee?: mongoose.Types.ObjectId | string;
  assigneeId?: string;
  assignedTo?: string;
+ isAssigned?: boolean;
  updatedBy?: string;
  lastUpdated?: string;
  links?: string[];
@@ -45,6 +46,7 @@ const SatelliteMailSchema: Schema = new Schema(
  assignee: { type: Schema.Types.ObjectId, ref: 'User' },
  assigneeId: { type: String },
  assignedTo: { type: String },
+ isAssigned: { type: Boolean, default: false },
  updatedBy: { type: String },
  lastUpdated: { type: String },
  links: { type: [String], default: [] },

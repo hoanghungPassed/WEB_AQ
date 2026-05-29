@@ -1732,24 +1732,21 @@ const typingTimer = setInterval(checkTyping, 1000);
  userName={user?.name ||"Nhân viên"}
  onSendRequest={handleRequestAccess}
  onLogout={handleLogout}
+ isPendingApproval={isPendingApproval}
  />
  )}
 
  {/* Late Access Lock Screen */}
  {!shouldLock && isLateLocked && (
- <div className="fixed inset-0 z-[500] bg-[#070707] text-white flex flex-col items-center justify-center p-6 overflow-y-auto custom-scrollbar">
+ <div className="fixed inset-0 z-[500] bg-[#070707]/75 backdrop-blur-md text-white flex flex-col items-center justify-center p-6 overflow-y-auto custom-scrollbar">
  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.05)_0%,transparent_70%)] pointer-events-none" />
 
- <div className="w-full max-w-2xl bg-sidebar border border-gold/20 rounded-[32px] p-8 shadow-[0_20px_50px_rgba(212,175,55,0.1)] relative overflow-hidden text-center my-auto">
+ <div className="w-full max-w-2xl bg-sidebar/85 backdrop-blur-lg border border-gold/20 rounded-[32px] p-8 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] shadow-gold/5 relative overflow-hidden text-center my-auto">
  {isPendingApproval ? (
  <div className="py-12 space-y-6">
- <div className="h-20 w-20 bg-gold/10 border border-white/0 text-gold rounded-full flex items-center justify-center mx-auto shadow-lg shadow-gold/5">
- <Clock size={40} className="animate-pulse" />
+ <div className="h-16 px-10 rounded-2xl bg-gold/10 border border-gold/20 text-gold font-black uppercase tracking-widest flex items-center justify-center gap-3 animate-pulse">
+ ⏳ Hệ thống đang xử lý... Vui lòng chờ Admin phê duyệt yêu cầu của bạn!
  </div>
- <h2 className="text-3xl font-bold uppercase tracking-tight text-white">Đang chờ phê duyệt</h2>
- <p className="text-gray-300 text-base font-medium max-w-md mx-auto leading-relaxed">
- Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.
- </p>
  <div className="pt-6">
  <button
  onClick={handleLogout}

@@ -131,7 +131,9 @@ export default function SettingsPage() {
 
  // Work schedule & fine config states
  const [workStartTime, setWorkStartTime] = useState("08:00");
- const [workEndTime, setWorkEndTime] = useState("18:00");
+ const [workEndTime, setWorkEndTime] = useState("17:30");
+ const [breakStartTime, setBreakStartTime] = useState("12:00");
+ const [breakEndTime, setBreakEndTime] = useState("13:30");
  const [systemCloseTime, setSystemCloseTime] = useState("17:30");
  const [fineTier1, setFineTier1] = useState(10000);
  const [fineTier2, setFineTier2] = useState(20000);
@@ -380,19 +382,23 @@ export default function SettingsPage() {
           setAgencyName(dbSettings.brandName || "AQ MEDIA");
           setAgencyConfigName(dbSettings.brandName || "AQ MEDIA");
           setWorkStartTime(dbSettings.openTime || "08:00");
-          setWorkEndTime(dbSettings.closeTime || "18:00");
+          setWorkEndTime(dbSettings.closeTime || "17:30");
+          setBreakStartTime(dbSettings.breakStartTime || "12:00");
+          setBreakEndTime(dbSettings.breakEndTime || "13:30");
           setSystemCloseTime(dbSettings.checkInTime || "17:30");
 
           // Sync work config
           const workConfig = {
             startTime: dbSettings.openTime || "08:00",
-            endTime: dbSettings.closeTime || "18:00",
+            endTime: dbSettings.closeTime || "17:30",
+            breakStartTime: dbSettings.breakStartTime || "12:00",
+            breakEndTime: dbSettings.breakEndTime || "13:30",
             systemCloseTime: dbSettings.checkInTime || "17:30"
           };
           localStorage.setItem("global_work_config", JSON.stringify(workConfig));
 
           // Set time cookie
-          document.cookie = `close_time=${dbSettings.closeTime || "18:00"}; path=/; max-age=31536000`;
+          document.cookie = `close_time=${dbSettings.closeTime || "17:30"}; path=/; max-age=31536000`;
         }
       }
     } catch (err) {
@@ -671,32 +677,39 @@ export default function SettingsPage() {
 
  // SAVE WORK CONFIG
  const handleSaveWorkConfig = async () => {
-  const workConfig = {
-  startTime: workStartTime,
-  endTime: workEndTime,
-  systemCloseTime: systemCloseTime,
-  fineTier1: Number(fineTier1),
-  fineTier2: Number(fineTier2),
-  fineTier3: Number(fineTier3),
-  updatedAt: new Date().toLocaleString("vi-VN"),
-  };
-  localStorage.setItem("global_work_config", JSON.stringify(workConfig));
-  window.dispatchEvent(new Event("storage"));
-
-  // Set close time cookie for middleware time check
-  document.cookie = `close_time=${workEndTime}; path=/; max-age=31536000`;
-
-  // Sync to database
   try {
-    await fetch("/api/admin/settings", {
+    const res = await fetch("/api/admin/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         openTime: workStartTime,
-        closeTime: workEndTime,
+        breakStartTime: breakStartTime,
+        breakEndTime: breakEndTime,
         checkInTime: systemCloseTime
       })
     });
+    
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.data) {
+         setWorkEndTime(data.data.closeTime);
+         
+         const workConfig = {
+          startTime: workStartTime,
+          endTime: data.data.closeTime,
+          breakStartTime: breakStartTime,
+          breakEndTime: breakEndTime,
+          systemCloseTime: systemCloseTime,
+          fineTier1: Number(fineTier1),
+          fineTier2: Number(fineTier2),
+          fineTier3: Number(fineTier3),
+          updatedAt: new Date().toLocaleString("vi-VN"),
+         };
+         localStorage.setItem("global_work_config", JSON.stringify(workConfig));
+         window.dispatchEvent(new Event("storage"));
+         document.cookie = `close_time=${data.data.closeTime}; path=/; max-age=31536000`;
+      }
+    }
   } catch (err) {
     console.error("PUT work settings sync error:", err);
   }
@@ -1250,10 +1263,10 @@ export default function SettingsPage() {
  <div className="pt-5 space-y-6">
  <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5">
  <p className="text-base text-amber-400 font-medium leading-relaxed">
- ⏰ Thiết lập giờ làm việc và mức phạt đi muộn cho nhân viên. Dữ liệu được đồng bộ cho module chấm công.
+ ⏰ Thiết lập giờ làm việc và mức phạt đi muộn cho nhân viên. Giờ kết thúc làm việc sẽ tự động tính toán (8 tiếng + Thời gian nghỉ trưa).
  </p>
  </div>
- <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+ <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
  <div className="space-y-2">
  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Giờ bắt đầu làm việc</label>
  <div className="relative">
@@ -1267,18 +1280,41 @@ export default function SettingsPage() {
  </div>
  </div>
  <div className="space-y-2">
- <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Giờ kết thúc làm việc</label>
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Bắt đầu nghỉ trưa</label>
  <div className="relative">
  <input 
  type="time" 
- value={workEndTime}
- onChange={(e) => setWorkEndTime(e.target.value)}
+ value={breakStartTime}
+ onChange={(e) => setBreakStartTime(e.target.value)}
  onMouseDown={(e) => e.stopPropagation()}
  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-lg outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
  />
  </div>
  </div>
  <div className="space-y-2">
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Kết thúc nghỉ trưa</label>
+ <div className="relative">
+ <input 
+ type="time" 
+ value={breakEndTime}
+ onChange={(e) => setBreakEndTime(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-lg outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ />
+ </div>
+ </div>
+ <div className="space-y-2">
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Giờ kết thúc làm việc</label>
+ <div className="relative">
+ <input 
+ type="time" 
+ value={workEndTime}
+ disabled
+ className="bg-zinc-900/50 border border-white/0 text-zinc-500 rounded-2xl px-5 h-14 text-lg outline-none w-full font-bold [color-scheme:dark] cursor-not-allowed"
+ />
+ </div>
+ </div>
+ <div className="space-y-2 md:col-span-4">
  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Hệ thống sẽ đóng vào lúc</label>
  <div className="relative">
  <input 
