@@ -234,11 +234,11 @@ export default function EmployeePhoneListPage() {
  onChange={(e) => setStatusFilter(e.target.value)}
  className="bg-black/20 border border-white/0 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
  >
- <option value="ALL" className="bg-sidebar text-white">Tất cả</option>
- <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
- <option value="XM lần 1" className="bg-sidebar text-white">XM lần 1</option>
- <option value="XM lần 2" className="bg-sidebar text-white">XM lần 2</option>
- <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
+ <option value="ALL" className="bg-zinc-900 text-white hover:bg-zinc-700">Tất cả</option>
+ <option value="Chưa làm" className="bg-zinc-900 text-white hover:bg-zinc-700">Chưa làm</option>
+ <option value="XM lần 1" className="bg-zinc-900 text-white hover:bg-zinc-700">XM lần 1</option>
+ <option value="XM lần 2" className="bg-zinc-900 text-white hover:bg-zinc-700">XM lần 2</option>
+ <option value="Lỗi" className="bg-zinc-900 text-white hover:bg-zinc-700">Lỗi</option>
  </select>
  </div>
  </div>

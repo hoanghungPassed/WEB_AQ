@@ -12,12 +12,6 @@ export async function GET(req: NextRequest) {
     const userId = req.headers.get("x-user-id");
     const userRole = req.headers.get("x-user-role");
 
-    const hasPermission = await checkPermission(userRole || "", 3, ["all", "attendance"]);
-    if (!hasPermission) {
-      await logAuditTrail(userId || "unknown", "UNAUTHORIZED_GET_FINES", "fines", {}, req);
-      return NextResponse.json({ error: "Không có quyền thực hiện thao tác này" }, { status: 403 });
-    }
-
     await dbConnect();
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1");
@@ -28,6 +22,16 @@ export async function GET(req: NextRequest) {
 
     let filter: any = {};
     if (status && status !== "ALL") filter.status = status;
+
+    const hasPermission = await checkPermission(userRole || "", 3, ["all", "attendance"]);
+    if (!hasPermission) {
+      if (!userId) {
+        await logAuditTrail("unknown", "UNAUTHORIZED_GET_FINES", "fines", {}, req);
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      // Staff members can only view their own fines
+      filter.userId = userId;
+    }
 
     // Fallback: If pagination parameters are omitted, return the legacy raw array format
     if (!searchParams.has("page") && !searchParams.has("limit") && searchParams.get("all") !== "true") {

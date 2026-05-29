@@ -281,6 +281,85 @@ export default function AdminLayout({
  const reminderInterval = setInterval(pollReminders, 60000);
  return () => clearInterval(reminderInterval);
  }, []);
+  const checkAccess = async () => {
+     const activeUserStr = typeof window !== "undefined" ? (sessionStorage.getItem("user") || localStorage.getItem("user")) : null;
+     if (!activeUserStr) return;
+     const currentUser = JSON.parse(activeUserStr);
+
+    const roleStr = String(currentUser?.role || "");
+    const isBypassed = roleStr === '01' || roleStr === '02' || roleStr.toUpperCase() === 'ADMIN' || roleStr.toUpperCase() === 'QL CÔNG VIỆC' || currentUser?.username === '01';
+
+    if (isBypassed) {
+      setAccessStatus('GRANTED');
+      return;
+    }
+
+    // Vietnam ICT Time check
+    const nowTime = new Date();
+    const utcTime = nowTime.getTime() + nowTime.getTimezoneOffset() * 60000;
+    const vnTime = new Date(utcTime + 3600000 * 7);
+    const vnTotalMinutes = vnTime.getHours() * 60 + vnTime.getMinutes();
+
+    // Use polled settings if available, else standard fallback
+    const savedWorkConfigStr = localStorage.getItem("global_work_config");
+    let openTimeStr = "08:00";
+    let closeTimeStr = "18:00";
+    if (savedWorkConfigStr) {
+      try {
+        const wc = JSON.parse(savedWorkConfigStr);
+        if (wc.startTime) openTimeStr = wc.startTime;
+        if (wc.endTime) closeTimeStr = wc.endTime;
+      } catch (e) {}
+    }
+
+    const [openH, openM] = openTimeStr.split(":").map(Number);
+    const [closeH, closeM] = closeTimeStr.split(":").map(Number);
+    const startMins = openH * 60 + openM - 10; // Allow 10 minutes early check-in
+    const closeMins = closeH * 60 + closeM;
+
+    const isInsideHours = vnTotalMinutes >= startMins && vnTotalMinutes < closeMins;
+
+    if (!isInsideHours) {
+      setAccessStatus('CLOSED');
+      return;
+    }
+
+    // Inside hours: Check if they have an unpaid LATE fine for today
+    try {
+      const res = await fetch("/api/admin/fines", {
+        headers: {
+          'x-user-id': currentUser?.id || currentUser?._id || '',
+          'x-user-role': currentUser?.role || ''
+        }
+      });
+      if (res.ok) {
+        const finesList = await res.json();
+        // Filter LATE type fines created today that are UNPAID
+        const todayDateStr = vnTime.toISOString().split("T")[0];
+        const unpaidTodayLateFine = (finesList || []).find((f: any) => {
+          const isLateType = f.reason && (f.reason.includes("Đi muộn") || f.reason.includes("đăng nhập ngoài giờ"));
+          const isToday = f.createdAt && f.createdAt.startsWith(todayDateStr);
+          const isUnpaid = f.status === "UNPAID";
+          return isLateType && isToday && isUnpaid;
+        });
+
+        if (unpaidTodayLateFine) {
+          setAccessStatus('LATE');
+          // Automatically set late info for the modal
+          setFineAmount(unpaidTodayLateFine.amount || 50000);
+          if (unpaidTodayLateFine.lateMinutes) {
+            setLateMins(unpaidTodayLateFine.lateMinutes);
+          }
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("checkAccess fines check failed:", err);
+    }
+
+    setAccessStatus('GRANTED');
+  }
+
  const [isAccessGranted, setIsAccessGranted] = useState(false);
  const [accessStatus, setAccessStatus] = useState<string | null>(null);
  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
@@ -563,16 +642,7 @@ const totalWorkingMins = overlap1 + overlap2;
  return (totalWorkingMins / 60).toFixed(2);
  };
 
- const checkAccess = () => {
-     const activeUserStr = getActiveUserStr();
-     if (!activeUserStr) return;
-     const currentUser = JSON.parse(activeUserStr);
-
-     if (currentUser?.role === '01' || currentUser?.role === '02' || String(currentUser?.role).toUpperCase() === 'ADMIN' || String(currentUser?.role).toUpperCase().includes('QUẢN LÝ') || String(currentUser?.role).toUpperCase() === 'QL CÔNG VIỆC' || currentUser?.username === '01') {
-         setAccessStatus('GRANTED');
-         return;
-     }
-   };
+;
 
   const checkLateStatus = () => {
   const activeUserStr = getActiveUserStr();
@@ -917,7 +987,30 @@ const totalWorkingMins = overlap1 + overlap2;
     setUnreadCount(unread);
   }, [user]);
 
+    // Realtime useSWR Polling for systemSettings (30s interval)
+  const { data: systemSettings } = useSWR("/api/admin/settings", async () => {
+    try {
+      const res = await fetch("/api/admin/settings");
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          localStorage.setItem("global_work_config", JSON.stringify({
+            startTime: json.data.openTime,
+            endTime: json.data.closeTime,
+            checkInTime: json.data.checkInTime
+          }));
+          checkAccess();
+          return json.data;
+        }
+      }
+    } catch (err) {
+      console.error("Poll settings error in layout", err);
+    }
+    return null;
+  }, { refreshInterval: 30000 });
+
   // 4. Realtime useSWR Polling for chat and active users (30s interval)
+
   useSWR("sync_users_rlt", async () => {
     if (user) await syncRealUsersFromDB();
     return Date.now();
@@ -1381,15 +1474,37 @@ const typingTimer = setInterval(checkTyping, 1000);
      roleUpper === "QUẢN LÝ CÔNG VIỆC" ||
      user?.username === "01";
 
-  const shouldLock = !isAdminOrWorkManager && accessStatus !== 'GRANTED' && ((isSunday && isRestrictedRole) || (isRestrictedRole && !isWorkingHours)) && !isAccessGranted;
-  const isLateLocked = !isAdminOrWorkManager && accessStatus !== 'GRANTED' && isStaff && isLate && !isFinePaid && !isAccessGranted;
+  const shouldLock = !isAdminOrWorkManager && (accessStatus === 'CLOSED' || (isSunday && isRestrictedRole)) && !isAccessGranted;
+  const isLateLocked = !isAdminOrWorkManager && accessStatus === 'LATE' && !isAccessGranted;
   isCurrentlyLockedRef.current = isLateLocked;
 
  const getLockMessage = () => {
- if (isSunday) return"Hôm nay là Chủ Nhật. Hệ thống tạm khóa đối với nhân sự và quản lý nhân sự.";
- if (totalMinutes < startTime) return"Chưa đến giờ làm việc, vui lòng đăng nhập lại vào lúc 7:50 AM";
- return"Đã hết giờ làm việc. Hệ thống tự động khóa để bảo mật dữ liệu.";
- };
+    if (isSunday) return "Hôm nay là Chủ Nhật. Hệ thống tạm khóa đối với nhân sự và quản lý nhân sự.";
+    
+    // Retrieve dynamic config
+    const savedWorkConfigStr = localStorage.getItem("global_work_config");
+    let openTimeStr = "08:00";
+    if (savedWorkConfigStr) {
+      try {
+        const wc = JSON.parse(savedWorkConfigStr);
+        if (wc.startTime) openTimeStr = wc.startTime;
+      } catch (e) {}
+    }
+
+    const [openH, openM] = openTimeStr.split(":").map(Number);
+    const startMins = openH * 60 + openM - 10;
+
+    // Vietnam ICT Time
+    const nowTime = new Date();
+    const utcTime = nowTime.getTime() + nowTime.getTimezoneOffset() * 60000;
+    const vnTime = new Date(utcTime + 3600000 * 7);
+    const vnTotalMinutes = vnTime.getHours() * 60 + vnTime.getMinutes();
+
+    if (vnTotalMinutes < startMins) {
+      return `Chưa đến giờ làm việc, vui lòng đăng nhập lại vào lúc ${openTimeStr}`;
+    }
+    return "Đã hết giờ làm việc. Hệ thống tự động khóa để bảo mật dữ liệu.";
+  };
 
  const handleLogout = () => {
  localStorage.removeItem("user");

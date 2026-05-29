@@ -416,10 +416,10 @@ export default function BatchesManagementPage() {
  onChange={(e) => setTypeFilter(e.target.value)}
  className="bg-black/20 border border-white/0 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
  >
- <option value="ALL" className="bg-sidebar text-white">Tất cả phân loại</option>
- <option value="ROOT" className="bg-sidebar text-white">Mail Gốc</option>
- <option value="SATELLITE" className="bg-sidebar text-white">Mail Vệ Tinh</option>
- <option value="MONETIZED" className="bg-sidebar text-white">Mail BKT</option>
+ <option value="ALL" className="bg-zinc-900 text-white hover:bg-zinc-700">Tất cả phân loại</option>
+ <option value="ROOT" className="bg-zinc-900 text-white hover:bg-zinc-700">Mail Gốc</option>
+ <option value="SATELLITE" className="bg-zinc-900 text-white hover:bg-zinc-700">Mail Vệ Tinh</option>
+ <option value="MONETIZED" className="bg-zinc-900 text-white hover:bg-zinc-700">Mail BKT</option>
  </select>
 
  <button
@@ -734,9 +734,9 @@ export default function BatchesManagementPage() {
  onChange={(e) => setSelectedStaffForAssign(e.target.value)}
  className="w-full bg-black/40 border border-white/0 rounded-xl px-4 h-12 text-sm text-gold font-bold uppercase tracking-wider focus:border-white/5 outline-none transition-all cursor-pointer"
  >
- <option value="" className="bg-sidebar text-white">-- Click chọn nhân viên --</option>
+ <option value="" className="bg-zinc-900 text-white hover:bg-zinc-700">-- Click chọn nhân viên --</option>
  {(staffList || []).map((s) => (
- <option key={s.id} value={s.id} className="bg-sidebar text-white">
+ <option key={s.id} value={s.id} className="bg-zinc-900 text-white hover:bg-zinc-700">
  {s.name} ({s.username})
  </option>
  ))}
@@ -752,7 +752,7 @@ export default function BatchesManagementPage() {
  className="w-full bg-black/40 border border-white/0 rounded-xl px-4 h-12 text-sm text-gold font-bold uppercase tracking-wider focus:border-white/5 outline-none transition-all cursor-pointer"
  >
  {["Lô 1","Lô 2","Lô 3","Lô 4","Lô 5","Lô 6","Lô 7","Lô 8","Lô 9","Lô 10"].map((l) => (
- <option key={l} value={l} className="bg-sidebar text-white">{l}</option>
+ <option key={l} value={l} className="bg-zinc-900 text-white hover:bg-zinc-700">{l}</option>
  ))}
  </select>
  </div>

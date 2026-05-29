@@ -714,9 +714,9 @@ export default function ReportsPage() {
  value={selectedStaffId}
  onChange={(e) => setSelectedStaffId(e.target.value)}
  >
- <option value="" className="bg-sidebar text-gray-400">-- Nhấp để chọn --</option>
+ <option value="" className="bg-zinc-900 text-white hover:bg-zinc-700">-- Nhấp để chọn --</option>
  {(staffList || []).map(s => (
- <option key={s.id} value={s.id} className="bg-sidebar">{s.name} (@{s.username})</option>
+ <option key={s.id} value={s.id} className="bg-zinc-900 text-white hover:bg-zinc-700">{s.name} (@{s.username})</option>
  ))}
  </select>
  </div>

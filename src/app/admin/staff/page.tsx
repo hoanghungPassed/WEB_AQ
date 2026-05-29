@@ -930,12 +930,12 @@ export default function StaffManagementPage() {
  value={roleFilter}
  onChange={(e) => setRoleFilter(e.target.value)}
  >
- <option value="ALL" className="bg-sidebar">Tất cả Role</option>
- <option value="01" className="bg-sidebar">ADMIN</option>
- <option value="02" className="bg-sidebar">QL CÔNG VIỆC</option>
- <option value="03" className="bg-sidebar">QL NHÂN SỰ</option>
- <option value="04" className="bg-sidebar">NHÂN VIÊN</option>
- <option value="05" className="bg-sidebar">NV THỬ VIỆC</option>
+ <option value="ALL" className="bg-zinc-900 text-white hover:bg-zinc-700">Tất cả Role</option>
+ <option value="01" className="bg-zinc-900 text-white hover:bg-zinc-700">ADMIN</option>
+ <option value="02" className="bg-zinc-900 text-white hover:bg-zinc-700">QL CÔNG VIỆC</option>
+ <option value="03" className="bg-zinc-900 text-white hover:bg-zinc-700">QL NHÂN SỰ</option>
+ <option value="04" className="bg-zinc-900 text-white hover:bg-zinc-700">NHÂN VIÊN</option>
+ <option value="05" className="bg-zinc-900 text-white hover:bg-zinc-700">NV THỬ VIỆC</option>
  </select>
  </div>
  <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-2xl px-4 h-12 min-w-[180px]">
@@ -945,9 +945,9 @@ export default function StaffManagementPage() {
  value={statusFilter}
  onChange={(e) => setStatusFilter(e.target.value)}
  >
- <option value="ALL" className="bg-sidebar">Trạng thái</option>
- <option value="ACTIVE" className="bg-sidebar">Hoạt động</option>
- <option value="LOCKED" className="bg-sidebar">Đã khóa</option>
+ <option value="ALL" className="bg-zinc-900 text-white hover:bg-zinc-700">Trạng thái</option>
+ <option value="ACTIVE" className="bg-zinc-900 text-white hover:bg-zinc-700">Hoạt động</option>
+ <option value="LOCKED" className="bg-zinc-900 text-white hover:bg-zinc-700">Đã khóa</option>
  </select>
  </div>
  </>
@@ -1326,11 +1326,11 @@ export default function StaffManagementPage() {
  onChange={(e) => setTempRole(e.target.value)}
  className={`bg-transparent border-none outline-none text-base font-black text-gold cursor-pointer text-right ${(!(currentUser?.role ==="01" || currentUser?.role ==="02") || selectedStaff.id === currentUser?.id) ?"opacity-50 cursor-not-allowed" :""}`}
  >
- <option value="01" className="bg-sidebar">ADMIN</option>
- <option value="02" className="bg-sidebar">QUẢN LÝ CÔNG VIỆC</option>
- <option value="03" className="bg-sidebar">QUẢN LÝ NHÂN SỰ</option>
- <option value="04" className="bg-sidebar">NHÂN VIÊN CHÍNH THỨC</option>
- <option value="05" className="bg-sidebar">NHÂN VIÊN THỬ VIỆC</option>
+ <option value="01" className="bg-zinc-900 text-white hover:bg-zinc-700">ADMIN</option>
+ <option value="02" className="bg-zinc-900 text-white hover:bg-zinc-700">QUẢN LÝ CÔNG VIỆC</option>
+ <option value="03" className="bg-zinc-900 text-white hover:bg-zinc-700">QUẢN LÝ NHÂN SỰ</option>
+ <option value="04" className="bg-zinc-900 text-white hover:bg-zinc-700">NHÂN VIÊN CHÍNH THỨC</option>
+ <option value="05" className="bg-zinc-900 text-white hover:bg-zinc-700">NHÂN VIÊN THỬ VIỆC</option>
  </select>
  </div>
  <InfoRow label="Trạng thái" value={selectedStaff.status ==="ACTIVE" ?"ĐANG HOẠT ĐỘNG" : selectedStaff.status ==="LOCKED" ?"ĐÃ BỊ KHÓA" :"CHỜ PHÊ DUYỆT"} icon={<Activity size={14} />} />

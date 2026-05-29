@@ -1076,133 +1076,236 @@ export default function AdminDashboard() {
  return () => { mainEl.style.overflow =""; };
  }, [selectedStaffTask, user?.role]);
 
- if (user?.role === "03" || user?.role === "04" || user?.role === "05") {
-  return (
-    <div className="space-y-6 pb-20 relative">
-      <AnimatePresence>
-        {copyToast && (
-          <motion.div initial={{ opacity: 0, y: -40, x: "-50%" }} animate={{ opacity: 1, y: 20, x: "-50%" }} exit={{ opacity: 0, y: -40, x: "-50%" }}
-            className="fixed top-0 left-1/2 z-[500] bg-gold px-6 py-2.5 rounded-full text-sidebar font-black text-base shadow-2xl flex items-center gap-2">
-            <CheckCircle2 size={18} /> {copyToast}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Timekeeping Modal */}
-      <AnimatePresence>
-        {timekeepingModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[600] bg-zinc-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-zinc-900 border border-white/0 rounded-2xl p-8 w-full max-w-md shadow-2xl text-center">
-              <div className={`mx-auto h-20 w-20 rounded-full flex items-center justify-center border mb-6 shadow-lg ${timekeepingModal.type === "in" ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"}`}>
-                <CheckCircle2 size={40} className="animate-pulse" />
-              </div>
-              <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-3">{timekeepingModal.type === "in" ? "Check-in thành công" : "Check-out thành công"}</h3>
-              <p className="text-gray-400 font-medium leading-relaxed mb-6">Bạn đã check {timekeepingModal.type === "in" ? "in" : "out"} lúc <span className="text-gold font-bold font-mono text-lg">{timekeepingModal.time}</span>.</p>
-              <button onClick={() => setTimekeepingModal(null)} className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-zinc-50 font-bold rounded-xl transition-colors mt-4">Xác nhận</button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
-            <Activity className="text-gold" size={32} />
-            Bảng điều khiển nhân viên
-          </h1>
-          <p className="text-sm text-gray-500 font-medium uppercase tracking-widest mt-1">
-            Chào mừng trở lại, <span className="text-gold font-bold">{user?.name}</span>
-          </p>
-        </div>
-        <div className="flex gap-4">
-          <button
-            onClick={handleCheckIn}
-            disabled={!!checkInTime}
-            className={`h-12 px-6 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${
-              !checkInTime 
-              ?"bg-gold text-sidebar hover:bg-white shadow-lg shadow-gold/20" 
-              :"bg-white/5 text-gray-500 cursor-not-allowed border border-white/5"
-            }`}
-          >
-            Check-in
-          </button>
-          <button
-            onClick={handleCheckOut}
-            disabled={!checkInTime || !!checkOutTime}
-            className={`h-12 px-6 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${
-              checkInTime && !checkOutTime 
-              ?"bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/20" 
-              :"bg-white/5 text-gray-500 cursor-not-allowed border border-white/5"
-            }`}
-          >
-            Check-out
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <StatCard 
-          title="Giờ Check-in" 
-          value={checkInTime ? new Date(checkInTime).toLocaleTimeString("vi-VN") : "---"} 
-          icon={<Clock size={32} />} 
-          color="blue" 
-          subtitle="Thời gian bắt đầu làm việc" 
-        />
-        <StatCard 
-          title="Giờ Check-out" 
-          value={checkOutTime ? new Date(checkOutTime).toLocaleTimeString("vi-VN") : "---"} 
-          icon={<LogOut size={32} />} 
-          color="red" 
-          subtitle="Thời gian kết thúc làm việc" 
-        />
-        <StatCard 
-          title="Tổng Task hôm nay" 
-          value={stats.myTasks || 0} 
-          icon={<ClipboardList size={32} />} 
-          color="indigo" 
-          subtitle="Nhiệm vụ cần hoàn thành" 
-          onClick={() => router.push("/admin/tasks")}
-        />
-        <StatCard 
-          title="Tổng Mail hôm nay" 
-          value={stats.myMails || 0} 
-          icon={<Mail size={32} />} 
-          color="gold" 
-          subtitle="Mail đã xử lý trong ngày" 
-        />
-        <StatCard 
-          title="Mail Live" 
-          value={stats.liveMails || 0} 
-          icon={<CheckCircle2 size={32} />} 
-          color="green" 
-          subtitle="Tài khoản đang hoạt động" 
-        />
-        <StatCard 
-          title="Mail Die" 
-          value={stats.dieMails || 0} 
-          icon={<XCircle size={32} />} 
-          color="red" 
-          subtitle="Tài khoản bị lỗi" 
-        />
-      </div>
-    </div>
-  );
- }
+ 
 
  // ============================================================
  // Lock scroll on the main element when task detail is open
- React.useEffect(() => {
- const mainEl = document.querySelector("main");
- if (!mainEl) return;
- if (selectedStaffTask && (user?.role ==="03" || user?.role ==="04" || user?.role ==="05")) {
- mainEl.style.overflow ="hidden";
- } else {
- mainEl.style.overflow ="";
- }
- return () => { mainEl.style.overflow =""; };
- }, [selectedStaffTask, user?.role]);
+ 
 
- if (selectedStaffTask && (user?.role ==="03" || user?.role ==="04" || user?.role ==="05")) {
+ 
+
+ if (selectedViewType) {
+ return (
+ <div className="h-full flex flex-col space-y-6">
+ <div className="flex items-center justify-between">
+ <div className="flex items-center gap-6">
+ <button 
+ onClick={() => setSelectedViewType(null)}
+ className="flex items-center gap-2 text-gold font-bold uppercase text-sm tracking-wider transition-all group"
+ >
+ <div className="h-10 w-10 bg-gold/10 rounded-xl flex items-center justify-center group-hover:bg-gold/20 transition-all shadow-lg">
+ <ArrowLeft size={20} />
+ </div>
+ Quay lại bảng điều khiển
+ </button>
+ <h2 className="text-3xl font-bold text-white uppercase tracking-tight flex items-center gap-3">
+ {selectedViewType ==="STAFF" ? <Users className="text-gold" size={28} /> : <Mail className="text-gold" size={28} />}
+ {selectedViewType ==="STAFF" ?"Danh sách Nhân viên" : selectedViewType ==="TASKS" ?"Task Công việc" : `Danh sách ${selectedViewType} Mail`}
+ </h2>
+ </div>
+ </div>
+
+ <div className="bg-sidebar border border-white/0 rounded-[32px] overflow-hidden shadow-2xl">
+ <div className="p-6 border-b border-white/0 bg-white/0 flex flex-col md:flex-row items-center justify-between gap-4">
+ <div className="flex items-center gap-4 w-full md:w-auto">
+ <h3 className="text-xl font-bold text-white uppercase tracking-tight hidden md:block">Dữ liệu chi tiết</h3>
+ <div className="h-8 w-px bg-white/0 hidden md:block" />
+ <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-xl px-3 h-10 w-full md:w-64 focus-within:border-white/5 transition-all">
+ <Search size={16} className="text-gray-500" />
+ <input 
+ placeholder={selectedViewType ==="STAFF" ?"Tìm tên nhân viên..." :"Tìm kiếm Email..."}
+ className="bg-transparent border-none outline-none text-sm text-white w-full" 
+ type="text" 
+ value={searchQuery}
+ onChange={(e) => setSearchQuery(e.target.value)}
+ />
+ </div>
+ {(selectedViewType ==="LIVE" || selectedViewType ==="DIE") && (
+ <select
+ value={filterMailType}
+ onChange={(e) => {
+ setFilterMailType(e.target.value);
+ setCurrentPage(1);
+ }}
+ className="bg-black/20 border border-white/0 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold transition-all cursor-pointer hidden md:block"
+ >
+ <option value="ALL" className="bg-zinc-900 text-white hover:bg-zinc-700">Tất cả loại</option>
+ <option value="ROOT" className="bg-zinc-900 text-white hover:bg-zinc-700">Gốc</option>
+ <option value="SATELLITE" className="bg-zinc-900 text-white hover:bg-zinc-700">Vệ tinh</option>
+ <option value="MONETIZED" className="bg-zinc-900 text-white hover:bg-zinc-700">BKT</option>
+ </select>
+ )}
+ </div>
+ <button onClick={() => setSelectedViewType(null)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:bg-red-500/20 hover:text-red-500 transition-all shadow-inner"><X size={20} /></button>
+ </div>
+
+ <div className="overflow-x-auto custom-scrollbar">
+ {selectedViewType ==="STAFF" ? (
+ <table className="w-full text-left text-base whitespace-nowrap">
+ <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0">
+ <tr>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">STT</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Tên nhân viên</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Vai trò</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Trạng thái</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Check-in</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Check-out</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Tổng giờ</th>
+ </tr>
+ </thead>
+ <tbody className="divide-y divide-white/5 text-gray-300">
+ {staffList
+ .filter(s => s.status ==="ACTIVE" && s.role !=="01")
+ .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+ .map((staff: any, index) => (
+ <tr key={`staff-${staff.id}`} className="hover:bg-white/5 bg-zinc-900/[0.02] transition-colors group">
+ <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
+ <td className="py-4 px-6 text-base font-bold text-white flex items-center gap-3">
+ <div className="h-8 w-8 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center font-black text-sm text-gold uppercase shrink-0">
+ {staff.name ? staff.name.slice(0, 2) :"NV"}
+ </div>
+ {staff.name}
+ </td>
+ <td className="py-4 px-6 text-sm text-gray-400 font-bold">{getRoleLabel(staff.role)}</td>
+ <td className="py-4 px-6">
+ <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${staff.isOnline ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
+ {staff.isOnline ?"ONLINE" :"OFFLINE"}
+ </span>
+ </td>
+ <td className="py-4 px-6 text-sm text-gray-400 font-mono font-bold">{staff.checkInTime ||"---"}</td>
+ <td className="py-4 px-6 text-sm text-gray-400 font-mono font-bold">{staff.checkOutTime ||"---"}</td>
+ <td className="py-4 px-6 text-sm text-gold font-mono font-black">{staff.totalHours ? `${staff.totalHours}h` :"---"}</td>
+ </tr>
+ ))}
+ </tbody>
+ </table>
+ ) : selectedViewType ==="TASKS" && isAdminOrManager ? (
+ <table className="w-full text-left text-base whitespace-nowrap">
+ <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0">
+ <tr>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">STT</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Tiêu đề</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Loại công việc</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Nhân sự được giao</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Số lượng mail</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Tiến độ</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Trạng thái</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Hạn chót</th>
+ </tr>
+ </thead>
+ <tbody className="divide-y divide-white/5 text-gray-300">
+ {(currentTasksItems || []).map((task: any, index: number) => {
+ const assignee = staffList.find(s => String(s.id) === String(task.assigneeId));
+ const taskTypeLabel = task.type ==="MAIL_GOC" ?"Mail Gốc" : (task.type ==="MAIL_VE_TINH" ?"Mail Vệ Tinh" :"Mail BKT");
+ return (
+ <tr key={`task-row-${task.id}`} className="hover:bg-white/5 bg-zinc-900/[0.02] transition-colors group">
+ <td className="py-4 px-6 text-[10px] font-black text-gray-500">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+ <td className="py-4 px-6 text-base font-bold text-white">
+ <div>
+ <span className="block">{task.title}</span>
+ {task.note && <span className="text-[10px] text-gray-500 block font-normal whitespace-pre-wrap">{task.note}</span>}
+ </div>
+ </td>
+ <td className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gold">{taskTypeLabel}</td>
+ <td className="py-4 px-6 text-sm text-gray-400 font-bold">{assignee ? assignee.name :"Chưa giao"}</td>
+ <td className="py-4 px-6 text-sm text-gray-400 font-bold">{task.mailCount || 0} Mail</td>
+ <td className="py-4 px-6">
+ <div className="flex items-center gap-2">
+ <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/0">
+ <div className="h-full bg-gold" style={{ width: `${task.progress || 0}%` }} />
+ </div>
+ <span className="text-[10px] font-black text-gold">{task.progress || 0}%</span>
+ </div>
+ </td>
+ <td className="py-4 px-6">
+ <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${
+ task.status ==="COMPLETED" 
+ ?"bg-green-500/10 text-green-500 border-green-500/20" 
+ : task.status ==="IN_PROGRESS"
+ ?"bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+ :"bg-gray-500/10 text-gray-400 border-gray-500/20"
+ }`}>
+ {task.status ==="COMPLETED" ?"Hoàn thành" : task.status ==="IN_PROGRESS" ?"Đang xử lý" :"Chưa làm"}
+ </span>
+ </td>
+ <td className="py-4 px-6 text-sm text-gray-500 font-bold">{task.deadline ||"---"}</td>
+ </tr>
+ );
+ })}
+ </tbody>
+ </table>
+ ) : (
+ <table className="w-full text-left text-base whitespace-nowrap">
+ <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0">
+ <tr>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">STT</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Email</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Loại Mail</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Trạng thái</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Chi tiết</th>
+ <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Người cập nhật</th>
+ </tr>
+ </thead>
+ <tbody className="divide-y divide-white/5 text-gray-300">
+ {(currentItems || []).map((mail: any, index: number) => {
+ const assignee = staffList.find(s => String(s.id) === String(mail.assigneeId));
+ return (
+ <tr key={`mail-${mail.id}`} className="hover:bg-white/5 bg-zinc-900/[0.02] transition-colors group">
+ <td className="py-4 px-6 text-[10px] font-black text-gray-500">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+ <td className="py-4 px-6 text-base font-bold text-white">
+ <div>{mail.email}</div>
+ {mail.type ==="SATELLITE" && (() => {
+ const links = mail.links || [];
+ const filledCount = [0, 1, 2].filter(i => links[i] && links[i].trim() !=="").length;
+ if (filledCount < 3) {
+ return (
+ <div className="text-[10px] text-red-500 font-extrabold uppercase animate-pulse flex items-center gap-1 mt-0.5">
+ <span className="text-[8px]">⚠️</span> Thiếu {3 - filledCount} kênh
+ </div>
+ );
+ }
+ return null;
+ })()}
+ </td>
+ <td className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gold">
+ {mail.type ==="ROOT" ?"Gốc" : mail.type ==="SATELLITE" ?"Vệ Tinh" :"BKT"}
+ </td>
+ <td className="py-4 px-6">
+ <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${mail.status === 'LIVE' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+ {mail.status ||"LIVE"}
+ </span>
+ </td>
+ <td className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400">
+ {mail.workStatus || (mail.status === 'DIE' ?"Lỗi" :"Chưa làm")}
+ </td>
+ <td className="py-4 px-6 text-sm text-gray-400 font-medium">
+ {mail.updatedBy ? (typeof mail.updatedBy === 'object' ? (mail.updatedBy.name || mail.updatedBy.username || "Hệ thống") : mail.updatedBy) : (assignee ? assignee.name :"---")}
+ </td>
+ </tr>
+ );
+ })}
+ </tbody>
+ </table>
+ )}
+ </div>
+ 
+ {selectedViewType !=="STAFF" && (
+ <div className="p-6 border-t border-white/0 bg-black/20 flex items-center justify-between">
+ <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Trang <span className="text-white font-black">{currentPage}</span> / {selectedViewType ==="TASKS" && isAdminOrManager ? totalTasksPages || 1 : totalPages || 1}</span>
+ <div className="flex gap-2">
+ <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/0 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
+ <button disabled={currentPage >= (selectedViewType ==="TASKS" && isAdminOrManager ? totalTasksPages : totalPages)} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/0 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
+ </div>
+ </div>
+ )}
+ </div>
+ </div>
+ );
+ }
+
+ 
+
+if (selectedStaffTask && (user?.role ==="03" || user?.role ==="04" || user?.role ==="05")) {
  const taskMails = (mails || []).filter((m: any) => {
  const belongsToUser = String(m.assigneeId) === String(user?.id);
  if (!belongsToUser) return false;
@@ -1417,10 +1520,10 @@ export default function AdminDashboard() {
  onChange={(e) => handleStaffMailStatusChange(mail.id, e.target.value)}
  className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusStyle(mail.workStatus ||"Chưa làm")}`}
  >
- <option value="Chưa làm" className="bg-sidebar text-white">Chưa làm</option>
- <option value="Đang xử lí" className="bg-sidebar text-white">Đang xử lí</option>
- <option value="Đã làm" className="bg-sidebar text-white">Đã làm</option>
- <option value="Lỗi" className="bg-sidebar text-white">Lỗi</option>
+ <option value="Chưa làm" className="bg-zinc-900 text-white hover:bg-zinc-700">Chưa làm</option>
+ <option value="Đang xử lí" className="bg-zinc-900 text-white hover:bg-zinc-700">Đang xử lí</option>
+ <option value="Đã làm" className="bg-zinc-900 text-white hover:bg-zinc-700">Đã làm</option>
+ <option value="Lỗi" className="bg-zinc-900 text-white hover:bg-zinc-700">Lỗi</option>
  </select>
  </td>
  <td className="py-3 px-6 text-center whitespace-nowrap">
@@ -1440,226 +1543,120 @@ export default function AdminDashboard() {
  );
  }
 
- if (selectedViewType) {
- return (
- <div className="h-full flex flex-col space-y-6">
- <div className="flex items-center justify-between">
- <div className="flex items-center gap-6">
- <button 
- onClick={() => setSelectedViewType(null)}
- className="flex items-center gap-2 text-gold font-bold uppercase text-sm tracking-wider transition-all group"
- >
- <div className="h-10 w-10 bg-gold/10 rounded-xl flex items-center justify-center group-hover:bg-gold/20 transition-all shadow-lg">
- <ArrowLeft size={20} />
- </div>
- Quay lại bảng điều khiển
- </button>
- <h2 className="text-3xl font-bold text-white uppercase tracking-tight flex items-center gap-3">
- {selectedViewType ==="STAFF" ? <Users className="text-gold" size={28} /> : <Mail className="text-gold" size={28} />}
- {selectedViewType ==="STAFF" ?"Danh sách Nhân viên" : selectedViewType ==="TASKS" ?"Task Công việc" : `Danh sách ${selectedViewType} Mail`}
- </h2>
- </div>
- </div>
+if (user?.role === "03" || user?.role === "04" || user?.role === "05") {
+  return (
+    <div className="space-y-6 pb-20 relative">
+      <AnimatePresence>
+        {copyToast && (
+          <motion.div initial={{ opacity: 0, y: -40, x: "-50%" }} animate={{ opacity: 1, y: 20, x: "-50%" }} exit={{ opacity: 0, y: -40, x: "-50%" }}
+            className="fixed top-0 left-1/2 z-[500] bg-gold px-6 py-2.5 rounded-full text-sidebar font-black text-base shadow-2xl flex items-center gap-2">
+            <CheckCircle2 size={18} /> {copyToast}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
- <div className="bg-sidebar border border-white/0 rounded-[32px] overflow-hidden shadow-2xl">
- <div className="p-6 border-b border-white/0 bg-white/0 flex flex-col md:flex-row items-center justify-between gap-4">
- <div className="flex items-center gap-4 w-full md:w-auto">
- <h3 className="text-xl font-bold text-white uppercase tracking-tight hidden md:block">Dữ liệu chi tiết</h3>
- <div className="h-8 w-px bg-white/0 hidden md:block" />
- <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-xl px-3 h-10 w-full md:w-64 focus-within:border-white/5 transition-all">
- <Search size={16} className="text-gray-500" />
- <input 
- placeholder={selectedViewType ==="STAFF" ?"Tìm tên nhân viên..." :"Tìm kiếm Email..."}
- className="bg-transparent border-none outline-none text-sm text-white w-full" 
- type="text" 
- value={searchQuery}
- onChange={(e) => setSearchQuery(e.target.value)}
- />
- </div>
- {(selectedViewType ==="LIVE" || selectedViewType ==="DIE") && (
- <select
- value={filterMailType}
- onChange={(e) => {
- setFilterMailType(e.target.value);
- setCurrentPage(1);
- }}
- className="bg-black/20 border border-white/0 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold transition-all cursor-pointer hidden md:block"
- >
- <option value="ALL" className="bg-sidebar text-white">Tất cả loại</option>
- <option value="ROOT" className="bg-sidebar text-white">Gốc</option>
- <option value="SATELLITE" className="bg-sidebar text-white">Vệ tinh</option>
- <option value="MONETIZED" className="bg-sidebar text-white">BKT</option>
- </select>
- )}
- </div>
- <button onClick={() => setSelectedViewType(null)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:bg-red-500/20 hover:text-red-500 transition-all shadow-inner"><X size={20} /></button>
- </div>
+      {/* Timekeeping Modal */}
+      <AnimatePresence>
+        {timekeepingModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[600] bg-zinc-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-zinc-900 border border-white/0 rounded-2xl p-8 w-full max-w-md shadow-2xl text-center">
+              <div className={`mx-auto h-20 w-20 rounded-full flex items-center justify-center border mb-6 shadow-lg ${timekeepingModal.type === "in" ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"}`}>
+                <CheckCircle2 size={40} className="animate-pulse" />
+              </div>
+              <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-3">{timekeepingModal.type === "in" ? "Check-in thành công" : "Check-out thành công"}</h3>
+              <p className="text-gray-400 font-medium leading-relaxed mb-6">Bạn đã check {timekeepingModal.type === "in" ? "in" : "out"} lúc <span className="text-gold font-bold font-mono text-lg">{timekeepingModal.time}</span>.</p>
+              <button onClick={() => setTimekeepingModal(null)} className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-zinc-50 font-bold rounded-xl transition-colors mt-4">Xác nhận</button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
- <div className="overflow-x-auto custom-scrollbar">
- {selectedViewType ==="STAFF" ? (
- <table className="w-full text-left text-base whitespace-nowrap">
- <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0">
- <tr>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">STT</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Tên nhân viên</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Vai trò</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Trạng thái</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Check-in</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Check-out</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Tổng giờ</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-white/5 text-gray-300">
- {staffList
- .filter(s => s.status ==="ACTIVE" && s.role !=="01")
- .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
- .map((staff: any, index) => (
- <tr key={`staff-${staff.id}`} className="hover:bg-white/5 bg-zinc-900/[0.02] transition-colors group">
- <td className="py-4 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
- <td className="py-4 px-6 text-base font-bold text-white flex items-center gap-3">
- <div className="h-8 w-8 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center font-black text-sm text-gold uppercase shrink-0">
- {staff.name ? staff.name.slice(0, 2) :"NV"}
- </div>
- {staff.name}
- </td>
- <td className="py-4 px-6 text-sm text-gray-400 font-bold">{getRoleLabel(staff.role)}</td>
- <td className="py-4 px-6">
- <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${staff.isOnline ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
- {staff.isOnline ?"ONLINE" :"OFFLINE"}
- </span>
- </td>
- <td className="py-4 px-6 text-sm text-gray-400 font-mono font-bold">{staff.checkInTime ||"---"}</td>
- <td className="py-4 px-6 text-sm text-gray-400 font-mono font-bold">{staff.checkOutTime ||"---"}</td>
- <td className="py-4 px-6 text-sm text-gold font-mono font-black">{staff.totalHours ? `${staff.totalHours}h` :"---"}</td>
- </tr>
- ))}
- </tbody>
- </table>
- ) : selectedViewType ==="TASKS" && isAdminOrManager ? (
- <table className="w-full text-left text-base whitespace-nowrap">
- <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0">
- <tr>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">STT</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Tiêu đề</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Loại công việc</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Nhân sự được giao</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Số lượng mail</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Tiến độ</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Trạng thái</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Hạn chót</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-white/5 text-gray-300">
- {(currentTasksItems || []).map((task: any, index: number) => {
- const assignee = staffList.find(s => String(s.id) === String(task.assigneeId));
- const taskTypeLabel = task.type ==="MAIL_GOC" ?"Mail Gốc" : (task.type ==="MAIL_VE_TINH" ?"Mail Vệ Tinh" :"Mail BKT");
- return (
- <tr key={`task-row-${task.id}`} className="hover:bg-white/5 bg-zinc-900/[0.02] transition-colors group">
- <td className="py-4 px-6 text-[10px] font-black text-gray-500">{(currentPage - 1) * itemsPerPage + index + 1}</td>
- <td className="py-4 px-6 text-base font-bold text-white">
- <div>
- <span className="block">{task.title}</span>
- {task.note && <span className="text-[10px] text-gray-500 block font-normal whitespace-pre-wrap">{task.note}</span>}
- </div>
- </td>
- <td className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gold">{taskTypeLabel}</td>
- <td className="py-4 px-6 text-sm text-gray-400 font-bold">{assignee ? assignee.name :"Chưa giao"}</td>
- <td className="py-4 px-6 text-sm text-gray-400 font-bold">{task.mailCount || 0} Mail</td>
- <td className="py-4 px-6">
- <div className="flex items-center gap-2">
- <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/0">
- <div className="h-full bg-gold" style={{ width: `${task.progress || 0}%` }} />
- </div>
- <span className="text-[10px] font-black text-gold">{task.progress || 0}%</span>
- </div>
- </td>
- <td className="py-4 px-6">
- <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${
- task.status ==="COMPLETED" 
- ?"bg-green-500/10 text-green-500 border-green-500/20" 
- : task.status ==="IN_PROGRESS"
- ?"bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
- :"bg-gray-500/10 text-gray-400 border-gray-500/20"
- }`}>
- {task.status ==="COMPLETED" ?"Hoàn thành" : task.status ==="IN_PROGRESS" ?"Đang xử lý" :"Chưa làm"}
- </span>
- </td>
- <td className="py-4 px-6 text-sm text-gray-500 font-bold">{task.deadline ||"---"}</td>
- </tr>
- );
- })}
- </tbody>
- </table>
- ) : (
- <table className="w-full text-left text-base whitespace-nowrap">
- <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0">
- <tr>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">STT</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Email</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Loại Mail</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Trạng thái</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Chi tiết</th>
- <th className="py-5 px-6 font-bold uppercase tracking-wider text-[10px]">Người cập nhật</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-white/5 text-gray-300">
- {(currentItems || []).map((mail: any, index: number) => {
- const assignee = staffList.find(s => String(s.id) === String(mail.assigneeId));
- return (
- <tr key={`mail-${mail.id}`} className="hover:bg-white/5 bg-zinc-900/[0.02] transition-colors group">
- <td className="py-4 px-6 text-[10px] font-black text-gray-500">{(currentPage - 1) * itemsPerPage + index + 1}</td>
- <td className="py-4 px-6 text-base font-bold text-white">
- <div>{mail.email}</div>
- {mail.type ==="SATELLITE" && (() => {
- const links = mail.links || [];
- const filledCount = [0, 1, 2].filter(i => links[i] && links[i].trim() !=="").length;
- if (filledCount < 3) {
- return (
- <div className="text-[10px] text-red-500 font-extrabold uppercase animate-pulse flex items-center gap-1 mt-0.5">
- <span className="text-[8px]">⚠️</span> Thiếu {3 - filledCount} kênh
- </div>
- );
- }
- return null;
- })()}
- </td>
- <td className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gold">
- {mail.type ==="ROOT" ?"Gốc" : mail.type ==="SATELLITE" ?"Vệ Tinh" :"BKT"}
- </td>
- <td className="py-4 px-6">
- <span className={`px-2 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border ${mail.status === 'LIVE' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
- {mail.status ||"LIVE"}
- </span>
- </td>
- <td className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400">
- {mail.workStatus || (mail.status === 'DIE' ?"Lỗi" :"Chưa làm")}
- </td>
- <td className="py-4 px-6 text-sm text-gray-400 font-medium">
- {mail.updatedBy ? (typeof mail.updatedBy === 'object' ? (mail.updatedBy.name || mail.updatedBy.username || "Hệ thống") : mail.updatedBy) : (assignee ? assignee.name :"---")}
- </td>
- </tr>
- );
- })}
- </tbody>
- </table>
- )}
- </div>
- 
- {selectedViewType !=="STAFF" && (
- <div className="p-6 border-t border-white/0 bg-black/20 flex items-center justify-between">
- <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Trang <span className="text-white font-black">{currentPage}</span> / {selectedViewType ==="TASKS" && isAdminOrManager ? totalTasksPages || 1 : totalPages || 1}</span>
- <div className="flex gap-2">
- <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/0 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronLeft size={18} /></button>
- <button disabled={currentPage >= (selectedViewType ==="TASKS" && isAdminOrManager ? totalTasksPages : totalPages)} onClick={() => setCurrentPage(p => p + 1)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/0 text-white disabled:opacity-30 hover:border-gold transition-all"><ChevronRight size={18} /></button>
- </div>
- </div>
- )}
- </div>
- </div>
- );
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+            <Activity className="text-gold" size={32} />
+            Bảng điều khiển nhân viên
+          </h1>
+          <p className="text-sm text-gray-500 font-medium uppercase tracking-widest mt-1">
+            Chào mừng trở lại, <span className="text-gold font-bold">{user?.name}</span>
+          </p>
+        </div>
+        <div className="flex gap-4">
+          <button
+            onClick={handleCheckIn}
+            disabled={!!checkInTime}
+            className={`h-12 px-6 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${
+              !checkInTime 
+              ?"bg-gold text-sidebar hover:bg-white shadow-lg shadow-gold/20" 
+              :"bg-white/5 text-gray-500 cursor-not-allowed border border-white/5"
+            }`}
+          >
+            Check-in
+          </button>
+          <button
+            onClick={handleCheckOut}
+            disabled={!checkInTime || !!checkOutTime}
+            className={`h-12 px-6 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${
+              checkInTime && !checkOutTime 
+              ?"bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/20" 
+              :"bg-white/5 text-gray-500 cursor-not-allowed border border-white/5"
+            }`}
+          >
+            Check-out
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <StatCard 
+          title="Giờ Check-in" 
+          value={checkInTime ? new Date(checkInTime).toLocaleTimeString("vi-VN") : "---"} 
+          icon={<Clock size={32} />} 
+          color="blue" 
+          subtitle="Thời gian bắt đầu làm việc" 
+        />
+        <StatCard 
+          title="Giờ Check-out" 
+          value={checkOutTime ? new Date(checkOutTime).toLocaleTimeString("vi-VN") : "---"} 
+          icon={<LogOut size={32} />} 
+          color="red" 
+          subtitle="Thời gian kết thúc làm việc" 
+        />
+        <StatCard 
+          title="Tổng Task hôm nay" 
+          value={stats.myTasks || 0} 
+          icon={<ClipboardList size={32} />} 
+          color="indigo" 
+          subtitle="Nhiệm vụ cần hoàn thành" 
+          onClick={() => router.push("/admin/tasks")}
+        />
+        <StatCard 
+          title="Tổng Mail hôm nay" 
+          value={stats.myMails || 0} 
+          icon={<Mail size={32} />} 
+          color="gold" 
+          subtitle="Mail đã xử lý trong ngày" 
+        />
+        <StatCard 
+          title="Mail Live" 
+          value={stats.liveMails || 0} 
+          icon={<CheckCircle2 size={32} />} 
+          color="green" 
+          subtitle="Tài khoản đang hoạt động" 
+        />
+        <StatCard 
+          title="Mail Die" 
+          value={stats.dieMails || 0} 
+          icon={<XCircle size={32} />} 
+          color="red" 
+          subtitle="Tài khoản bị lỗi" 
+        />
+      </div>
+    </div>
+  );
  }
 
- return (
+return (
  <div className="space-y-6 pb-24 relative">
  <AnimatePresence>
  {showSuccess && (
@@ -2050,8 +2047,8 @@ export default function AdminDashboard() {
  :"bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
  }`}
  >
- <option value="Chưa mời" className="bg-sidebar text-white">Chưa mời</option>
- <option value="Đã mời" className="bg-sidebar text-white">Đã mời</option>
+ <option value="Chưa mời" className="bg-zinc-900 text-white hover:bg-zinc-700">Chưa mời</option>
+ <option value="Đã mời" className="bg-zinc-900 text-white hover:bg-zinc-700">Đã mời</option>
  </select>
  </td>
  </tr>

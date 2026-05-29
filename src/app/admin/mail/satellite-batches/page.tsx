@@ -988,9 +988,9 @@ export default function SatelliteBatchesPage() {
  onChange={(e) => setSelectedChunkId(e.target.value)}
  className="w-full bg-black/40 border border-white/0 rounded-2xl h-14 px-4 text-sm font-black text-white uppercase tracking-wider outline-none focus:border-white/5 cursor-pointer transition-all"
  >
- <option value="" className="bg-sidebar text-white">--- Chọn dải mail ---</option>
+ <option value="" className="bg-zinc-900 text-white hover:bg-zinc-700">--- Chọn dải mail ---</option>
  {(unassignedMailChunks || []).map((chunk) => (
- <option key={chunk.id} value={chunk.id} className="bg-sidebar text-white">
+ <option key={chunk.id} value={chunk.id} className="bg-zinc-900 text-white hover:bg-zinc-700">
  {chunk.label}
  </option>
  ))}

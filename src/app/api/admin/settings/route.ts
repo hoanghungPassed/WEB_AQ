@@ -48,10 +48,23 @@ export async function PUT(req: NextRequest) {
     await dbConnect();
     const data = await req.json();
     
+    // Support both workStartTime/workEndTime and openTime/closeTime naming conventions
+    let start = data.workStartTime !== undefined ? data.workStartTime : data.openTime;
+    let end = data.workEndTime !== undefined ? data.workEndTime : data.closeTime;
+
+    if (start !== undefined && end === undefined) {
+      // Automatically add 8 hours to start time to calculate closeTime (workEndTime)
+      const parts = start.split(":");
+      const hours = parseInt(parts[0]) || 0;
+      const minutes = parseInt(parts[1]) || 0;
+      const endHours = (hours + 8) % 24;
+      end = `${String(endHours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+    }
+
     const updateData: any = {};
     if (data.brandName !== undefined) updateData.brandName = data.brandName;
-    if (data.openTime !== undefined) updateData.openTime = data.openTime;
-    if (data.closeTime !== undefined) updateData.closeTime = data.closeTime;
+    if (start !== undefined) updateData.openTime = start;
+    if (end !== undefined) updateData.closeTime = end;
     if (data.checkInTime !== undefined) updateData.checkInTime = data.checkInTime;
 
     const settings = await SystemSetting.findOneAndUpdate(

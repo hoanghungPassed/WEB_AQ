@@ -255,9 +255,9 @@ const UnifiedMailDetailModal = ({
  onChange={(e) => setVerificationStatus(e.target.value)}
  className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all cursor-pointer"
  >
- <option value="Mail Veri mail" className="bg-sidebar text-white">Mail Veri mail</option>
- <option value="Đã xanh" className="bg-sidebar text-white">Đã xanh</option>
- <option value="Chưa xanh" className="bg-sidebar text-white">Chưa xanh</option>
+ <option value="Mail Veri mail" className="bg-zinc-900 text-white hover:bg-zinc-700">Mail Veri mail</option>
+ <option value="Đã xanh" className="bg-zinc-900 text-white hover:bg-zinc-700">Đã xanh</option>
+ <option value="Chưa xanh" className="bg-zinc-900 text-white hover:bg-zinc-700">Chưa xanh</option>
  </select>
  </div>
  </>
@@ -632,12 +632,19 @@ export default function TaskManagementPage() {
     
     return (batchNames || []).map(bName => {
       const batchMails = allSatellites.filter((m: any) => m.batchName === bName);
+      if (batchMails.length === 0) return null;
+      
       const assignedTo = batchMails[0]?.assigneeId || "";
+      const firstIdx = allSatellites.findIndex((m: any) => m.id === batchMails[0].id) + 1;
+      const lastIdx = allSatellites.findIndex((m: any) => m.id === batchMails[batchMails.length - 1].id) + 1;
+
       return {
         name: bName,
-        assignedTo: assignedTo
+        assignedTo: assignedTo,
+        startIndex: firstIdx,
+        endIndex: lastIdx
       };
-    });
+    }).filter(Boolean) as any[];
   }, [mails]);
 
   const selectedUserId = targetStaffId;
@@ -646,12 +653,12 @@ export default function TaskManagementPage() {
   }, [satelliteBatches, selectedUserId]);
 
   useEffect(() => {
-    if ((dynamicStaffBatches || []).length > 0) {
-      setSelectedLo(dynamicStaffBatches[0].name);
+    if ((filteredBatches || []).length > 0) {
+      setSelectedLo(filteredBatches[0].name);
     } else {
       setSelectedLo("");
     }
-  }, [dynamicStaffBatches]);
+  }, [filteredBatches]);
 
  const eligibleStaff = useMemo(() => {
  if (!user) return [];
@@ -895,16 +902,21 @@ setNotification("Đã cập nhật chi tiết mail thành công.");
       typeLabel = "SATELLITE";
       taskType = "MAIL_VE_TINH";
       
-      const selectedBatchObj = dynamicStaffBatches.find(b => b.name === selectedLo);
-      if (!selectedBatchObj) {
-        alert(`Lô ${selectedLo} không hợp lệ hoặc đã được gán.`);
+      const allSatellites = (allMails || []).filter((m: any) => m.type === "SATELLITE");
+      const batchMails = allSatellites.filter((m: any) => m.batchName === selectedLo);
+      if (batchMails.length === 0) {
+        alert(`Lô ${selectedLo} không hợp lệ hoặc không tìm thấy mail vệ tinh nào.`);
         return;
       }
       
-      assignedIds = selectedBatchObj.mailIds || [];
-      mailCount = (assignedIds || []).length;
-      mailRangeStr = `${selectedLo} (STT ${selectedBatchObj.range})`;
-      note = `${note} - Lô gán: ${selectedLo} (STT ${selectedBatchObj.range})`;
+      const firstIdx = allSatellites.findIndex((m: any) => m.id === batchMails[0].id) + 1;
+      const lastIdx = allSatellites.findIndex((m: any) => m.id === batchMails[batchMails.length - 1].id) + 1;
+      const batchRange = `${firstIdx}-${lastIdx}`;
+      
+      assignedIds = batchMails.map((m: any) => m.id);
+      mailCount = assignedIds.length;
+      mailRangeStr = `${selectedLo} (STT ${batchRange})`;
+      note = `${note} - Lô gán: ${selectedLo} (STT ${batchRange})`;
     } 
     else if (selectedTemplate === "Kênh bật kiếm tiền") {
       typeLabel = "MONETIZED";
@@ -974,7 +986,17 @@ setNotification("Đã cập nhật chi tiết mail thành công.");
     const savedTasks = null;
     let allTasks = savedTasks ? JSON.parse(savedTasks) : [];
 
-    const selectedBatchObj = dynamicStaffBatches.find(b => b.name === selectedLo);
+    let rangeVal = mailRangeStr;
+    if (selectedTemplate === "Làm kênh") {
+      const allSatellites = (allMails || []).filter((m: any) => m.type === "SATELLITE");
+      const batchMails = allSatellites.filter((m: any) => m.batchName === selectedLo);
+      if (batchMails.length > 0) {
+        const firstIdx = allSatellites.findIndex((m: any) => m.id === batchMails[0].id) + 1;
+        const lastIdx = allSatellites.findIndex((m: any) => m.id === batchMails[batchMails.length - 1].id) + 1;
+        rangeVal = `${firstIdx}-${lastIdx}`;
+      }
+    }
+
     const newTask: any = {
       id: `task-${Date.now()}`,
       title: selectedTemplate,
@@ -990,7 +1012,7 @@ setNotification("Đã cập nhật chi tiết mail thành công.");
       note: note,
       mailRange: mailRangeStr,
       batch: selectedTemplate === "Làm kênh" ? selectedLo : "",
-      range: selectedTemplate === "Làm kênh" ? (selectedBatchObj?.range || "") : mailRangeStr,
+      range: rangeVal,
       mailType: typeLabel as any,
       selectedMailIds: selectedTemplate === "Check, xóa, tạo" ? assignedIds : undefined
     };
@@ -1218,9 +1240,9 @@ setNotification("Đã cập nhật chi tiết mail thành công.");
  onChange={(e) => setTargetStaffId(e.target.value)}
  className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all"
  >
- <option value="" className="bg-sidebar text-white">-- Chọn nhân sự ONLINE thực hiện --</option>
+ <option value="" className="bg-zinc-900 text-white hover:bg-zinc-700">-- Chọn nhân sự ONLINE thực hiện --</option>
  {(eligibleStaff || []).map((staff: any) => (
- <option key={staff.id} value={staff.id} className="bg-sidebar text-white">
+ <option key={staff.id} value={staff.id} className="bg-zinc-900 text-white hover:bg-zinc-700">
  🟢 {staff.name} ({staff.role ==="02" ?"Quản lý công việc" : staff.role ==="03" ?"Quản lý nhân sự" :"Nhân viên"})
  </option>
  ))}
@@ -1254,18 +1276,20 @@ setNotification("Đã cập nhật chi tiết mail thành công.");
  <div className="space-y-2">
  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chọn Lô vệ tinh giao</label>
  <select 
- value={selectedLo}
- onChange={(e) => setSelectedLo(e.target.value)}
- disabled={!targetStaffId}
- className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all ${!targetStaffId ? 'opacity-40 cursor-not-allowed' : ''}`}
- >
- <option value="" className="bg-sidebar text-white">{!targetStaffId ? '-- Vui lòng chọn nhân viên trước --' : '-- Chọn Lô --'}</option>
- {(dynamicStaffBatches || []).map(b => (
- <option key={b.name} value={b.name} className="bg-sidebar text-white">
- {b.name} (STT {b.range})
- </option>
- ))}
- </select>
+  value={selectedLo}
+  onChange={(e) => setSelectedLo(e.target.value)}
+  disabled={!selectedUserId}
+  className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all ${!selectedUserId ? 'opacity-40 cursor-not-allowed' : ''}`}
+  >
+  <option value="" className="bg-zinc-900 text-white hover:bg-zinc-700">
+    {!selectedUserId ? '-- Vui lòng chọn nhân viên trước --' : '-- Chọn Lô --'}
+  </option>
+  {(filteredBatches || []).map(batch => (
+  <option key={batch.name} value={batch.name} className="bg-zinc-900 text-white hover:bg-zinc-700">
+    {batch.name} (STT {batch.startIndex} - {batch.endIndex})
+  </option>
+  ))}
+  </select>
  {targetStaffId && (dynamicStaffBatches || []).length === 0 && (
  <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">Không có lô vệ tinh chưa gán nào khả dụng trong hệ thống!</p>
  )}
@@ -1312,8 +1336,8 @@ setNotification("Đã cập nhật chi tiết mail thành công.");
  onChange={(e) => setMonetizedOption(e.target.value)}
  className="w-full h-14 bg-gold/10 border-2 border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-gold cursor-pointer transition-all"
  >
- <option value="Kháng kênh" className="bg-sidebar text-white">Kháng kênh</option>
- <option value="Nối GA" className="bg-sidebar text-white">Nối GA</option>
+ <option value="Kháng kênh" className="bg-zinc-900 text-white hover:bg-zinc-700">Kháng kênh</option>
+ <option value="Nối GA" className="bg-zinc-900 text-white hover:bg-zinc-700">Nối GA</option>
  </select>
  </div>
  );
@@ -1332,9 +1356,9 @@ setNotification("Đã cập nhật chi tiết mail thành công.");
  onChange={(e) => setSelectedRootMailId(e.target.value)}
  className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all"
  >
- <option value="" className="bg-sidebar text-white">-- Chọn Mail Gốc trong DB --</option>
+ <option value="" className="bg-zinc-900 text-white hover:bg-zinc-700">-- Chọn Mail Gốc trong DB --</option>
  {(mails || []).filter((m: any) => m.type ==="ROOT" && m.verificationStatus ==="Đã xanh" && !m.assigneeId).map((m: any) => (
- <option key={m.id} value={m.id} className="bg-sidebar text-white">
+ <option key={m.id} value={m.id} className="bg-zinc-900 text-white hover:bg-zinc-700">
  {m.email}
  </option>
  ))}
@@ -1349,11 +1373,11 @@ setNotification("Đã cập nhật chi tiết mail thành công.");
  disabled={!targetStaffId}
  className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all ${!targetStaffId ? 'opacity-40 cursor-not-allowed' : ''}`}
  >
- <option value="" className="bg-sidebar text-white">{!targetStaffId ? '-- Vui lòng chọn nhân viên trước --' : '-- Chọn Lô Vệ Tinh --'}</option>
+ <option value="" className="bg-zinc-900 text-white hover:bg-zinc-700">{!targetStaffId ? '-- Vui lòng chọn nhân viên trước --' : '-- Chọn Lô Vệ Tinh --'}</option>
  {(filteredBatches || []).length > 0 ? (filteredBatches || []).map(b => (
- <option key={b.name} value={b.name} className="bg-sidebar text-white">{b.name}</option>
+ <option key={b.name} value={b.name} className="bg-zinc-900 text-white hover:bg-zinc-700">{b.name}</option>
  )) : (
- <option disabled className="bg-sidebar text-white">Không có lô vệ tinh khả dụng</option>
+ <option disabled className="bg-zinc-900 text-white hover:bg-zinc-700">Không có lô vệ tinh khả dụng</option>
  )}
  </select>
  {!targetStaffId && (
