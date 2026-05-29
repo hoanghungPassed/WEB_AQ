@@ -122,7 +122,7 @@ export default function SettingsPage() {
  const [activeTab, setActiveTab] = useState<"PROFILE" |"HE_THONG">("PROFILE");
 
  // Collapsible section states inside Hệ Thống
- const [openSections, setOpenSections] = useState<Record<string, boolean>>({"2FA": true,"API": true,"BANK": true,"WORK_CONFIG": true,"AGENCY_CONFIG": true,
+ const [openSections, setOpenSections] = useState<Record<string, boolean>>({"2FA": true,"API": true,"BANK": true,"WORK_CONFIG": true,"AGENCY_CONFIG": true,"PASSWORD": true,
  });
 
  // DB Reset Safety Modal States
@@ -590,81 +590,52 @@ export default function SettingsPage() {
  };
 
  // CHANGE PASSWORD SUBMISSION
- const handleChangePassword = (e: React.FormEvent) => {
- e.preventDefault();
+ const handleChangePassword = async (e: React.FormEvent) => {
+   e.preventDefault();
+   setPassErrors({ old: "", new: "", confirm: "" });
 
- let hasEmpty = false;
- const newErrors = { old: passErrors.old, new: passErrors.new, confirm: passErrors.confirm };
+   if (!oldPassword || !newPassword || !confirmPassword) {
+     triggerToast("Vui lòng điền đầy đủ thông tin");
+     return;
+   }
 
- if (!oldPassword) {
- newErrors.old ="Vui lòng nhập mật khẩu hiện tại.";
- hasEmpty = true;
- }
- if (!newPassword) {
- newErrors.new ="Vui lòng nhập mật khẩu mới.";
- hasEmpty = true;
- }
- if (!confirmPassword) {
- newErrors.confirm ="Vui lòng xác nhận mật khẩu mới.";
- hasEmpty = true;
- }
+   if (newPassword !== confirmPassword) {
+     setPassErrors(prev => ({ ...prev, confirm: "Mật khẩu xác nhận không khớp" }));
+     return;
+   }
 
- if (hasEmpty) {
- setPassErrors(newErrors);
- return;
- }
+   try {
+     const res = await fetch("/api/auth/change-password", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({ oldPassword, newPassword })
+     });
+     const data = await res.json();
 
- if (passErrors.old || passErrors.new || passErrors.confirm) {
- triggerToast("Vui lòng sửa các lỗi hiển thị trước khi lưu.");
- return;
- }
-
- if (newPassword !== confirmPassword) {
- setPassErrors(prev => ({ ...prev, confirm:"Mật khẩu xác nhận không khớp." }));
- return;
- }
-
- // Fetch users lists
- const savedUsers = localStorage.getItem("global_users");
- const allUsers = savedUsers ? JSON.parse(savedUsers) : [];
- 
- // Find current user
- const currentUserIndex = allUsers.findIndex((u: any) => String(u.id) === String(user?.id) || u.username === user?.username);
- 
- if (currentUserIndex === -1) {
- setPassErrors(prev => ({ ...prev, old:"Không tìm thấy thông tin tài khoản." }));
- return;
- }
-
- if (allUsers[currentUserIndex].password !== oldPassword) {
- setPassErrors(prev => ({ ...prev, old:"Mật khẩu hiện tại không chính xác." }));
- return;
- }
-
- // Update password
- const updatedUsers = [...allUsers];
- updatedUsers[currentUserIndex] = { ...updatedUsers[currentUserIndex], password: newPassword };
-
- localStorage.setItem("global_users", JSON.stringify(updatedUsers));
- 
- // Reset Form
- setOldPassword("");
- setNewPassword("");
- setConfirmPassword("");
- triggerToast("Thay đổi mật khẩu đăng nhập thành công!");
-
- // Add activity log
- const existingLogs = localStorage.getItem("global_system_logs");
- const logsList = existingLogs ? JSON.parse(existingLogs) : [];
- const newLog = {
- id: `log-${Date.now()}`,
- user: user?.name ||"Admin",
- role: user?.role ==="01" ?"ADMIN" :"QL CÔNG VIỆC",
- action:"Cập nhật mật khẩu bảo mật tài khoản cá nhân",
- type:"SUCCESS",
- timestamp: new Date().toLocaleString("vi-VN")
- };
- localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
+     if (res.ok) {
+       triggerToast("Thay đổi mật khẩu đăng nhập thành công!");
+       setOldPassword("");
+       setNewPassword("");
+       setConfirmPassword("");
+       
+       // Add activity log
+       const existingLogs = localStorage.getItem("global_system_logs");
+       const logsList = existingLogs ? JSON.parse(existingLogs) : [];
+       const newLog = {
+         id: `log-${Date.now()}`,
+         user: user?.name || "Admin",
+         role: user?.role === "01" ? "ADMIN" : "QL CÔNG VIỆC",
+         action: "Cập nhật mật khẩu bảo mật tài khoản cá nhân",
+         type: "SUCCESS",
+         timestamp: new Date().toLocaleString("vi-VN")
+       };
+       localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
+     } else {
+       triggerToast(data.error || "Lỗi khi đổi mật khẩu");
+     }
+   } catch (err) {
+     triggerToast("Lỗi kết nối máy chủ");
+   }
  };
 
  // UPGRADED HARD WIPE & RESET DATABASE - requires typing"XACNHAN"
@@ -978,16 +949,14 @@ export default function SettingsPage() {
  >
  Thông tin cá nhân
  </button>
- {(user?.role ==="01" || user?.role ==="02" || user?.role ==="ADMIN" || user?.role ==="QL CÔNG VIỆC") && (
  <button 
  onClick={() => setActiveTab("HE_THONG")}
  className={`h-10 px-6 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
  activeTab ==="HE_THONG" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :" bg-white/5 text-gray-500 hover:bg-zinc-800/40/10"
  }`}
  >
- Hệ Thống & Cài Đặt
+ {(user?.role === "01" || user?.role === "02") ? "Hệ Thống & Cài Đặt" : "Bảo Mật & Mật Khẩu"}
  </button>
- )}
  </div>
 
  <div className="animate-fade-in">
@@ -1020,137 +989,61 @@ export default function SettingsPage() {
 
  {activeTab ==="HE_THONG" && (
  <div className="space-y-6">
- {/* Section: Work Schedule & Fine Config */}
- <CollapsibleSection id="WORK_CONFIG" icon={Clock} title="Cấu Hình Giờ Giấc & Phạt" openSections={openSections} toggleSection={toggleSection}>
- <div className="pt-5 space-y-6">
- <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5">
- <p className="text-base text-amber-400 font-medium leading-relaxed">
- ⏰ Thiết lập giờ làm việc và mức phạt đi muộn cho nhân viên. Dữ liệu được đồng bộ cho module chấm công.
- </p>
- </div>
- <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
- <div className="space-y-2">
- <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Giờ bắt đầu làm việc</label>
- <div className="relative">
- <input 
- type="time" 
- value={workStartTime}
- onChange={(e) => setWorkStartTime(e.target.value)}
- onMouseDown={(e) => e.stopPropagation()}
- disabled={user?.role !== '01' && user?.role !== '02'}
- className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark] disabled:opacity-50 disabled:cursor-not-allowed"
- />
- </div>
- </div>
- <div className="space-y-2">
- <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Giờ kết thúc làm việc</label>
- <div className="relative">
- <input 
- type="time" 
- value={workEndTime}
- onChange={(e) => setWorkEndTime(e.target.value)}
- onMouseDown={(e) => e.stopPropagation()}
- disabled={user?.role !== '01' && user?.role !== '02'}
- className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-lg text-white outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark] disabled:opacity-50 disabled:cursor-not-allowed"
- />
- </div>
- </div>
- <div className="space-y-2">
- <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Hệ thống sẽ đóng vào lúc</label>
- <div className="relative">
- <input 
- type="time" 
- value={systemCloseTime}
- onChange={(e) => setSystemCloseTime(e.target.value)}
- onMouseDown={(e) => e.stopPropagation()}
- disabled={user?.role !== '01' && user?.role !== '02'}
- className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-lg text-amber-500 outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark] disabled:opacity-50 disabled:cursor-not-allowed"
- />
- </div>
- </div>
- </div>
- <div className="space-y-3 pt-4 border-t border-white/0">
- <label className="text-[12px] text-zinc-400 font-bold uppercase tracking-widest mb-4 block">Mức phạt đi muộn (VNĐ)</label>
- <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
- <div className="space-y-2">
- <p className="text-base text-amber-400 font-black">Muộn 1-5 phút</p>
- <div className="relative">
- <input 
- type="text" 
- value={Number(fineTier1).toLocaleString("vi-VN")}
- onChange={(e) => setFineTier1(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
- onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-black tracking-wider"
- />
- <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
- </div>
- </div>
- <div className="space-y-2">
- <p className="text-base text-orange-400 font-black">Muộn 6-19 phút</p>
- <div className="relative">
- <input 
- type="text" 
- value={Number(fineTier2).toLocaleString("vi-VN")}
- onChange={(e) => setFineTier2(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
- onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-black tracking-wider"
- />
- <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
- </div>
- </div>
- <div className="space-y-2">
- <p className="text-base text-red-400 font-black">Muộn 20+ phút</p>
- <div className="relative">
- <input 
- type="text" 
- value={Number(fineTier3).toLocaleString("vi-VN")}
- onChange={(e) => setFineTier3(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
- onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-black tracking-wider"
- />
- <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
- </div>
- </div>
- </div>
- </div>
- <button 
- onClick={handleSaveWorkConfig}
- className="h-14 mt-4 px-8 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase text-base tracking-widest hover:bg-amber-700 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] w-full md:w-auto"
- >
- <Save size={18} /> Lưu Cấu Hình Giờ Giấc
- </button>
- </div>
- </CollapsibleSection>
+        {/* Section: Đổi Mật Khẩu - Visible to everyone */}
+        <CollapsibleSection id="PASSWORD" icon={Lock} title="Đổi Mật Khẩu" openSections={openSections} toggleSection={toggleSection}>
+          <div className="pt-5 space-y-6">
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5">
+              <p className="text-base text-amber-400 font-medium leading-relaxed">
+                🔐 Bạn nên đổi mật khẩu định kỳ để đảm bảo an toàn cho tài khoản.
+              </p>
+            </div>
+            <form onSubmit={handleChangePassword} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Mật khẩu cũ</label>
+                <input 
+                  type="password" 
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="bg-zinc-900 border border-white/10 text-zinc-100 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Mật khẩu mới</label>
+                <input 
+                  type="password" 
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="bg-zinc-900 border border-white/10 text-zinc-100 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Xác nhận mật khẩu mới</label>
+                <input 
+                  type="password" 
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="bg-zinc-900 border border-white/10 text-zinc-100 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+                  required
+                />
+              </div>
+              <div className="md:col-span-3">
+                <button 
+                  type="submit"
+                  className="h-14 px-8 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase text-base tracking-widest hover:bg-amber-700 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] w-full md:w-auto"
+                >
+                  <RefreshCw size={18} /> Cập nhật mật khẩu
+                </button>
+              </div>
+            </form>
+          </div>
+        </CollapsibleSection>
 
- {/* Section: Agency Config */}
- <CollapsibleSection id="AGENCY_CONFIG" icon={Building2} title="Tên Thương Hiệu (Brand Name)" openSections={openSections} toggleSection={toggleSection}>
- <div className="pt-5 space-y-6">
- <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-5">
- <p className="text-base text-blue-400 font-medium leading-relaxed">
- 🌟 Thiết lập tên thương hiệu hiển thị trên toàn hệ thống (Mặc định: AQ MEDIA).
- </p>
- </div>
- <div className="space-y-2">
- <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Tên Thương Hiệu</label>
- <input 
- type="text" 
- value={agencyConfigName}
- onChange={(e) => setAgencyConfigName(e.target.value)}
- onMouseDown={(e) => e.stopPropagation()}
- placeholder="VD: AQ MEDIA"
- className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full md:w-1/2 font-bold"
- />
- </div>
- <button 
- onClick={handleSaveAgencyConfig}
- className="h-14 mt-4 px-8 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase text-base tracking-widest hover:bg-amber-700 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] w-full md:w-auto"
- >
- <Save size={18} /> Lưu Tên Thương Hiệu
- </button>
- </div>
- </CollapsibleSection>
-
- {/* Section: 2FA */}
+ {/* Section: 2FA - Visible to everyone */}
   <CollapsibleSection id="2FA" icon={ShieldCheck} title="Bảo Mật 2FA" openSections={openSections} toggleSection={toggleSection}>
     <div className="pt-5 space-y-6">
       {twoFAEnabledState ? (
@@ -1349,6 +1242,136 @@ export default function SettingsPage() {
     </div>
   </CollapsibleSection>
 
+  {/* Admin Only Sections */}
+  {(user?.role === "01" || user?.role === "02") && (
+    <>
+ {/* Section: Work Schedule & Fine Config */}
+ <CollapsibleSection id="WORK_CONFIG" icon={Clock} title="Cấu Hình Giờ Giấc & Phạt" openSections={openSections} toggleSection={toggleSection}>
+ <div className="pt-5 space-y-6">
+ <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5">
+ <p className="text-base text-amber-400 font-medium leading-relaxed">
+ ⏰ Thiết lập giờ làm việc và mức phạt đi muộn cho nhân viên. Dữ liệu được đồng bộ cho module chấm công.
+ </p>
+ </div>
+ <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+ <div className="space-y-2">
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Giờ bắt đầu làm việc</label>
+ <div className="relative">
+ <input 
+ type="time" 
+ value={workStartTime}
+ onChange={(e) => setWorkStartTime(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-lg outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ />
+ </div>
+ </div>
+ <div className="space-y-2">
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Giờ kết thúc làm việc</label>
+ <div className="relative">
+ <input 
+ type="time" 
+ value={workEndTime}
+ onChange={(e) => setWorkEndTime(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-lg outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ />
+ </div>
+ </div>
+ <div className="space-y-2">
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Hệ thống sẽ đóng vào lúc</label>
+ <div className="relative">
+ <input 
+ type="time" 
+ value={systemCloseTime}
+ onChange={(e) => setSystemCloseTime(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-lg text-amber-500 outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ />
+ </div>
+ </div>
+ </div>
+ <div className="space-y-3 pt-4 border-t border-white/0">
+ <label className="text-[12px] text-zinc-400 font-bold uppercase tracking-widest mb-4 block">Mức phạt đi muộn (VNĐ)</label>
+ <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+ <div className="space-y-2">
+ <p className="text-base text-amber-400 font-black">Muộn 1-5 phút</p>
+ <div className="relative">
+ <input 
+ type="text" 
+ value={Number(fineTier1).toLocaleString("vi-VN")}
+ onChange={(e) => setFineTier1(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ />
+ <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
+ </div>
+ </div>
+ <div className="space-y-2">
+ <p className="text-base text-orange-400 font-black">Muộn 6-19 phút</p>
+ <div className="relative">
+ <input 
+ type="text" 
+ value={Number(fineTier2).toLocaleString("vi-VN")}
+ onChange={(e) => setFineTier2(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ />
+ <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
+ </div>
+ </div>
+ <div className="space-y-2">
+ <p className="text-base text-red-400 font-black">Muộn 20+ phút</p>
+ <div className="relative">
+ <input 
+ type="text" 
+ value={Number(fineTier3).toLocaleString("vi-VN")}
+ onChange={(e) => setFineTier3(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ />
+ <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
+ </div>
+ </div>
+ </div>
+ </div>
+ <button 
+ onClick={handleSaveWorkConfig}
+ className="h-14 mt-4 px-8 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase text-base tracking-widest hover:bg-amber-700 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] w-full md:w-auto"
+ >
+ <Save size={18} /> Lưu Cấu Hình Giờ Giấc
+ </button>
+ </div>
+ </CollapsibleSection>
+
+ {/* Section: Agency Config */}
+ <CollapsibleSection id="AGENCY_CONFIG" icon={Building2} title="Tên Thương Hiệu (Brand Name)" openSections={openSections} toggleSection={toggleSection}>
+ <div className="pt-5 space-y-6">
+ <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-5">
+ <p className="text-base text-blue-400 font-medium leading-relaxed">
+ 🌟 Thiết lập tên thương hiệu hiển thị trên toàn hệ thống (Mặc định: AQ MEDIA).
+ </p>
+ </div>
+ <div className="space-y-2">
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Tên Thương Hiệu</label>
+ <input 
+ type="text" 
+ value={agencyConfigName}
+ onChange={(e) => setAgencyConfigName(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
+ placeholder="VD: AQ MEDIA"
+ className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full md:w-1/2 font-bold"
+ />
+ </div>
+ <button 
+ onClick={handleSaveAgencyConfig}
+ className="h-14 mt-4 px-8 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase text-base tracking-widest hover:bg-amber-700 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] w-full md:w-auto"
+ >
+ <Save size={18} /> Lưu Tên Thương Hiệu
+ </button>
+ </div>
+ </CollapsibleSection>
+
  {/* Section: API & System Config */}
  <CollapsibleSection id="API" icon={Database} title="API & Cấu Hình Hệ Thống" openSections={openSections} toggleSection={toggleSection}>
  <div className="pt-5">
@@ -1364,7 +1387,7 @@ export default function SettingsPage() {
  value={chunkSize}
  onChange={(e) => setChunkSize(Math.max(1, Number(e.target.value)))}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-base text-gold outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-base text-gold outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
  required
  />
  </div>
@@ -1375,7 +1398,7 @@ export default function SettingsPage() {
  value={kpiTargetMails}
  onChange={(e) => setKpiTargetMails(Math.max(1, Number(e.target.value)))}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-bold"
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold"
  required
  />
  </div>
@@ -1386,7 +1409,7 @@ export default function SettingsPage() {
  value={kpiTargetWatchHours}
  onChange={(e) => setKpiTargetWatchHours(Math.max(1, Number(e.target.value)))}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full font-bold"
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold"
  required
  />
  </div>
@@ -1398,7 +1421,7 @@ export default function SettingsPage() {
  value={apiSyncEndpoint}
  onChange={(e) => setApiSyncEndpoint(e.target.value)}
  onMouseDown={(e) => e.stopPropagation()}
- className="bg-zinc-900 border border-white/0 text-zinc-100 border-white/0 rounded-2xl px-5 h-14 text-base text-gray-300 font-mono outline-none focus:border-white/5  focus:bg-[#161616] transition-all w-full"
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-base text-gray-300 font-mono outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full"
  required
  />
  </div>
@@ -1671,6 +1694,8 @@ export default function SettingsPage() {
  <AlertTriangle size={18} /> Reset Database Gốc
  </button>
  </div>
+    </>
+  )}
  </div>
  )}
  </div>

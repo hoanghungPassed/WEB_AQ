@@ -63,8 +63,10 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
     roleUpper === "02" || 
     roleUpper === "QL CÔNG VIỆC" || 
     roleUpper === "QUẢN LÝ CÔNG VIỆC";
-  const isMinimalRole = roleUpper === "03" || 
-    roleUpper === "04" || 
+  
+  const isStaffOnly = roleUpper === "03" || roleUpper === "04";
+
+  const isMinimalRole = isStaffOnly || 
     roleUpper === "05" || 
     roleUpper === "QL NHÂN SỰ" || 
     roleUpper === "QUẢN LÝ NHÂN SỰ" || 
@@ -74,7 +76,11 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
   const dynamicMenuItems: any[] = [
     { title: "Dashboard", icon: <Gauge size={20} />, href: "/admin" },
     { title: "Bảng Tin", icon: <MessageSquare size={20} />, href: "/admin/newsfeed" },
-    {
+  ];
+
+  // Only show Apps for non-staff roles (01, 02, 05 etc.) if not 03/04
+  if (!isStaffOnly) {
+    dynamicMenuItems.push({
       title: "Ứng dụng",
       icon: <Blocks size={20} />,
       subItems: [
@@ -97,10 +103,10 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
           icon: <Mail size={14} className="text-[#a07800] shrink-0" /> 
         }
       ]
-    }
-  ];
+    });
+  }
 
-  if (isMinimalRole) {
+  if (isMinimalRole && !isStaffOnly) {
     dynamicMenuItems.push({
       title: "Quản lý mail",
       icon: <Mail size={20} />,
@@ -109,7 +115,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
         { title: "Danh sách SĐT", href: "/admin/phone/list" }
       ]
     });
-  } else {
+  } else if (!isMinimalRole) {
     dynamicMenuItems.push({
       title: "Kho mail và SĐT",
       icon: <Inbox size={20} />,
@@ -130,7 +136,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
     });
   }
 
-  if (isAdminOrManager) {
+  if (isAdminOrManager || isStaffOnly) {
     dynamicMenuItems.push({
       title: "Phân công",
       icon: <ClipboardList size={20} />,
@@ -138,11 +144,13 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
     });
   }
 
-  dynamicMenuItems.push({
-    title: "Nhân sự",
-    icon: <Users size={20} />,
-    href: "/admin/staff",
-  });
+  if (!isStaffOnly) {
+    dynamicMenuItems.push({
+      title: "Nhân sự",
+      icon: <Users size={20} />,
+      href: "/admin/staff",
+    });
+  }
 
   if (isAdminOrManager) {
     dynamicMenuItems.push({

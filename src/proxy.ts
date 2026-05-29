@@ -94,7 +94,6 @@ export async function middleware(request: NextRequest) {
       // Blacklist các trang quản trị cấp cao
       const blacklist = [
         "/admin/staff",
-        "/admin/settings",
         "/admin/payroll",
         "/admin/mail",
         "/admin/phone"
@@ -106,7 +105,8 @@ export async function middleware(request: NextRequest) {
 
       const isAllowedStaffPage = 
         pathname === "/admin/mail/satellite" ||
-        pathname === "/admin/phone/list";
+        pathname === "/admin/phone/list" ||
+        pathname === "/admin/settings";
 
       // Nếu nằm trong blacklist và không thuộc whitelist được phép, chặn truy cập và redirect về /admin/tasks
       if (isBlacklisted && !isAllowedStaffPage) {
@@ -167,12 +167,15 @@ export async function middleware(request: NextRequest) {
     if (isApiCall && isStaff) {
       const isAllowedEndpoint = 
         pathname.startsWith("/api/auth/me") ||
+        pathname.startsWith("/api/auth/change-password") ||
         pathname.startsWith("/api/admin/tasks") ||
         pathname.startsWith("/api/admin/attendance") ||
         pathname.startsWith("/api/admin/notifications") ||
         pathname.startsWith("/api/admin/messages") ||
         pathname.startsWith("/api/messages") ||
         pathname.startsWith("/api/admin/fines") ||
+        pathname.startsWith("/api/admin/2fa/setup") ||
+        pathname.startsWith("/api/admin/2fa/verify") ||
         (pathname.startsWith("/api/admin/settings") && method === "GET") ||
         (pathname.startsWith("/api/admin/users") && method === "GET");
 
