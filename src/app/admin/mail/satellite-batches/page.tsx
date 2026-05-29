@@ -22,6 +22,7 @@ import { motion, AnimatePresence } from"framer-motion";
 import { useRouter } from"next/navigation";
 
 interface BatchItem {
+ _id?: string;
  id: string;
  name: string;
  type:"ROOT" |"SATELLITE" |"MONETIZED";
@@ -969,9 +970,9 @@ export default function SatelliteBatchesPage() {
  <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
  {(filtered || []).length > 0 ? (
  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
- {(filtered || []).map((batch) => (
+ {(filtered || []).map((batch, index) => (
  <div
- key={batch.id}
+ key={batch._id || batch.id || index}
  onClick={() => setSelectedBatch(batch)}
  className="bg-sidebar border border-white/0 border-t-4 border-t-gold/80 rounded-[24px] p-6 shadow-xl hover:shadow-2xl flex flex-col justify-between relative group transition-all cursor-pointer hover:bg-white/[0.01] hover:scale-[1.01]"
  >
@@ -1179,9 +1180,9 @@ export default function SatelliteBatchesPage() {
 
  <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-2">
  {(batchMails || []).map((mail, idx) => (
- <div key={mail.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-white/0 border border-white/0 hover:border-gray-300 hover:border-white/0 transition-colors">
+ <div key={mail._id || mail.id || idx} className="flex items-center justify-between p-3.5 rounded-2xl bg-white/0 border border-white/0 hover:border-gray-300 hover:border-white/0 transition-colors">
  <div className="flex items-center gap-3">
- <span className="text-[10px] font-bold font-mono">STT #{mail.id - 1000}</span>
+ <span className="text-[10px] font-bold font-mono">STT #{idx + 1}</span>
  <div>
  <p className="text-sm font-black text-white">{mail.email}</p>
  <p className="text-[9px] text-gray-500">Recovery: {mail.recovery ||"---"}</p>

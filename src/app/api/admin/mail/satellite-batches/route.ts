@@ -97,17 +97,15 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    // ── 4. Tính STT tuyệt đối trong toàn bộ kho vệ tinh ──
-    const allSatelliteIds = await SatelliteMail.find({}, { _id: 1 }).sort({ createdAt: 1 }).lean();
-    const idToIndex = new Map(allSatelliteIds.map((m: any, i: number) => [m._id.toString(), i + 1]));
-
-    const firstIdx = idToIndex.get(availableMails[0]._id.toString()) ?? 0;
-    const lastIdx = idToIndex.get(availableMails[availableMails.length - 1]._id.toString()) ?? 0;
-
-    // ── 5. Atomic updateMany: đánh dấu 17 mail đã gán ──
-    const batchId = `batch-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
     const mailIds = availableMails.map(m => m._id);
+
+    // ── 4. Tìm Lô cuối cùng để nối tiếp STT ──
+    const lastBatch = await Batch.findOne({ type: "SATELLITE" }).sort({ createdAt: -1 });
+    const nextStartIndex = lastBatch && lastBatch.endIndex ? lastBatch.endIndex + 1 : 1;
+    const newEndIndex = nextStartIndex + availableMails.length - 1;
+
+    // ── 5. Atomic updateMany: đánh dấu mail đã gán ──
+    const batchId = `batch-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
     await SatelliteMail.updateMany(
       { _id: { $in: mailIds } },
@@ -129,8 +127,8 @@ export async function POST(req: NextRequest) {
       importedAt: new Date().toISOString().split("T")[0],
       mailCount: availableMails.length,
       importedBy: body.importedBy || userName,
-      startIndex: firstIdx,
-      endIndex: lastIdx,
+      startIndex: nextStartIndex,
+      endIndex: newEndIndex,
       assignedTo: body.assignedTo
     });
 
@@ -140,7 +138,7 @@ export async function POST(req: NextRequest) {
       await Log.create({
         user: userName,
         role: "ADMIN",
-        action: `Tự động tạo lô "${body.name.trim()}" gán cho ${assigneeUser.name} (${availableMails.length} mail, STT ${firstIdx}→${lastIdx})`,
+        action: `Tự động tạo lô "${body.name.trim()}" gán cho ${assigneeUser.name} (${availableMails.length} mail, STT ${nextStartIndex}→${newEndIndex})`,
         type: "SUCCESS",
         timestamp: new Date().toLocaleString("vi-VN")
       });
@@ -150,7 +148,7 @@ export async function POST(req: NextRequest) {
       userId || "system",
       "CREATE_BATCH_SUCCESS",
       "mails",
-      { name: body.name, assignedTo: body.assignedTo, mailCount: availableMails.length, startIndex: firstIdx, endIndex: lastIdx },
+      { name: body.name, assignedTo: body.assignedTo, mailCount: availableMails.length, startIndex: nextStartIndex, endIndex: newEndIndex },
       req
     );
 

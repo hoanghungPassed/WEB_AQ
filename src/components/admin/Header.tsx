@@ -131,7 +131,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
   const markAllRead = async () => {
     const updated = await Promise.all((notifications || []).map(async (n) => {
       if (!n.targetUsername || n.targetUsername.toLowerCase() === user?.username?.toLowerCase()) {
-        if (!n.read && n.id && !n.id.startsWith("access-")) {
+        if (!n.read && (n._id || n.id) && !String(n._id || n.id).startsWith("access-")) {
           try {
             await fetch('/api/admin/notifications/' + n.id, {
               method: "PUT",
@@ -176,7 +176,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
     });
     setNotifications(updated);
 
-    if (id && !id.startsWith("access-")) {
+    if (id && !String(id).startsWith("access-")) {
       try {
         await fetch('/api/admin/notifications/' + id, {
           method: "PUT",
