@@ -86,11 +86,6 @@ export async function middleware(request: NextRequest) {
 
     // 1. KIỂM TRA PHÂN QUYỀN TRÊN GIAO DIỆN UI /admin/* (Sử dụng Blacklist & Whitelist đúng đắn)
     if (isAdminPage && isStaff) {
-      // Nếu truy cập chính xác trang /admin hoặc /admin/, tự động chuyển hướng nhân viên về /admin/tasks
-      if (pathname === "/admin" || pathname === "/admin/") {
-        return NextResponse.redirect(new URL("/admin/tasks", request.url));
-      }
-
       // Blacklist các trang quản trị cấp cao
       const blacklist = [
         "/admin/staff",

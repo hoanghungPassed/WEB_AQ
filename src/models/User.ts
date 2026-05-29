@@ -142,7 +142,7 @@ const userSchema = new Schema<IUser>(
 );
 
 userSchema.index({ username: 1 }, { unique: true });
-userSchema.index({ email: 1 }, { sparse: true, unique: true });
+userSchema.index({ email: 1 }, { sparse: true });
 userSchema.index({ role: 1 });
 userSchema.index({ isOnline: 1 });
 

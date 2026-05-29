@@ -104,12 +104,7 @@ function LoginForm() {
 
         if (res.ok) {
           login(data.user);
-          const role = String(data.user.role || "").toUpperCase();
-          if (role === "01" || role === "02" || role === "ADMIN" || role === "QL CÔNG VIỆC" || role === "QUẢN LÝ CÔNG VIỆC") {
-            router.push("/admin");
-          } else {
-            router.push("/admin/tasks");
-          }
+          router.push("/admin");
         } else {
           setError(data.error || "Mã xác thực 2FA/Backup không chính xác.");
         }
@@ -140,12 +135,7 @@ function LoginForm() {
             setMessage("Tài khoản đã được bảo vệ bằng 2FA. Vui lòng nhập mã OTP để đăng nhập.");
           } else {
             login(data.user);
-            const role = String(data.user.role || "").toUpperCase();
-            if (role === "01" || role === "02" || role === "ADMIN" || role === "QL CÔNG VIỆC" || role === "QUẢN LÝ CÔNG VIỆC") {
-              router.push("/admin");
-            } else {
-              router.push("/admin/tasks");
-            }
+            router.push("/admin");
           }
         } else {
           if (data.error === "system_closed_fine_required") {

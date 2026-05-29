@@ -21,8 +21,16 @@ export async function GET(req: NextRequest) {
     const sortBy = searchParams.get("sortBy") || "createdAt";
     const sortOrder = (searchParams.get("sortOrder") || "desc") as "asc" | "desc";
 
+    const userRole = req.headers.get("x-user-role");
+    const isStaff = userRole === "03" || userRole === "04";
+
     let filter: any = {};
-    if (assigneeId) filter.assigneeId = assigneeId;
+    if (isStaff) {
+      filter.assigneeId = userId;
+    } else if (assigneeId) {
+      filter.assigneeId = assigneeId;
+    }
+    
     if (status && status !== "ALL") filter.status = status;
 
     // Fallback: If no pagination params are provided, return the whole dataset (backward compatibility)

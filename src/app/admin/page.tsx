@@ -31,7 +31,8 @@ import {
  Heart,
  MessageSquare,
  Send,
- Image
+ Image,
+ LogOut
 } from"lucide-react";
 
 
@@ -492,9 +493,17 @@ export default function AdminDashboard() {
  }
 
  fetch('/api/admin/stats')
- .then(res => res.json())
- .then(data => setStats((prev: any) => ({ ...prev, ...data })))
- .catch(err => console.debug("Lỗi lấy API stats:", err));
+   .then(res => res.json())
+   .then(data => {
+     if (data.success && data.data) {
+       setStats((prev: any) => ({ ...prev, ...data.data }));
+       if (data.data.checkInTime) setCheckInTime(data.data.checkInTime);
+       if (data.data.checkOutTime) setCheckOutTime(data.data.checkOutTime);
+     } else {
+       setStats((prev: any) => ({ ...prev, ...data }));
+     }
+   })
+   .catch(err => console.debug("Lỗi lấy API stats:", err));
  
  } catch (error) {
  console.error("Error refreshing stats", error);
@@ -999,6 +1008,119 @@ export default function AdminDashboard() {
  const roleLabel = getRoleLabel(user?.role);
  const isAdminOrManager = user?.role ==="01" || user?.role ==="02";
  const isHRManager = user?.role ==="03" || user?.role ==="QUẢN LÝ NHÂN SỰ";
+
+ if (user?.role === "03" || user?.role === "04" || user?.role === "05") {
+  return (
+    <div className="space-y-6 pb-20 relative">
+      <AnimatePresence>
+        {copyToast && (
+          <motion.div initial={{ opacity: 0, y: -40, x: "-50%" }} animate={{ opacity: 1, y: 20, x: "-50%" }} exit={{ opacity: 0, y: -40, x: "-50%" }}
+            className="fixed top-0 left-1/2 z-[500] bg-gold px-6 py-2.5 rounded-full text-sidebar font-black text-base shadow-2xl flex items-center gap-2">
+            <CheckCircle2 size={18} /> {copyToast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Timekeeping Modal */}
+      <AnimatePresence>
+        {timekeepingModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[600] bg-zinc-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-zinc-900 border border-white/0 rounded-2xl p-8 w-full max-w-md shadow-2xl text-center">
+              <div className={`mx-auto h-20 w-20 rounded-full flex items-center justify-center border mb-6 shadow-lg ${timekeepingModal.type === "in" ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"}`}>
+                <CheckCircle2 size={40} className="animate-pulse" />
+              </div>
+              <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-3">{timekeepingModal.type === "in" ? "Check-in thành công" : "Check-out thành công"}</h3>
+              <p className="text-gray-400 font-medium leading-relaxed mb-6">Bạn đã check {timekeepingModal.type === "in" ? "in" : "out"} lúc <span className="text-gold font-bold font-mono text-lg">{timekeepingModal.time}</span>.</p>
+              <button onClick={() => setTimekeepingModal(null)} className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-zinc-50 font-bold rounded-xl transition-colors mt-4">Xác nhận</button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+            <Activity className="text-gold" size={32} />
+            Bảng điều khiển nhân viên
+          </h1>
+          <p className="text-sm text-gray-500 font-medium uppercase tracking-widest mt-1">
+            Chào mừng trở lại, <span className="text-gold font-bold">{user?.name}</span>
+          </p>
+        </div>
+        <div className="flex gap-4">
+          <button
+            onClick={handleCheckIn}
+            disabled={!!checkInTime}
+            className={`h-12 px-6 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${
+              !checkInTime 
+              ?"bg-gold text-sidebar hover:bg-white shadow-lg shadow-gold/20" 
+              :"bg-white/5 text-gray-500 cursor-not-allowed border border-white/5"
+            }`}
+          >
+            Check-in
+          </button>
+          <button
+            onClick={handleCheckOut}
+            disabled={!checkInTime || !!checkOutTime}
+            className={`h-12 px-6 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${
+              checkInTime && !checkOutTime 
+              ?"bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/20" 
+              :"bg-white/5 text-gray-500 cursor-not-allowed border border-white/5"
+            }`}
+          >
+            Check-out
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <StatCard 
+          title="Giờ Check-in" 
+          value={checkInTime ? new Date(checkInTime).toLocaleTimeString("vi-VN") : "---"} 
+          icon={<Clock size={32} />} 
+          color="blue" 
+          subtitle="Thời gian bắt đầu làm việc" 
+        />
+        <StatCard 
+          title="Giờ Check-out" 
+          value={checkOutTime ? new Date(checkOutTime).toLocaleTimeString("vi-VN") : "---"} 
+          icon={<LogOut size={32} />} 
+          color="red" 
+          subtitle="Thời gian kết thúc làm việc" 
+        />
+        <StatCard 
+          title="Tổng Task hôm nay" 
+          value={stats.myTasks || 0} 
+          icon={<ClipboardList size={32} />} 
+          color="indigo" 
+          subtitle="Nhiệm vụ cần hoàn thành" 
+          onClick={() => router.push("/admin/tasks")}
+        />
+        <StatCard 
+          title="Tổng Mail hôm nay" 
+          value={stats.myMails || 0} 
+          icon={<Mail size={32} />} 
+          color="gold" 
+          subtitle="Mail đã xử lý trong ngày" 
+        />
+        <StatCard 
+          title="Mail Live" 
+          value={stats.liveMails || 0} 
+          icon={<CheckCircle2 size={32} />} 
+          color="green" 
+          subtitle="Tài khoản đang hoạt động" 
+        />
+        <StatCard 
+          title="Mail Die" 
+          value={stats.dieMails || 0} 
+          icon={<XCircle size={32} />} 
+          color="red" 
+          subtitle="Tài khoản bị lỗi" 
+        />
+      </div>
+    </div>
+  );
+ }
 
  const filteredMails = useMemo(() => {
  if (!selectedViewType || selectedViewType ==="STAFF") return [];
@@ -1602,363 +1724,7 @@ export default function AdminDashboard() {
  )}
  </AnimatePresence>
 
- {user?.role ==="04" || user?.role ==="05" ? (
- <div className="space-y-6">
- <div className={`grid grid-cols-1 md:grid-cols-${(user?.role ==="03" || user?.role ==="04" || user?.role ==="05") ? 4 : 3} gap-6`}>
- <StatCard 
- title="Tổng mail được giao" 
- value={stats.totalMail} 
- icon={<Mail size={32} />} 
- color="blue" 
- subtitle="Nhấp để xem chi tiết kho mail được giao" 
- onClick={() => {
- setShowStaffMailsView(!showStaffMailsView);
- setShowStaffTasksView(false);
- }}
- />
- <StatCard 
- title="Task hôm nay" 
- value={stats.tasksToday} 
- icon={<ClipboardList size={32} />} 
- color="green" 
- subtitle="Nhấp để xem chi tiết danh sách nhiệm vụ" 
- onClick={() => {
- setShowStaffTasksView(!showStaffTasksView);
- setShowStaffMailsView(false);
- }}
- />
- 
- {/* Chấm công card */}
- <div className="bg-sidebar border border-white/0 rounded-[32px] p-6 shadow-2xl relative overflow-hidden group flex flex-col justify-between min-h-[160px]">
- <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[50px] -mr-16 -mt-16 transition-all group-hover:bg-gold/10" />
- <div className="relative z-10">
- <div className="flex items-center justify-between">
- <div>
- <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Thời gian làm việc</p>
- <h3 className="text-xl font-bold text-white uppercase tracking-tight mt-1">Chấm công</h3>
- </div>
- <div className="h-12 w-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold shadow-lg shadow-gold/5">
- <Clock size={24} />
- </div>
- </div>
- <div className="mt-4 text-sm font-bold text-gray-400 space-y-1">
- <p>Trạng thái: <span className={`uppercase tracking-wider text-[10px] px-2 py-0.5 rounded font-black ${!checkInTime ?"bg-red-500/10 text-red-400 border border-red-500/20" : !checkOutTime ?"bg-yellow-500/10 text-yellow-400 border border-yellow-500/20" :"bg-green-500/10 text-green-400 border border-green-500/20"}`}>{!checkInTime ?"Chưa Check-in" : !checkOutTime ?"Đang làm việc" :"Đã Check-out"}</span></p>
- {checkInTime && <p>Check-in lúc: <span className="text-white font-mono font-bold">{new Date(checkInTime).toLocaleTimeString("vi-VN")}</span></p>}
- {checkOutTime && <p>Check-out lúc: <span className="text-white font-mono font-bold">{new Date(checkOutTime).toLocaleTimeString("vi-VN")}</span></p>}
- </div>
- </div>
- <div className="flex gap-3 mt-6 relative z-10">
- <button
- onClick={handleCheckIn}
- disabled={!!checkInTime}
- className={`flex-1 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
- !checkInTime 
- ?"bg-gold text-sidebar hover:bg-white hover:text-sidebar shadow-lg shadow-gold/25" 
- :" bg-white/5 cursor-not-allowed border border-white/0"
- }`}
- >
- Check-in
- </button>
- <button
- onClick={handleCheckOut}
- disabled={!checkInTime || !!checkOutTime}
- className={`flex-1 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
- checkInTime && !checkOutTime 
- ?"bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white" 
- :" bg-white/5 cursor-not-allowed border border-white/0"
- }`}
- >
- Check-out
- </button>
- </div>
- </div>
-
- {/* Kênh vệ tinh đủ giờ card */}
- {(user?.role ==="03" || user?.role ==="04" || user?.role ==="05") && (
- <div 
- className="bg-sidebar border border-white/0 rounded-[32px] p-6 shadow-2xl relative overflow-hidden group flex flex-col justify-between min-h-[160px] cursor-pointer hover:border-white/5 transition-all"
- onClick={() => setIsEligibleChannelsModalOpen(true)}
- >
- <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[50px] -mr-16 -mt-16 transition-all group-hover:bg-gold/10" />
- <div className="relative z-10 flex-1 flex flex-col justify-between">
- <div className="flex items-center justify-between">
- <div>
- <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Kênh vệ tinh</p>
- <h3 className="text-xl font-bold text-white uppercase tracking-tight mt-1">Đủ Giờ Theo Lô</h3>
- </div>
- <div className="h-12 w-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold shadow-lg shadow-gold/5">
- <CheckCircle2 size={24} />
- </div>
- </div>
- 
- <div className="mt-4 flex-1 flex flex-col justify-center">
- <div className="text-2xl font-black text-white">{eligibleBreakdown.total} <span className="text-sm text-gray-500 font-bold uppercase tracking-wider">kênh đạt</span></div>
- {(eligibleBreakdown.list || []).length > 0 ? (
- <div className="mt-2 grid grid-cols-2 gap-2 max-h-[80px] overflow-y-auto custom-scrollbar">
- {(eligibleBreakdown.list || []).map((b) => (
- <div key={b.name} className="flex items-center gap-1.5 bg-white/5 border border-white/0 px-2 py-1 rounded-xl text-[10px] font-black text-gray-300 uppercase tracking-wide">
- <span className="text-gold font-mono">{b.name}:</span>
- <span>{b.count} kênh</span>
- </div>
- ))}
- </div>
- ) : (
- <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1.5">Chưa có dữ liệu</p>
- )}
- </div>
- </div>
- </div>
- )}
- </div>
-
- <AnimatePresence>
- {showStaffTasksView && (
- <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="space-y-6">
- <div className="bg-sidebar border border-white/0 rounded-[32px] p-8 shadow-2xl relative overflow-hidden group">
- <div className="absolute top-0 right-0 h-48 w-48 bg-green-500/5 blur-[80px] -mr-24 -mt-24 transition-all group-hover:bg-green-500/10" />
- <div className="relative z-10 flex flex-col gap-2 mb-6">
- <h2 className="text-2xl font-black text-white flex items-center gap-3 tracking-tighter uppercase">
- <ClipboardList className="text-green-500" size={28} />
- Nhiệm vụ được giao
- </h2>
- <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">Danh sách các ca trực và nhiệm vụ đang thực hiện</p>
- </div>
-
- <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
- {todayDutyTask && (
- <div
- className="p-6 rounded-2xl border transition-all relative overflow-hidden group bg-blue-500/5 border-blue-500/20"
- >
- <div className="absolute top-0 right-0 h-24 w-24 bg-blue-500/10 blur-[40px] -mr-12 -mt-12 transition-all" />
- <div className="relative z-10">
- <div className="flex items-center justify-between mb-2">
- <h3 className="text-lg font-bold text-white uppercase tracking-tight flex items-center gap-2">
- <Calendar className="text-blue-400" size={18} /> {todayDutyTask.title}
- </h3>
- <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border tracking-widest bg-blue-500/10 text-blue-400 border-blue-500/20">
- Lịch trực nhật
- </span>
- </div>
- <div className="text-sm text-gray-400 mb-4 font-medium leading-relaxed">
- <div className="pt-1">
- <b>Nhiệm vụ:</b> {todayDutyTask.note}
- </div>
- </div>
- <div className="flex items-center justify-between pt-4 border-t border-blue-500/20 text-[10px] font-black uppercase tracking-widest text-blue-400">
- <span>{todayDutyTask.isForAll ?"Toàn bộ nhân viên" :"Dành riêng cho bạn"}</span>
- </div>
- </div>
- </div>
- )}
-
- {(tasksList || []).filter(t => String(t.assigneeId) === String(user?.id)).length > 0 ? (
- (tasksList || []).filter(t => String(t.assigneeId) === String(user?.id)).map((task: any) => (
- <div
- key={task.id}
- onClick={() => setSelectedStaffTask(task)}
- className="p-6 rounded-2xl border transition-all relative overflow-hidden group bg-white/0 border-white/0 hover:border-gray-300 hover:border-white/0 cursor-pointer hover:bg-white/5"
- >
- <div className="flex items-center justify-between mb-2">
- <h3 className="text-lg font-bold text-white uppercase tracking-tight">{task.title}</h3>
- <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border tracking-widest ${
- task.status ==="COMPLETED" 
- ?"bg-green-500/10 text-green-500 border-green-500/20" 
- : task.status ==="IN_PROGRESS"
- ?"bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
- :"bg-gray-500/10 text-gray-400 border-gray-500/20"
- }`}>
- {task.status ==="COMPLETED" ?"Hoàn thành" : task.status ==="IN_PROGRESS" ?"Đang xử lý" :"Chưa bắt đầu"}
- </span>
- </div>
- <div className="text-sm text-gray-400 mb-4 font-medium leading-relaxed space-y-1.5">
- {task.title ==="Làm kênh" && task.batch ? (
- <div className="flex items-center gap-1.5 text-gold font-bold">
- <span className="text-[10px] uppercase tracking-wider text-gray-500">Chi tiết:</span>
- <span className="bg-gold/10 px-2.5 py-0.5 rounded-lg border border-gold/20 text-[10px] tracking-wide font-black uppercase text-gold">
- {task.batch} (STT: {task.range})
- </span>
- </div>
- ) : task.mailRange ? (
- <div className="flex items-center gap-1.5 text-gold font-bold">
- <span className="text-[10px] uppercase tracking-wider text-gray-500">Chi tiết:</span>
- <span className="bg-gold/15 text-gold px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider">
- STT: {task.mailRange}
- </span>
- </div>
- ) : null}
- <div className="pt-1">
- <b>Ghi chú:</b> {task.note ||"Tiến hành check tạo xóa và xử lý các mail vệ tinh/gốc được giao. Đảm bảo đúng tiến độ và báo cáo lỗi nếu có."}
- </div>
- </div>
- <div className="flex items-center justify-between pt-4 border-t border-white/0 text-[10px] font-bold uppercase tracking-wider text-gray-500">
- <span>{task.mailCount || 0} Mail</span>
- <div className="flex items-center gap-2 relative z-20">
- <button
- type="button"
- onClick={(e) => {
- e.preventDefault();
- e.stopPropagation();
- handleTaskStatusChange(task.id,"IN_PROGRESS");
- }}
- className={`h-8 px-3.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${
- task.status ==="IN_PROGRESS"
- ?"bg-yellow-500 text-sidebar border-yellow-500 shadow-md shadow-yellow-500/10"
- :" bg-white/5 text-gray-400 border-white/0 hover:border-yellow-500/40 hover:text-yellow-500"
- }`}
- >
- Đang xử lí
- </button>
- <button
- type="button"
- onClick={(e) => {
- e.preventDefault();
- e.stopPropagation();
- handleTaskStatusChange(task.id,"COMPLETED");
- }}
- className={`h-8 px-3.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${
- task.status ==="COMPLETED"
- ?"bg-green-500 text-sidebar border-green-500 shadow-md shadow-green-500/10"
- :" bg-white/5 text-gray-400 border-white/0 hover:border-green-500/40 hover:text-green-500"
- }`}
- >
- Hoàn thành
- </button>
- </div>
- </div>
- </div>
- ))
- ) : (
- <div className="md:col-span-2 py-10 text-center font-bold uppercase tracking-widest">Không có nhiệm vụ nào được giao</div>
- )}
- </div>
- </div>
- </motion.div>
- )}
-
- {showStaffMailsView && (
- <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="space-y-6">
- <div className="bg-sidebar border border-white/0 rounded-[32px] overflow-hidden shadow-2xl">
- <div className="p-6 border-b border-white/0 bg-white/0 flex flex-col md:flex-row items-center justify-between gap-4">
- <div>
- <h3 className="text-xl font-bold text-white uppercase tracking-tight flex items-center gap-2">
- <Mail className="text-gold" size={24} />
- Danh sách Mail được giao
- </h3>
- <p className="text-sm text-gray-500 font-medium mt-1">Danh sách tất cả tài khoản mail do Admin/QL Công việc gán cho bạn</p>
- </div>
- <div className="flex items-center gap-3 w-full md:w-auto">
- <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-xl px-4 h-10 w-full md:w-64 focus-within:border-gold transition-all">
- <Search size={14} className="text-gray-500" />
- <input 
- type="text" 
- placeholder="Tìm kiếm Email hoặc Mail KP..." 
- value={searchQuery} 
- onChange={(e) => setSearchQuery(e.target.value)} 
- className="bg-transparent border-none outline-none text-sm text-white w-full" 
- />
- </div>
- <button onClick={() => setShowStaffMailsView(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-red-400 transition-colors"><X size={20} /></button>
- </div>
- </div>
-
- <div className="overflow-x-auto custom-scrollbar">
- <table className="w-full text-left text-base whitespace-nowrap min-w-[1000px]">
- <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0">
- <tr>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT Gốc</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Email</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">KP</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Pass</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">2FA</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">SĐT</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Link OTP</th>
- <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center whitespace-nowrap">Trạng thái công việc</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-white/5 text-gray-300">
- {mails
- .filter((m: any) => String(m.assigneeId) === String(user?.id))
- .filter((m: any) => 
- !searchQuery || 
- m.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
- m.recovery.toLowerCase().includes(searchQuery.toLowerCase())
- )
- .map((mail: any, index: number) => (
- <tr key={mail.id} className="hover:bg-white/5 bg-zinc-900/[0.02] transition-colors group">
- <td className="py-4 px-6 text-[10px] font-black text-gray-500 whitespace-nowrap">{index + 1}</td>
- <td className="py-4 px-6 text-[10px] font-black text-gold/80 whitespace-nowrap">
- {mail.type ==="ROOT" ? mail.id 
- : mail.type ==="SATELLITE" ? mail.id - 1000 
- : mail.id - 2000}
- </td>
- <td className="py-4 px-6 font-bold text-white cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.email,"Email")}>{mail.email}</td>
- <td className="py-4 px-6 text-sm text-gray-400 cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.recovery,"KP")}>{mail.recovery}</td>
- <td className="py-4 px-6 text-sm text-gray-500 font-mono cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.pass,"Mật khẩu")}>{mail.pass}</td>
- <td className="py-4 px-6 text-sm text-gray-500 font-mono whitespace-nowrap">
- <TOTPDisplay secret={mail.twoFA ||""} compact onCopy={copyToClipboard} />
- </td>
- <td className="py-4 px-6 text-sm text-gray-500 font-bold cursor-pointer hover:text-gold transition-colors whitespace-nowrap" onClick={() => copyToClipboard(mail.phone ||"","SĐT")}>{mail.phone ||"---"}</td>
- <td className="py-4 px-6 text-sm text-gray-500 whitespace-nowrap">
- {mail.otpLink ? (
- <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-all flex items-center gap-1 font-bold text-sm cursor-pointer">Link OTP <ExternalLink size={12} /></a>
- ) : <span className="">---</span>}
- </td>
- <td className="py-4 px-6 text-center whitespace-nowrap">
- <div className="flex items-center justify-center gap-2">
- {mail.workStatus ==="Đang xử lí" && (
- <span className="px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase border border-amber-500/30 bg-amber-500/10 text-amber-500">
- Đang xử lí
- </span>
- )}
- <button 
- onClick={() => handleStaffMailStatusChange(mail.id,"Đã làm")}
- className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
- mail.workStatus ==="ĐÃ LÀM KÊNH" || mail.workStatus ==="HOÀN THÀNH" || mail.workStatus ==="Đã làm" || mail.workStatus ==="ĐÃ LÀM" || mail.workStatus ==="ĐÃ MỜI MAIL"
- ?"bg-green-500/10 text-green-500 border-green-500/30 font-bold"
- :" bg-white/5 text-gray-400 border-white/0 hover:border-green-500/30 hover:text-green-500"
- }`}
- >
- Đã làm
- </button>
- {mail.workStatus !=="Đang xử lí" && (
- <button 
- onClick={() => handleStaffMailStatusChange(mail.id,"Chưa làm")}
- className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
- mail.workStatus ==="Chưa làm" || mail.workStatus ==="CHƯA LÀM" || mail.workStatus ==="CHƯA LÀM KÊNH" || mail.workStatus ==="CHƯA MỜI MAIL" || !mail.workStatus
- ?"bg-amber-500/10 text-amber-500 border-amber-500/30 font-bold"
- :" bg-white/5 text-gray-400 border-white/0 hover:border-amber-500/30 hover:text-amber-500"
- }`}
- >
- Chưa làm
- </button>
- )}
- <button 
- onClick={() => handleStaffMailStatusChange(mail.id,"Lỗi")}
- className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border ${
- mail.workStatus ==="Lỗi" || mail.workStatus ==="LỖI"
- ?"bg-red-500/10 text-red-500 border-red-500/30 font-bold"
- :" bg-white/5 text-gray-400 border-white/0 hover:border-red-500/30 hover:text-red-500"
- }`}
- >
- Lỗi
- </button>
- </div>
- </td>
- </tr>
- ))}
- {(mails || []).filter((m: any) => String(m.assigneeId) === String(user?.id)).length === 0 && (
- <tr><td colSpan={9} className="py-10 text-center font-bold uppercase tracking-widest">Bạn chưa được gán tài khoản mail nào</td></tr>
- )}
- </tbody>
- </table>
- </div>
- </div>
- </motion.div>
- )}
- </AnimatePresence>
- </div>
- ) : isHRManager ? (
+ {isHRManager ? (
  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
  <div className="lg:col-span-1">
  <StatCard title="Nhân viên Online" value={stats.staffOnline} icon={<Users size={32} />} color="purple" subtitle="Đang làm việc" onClick={() => setSelectedViewType("STAFF")} />
