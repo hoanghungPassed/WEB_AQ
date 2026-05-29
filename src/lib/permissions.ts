@@ -30,7 +30,7 @@ export async function logAuditTrail(
   action: string,
   resource: string,
   changes: object,
-  request: NextRequest
+  request: Request | NextRequest
 ) {
   try {
     const Log = (await import("@/models/Log")).Log;

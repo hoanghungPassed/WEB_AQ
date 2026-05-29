@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from 'next/server';
 import { User } from '@/models/User';
 import { verifyToken, generateBackupCodes } from '@/lib/2fa';
 import { decrypt } from '@/lib/crypto';
-import { logAuditTrail } from '@/utils/audit';
+import { logAuditTrail } from '@/lib/permissions';
 import { twoFARateLimiter } from '@/middleware/rateLimiter';
 
 /**
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   if (backupCode) {
     const hashedCodes = user.backupCodes || [];
     // Verify against each hash; on success, remove that hash.
-    const bcrypt = (await import('bcrypt')).default;
+    const bcrypt = (await import('bcryptjs')).default;
     for (let i = 0; i < hashedCodes.length; i++) {
       if (await bcrypt.compare(backupCode, hashedCodes[i])) {
         // Remove used code

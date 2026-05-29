@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { User } from '@/models/User';
 import { generateSecret, generateQrDataUrl, generateBackupCodes } from '@/lib/2fa';
 import { encrypt } from '@/lib/crypto';
-import { logAuditTrail } from '@/utils/audit'; // adjust import path as needed
+import { logAuditTrail } from '@/lib/permissions';
 
 export async function POST(request: Request) {
   const { email, userId } = await request.json();
@@ -20,6 +20,9 @@ export async function POST(request: Request) {
   const secret = generateSecret(email);
   const encrypted = encrypt(secret.base32);
 
+  if (!secret.otpauth_url) {
+    return NextResponse.json({ error: 'Quá trình tạo QR không thành công' }, { status: 500 });
+  }
   const qrDataUrl = await generateQrDataUrl(secret.otpauth_url);
   const backup = await generateBackupCodes();
   const rawCodes = backup.map(b => b.raw);

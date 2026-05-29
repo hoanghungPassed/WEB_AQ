@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     // Load data similar to the front‑end calculations
     const [mails, staffList] = await Promise.all([
       RootMail.find().lean(),
-      User.find({ role: { $in: ["04", "05", "NHÂN VIÊN", "NV THỬ VIỆC"] } }).lean(),
+      User.find({ role: { $in: ["04", "05"] } }).lean(),
     ]);
 
     // Helper to count eligible channels

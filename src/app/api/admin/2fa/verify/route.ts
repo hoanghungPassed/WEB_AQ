@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from 'next/server';
 import { User } from '@/models/User';
 import { verifyToken } from '@/lib/2fa';
 import { decrypt } from '@/lib/crypto';
-import { logAuditTrail } from '@/utils/audit';
+import { logAuditTrail } from '@/lib/permissions';
 import { twoFARateLimiter } from '@/middleware/rateLimiter';
 
 /**

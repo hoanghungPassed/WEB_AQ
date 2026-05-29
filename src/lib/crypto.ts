@@ -1,16 +1,21 @@
 import crypto from 'crypto';
 
 const algorithm = 'aes-256-gcm';
-const keyHex = process.env.ENCRYPTION_KEY;
-if (!keyHex) {
-  throw new Error('ENCRYPTION_KEY environment variable is missing');
-}
-const key = Buffer.from(keyHex, 'hex');
-if (key.length !== 32) {
-  throw new Error('ENCRYPTION_KEY must be 32 bytes (64 hex characters)');
+
+function getEncryptionKey(): Buffer {
+  const keyHex = process.env.ENCRYPTION_KEY;
+  if (!keyHex) {
+    throw new Error('ENCRYPTION_KEY environment variable is missing');
+  }
+  const key = Buffer.from(keyHex, 'hex');
+  if (key.length !== 32) {
+    throw new Error('ENCRYPTION_KEY must be 32 bytes (64 hex characters)');
+  }
+  return key;
 }
 
 export function encrypt(text: string): string {
+  const key = getEncryptionKey();
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv(algorithm, key, iv);
   const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
@@ -19,6 +24,7 @@ export function encrypt(text: string): string {
 }
 
 export function decrypt(data: string): string {
+  const key = getEncryptionKey();
   const buf = Buffer.from(data, 'base64');
   const iv = buf.slice(0, 12);
   const tag = buf.slice(12, 28);

@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { User } from '@/models/User';
-import { logAuditTrail } from '@/utils/audit'; // adjust path if needed
+import { logAuditTrail } from '@/lib/permissions'; // adjust path if needed
 
 /**
  * Middleware to enforce 2FA requirements.
@@ -18,7 +18,7 @@ export async function middleware(req: NextRequest) {
   if (!user) return NextResponse.next();
 
   // Admin enforcement
-  if (user.role === 'ADMIN' && !user.twoFAEnabled) {
+  if (user.role === '01' && !user.twoFAEnabled) {
     // Log the redirect for audit purposes
     await logAuditTrail(user.id, 'ENFORCE_2FA', 'User', { reason: 'admin_missing_2fa' }, req);
     return NextResponse.redirect(new URL('/admin/2fa/setup', req.url));
