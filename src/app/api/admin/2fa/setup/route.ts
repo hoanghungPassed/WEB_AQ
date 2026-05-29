@@ -7,7 +7,7 @@ import { logAuditTrail } from '@/lib/permissions';
 export async function POST(request: Request) {
   const { email, userId } = await request.json();
   // Only admins or the user themselves can initiate setup
-  const sessionUserId = (await request.headers.get('x-session-user-id')) ?? '';
+  const sessionUserId = request.headers.get('x-user-id') || request.headers.get('x-session-user-id') || '';
   if (sessionUserId !== userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
@@ -36,5 +36,10 @@ export async function POST(request: Request) {
 
   await logAuditTrail(user.id, 'ENABLE_2FA', 'User', { method: 'setup' }, request);
 
-  return NextResponse.json({ qrDataUrl, encryptedSecret: encrypted, backupCodes: rawCodes });
+  return NextResponse.json({
+    qrDataUrl,
+    encryptedSecret: encrypted,
+    backupCodes: rawCodes,
+    manualSecret: secret.base32
+  });
 }

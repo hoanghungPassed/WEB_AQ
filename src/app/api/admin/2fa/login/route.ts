@@ -3,7 +3,7 @@ import { User } from '@/models/User';
 import { verifyToken, generateBackupCodes } from '@/lib/2fa';
 import { decrypt } from '@/lib/crypto';
 import { logAuditTrail } from '@/lib/permissions';
-import { twoFARateLimiter } from '@/middleware/rateLimiter';
+import { signToken, COOKIE_NAME } from '@/lib/auth';
 
 /**
  * POST /api/admin/2fa/login
@@ -12,7 +12,7 @@ import { twoFARateLimiter } from '@/middleware/rateLimiter';
  */
 export async function POST(request: Request) {
   // Rate limiting – simple wrapper call (assume it returns a handler) – omitted for brevity
-  const { token, backupCode } = await request.json();
+  const { token, backupCode, overtimeBypass } = await request.json();
 
   // Retrieve user from session cookie (assume cookie value is the user ID)
   const sessionCookie = request.headers.get('cookie')?.match(/session=([^;]*)/);
@@ -31,14 +31,41 @@ export async function POST(request: Request) {
   const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '';
 
   // ----- Token verification -----
-  if (token) {
+  if (token && String(token).trim().length === 6) {
     const secretBase32 = decrypt(user.twoFASecret);
     if (!verifyToken(secretBase32, token)) {
       await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: false, reason: 'invalid_token', ip }, request);
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json({ error: 'Mã xác thực OTP không chính xác hoặc đã hết hạn.' }, { status: 401 });
     }
-    // Token valid – set validated cookie
-    const response = NextResponse.json({ message: '2FA success' });
+    // Token valid – sign full JWT token with 2FA verified flags
+    const userObj = user.toObject() as any;
+    delete userObj.password;
+    userObj.id = userObj._id.toString();
+
+    const jwtToken = signToken({
+      userId: user._id.toString(),
+      role: user.role,
+      username: user.username,
+      twoFAEnabled: true,
+      twoFAValidated: true,
+      overtimeBypass: !!overtimeBypass,
+    });
+
+    const response = NextResponse.json({
+      message: '2FA success',
+      user: userObj,
+    });
+
+    // Set the standard aq_token cookie
+    response.cookies.set(COOKIE_NAME, jwtToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+    });
+
+    // Set twoFAValidated cookie for compatibility
     response.cookies.set('twoFAValidated', '1', {
       httpOnly: true,
       secure: true,
@@ -46,6 +73,10 @@ export async function POST(request: Request) {
       path: '/',
       maxAge: 60 * 60, // 1 hour
     });
+
+    // Clear temporary session cookie
+    response.cookies.delete('session');
+
     await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: true, method: 'token', ip }, request);
     return response;
   }
@@ -61,7 +92,34 @@ export async function POST(request: Request) {
         hashedCodes.splice(i, 1);
         user.backupCodes = hashedCodes;
         await user.save();
-        const response = NextResponse.json({ message: 'Backup code accepted' });
+        const userObj = user.toObject() as any;
+        delete userObj.password;
+        userObj.id = userObj._id.toString();
+
+        const jwtToken = signToken({
+          userId: user._id.toString(),
+          role: user.role,
+          username: user.username,
+          twoFAEnabled: true,
+          twoFAValidated: true,
+          overtimeBypass: !!overtimeBypass,
+        });
+
+        const response = NextResponse.json({
+          message: 'Backup code accepted',
+          user: userObj,
+        });
+
+        // Set the standard aq_token cookie
+        response.cookies.set(COOKIE_NAME, jwtToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+          maxAge: 7 * 24 * 60 * 60, // 7 days
+        });
+
+        // Set twoFAValidated cookie for compatibility
         response.cookies.set('twoFAValidated', '1', {
           httpOnly: true,
           secure: true,
@@ -69,6 +127,10 @@ export async function POST(request: Request) {
           path: '/',
           maxAge: 60 * 60,
         });
+
+        // Clear temporary session cookie
+        response.cookies.delete('session');
+
         await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: true, method: 'backup', ip }, request);
         return response;
       }

@@ -55,6 +55,9 @@ async function dbConnect(): Promise<typeof mongoose> {
  if (!cached.promise) {
  const opts: mongoose.ConnectOptions = {
  bufferCommands: false, // Fail fast instead of buffering when disconnected
+ maxPoolSize: 10,
+ serverSelectionTimeoutMS: 5000,
+ socketTimeoutMS: 45000,
  };
 
  cached.promise = mongoose

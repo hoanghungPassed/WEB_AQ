@@ -885,16 +885,16 @@ export default function AdminLayout({
     setUnreadCount(unread);
   }, [user]);
 
-  // 4. Realtime useSWR Polling for chat and active users (3s interval)
+  // 4. Realtime useSWR Polling for chat and active users (30s interval)
   useSWR("sync_users_rlt", async () => {
     if (user) await syncRealUsersFromDB();
     return Date.now();
-  }, { refreshInterval: 3000 });
+  }, { refreshInterval: 30000 });
 
   const { mutate: mutateChat } = useSWR("sync_chat_rlt", async () => {
     if (user) loadChatData();
     return Date.now();
-  }, { refreshInterval: 3000 });
+  }, { refreshInterval: 30000 });
 
   useEffect(() => {
     if (!user) return;

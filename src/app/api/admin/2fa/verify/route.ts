@@ -3,7 +3,6 @@ import { User } from '@/models/User';
 import { verifyToken } from '@/lib/2fa';
 import { decrypt } from '@/lib/crypto';
 import { logAuditTrail } from '@/lib/permissions';
-import { twoFARateLimiter } from '@/middleware/rateLimiter';
 
 /**
  * POST /api/admin/2fa/verify
@@ -11,13 +10,9 @@ import { twoFARateLimiter } from '@/middleware/rateLimiter';
  * On success, enables 2FA for the user and generates fresh backup codes.
  */
 export async function POST(request: Request) {
-  // Apply rate limiting manually (since Next.js API routes don't support middleware directly)
-  // We'll invoke the rate limiter as a function – it returns a handler that can be awaited.
-  // For simplicity, assume twoFARateLimiter works as a wrapper.
-  // In real code, you'd use a middleware wrapper or edge config.
   const { token, userId } = await request.json();
 
-  const sessionUserId = (await request.headers.get('x-session-user-id')) ?? '';
+  const sessionUserId = request.headers.get('x-user-id') || request.headers.get('x-session-user-id') || '';
   // Users can only verify their own account (or admins can verify others via admin UI – not needed here)
   if (sessionUserId !== userId) {
     await logAuditTrail(sessionUserId, 'VERIFY_2FA', 'User', { success: false, reason: 'unauthorized' }, request);

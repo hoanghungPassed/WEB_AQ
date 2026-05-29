@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
 
  const body = await req.json();
  const { username, password } = body;
+ let overtimeBypass = false;
 
  if (!username || !password) {
  return NextResponse.json(
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
  );
  }
 
-  // Kiểm tra giờ làm việc (Sau giờ đóng cửa + 30 phút chặn Role 03, 04, 05)
+  // Kiểm tra giờ làm việc (Sau giờ đóng cửa hoặc trước giờ mở cửa đối với Role 03, 04, 05)
   const now = new Date();
   const utc = now.getTime() + now.getTimezoneOffset() * 60000;
   const vnTime = new Date(utc + 3600000 * 7); // Vietnam GMT+7
@@ -87,15 +88,38 @@ export async function POST(req: NextRequest) {
   
   if (isStaff) {
     const settings = await SystemSetting.findOne();
+    const openTime = settings?.openTime || "08:00";
     const closeTime = settings?.closeTime || "18:00";
+    const [openHour, openMinute] = openTime.split(":").map(Number);
     const [closeHour, closeMinute] = closeTime.split(":").map(Number);
+    const openMins = (openHour || 8) * 60 + (openMinute || 0);
     const closeMins = (closeHour || 18) * 60 + (closeMinute || 0);
 
-    // If login occurs after closing time, allow but set a warning flag
-    if (currentMins > closeMins + 30) {
-      // Mark that login is after hours; we will include a warning in the response later
-      (global as any).loginWarning = "Hệ thống đã đóng cửa. Vui lòng quay lại vào giờ làm việc.";
-      // Continue without blocking the login
+    if (currentMins < openMins || currentMins >= closeMins) {
+      if (!body.overtimeAgreed) {
+        return NextResponse.json({
+          error: "system_closed_fine_required",
+          message: "Hệ thống đã đóng cửa làm việc. Bạn cần đồng ý nộp phạt 50.000 VNĐ để tiếp tục đăng nhập ngoài giờ."
+        }, { status: 403 });
+      }
+      
+      // If overtimeAgreed is true, create a fine for after-hours login
+      const monthStart = new Date(vnTime.getFullYear(), vnTime.getMonth(), 1);
+      const timeString = vnTime.toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      
+      await Fine.create({
+        userId: user._id,
+        reason: `Đăng nhập ngoài giờ làm việc lúc ${timeString} (quy định ${openTime} - ${closeTime})`,
+        amount: 50000,
+        status: "UNPAID",
+        canAppeal: true,
+        monthYear: monthStart
+      });
+
+      overtimeBypass = true;
     }
   }
 
@@ -225,12 +249,33 @@ export async function POST(req: NextRequest) {
   }
   // --- KẾT THÚC ---
 
- // Tạo JWT token
- const token = signToken({
- userId: user._id.toString(),
- role: user?.role,
- username: user?.username,
- });
+  // If 2FA is enabled, do NOT log in fully. Instead, return require2FA: true and set temporary session cookie
+  if (user.twoFAEnabled) {
+    const response = NextResponse.json({
+      require2FA: true,
+      userId: user._id.toString(),
+      username: user.username,
+      overtimeBypass,
+    });
+    response.cookies.set('session', user._id.toString(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 300, // 5 minutes
+    });
+    
+    await logAuditTrail(user._id.toString(), "LOGIN_2FA_CHALLENGE", "auth", { username: user.username }, req);
+    return response;
+  }
+
+  // Tạo JWT token
+  const token = signToken({
+    userId: user._id.toString(),
+    role: user?.role,
+    username: user?.username,
+    overtimeBypass,
+  });
 
  // Tạo response với cookie HttpOnly
  const userObj = user.toObject() as any;

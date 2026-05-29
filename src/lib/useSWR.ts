@@ -28,9 +28,16 @@ export function useSWR<T>(
           setData(result);
           setError(undefined);
         }
-      } catch (err) {
+      } catch (err: any) {
         if (active) {
           setError(err);
+          // ONLY redirect to login if status is 401 (session expired).
+          // For 403 (Forbidden), we just throw/handle the error without redirecting.
+          if (err?.status === 401) {
+            if (typeof window !== "undefined") {
+              window.location.href = "/login";
+            }
+          }
         }
       } finally {
         if (active) {

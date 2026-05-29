@@ -44,6 +44,9 @@ export interface TokenPayload {
  userId: string;
  role: string;
  username: string;
+ twoFAEnabled?: boolean;
+ twoFAValidated?: boolean;
+ overtimeBypass?: boolean;
 }
 
 /** Tạo JWT token */

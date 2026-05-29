@@ -101,7 +101,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
     };
 
     loadNotifs();
-    const interval = setInterval(loadNotifs, 3000); 
+    const interval = setInterval(loadNotifs, 30000); 
     
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "admin_notifications" || e.key === "pending_access_requests" || e.key === "request_trigger") loadNotifs();

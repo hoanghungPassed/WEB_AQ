@@ -487,13 +487,20 @@ export default function TaskManagementPage() {
  }
  }
 
- const mailRes = await fetch("/api/admin/mails");
- if (mailRes.ok) {
- const mailData = await mailRes.json();
- if (mailData.success) {
- setMails(mailData.data);
- }
- }
+  const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
+  const currentUser = storedUser ? JSON.parse(storedUser) : null;
+  const roleUpper = String(currentUser?.role || "").toUpperCase();
+  const isAuthorized = roleUpper === "01" || roleUpper === "ADMIN" || roleUpper === "02" || roleUpper === "QL CÔNG VIỆC" || roleUpper === "QUẢN LÝ CÔNG VIỆC";
+
+  if (isAuthorized) {
+    const mailRes = await fetch("/api/admin/mails");
+    if (mailRes.ok) {
+      const mailData = await mailRes.json();
+      if (mailData.success) {
+        setMails(mailData.data);
+      }
+    }
+  }
  } catch (err) {
  console.error("Error fetching data:", err);
  }
@@ -504,7 +511,7 @@ export default function TaskManagementPage() {
  if (storedUser) setUser(JSON.parse(storedUser));
 
  loadData();
- const interval = setInterval(loadData, 4000);
+ const interval = setInterval(loadData, 30000);
  
  const handleStorage = (e: StorageEvent) => {
  if (e.key ==="global_tasks_data" || e.key ==="global_mails_data" || e.key ==="global_users") {

@@ -38,12 +38,13 @@ export default function StaffManagementPage() {
     return statusFilter === "ALL" ? "ACTIVE_OR_LOCKED" : statusFilter;
   }, [activeTab, statusFilter]);
 
-  // SWR real-time polling every 5s for staff list
+  // SWR real-time polling every 30s for staff list
   const { data: usersResponse, mutate: mutateUsers } = useSWR(
     `/api/admin/users?page=${currentPage}&limit=10&search=${searchQuery}&status=${swrStatus}&role=${roleFilter}`,
     fetcher,
     {
-      refreshInterval: 5000,
+      refreshInterval: 30000,
+      dedupingInterval: 15000,
     }
   );
 

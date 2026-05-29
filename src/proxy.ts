@@ -15,6 +15,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Bỏ qua xác thực cho các API công khai (Đăng nhập, Đăng ký, Xác thực 2FA lúc đăng nhập, Reset mật khẩu)
+  const isPublicApi = 
+    pathname.startsWith("/api/auth/login") ||
+    pathname.startsWith("/api/auth/register") ||
+    pathname.startsWith("/api/admin/2fa/login") ||
+    pathname.startsWith("/api/auth/reset-password");
+
+  if (isPublicApi) {
+    return NextResponse.next();
+  }
+
   // Lấy token từ cookie
   const token = request.cookies.get(COOKIE_NAME)?.value;
 
@@ -53,6 +64,24 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
+    // 2FA Security check: if user has 2FA enabled but not verified in JWT, kick to login
+    const twoFAEnabled = !!payload.twoFAEnabled;
+    const twoFAValidated = !!payload.twoFAValidated;
+
+    if (twoFAEnabled && !twoFAValidated) {
+      if (isApiCall) {
+        return NextResponse.json(
+          { error: "Yêu cầu xác thực 2FA. Vui lòng hoàn tất 2FA tại trang đăng nhập." },
+          { status: 401 }
+        );
+      }
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("error", "2fa_required");
+      const response = NextResponse.redirect(loginUrl);
+      response.cookies.delete(COOKIE_NAME);
+      return response;
+    }
+
     const isStaff = role === "03" || role === "04" || role === "05";
 
     // 1. KIỂM TRA PHÂN QUYỀN TRÊN GIAO DIỆN UI /admin/* (Sử dụng Blacklist & Whitelist đúng đắn)
@@ -75,14 +104,19 @@ export async function middleware(request: NextRequest) {
         (path) => pathname === path || pathname.startsWith(path + "/")
       );
 
-      // Nếu nằm trong blacklist, chặn truy cập và redirect về /admin/tasks
-      if (isBlacklisted) {
+      const isAllowedStaffPage = 
+        pathname === "/admin/mail/satellite" ||
+        pathname === "/admin/phone/list";
+
+      // Nếu nằm trong blacklist và không thuộc whitelist được phép, chặn truy cập và redirect về /admin/tasks
+      if (isBlacklisted && !isAllowedStaffPage) {
         return NextResponse.redirect(new URL("/admin/tasks", request.url));
       }
     }
 
     // 2. KIỂM TRA GIỜ HÀNH CHÍNH (AUTO-KICK) CHO NHÂN VIÊN
-    if (isStaff) {
+    const overtimeBypass = !!payload.overtimeBypass;
+    if (isStaff && !overtimeBypass) {
       const now = new Date();
       const utc = now.getTime() + now.getTimezoneOffset() * 60000;
       const vnTime = new Date(utc + 3600000 * 7); // GMT+7
