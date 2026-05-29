@@ -1009,6 +1009,73 @@ export default function AdminDashboard() {
  const isAdminOrManager = user?.role ==="01" || user?.role ==="02";
  const isHRManager = user?.role ==="03" || user?.role ==="QUẢN LÝ NHÂN SỰ";
 
+ const filteredMails = useMemo(() => {
+ if (!selectedViewType || selectedViewType ==="STAFF") return [];
+ 
+ return (mails || []).filter(m => {
+ let matchesType = true;
+ if (selectedViewType ==="LIVE") matchesType = m.status ==="LIVE";
+ else if (selectedViewType ==="DIE") matchesType = m.status ==="DIE";
+ else if (selectedViewType ==="TASKS") matchesType = true;
+
+ let matchesMailType = true;
+ if (filterMailType !=="ALL") {
+ matchesMailType = m.type === filterMailType;
+ }
+
+ const matchesSearch = m.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
+ m.recovery.toLowerCase().includes(searchQuery.toLowerCase());
+
+ const matchesStatus = filterStatus ==="all" || (m.channelStatus && m.channelStatus.includes(filterStatus));
+
+ return matchesType && matchesMailType && matchesSearch && matchesStatus;
+ });
+ }, [selectedViewType, searchQuery, filterStatus, filterMailType, mails]);
+
+ const totalPages = Math.ceil((filteredMails || []).length / itemsPerPage);
+ const currentItems = filteredMails.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+ const filteredTasks = useMemo(() => {
+ if (selectedViewType !=="TASKS" || !isAdminOrManager) return [];
+ return (tasksList || []).filter(t => {
+ const titleMatch = t.title.toLowerCase().includes(searchQuery.toLowerCase());
+ const noteMatch = t.note ? t.note.toLowerCase().includes(searchQuery.toLowerCase()) : false;
+ const staffName = (() => {
+ const assignee = staffList.find(s => String(s.id) === String(t.assigneeId));
+ return assignee ? assignee.name.toLowerCase() :"chưa giao";
+ })();
+ const staffMatch = staffName.includes(searchQuery.toLowerCase());
+ return titleMatch || noteMatch || staffMatch;
+ });
+ }, [selectedViewType, tasksList, searchQuery, isAdminOrManager, staffList]);
+
+ const totalTasksPages = Math.ceil((filteredTasks || []).length / itemsPerPage);
+ const currentTasksItems = filteredTasks.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+ const getChannelStatusColor = (status: string) => {
+ if (!status) return"bg-gray-500/10 text-gray-400 border-gray-500/20";
+ const lower = status.toLowerCase();
+ if (lower.includes("chờ b2") || lower.includes("chờ b3") || lower.includes("quay video")) return"bg-yellow-500/10 text-yellow-500 border-yellow-500/30";
+ if (lower.includes("lỗi b2") || lower.includes("die spam") || lower.includes("chưa sub") || lower.includes("mất kênh")) return"bg-red-500/10 text-red-500 border-red-500/30";
+ if (lower.includes("đã bật") || lower.includes("đã kháng")) return"bg-blue-500/10 text-blue-400 border-blue-500/30";
+ return"bg-gray-500/10 text-gray-400 border-gray-500/20";
+ };
+
+ // ============================================================
+ // FULL-SCREEN TASK DETAIL for Role 03/04
+ // ============================================================
+ // Lock scroll on the main element when task detail is open
+ React.useEffect(() => {
+ const mainEl = document.querySelector("main");
+ if (!mainEl) return;
+ if (selectedStaffTask && (user?.role ==="03" || user?.role ==="04" || user?.role ==="05")) {
+ mainEl.style.overflow ="hidden";
+ } else {
+ mainEl.style.overflow ="";
+ }
+ return () => { mainEl.style.overflow =""; };
+ }, [selectedStaffTask, user?.role]);
+
  if (user?.role === "03" || user?.role === "04" || user?.role === "05") {
   return (
     <div className="space-y-6 pb-20 relative">
@@ -1122,60 +1189,6 @@ export default function AdminDashboard() {
   );
  }
 
- const filteredMails = useMemo(() => {
- if (!selectedViewType || selectedViewType ==="STAFF") return [];
- 
- return (mails || []).filter(m => {
- let matchesType = true;
- if (selectedViewType ==="LIVE") matchesType = m.status ==="LIVE";
- else if (selectedViewType ==="DIE") matchesType = m.status ==="DIE";
- else if (selectedViewType ==="TASKS") matchesType = true;
-
- let matchesMailType = true;
- if (filterMailType !=="ALL") {
- matchesMailType = m.type === filterMailType;
- }
-
- const matchesSearch = m.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
- m.recovery.toLowerCase().includes(searchQuery.toLowerCase());
-
- const matchesStatus = filterStatus ==="all" || (m.channelStatus && m.channelStatus.includes(filterStatus));
-
- return matchesType && matchesMailType && matchesSearch && matchesStatus;
- });
- }, [selectedViewType, searchQuery, filterStatus, filterMailType, mails]);
-
- const totalPages = Math.ceil((filteredMails || []).length / itemsPerPage);
- const currentItems = filteredMails.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
- const filteredTasks = useMemo(() => {
- if (selectedViewType !=="TASKS" || !isAdminOrManager) return [];
- return (tasksList || []).filter(t => {
- const titleMatch = t.title.toLowerCase().includes(searchQuery.toLowerCase());
- const noteMatch = t.note ? t.note.toLowerCase().includes(searchQuery.toLowerCase()) : false;
- const staffName = (() => {
- const assignee = staffList.find(s => String(s.id) === String(t.assigneeId));
- return assignee ? assignee.name.toLowerCase() :"chưa giao";
- })();
- const staffMatch = staffName.includes(searchQuery.toLowerCase());
- return titleMatch || noteMatch || staffMatch;
- });
- }, [selectedViewType, tasksList, searchQuery, isAdminOrManager, staffList]);
-
- const totalTasksPages = Math.ceil((filteredTasks || []).length / itemsPerPage);
- const currentTasksItems = filteredTasks.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
- const getChannelStatusColor = (status: string) => {
- if (!status) return"bg-gray-500/10 text-gray-400 border-gray-500/20";
- const lower = status.toLowerCase();
- if (lower.includes("chờ b2") || lower.includes("chờ b3") || lower.includes("quay video")) return"bg-yellow-500/10 text-yellow-500 border-yellow-500/30";
- if (lower.includes("lỗi b2") || lower.includes("die spam") || lower.includes("chưa sub") || lower.includes("mất kênh")) return"bg-red-500/10 text-red-500 border-red-500/30";
- if (lower.includes("đã bật") || lower.includes("đã kháng")) return"bg-blue-500/10 text-blue-400 border-blue-500/30";
- return"bg-gray-500/10 text-gray-400 border-gray-500/20";
- };
-
- // ============================================================
- // FULL-SCREEN TASK DETAIL for Role 03/04
  // ============================================================
  // Lock scroll on the main element when task detail is open
  React.useEffect(() => {

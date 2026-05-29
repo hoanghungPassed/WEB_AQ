@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
   const utc = now.getTime() + now.getTimezoneOffset() * 60000;
   const vnTime = new Date(utc + 3600000 * 7); // Vietnam GMT+7
   const currentMins = vnTime.getHours() * 60 + vnTime.getMinutes();
-  const isStaff = user.role ==="03" || user.role ==="04" || user.role ==="05" || String(user.role).includes("03") || String(user.role).includes("04") || String(user.role).includes("05");
+  const isStaff = (user.role ==="03" || user.role ==="04" || user.role ==="05" || String(user.role).includes("03") || String(user.role).includes("04") || String(user.role).includes("05")) && user.username !== "01";
   
   if (isStaff) {
     const settings = await SystemSetting.findOne();
@@ -147,100 +147,131 @@ export async function POST(req: NextRequest) {
     });
 
     if (!attendance) {
-      // Lấy giờ mở cửa làm mốc đi muộn từ SystemSetting
-      let checkInLimitStr = "08:00";
-      const settings = await SystemSetting.findOne();
-      if (settings && settings.openTime) {
-        checkInLimitStr = settings.openTime;
-      }
-
-      const [limitHour, limitMinute] = checkInLimitStr.split(":").map(Number);
-      const limitTotalMins = (limitHour || 8) * 60 + (limitMinute || 0);
-      const currentTotalMins = vnTime.getHours() * 60 + vnTime.getMinutes();
-
       // Quyền Admin (01) và QL Công việc (02) không bao giờ bị tính đi muộn hay phạt
-      const isAdminOrWorkManager = user.role === "01" || user.role === "02";
-      const isLate = !isAdminOrWorkManager && (currentTotalMins > limitTotalMins);
-      const status = isLate ? "Đi muộn" : "Đúng giờ";
+      const roleUpper = String(user.role || "").toUpperCase();
+      const isAdminOrWorkManager = 
+        roleUpper === "01" || 
+        roleUpper === "02" || 
+        roleUpper === "ADMIN" || 
+        roleUpper === "QL CÔNG VIỆC" || 
+        roleUpper === "QUẢN LÝ CÔNG VIỆC" ||
+        user.username === "01";
 
-      try {
-        // Atomic create using the unique index constraint
-        attendance = await Attendance.create({
-          userId: user._id,
-          username: user.username,
-          name: user.name,
-          date: todayStr,
-          checkInTime: now,
-          status,
-        });
-
-        // Chỉ tạo Fine và Notification một lần duy nhất khi tạo Attendance thành công
-        if (isLate) {
-          const timeString = vnTime.toLocaleTimeString("vi-VN", {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-
-          // 1. Tạo thông báo đi muộn gửi Admin
-          await Notification.create({
-            title: "Cảnh báo đi muộn",
-            message: `Nhân viên ${user.name} vừa đăng nhập đi muộn vào lúc ${timeString}`,
-            type: "LATE_WARNING",
-            author: user._id,
-            isRead: false,
-          });
-
-          // 2. Tạo bản ghi Fine (phạt) với mức phí lũy tiến chính xác và nhân đôi nếu vi phạm nhiều lần
-          const lateMinutes = currentTotalMins - limitTotalMins;
-
-          // Đếm số lần phạt trong tháng để tính lũy kế (trừ trạng thái CANCELLED)
-          const thisMonth = new Date();
-          const monthStart = new Date(thisMonth.getFullYear(), thisMonth.getMonth(), 1);
-          const previousFinesCount = await Fine.countDocuments({
+      if (isAdminOrWorkManager) {
+        // Tạo attendance "Đúng giờ" cho Admin và không bao giờ check hay tạo Fine
+        try {
+          attendance = await Attendance.create({
             userId: user._id,
-            createdAt: { $gte: monthStart },
-            status: { $ne: "CANCELLED" }
+            username: user.username,
+            name: user.name,
+            date: todayStr,
+            checkInTime: now,
+            status: "Đúng giờ",
           });
-
-          // Thang đo chính xác: Đi muộn nhiều hơn phạt nặng hơn
-          let fineAmount = 10000;
-          if (lateMinutes >= 20) {
-            fineAmount = 50000;
-          } else if (lateMinutes >= 5) {
-            fineAmount = 20000;
+        } catch (e: any) {
+          if (e.code === 11000) {
+            attendance = await Attendance.findOne({
+              userId: user._id,
+              date: todayStr
+            });
+          } else {
+            throw e;
           }
-
-          // Nhân đôi số tiền phạt nếu đã bị phạt từ 3 lần trở lên trong tháng
-          if (previousFinesCount >= 3) {
-            fineAmount *= 2;
-          }
-
-          await Fine.create({
-            userId: user._id,
-            reason: `Đi muộn ${lateMinutes} phút (${timeString}, qui định ${checkInLimitStr})`,
-            amount: fineAmount,
-            status: "UNPAID",
-            lateMinutes,
-            canAppeal: true,
-            monthYear: monthStart
-          });
-
-          // Send fine notification email (fire-and-forget)
-          try {
-            if (user.email) {
-              sendFineEmail(user.email, user.name || "Nhân viên", fineAmount, `Đi muộn ${lateMinutes} phút (${timeString}, qui định ${checkInLimitStr})`).catch(console.error);
-            }
-          } catch (_) {}
         }
-      } catch (e: any) {
-        // Xử lý lỗi trùng lặp do Race Condition (mã lỗi E11000)
-        if (e.code === 11000) {
-          attendance = await Attendance.findOne({
+      } else {
+        // Lấy giờ mở cửa làm mốc đi muộn từ SystemSetting
+        let checkInLimitStr = "08:00";
+        const settings = await SystemSetting.findOne();
+        if (settings && settings.openTime) {
+          checkInLimitStr = settings.openTime;
+        }
+
+        const [limitHour, limitMinute] = checkInLimitStr.split(":").map(Number);
+        const limitTotalMins = (limitHour || 8) * 60 + (limitMinute || 0);
+        const currentTotalMins = vnTime.getHours() * 60 + vnTime.getMinutes();
+
+        const isLate = currentTotalMins > limitTotalMins;
+        const status = isLate ? "Đi muộn" : "Đúng giờ";
+
+        try {
+          // Atomic create using the unique index constraint
+          attendance = await Attendance.create({
             userId: user._id,
-            date: todayStr
+            username: user.username,
+            name: user.name,
+            date: todayStr,
+            checkInTime: now,
+            status,
           });
-        } else {
-          throw e;
+
+          // Chỉ tạo Fine và Notification một lần duy nhất khi tạo Attendance thành công
+          if (isLate) {
+            const timeString = vnTime.toLocaleTimeString("vi-VN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            // 1. Tạo thông báo đi muộn gửi Admin
+            await Notification.create({
+              title: "Cảnh báo đi muộn",
+              message: `Nhân viên ${user.name} vừa đăng nhập đi muộn vào lúc ${timeString}`,
+              type: "LATE_WARNING",
+              author: user._id,
+              isRead: false,
+            });
+
+            // 2. Tạo bản ghi Fine (phạt) với mức phí lũy tiến chính xác và nhân đôi nếu vi phạm nhiều lần
+            const lateMinutes = currentTotalMins - limitTotalMins;
+
+            // Đếm số lần phạt trong tháng để tính lũy kế (trừ trạng thái CANCELLED)
+            const thisMonth = new Date();
+            const monthStart = new Date(thisMonth.getFullYear(), thisMonth.getMonth(), 1);
+            const previousFinesCount = await Fine.countDocuments({
+              userId: user._id,
+              createdAt: { $gte: monthStart },
+              status: { $ne: "CANCELLED" }
+            });
+
+            // Thang đo chính xác: Đi muộn nhiều hơn phạt nặng hơn
+            let fineAmount = 10000;
+            if (lateMinutes >= 20) {
+              fineAmount = 50000;
+            } else if (lateMinutes >= 5) {
+              fineAmount = 20000;
+            }
+
+            // Nhân đôi số tiền phạt nếu đã bị phạt từ 3 lần trở lên trong tháng
+            if (previousFinesCount >= 3) {
+              fineAmount *= 2;
+            }
+
+            await Fine.create({
+              userId: user._id,
+              reason: `Đi muộn ${lateMinutes} phút (${timeString}, qui định ${checkInLimitStr})`,
+              amount: fineAmount,
+              status: "UNPAID",
+              lateMinutes,
+              canAppeal: true,
+              monthYear: monthStart
+            });
+
+            // Send fine notification email (fire-and-forget)
+            try {
+              if (user.email) {
+                sendFineEmail(user.email, user.name || "Nhân viên", fineAmount, `Đi muộn ${lateMinutes} phút (${timeString}, qui định ${checkInLimitStr})`).catch(console.error);
+              }
+            } catch (_) {}
+          }
+        } catch (e: any) {
+          // Xử lý lỗi trùng lặp do Race Condition (mã lỗi E11000)
+          if (e.code === 11000) {
+            attendance = await Attendance.findOne({
+              userId: user._id,
+              date: todayStr
+            });
+          } else {
+            throw e;
+          }
         }
       }
     }

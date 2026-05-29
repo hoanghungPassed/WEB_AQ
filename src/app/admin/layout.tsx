@@ -282,6 +282,7 @@ export default function AdminLayout({
  return () => clearInterval(reminderInterval);
  }, []);
  const [isAccessGranted, setIsAccessGranted] = useState(false);
+ const [accessStatus, setAccessStatus] = useState<string | null>(null);
  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
  const [showManagerNotif, setShowManagerNotif] = useState(false);
  const [roleUpdateNotif, setRoleUpdateNotif] = useState<{ title: string, message: string } | null>(null);
@@ -558,14 +559,32 @@ export default function AdminLayout({
  const endWorkMins = endH * 60 + endM;
  const overlap1 = Math.max(0, Math.min(720, t_out) - Math.max(startWorkMins, t_in));
  const overlap2 = Math.max(0, Math.min(endWorkMins, t_out) - Math.max(810, t_in));
- const totalWorkingMins = overlap1 + overlap2;
+const totalWorkingMins = overlap1 + overlap2;
  return (totalWorkingMins / 60).toFixed(2);
  };
 
- const checkLateStatus = () => {
- const activeUserStr = getActiveUserStr();
- if (!activeUserStr) return;
- const currentUser = JSON.parse(activeUserStr);
+ const checkAccess = () => {
+     const activeUserStr = getActiveUserStr();
+     if (!activeUserStr) return;
+     const currentUser = JSON.parse(activeUserStr);
+
+     if (currentUser?.role === '01' || currentUser?.role === '02' || String(currentUser?.role).toUpperCase() === 'ADMIN' || String(currentUser?.role).toUpperCase().includes('QUẢN LÝ') || String(currentUser?.role).toUpperCase() === 'QL CÔNG VIỆC' || currentUser?.username === '01') {
+         setAccessStatus('GRANTED');
+         return;
+     }
+   };
+
+  const checkLateStatus = () => {
+  const activeUserStr = getActiveUserStr();
+  if (!activeUserStr) return;
+  const currentUser = JSON.parse(activeUserStr);
+
+  if (currentUser?.role === '01' || currentUser?.role === '02' || String(currentUser?.role).toUpperCase() === 'ADMIN' || String(currentUser?.role).toUpperCase().includes('QUẢN LÝ') || String(currentUser?.role).toUpperCase() === 'QL CÔNG VIỆC' || currentUser?.username === '01') {
+    setIsLate(false);
+    setIsFinePaid(true);
+    return;
+  }
+
  const isStaff = currentUser?.role ==="04" || currentUser?.role ==="05" || currentUser?.role ==="NHÂN VIÊN" || currentUser?.role ==="NV THỬ VIỆC" || String(currentUser?.role).includes("04") || String(currentUser?.role).includes("05");
  if (!isStaff) {
  setIsLate(false);
@@ -680,6 +699,7 @@ export default function AdminLayout({
  syncUserRole();
  checkNewNotifications();
  checkLateStatus();
+ checkAccess();
 
  const interval = setInterval(async () => {
  // Sync trước, sau đó mới kiểm tra quyền để đảm bảo data đã được kéo từ server về
@@ -687,6 +707,7 @@ export default function AdminLayout({
  syncUserRole();
  checkNewNotifications();
  checkLateStatus();
+ checkAccess();
 
  // Kiểm tra định kỳ và cập nhật isAccessGranted từ localStorage đã được đồng bộ
  const activeUserStr = getActiveUserStr();
@@ -707,6 +728,7 @@ export default function AdminLayout({
  syncUserRole();
  checkNewNotifications();
  checkLateStatus();
+ checkAccess();
  }
 
  if ((!e.key || e.key ==="global_users" || e.key ==="request_trigger") && user) {
@@ -782,16 +804,26 @@ export default function AdminLayout({
         const data = await res.json();
         const realUsers = data.users || data.data || [];
         if (realUsers.length > 0) {
-          const formattedUsers = realUsers.map((u: any) => ({
-            id: u.id || u._id || String(u.username),
-            name: u.name,
-            username: u.username,
-            role: u.role,
-            isOnline: u.isOnline || false,
-            lastActive: u.lastActive,
-            avatar: u.avatar || "",
-            status: u.status || "ACTIVE"
-          }));
+          const savedUsersStr = localStorage.getItem("global_users");
+          const existingUsers = savedUsersStr ? JSON.parse(savedUsersStr) : [];
+          const existingMap = new Map(existingUsers.map((u: any) => [u.username, u]));
+
+          const formattedUsers = realUsers.map((u: any) => {
+            const existing = (existingMap.get(u.username) || {}) as any;
+            return {
+              id: u.id || u._id || String(u.username),
+              name: u.name,
+              username: u.username,
+              role: u.role,
+              isOnline: u.isOnline || false,
+              lastActive: u.lastActive,
+              avatar: u.avatar || "",
+              status: u.status || "ACTIVE",
+              isLateLocked: existing.isLateLocked,
+              finePaymentStatus: existing.finePaymentStatus,
+              lateExcuseStatus: existing.lateExcuseStatus
+            };
+          });
           
           localStorage.setItem("global_users", JSON.stringify(formattedUsers));
           
@@ -1336,13 +1368,22 @@ const typingTimer = setInterval(checkTyping, 1000);
  const endTime = 18 * 60; // 6:00 PM
 
  const isSunday = now.getDay() === 0;
- const isRestrictedRole = user?.role ==="03" || user?.role ==="04" || user?.role ==="05" || String(user?.role).includes("03") || String(user?.role).includes("04") || String(user?.role).includes("05") || user?.role ==="QL NHÂN SỰ" || user?.role ==="NHÂN VIÊN" || user?.role ==="NV THỬ VIỆC";
+ const isRestrictedRole = (user?.role ==="03" || user?.role ==="04" || user?.role ==="05" || String(user?.role).includes("03") || String(user?.role).includes("04") || String(user?.role).includes("05") || user?.role ==="QL NHÂN SỰ" || user?.role ==="NHÂN VIÊN" || user?.role ==="NV THỬ VIỆC") && user?.username !== "01";
  const isWorkingHours = totalMinutes >= startTime && totalMinutes < endTime;
- const isStaff = user?.role ==="04" || user?.role ==="05" || user?.role ==="NHÂN VIÊN" || user?.role ==="NV THỬ VIỆC" || String(user?.role).includes("04") || String(user?.role).includes("05");
+ const isStaff = (user?.role ==="04" || user?.role ==="05" || user?.role ==="NHÂN VIÊN" || user?.role ==="NV THỬ VIỆC" || String(user?.role).includes("04") || String(user?.role).includes("05")) && user?.username !== "01";
 
- const shouldLock = ((isSunday && isRestrictedRole) || (isRestrictedRole && !isWorkingHours)) && !isAccessGranted;
- const isLateLocked = isStaff && isLate && !isFinePaid && !isAccessGranted;
- isCurrentlyLockedRef.current = isLateLocked;
+   const roleUpper = String(user?.role || "").toUpperCase();
+   const isAdminOrWorkManager = 
+     roleUpper === "01" || 
+     roleUpper === "02" || 
+     roleUpper === "ADMIN" || 
+     roleUpper === "QL CÔNG VIỆC" || 
+     roleUpper === "QUẢN LÝ CÔNG VIỆC" ||
+     user?.username === "01";
+
+  const shouldLock = !isAdminOrWorkManager && accessStatus !== 'GRANTED' && ((isSunday && isRestrictedRole) || (isRestrictedRole && !isWorkingHours)) && !isAccessGranted;
+  const isLateLocked = !isAdminOrWorkManager && accessStatus !== 'GRANTED' && isStaff && isLate && !isFinePaid && !isAccessGranted;
+  isCurrentlyLockedRef.current = isLateLocked;
 
  const getLockMessage = () => {
  if (isSunday) return"Hôm nay là Chủ Nhật. Hệ thống tạm khóa đối với nhân sự và quản lý nhân sự.";
