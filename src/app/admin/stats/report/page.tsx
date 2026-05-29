@@ -15,7 +15,8 @@ import {
  Save,
  Calculator,
  Banknote,
- CalendarDays
+ CalendarDays,
+ Printer
 } from"lucide-react";
 import { motion, AnimatePresence } from"framer-motion";
 import { useRouter } from"next/navigation";
@@ -155,6 +156,29 @@ export default function ReportsPage() {
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const res = await fetch('/api/admin/stats/export');
+      if (!res.ok) {
+        triggerToast('Xuất Excel thất bại');
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `AQ_MEDIA_REPORT_MONTHLY_${currentMonth + 1}_${currentYear}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      triggerToast('Đã xuất file Excel!');
+    } catch (e) {
+      console.error(e);
+      triggerToast('Lỗi khi xuất Excel');
+    }
   };
 
  // 1. CALCULATE HIGH LEVEL STATS
@@ -403,7 +427,7 @@ export default function ReportsPage() {
  };
 
  return (
- <div className="h-full flex flex-col space-y-6 pb-6 relative">
+ <div className="h-full flex flex-col space-y-6 pb-6 relative print-container">
  {/* Toast Notification */}
  <AnimatePresence>
  {toastMsg && (
@@ -423,7 +447,7 @@ export default function ReportsPage() {
  <div className="flex items-center gap-4">
  <button 
  onClick={() => router.push("/admin")}
- className="p-2 rounded-xl bg-sidebar border border-white/0 text-gray-400 hover:text-white transition-all shadow-md"
+ className="p-2 rounded-xl bg-sidebar border border-white/0 text-gray-400 hover:text-white transition-all shadow-md no-print"
  >
  <ArrowLeft size={20} />
  </button>
@@ -439,7 +463,7 @@ export default function ReportsPage() {
  </div>
 
  <div className="flex items-center gap-3">
- <div className="flex bg-sidebar border border-white/0 p-1 rounded-2xl shadow-inner">
+ <div className="flex bg-sidebar border border-white/0 p-1 rounded-2xl shadow-inner no-print">
  <button
  onClick={() => setActiveTab("STATS")}
  className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab ==="STATS" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :"text-gray-500 hover:text-white"}`}
@@ -456,14 +480,28 @@ export default function ReportsPage() {
  )}
  </div>
  
- {activeTab ==="STATS" && (
- <button 
- onClick={handleExportReport}
- className="h-10 px-6 rounded-xl bg-gold text-sidebar font-black uppercase text-sm tracking-widest hover:bg-yellow-500 transition-all flex items-center gap-2 shadow-lg shadow-gold/5"
- >
- <Download size={14} /> Xuất Báo Cáo
- </button>
- )}
+ {activeTab === "STATS" && (
+  <>
+    <button
+      onClick={handleExportReport}
+      className="h-10 px-6 rounded-xl bg-gold text-sidebar font-black uppercase text-sm tracking-widest hover:bg-yellow-500 transition-all flex items-center gap-2 shadow-lg shadow-gold/5 no-print"
+    >
+      <Download size={14} /> Xuất CSV
+    </button>
+    <button
+      onClick={handleExportExcel}
+      className="h-10 ml-2 px-6 rounded-xl bg-blue-600 text-white font-black uppercase text-sm tracking-widest hover:bg-blue-500 transition-all flex items-center gap-2 shadow-lg shadow-blue-500/5 no-print"
+    >
+      <Download size={14} /> Xuất Excel
+    </button>
+    <button
+      onClick={() => window.print()}
+      className="h-10 ml-2 px-6 rounded-xl bg-gray-700 text-white font-black uppercase text-sm tracking-widest hover:bg-gray-600 transition-all flex items-center gap-2 shadow-lg shadow-gray-500/5 no-print"
+    >
+      <Printer size={14} /> In PDF
+    </button>
+  </>
+)}
  </div>
  </div>
 

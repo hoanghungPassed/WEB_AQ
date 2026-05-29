@@ -1,65 +1,168 @@
-import { NextResponse } from"next/server";
-import dbConnect from"@/lib/mongodb";
-import { RootMail } from"@/models/RootMail";
-import { SatelliteMail } from"@/models/SatelliteMail";
-import { MonetizedMail } from"@/models/MonetizedMail";
+import { NextRequest, NextResponse } from "next/server";
+import dbConnect from "@/lib/mongodb";
+import { RootMail } from "@/models/RootMail";
+import { SatelliteMail } from "@/models/SatelliteMail";
+import { MonetizedMail } from "@/models/MonetizedMail";
 import { getAuthUser } from "@/lib/auth";
+import { checkPermission, logAuditTrail } from "@/lib/permissions";
+import { paginate } from "@/lib/pagination";
 
-export const dynamic ="force-dynamic";
+export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
- try {
-  let userId = req.headers.get("x-user-id");
-  if (!userId) {
-    const authUser = await getAuthUser();
-    if (authUser) {
-      userId = authUser.userId;
+export async function GET(req: NextRequest) {
+  try {
+    let userId = req.headers.get("x-user-id");
+    if (!userId) {
+      const authUser = await getAuthUser();
+      if (authUser) {
+        userId = authUser.userId;
+      }
     }
-  }
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
- await dbConnect();
- const { searchParams } = new URL(req.url);
- const type = searchParams.get("type");
- const status = searchParams.get("status");
- 
- let query: any = {};
- if (status) query.status = status;
+    await dbConnect();
+    const { searchParams } = new URL(req.url);
+    const type = searchParams.get("type");
+    const status = searchParams.get("status");
+    const batch = searchParams.get("batch");
+    const assigneeId = searchParams.get("assigneeId");
+    const search = searchParams.get("search");
+    
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "15");
+    const sortBy = searchParams.get("sortBy") || "createdAt";
+    const sortOrder = (searchParams.get("sortOrder") || "desc") as "asc" | "desc";
 
- let mails: any[] = [];
- if (!type || type ==="ROOT") {
- const rootMails = await RootMail.find(query).sort({ createdAt: -1 });
- mails = [...mails, ...rootMails];
- }
- if (!type || type ==="SATELLITE") {
- const satelliteMails = await SatelliteMail.find(query).sort({ createdAt: -1 });
- mails = [...mails, ...satelliteMails];
- }
- if (!type || type ==="MONETIZED") {
- const monetizedMails = await MonetizedMail.find(query).sort({ createdAt: -1 });
- mails = [...mails, ...monetizedMails];
- }
- 
- // Sort all combined descending
- mails.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Setup base filter query
+    let query: any = {};
+    
+    // Status filter (In Satellite/Monetized it maps to workStatus; in Root it maps to verificationStatus)
+    if (status && status !== "ALL") {
+      if (type === "ROOT") {
+        query.verificationStatus = status;
+      } else {
+        query.workStatus = status;
+      }
+    }
 
- return NextResponse.json({ success: true, data: mails });
- } catch (error: unknown) {
+    // Batch filter
+    if (batch && batch !== "ALL") {
+      query.$or = [{ batchId: batch }, { batchName: batch }];
+    }
+
+    // Assignee filter
+    if (assigneeId) {
+      query.assigneeId = assigneeId;
+    }
+
+    // Text search filter
+    if (search) {
+      const searchRegex = { $regex: search, $options: "i" };
+      query.$or = [
+        { email: searchRegex },
+        { recoveryMail: searchRegex },
+        { recovery: searchRegex },
+        { phone: searchRegex }
+      ];
+    }
+
+    const getModel = (t: string) => {
+      if (t === "ROOT") return RootMail;
+      if (t === "SATELLITE") return SatelliteMail;
+      return MonetizedMail;
+    };
+
+    // Calculate unique batch names across relevant collections for filters
+    const [distinctRoot, distinctSatellite, distinctMonetized] = await Promise.all([
+      RootMail.distinct("batchName"),
+      SatelliteMail.distinct("batchName"),
+      MonetizedMail.distinct("batchName")
+    ]);
+    const uniqueBatches = Array.from(new Set([...distinctRoot, ...distinctSatellite, ...distinctMonetized])).filter(Boolean);
+
+    // Fallback: If no pagination requested and not all=true, return full data (for dropdown inventory counters etc)
+    if (!searchParams.has("page") && !searchParams.has("limit") && searchParams.get("all") !== "true") {
+      let mails: any[] = [];
+      if (!type || type === "ALL" || type === "ROOT") {
+        const rootMails = await RootMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 });
+        mails = [...mails, ...rootMails];
+      }
+      if (!type || type === "ALL" || type === "SATELLITE") {
+        const satelliteMails = await SatelliteMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 });
+        mails = [...mails, ...satelliteMails];
+      }
+      if (!type || type === "ALL" || type === "MONETIZED") {
+        const monetizedMails = await MonetizedMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 });
+        mails = [...mails, ...monetizedMails];
+      }
+      mails.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      return NextResponse.json({ success: true, data: mails, batches: uniqueBatches });
+    }
+
+    // Paged Query for specific type
+    if (type && type !== "ALL") {
+      const Model = getModel(type) as any;
+      const q = Model.find(query);
+      const result = await paginate(q, page, limit, sortBy, sortOrder);
+      return NextResponse.json({
+        ...result,
+        batches: uniqueBatches
+      });
+    }
+
+    // Paged Query for combined (ALL) collection
+    const rootMails = await RootMail.find(query).lean();
+    const satelliteMails = await SatelliteMail.find(query).lean();
+    const monetizedMails = await MonetizedMail.find(query).lean();
+    let mails: any[] = [...rootMails, ...satelliteMails, ...monetizedMails];
+    
+    // In-memory sort combined array
+    mails.sort((a: any, b: any) => {
+      const valA = a[sortBy] || a.createdAt;
+      const valB = b[sortBy] || b.createdAt;
+      return sortOrder === "asc"
+        ? new Date(valA).getTime() - new Date(valB).getTime()
+        : new Date(valB).getTime() - new Date(valA).getTime();
+    });
+
+    const total = mails.length;
+    const skip = (page - 1) * limit;
+    const paginatedData = mails.slice(skip, skip + limit);
+
+    return NextResponse.json({
+      success: true,
+      data: paginatedData,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit) || 1
+      },
+      batches: uniqueBatches
+    });
+  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
- return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
- }
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
+  }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
   let userId = req.headers.get("x-user-id");
+  let userRole = req.headers.get("x-user-role");
   if (!userId) {
     const authUser = await getAuthUser();
     if (authUser) {
       userId = authUser.userId;
+      userRole = authUser.role;
     }
   }
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const hasPermission = await checkPermission(userRole || "", 4, ["all", "staff", "reports"]);
+  if (!hasPermission) {
+    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_IMPORT_MAILS", "mails", {}, req);
+    return NextResponse.json({ error: "Không có quyền nhập lô mail" }, { status: 403 });
+  }
 
  await dbConnect();
  const body = await req.json();
@@ -129,6 +232,8 @@ export async function POST(req: Request) {
  } catch (logErr) {
  console.error("Log error:", logErr);
  }
+
+ await logAuditTrail(userId || "system", "IMPORT_MAILS_SUCCESS", "mails", { count: items.length }, req);
  
  return NextResponse.json({ success: true, data: Array.isArray(payload) ? newMails : newMails[0] }, { status: 201 });
  } catch (error: unknown) {
@@ -138,16 +243,23 @@ export async function POST(req: Request) {
  }
 }
 
-export async function DELETE(req: Request) {
+export async function DELETE(req: NextRequest) {
   try {
   let userId = req.headers.get("x-user-id");
+  let userRole = req.headers.get("x-user-role");
   if (!userId) {
     const authUser = await getAuthUser();
     if (authUser) {
       userId = authUser.userId;
+      userRole = authUser.role;
     }
   }
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const hasPermission = await checkPermission(userRole || "", 4, ["all", "staff", "reports"]);
+  if (!hasPermission) {
+    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_DELETE_MAILS", "mails", {}, req);
+    return NextResponse.json({ error: "Không có quyền xóa lô mail" }, { status: 403 });
+  }
 
  await dbConnect();
  const { searchParams } = new URL(req.url);
@@ -174,6 +286,8 @@ export async function DELETE(req: Request) {
  } catch (logErr) {
  console.error("Log error:", logErr);
  }
+ 
+ await logAuditTrail(userId || "system", "DELETE_MAILS_SUCCESS", "mails", { batchId, batchName, deletedCount }, req);
  
  return NextResponse.json({ success: true, deletedCount }, { status: 200 });
  } catch (error: unknown) {

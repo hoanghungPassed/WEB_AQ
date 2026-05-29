@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import { SystemSetting } from "@/models/SystemSetting";
+import { checkPermission, logAuditTrail } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const userId = req.headers.get("x-user-id");
     if (!userId) {
@@ -30,14 +31,18 @@ export async function GET(req: Request) {
   }
 }
 
-export async function PUT(req: Request) {
+export async function PUT(req: NextRequest) {
   try {
     const userId = req.headers.get("x-user-id");
     const userRole = req.headers.get("x-user-role");
 
-    // Only Admin (01) or work manager (02) or HR manager (03) can modify system configurations
-    if (!userId || (userRole !== "01" && userRole !== "02" && userRole !== "03")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const hasPermission = await checkPermission(userRole || "", 3, ["all", "staff", "reports", "attendance", "tasks"]);
+    if (!hasPermission) {
+      await logAuditTrail(userId || "unknown", "UNAUTHORIZED_UPDATE_SETTINGS", "settings", {}, req);
+      return NextResponse.json(
+        { error: "Không có quyền thực hiện thao tác này" },
+        { status: 403 }
+      );
     }
 
     await dbConnect();
@@ -54,6 +59,8 @@ export async function PUT(req: Request) {
       { $set: updateData },
       { upsert: true, new: true }
     );
+
+    await logAuditTrail(userId || "system", "UPDATE_SETTINGS_SUCCESS", "settings", updateData, req);
 
     return NextResponse.json({ success: true, data: settings });
   } catch (error: unknown) {

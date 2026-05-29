@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import { hashPassword } from "@/lib/auth";
+import { logAuditTrail } from "@/lib/permissions";
+import { sendPasswordResetEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,6 +36,15 @@ export async function POST(req: NextRequest) {
     const hashed = await hashPassword(newPassword);
     user.password = hashed;
     await user.save();
+
+    // Send email notification for password reset (fire-and-forget)
+    try {
+      if (user.email) {
+        sendPasswordResetEmail(user.email, user.name || "Nhân viên", "Yêu cầu khôi phục mật khẩu thành công").catch(console.error);
+      }
+    } catch (_) {}
+
+    await logAuditTrail(user._id.toString(), "PASSWORD_RESET_SUCCESS", "auth", { username: user.username }, req);
 
     // Ghi log hệ thống
     try {

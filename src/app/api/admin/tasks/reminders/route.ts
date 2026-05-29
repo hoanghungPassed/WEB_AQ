@@ -1,15 +1,25 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { User } from '@/models/User';
 import { Task } from '@/models/Task';
 import { Notification } from '@/models/Notification';
 import { Log } from '@/models/Log';
+import { checkPermission, logAuditTrail } from "@/lib/permissions";
 
 export const dynamic ="force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
  try {
- await dbConnect();
+  await dbConnect();
+  
+  const userId = req.headers.get("x-user-id");
+  const userRole = req.headers.get("x-user-role");
+
+  const hasPermission = await checkPermission(userRole || "", 5, ["all"]);
+  if (!hasPermission) {
+    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_RUN_REMINDERS", "tasks", {}, req);
+    return NextResponse.json({ error: "Không có quyền gửi nhắc nhở" }, { status: 403 });
+  }
  
  // 1. Get staff
  const staffs = await User.find({ role: { $in: ["04","05"] } });
@@ -60,7 +70,9 @@ export async function GET() {
  }
  }
 
- return NextResponse.json({ success: true, count: notificationSentCount });
+  await logAuditTrail(userId || "system", "RUN_REMINDERS_SUCCESS", "tasks", { alertsSentCount: notificationSentCount }, req);
+
+  return NextResponse.json({ success: true, count: notificationSentCount });
  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  console.error("Error creating reminders:", error);

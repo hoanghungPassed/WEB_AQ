@@ -1,9 +1,10 @@
-import { NextResponse } from"next/server";
-import dbConnect from"@/lib/mongodb";
-import User from"@/models/User";
-import { getAuthUser, COOKIE_NAME } from"@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+import dbConnect from "@/lib/mongodb";
+import User from "@/models/User";
+import { getAuthUser, COOKIE_NAME } from "@/lib/auth";
+import { logAuditTrail } from "@/lib/permissions";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
  try {
  // Decode token trước khi xóa để cập nhật trạng thái offline
  const authUser = await getAuthUser();
@@ -42,6 +43,7 @@ export async function POST() {
       // Vẫn cho logout ngay cả khi DB lỗi
       console.error("Logout DB update error:", dbErr);
     }
+    await logAuditTrail(authUser.userId, "LOGOUT_SUCCESS", "auth", { username: authUser.username }, req);
   }
 
  // Xóa cookie

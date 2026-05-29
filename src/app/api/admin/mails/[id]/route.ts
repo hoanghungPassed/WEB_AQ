@@ -1,20 +1,29 @@
-import { NextResponse } from"next/server";
+import { NextRequest, NextResponse } from"next/server";
 import dbConnect from"@/lib/mongodb";
 import { RootMail } from"@/models/RootMail";
 import { SatelliteMail } from"@/models/SatelliteMail";
 import { MonetizedMail } from"@/models/MonetizedMail";
 import { getAuthUser } from "@/lib/auth";
+import { checkPermission, logAuditTrail } from "@/lib/permissions";
+import { sendMailAssignedEmail } from "@/lib/email";
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
   let userId = req.headers.get("x-user-id");
+  let userRole = req.headers.get("x-user-role");
   if (!userId) {
     const authUser = await getAuthUser();
     if (authUser) {
       userId = authUser.userId;
+      userRole = authUser.role;
     }
   }
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const hasPermission = await checkPermission(userRole || "", 3, ["all", "tasks", "staff"]);
+  if (!hasPermission) {
+    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_UPDATE_MAIL", "mails", {}, req);
+    return NextResponse.json({ error: "Không có quyền cập nhật mail" }, { status: 403 });
+  }
 
  await dbConnect();
  const body = await req.json();
@@ -31,6 +40,21 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
  if (!mail) {
  return NextResponse.json({ success: false, error:"Mail not found" }, { status: 404 });
  }
+
+ await logAuditTrail(userId || "system", "UPDATE_MAIL_SUCCESS", "mails", { id, email: mail.email }, req);
+
+ // If mail was assigned to a user, send notification email
+ if (body.assigneeId) {
+   try {
+     const User = (await import("@/models/User")).default;
+     const assignee = await User.findById(body.assigneeId).select("name email");
+     if (assignee?.email) {
+       sendMailAssignedEmail(assignee.email, assignee.name || "Nhân viên", `Email: ${mail.email || "N/A"}`).catch(console.error);
+     }
+   } catch (_) {}
+   await logAuditTrail(userId || "system", "MAIL_ASSIGNED", "mails", { mailId: id, assigneeId: body.assigneeId, email: mail.email }, req);
+ }
+
  return NextResponse.json({ success: true, data: mail });
  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
@@ -38,16 +62,23 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
  }
 }
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
   let userId = req.headers.get("x-user-id");
+  let userRole = req.headers.get("x-user-role");
   if (!userId) {
     const authUser = await getAuthUser();
     if (authUser) {
       userId = authUser.userId;
+      userRole = authUser.role;
     }
   }
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const hasPermission = await checkPermission(userRole || "", 3, ["all", "tasks", "staff"]);
+  if (!hasPermission) {
+    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_DELETE_MAIL", "mails", {}, req);
+    return NextResponse.json({ error: "Không có quyền xóa mail" }, { status: 403 });
+  }
 
  await dbConnect();
  const { id } = await params;
@@ -63,6 +94,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
  if (!mail) {
  return NextResponse.json({ success: false, error:"Mail not found" }, { status: 404 });
  }
+
+ await logAuditTrail(userId || "system", "DELETE_MAIL_SUCCESS", "mails", { id, email: mail.email }, req);
+
  return NextResponse.json({ success: true, data: {} });
  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";

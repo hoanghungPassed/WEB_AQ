@@ -12,7 +12,13 @@ export async function GET() {
     // Tìm tất cả users, bỏ qua trường password, sắp xếp theo role
     const users = await User.find().select('-password').sort({ role: 1, createdAt: -1 });
     
-    return NextResponse.json({ users });
+    const mappedUsers = users.map(u => {
+      const obj = u.toObject() as any;
+      delete obj.password;
+      return obj;
+    });
+
+    return NextResponse.json({ users: mappedUsers });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("Get users error:", error);

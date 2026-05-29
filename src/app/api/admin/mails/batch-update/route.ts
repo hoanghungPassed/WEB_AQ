@@ -1,20 +1,29 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import { RootMail } from "@/models/RootMail";
 import { SatelliteMail } from "@/models/SatelliteMail";
 import { MonetizedMail } from "@/models/MonetizedMail";
 import { getAuthUser } from "@/lib/auth";
+import { checkPermission, logAuditTrail } from "@/lib/permissions";
+import { sendMailAssignedEmail } from "@/lib/email";
 
-export async function PUT(req: Request) {
+export async function PUT(req: NextRequest) {
   try {
     let userId = req.headers.get("x-user-id");
+    let userRole = req.headers.get("x-user-role");
     if (!userId) {
       const authUser = await getAuthUser();
       if (authUser) {
         userId = authUser.userId;
+        userRole = authUser.role;
       }
     }
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const hasPermission = await checkPermission(userRole || "", 3, ["all", "tasks", "staff"]);
+    if (!hasPermission) {
+      await logAuditTrail(userId || "unknown", "UNAUTHORIZED_BATCH_UPDATE_MAILS", "mails", {}, req);
+      return NextResponse.json({ error: "Không có quyền thực hiện thao tác này" }, { status: 403 });
+    }
 
     await dbConnect();
     const body = await req.json();
@@ -29,6 +38,20 @@ export async function PUT(req: Request) {
     const resMon = await MonetizedMail.updateMany({ _id: { $in: ids } }, { $set: updateData });
 
     const totalModified = resRoot.modifiedCount + resSat.modifiedCount + resMon.modifiedCount;
+
+    await logAuditTrail(userId || "system", "BATCH_UPDATE_MAILS_SUCCESS", "mails", { idsCount: ids.length, modifiedCount: totalModified }, req);
+
+    // If batch update includes assignee assignment, send consolidated notification
+    if (updateData?.assigneeId) {
+      try {
+        const User = (await import("@/models/User")).default;
+        const assignee = await User.findById(updateData.assigneeId).select("name email");
+        if (assignee?.email) {
+          const details = `Batch gán ${totalModified} mail cho bạn. Tổng số ID: ${ids.length}.`;
+          sendMailAssignedEmail(assignee.email, assignee.name || "Nhân viên", details).catch(console.error);
+        }
+      } catch (_) {}
+    }
 
     return NextResponse.json({ success: true, modifiedCount: totalModified });
   } catch (error: unknown) {

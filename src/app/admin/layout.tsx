@@ -660,7 +660,7 @@ export default function AdminLayout({
  const nowTime = new Date();
  const currentTotalMinutes = nowTime.getHours() * 60 + nowTime.getMinutes();
  
- if (currentTotalMinutes >= 1050) {
+ if (currentTotalMinutes >= 1110) {
  const todayStr = nowTime.toISOString().split("T")[0];
  const doneFlag = localStorage.getItem(`auto_checkout_done_${todayStr}`);
  if (!doneFlag) {

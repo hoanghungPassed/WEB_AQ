@@ -1,13 +1,14 @@
 export const dynamic = 'force-dynamic';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { Notification } from '@/models/Notification';
 import mongoose from 'mongoose';
+import { checkPermission, logAuditTrail } from "@/lib/permissions";
 
-export async function GET(req: Request) {
- try {
- const userId = req.headers.get("x-user-id");
- if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET(req: NextRequest) {
+  try {
+  const userId = req.headers.get("x-user-id");
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
  await dbConnect();
  const notifications = await Notification.find({})
@@ -22,7 +23,7 @@ export async function GET(req: Request) {
  }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
  try {
  const userId = req.headers.get("x-user-id");
  if (!userId) return NextResponse.json({ error:"Unauthorized" }, { status: 401 });
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
  }
 }
 
-export async function PUT(req: Request) {
+export async function PUT(req: NextRequest) {
  try {
  const userId = req.headers.get("x-user-id");
  const userRole = req.headers.get("x-user-role");
@@ -73,12 +74,15 @@ export async function PUT(req: Request) {
  }
  }
  } else if (action ==="TOGGLE_PIN") {
- if (userRole === '01' || userRole === '02') {
- post.isPinned = !post.isPinned;
- } else {
- return NextResponse.json({ success: false, error:"Forbidden: Not enough permissions to pin." }, { status: 403 });
- }
- }
+  const hasPermission = await checkPermission(userRole || "", 4, ["all", "reports"]);
+  if (hasPermission) {
+  post.isPinned = !post.isPinned;
+  await logAuditTrail(userId || "system", "TOGGLE_NEWSFEED_PIN_SUCCESS", "newsfeed", { id, isPinned: post.isPinned }, req);
+  } else {
+  await logAuditTrail(userId || "unknown", "UNAUTHORIZED_TOGGLE_NEWSFEED_PIN", "newsfeed", { id }, req);
+  return NextResponse.json({ success: false, error:"Forbidden: Not enough permissions to pin." }, { status: 403 });
+  }
+  }
 
  await post.save();
  const populated = await Notification.findById(id)
@@ -93,29 +97,31 @@ export async function PUT(req: Request) {
  }
 }
 
-export async function DELETE(req: Request) {
+export async function DELETE(req: NextRequest) {
  try {
- const userId = req.headers.get("x-user-id");
- const userRole = req.headers.get("x-user-role");
- if (!userId) return NextResponse.json({ error:"Unauthorized" }, { status: 401 });
+  const userId = req.headers.get("x-user-id");
+  const userRole = req.headers.get("x-user-role");
+  if (!userId) return NextResponse.json({ error:"Unauthorized" }, { status: 401 });
 
- await dbConnect();
- const { searchParams } = new URL(req.url);
- const id = searchParams.get('id');
- if (!id) return NextResponse.json({ success: false, error:"ID is required" }, { status: 400 });
+  await dbConnect();
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get('id');
+  if (!id) return NextResponse.json({ success: false, error:"ID is required" }, { status: 400 });
 
- const post = await Notification.findById(id);
- if (!post) return NextResponse.json({ success: false, error:"Not found" }, { status: 404 });
+  const post = await Notification.findById(id);
+  if (!post) return NextResponse.json({ success: false, error:"Not found" }, { status: 404 });
 
- if (String(post.author) === String(userId) || userRole === '01' || userRole === '02') {
- await Notification.findByIdAndDelete(id);
- return NextResponse.json({ success: true });
- } else {
- return NextResponse.json({ success: false, error:"Forbidden: You don't have permission to delete this post." }, { status: 403 });
- }
+  const hasPermission = await checkPermission(userRole || "", 4, ["all", "reports"]);
+  if (String(post.author) === String(userId) || hasPermission) {
+  await Notification.findByIdAndDelete(id);
+  await logAuditTrail(userId || "system", "DELETE_NEWSFEED_POST_SUCCESS", "newsfeed", { id }, req);
+  return NextResponse.json({ success: true });
+  } else {
+  await logAuditTrail(userId || "unknown", "UNAUTHORIZED_DELETE_NEWSFEED_POST", "newsfeed", { id }, req);
+  return NextResponse.json({ success: false, error:"Forbidden: You don't have permission to delete this post." }, { status: 403 });
+  }
  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
  }
 }
-

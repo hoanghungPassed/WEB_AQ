@@ -55,9 +55,14 @@ export async function middleware(request: NextRequest) {
 
     const isStaff = role === "03" || role === "04" || role === "05";
 
-    // 1. KIỂM TRA PHÂN QUYỀN TRÊN GIAO DIỆN UI /admin/* (Sử dụng Blacklist)
-    // Chặn role 03, 04, 05 truy cập các trang nhạy cảm và redirect họ về /admin/tasks
+    // 1. KIỂM TRA PHÂN QUYỀN TRÊN GIAO DIỆN UI /admin/* (Sử dụng Blacklist & Whitelist đúng đắn)
     if (isAdminPage && isStaff) {
+      // Nếu truy cập chính xác trang /admin hoặc /admin/, tự động chuyển hướng nhân viên về /admin/tasks
+      if (pathname === "/admin" || pathname === "/admin/") {
+        return NextResponse.redirect(new URL("/admin/tasks", request.url));
+      }
+
+      // Blacklist các trang quản trị cấp cao
       const blacklist = [
         "/admin/staff",
         "/admin/settings",
@@ -70,6 +75,7 @@ export async function middleware(request: NextRequest) {
         (path) => pathname === path || pathname.startsWith(path + "/")
       );
 
+      // Nếu nằm trong blacklist, chặn truy cập và redirect về /admin/tasks
       if (isBlacklisted) {
         return NextResponse.redirect(new URL("/admin/tasks", request.url));
       }
@@ -122,9 +128,11 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // 3. KIỂM TRA PHÂN QUYỀN API CHO NHÂN VIÊN (Bypass ngoại lệ theo yêu cầu bảo mật)
-    if (isApiCall && isStaff && pathname.startsWith("/api/admin")) {
+    // 3. KIỂM TRA PHÂN QUYỀN API CHO NHÂN VIÊN
+    // BẮT BUỘC whitelist các API cần thiết cho role 03, 04, 05: /api/auth/me, /api/admin/tasks, /api/admin/attendance, /api/admin/notifications, /api/messages
+    if (isApiCall && isStaff) {
       const isAllowedEndpoint = 
+        pathname.startsWith("/api/auth/me") ||
         pathname.startsWith("/api/admin/tasks") ||
         pathname.startsWith("/api/admin/attendance") ||
         pathname.startsWith("/api/admin/notifications") ||
@@ -134,7 +142,7 @@ export async function middleware(request: NextRequest) {
         (pathname.startsWith("/api/admin/settings") && method === "GET") ||
         (pathname.startsWith("/api/admin/users") && method === "GET");
 
-      if (!isAllowedEndpoint) {
+      if (pathname.startsWith("/api/admin") && !isAllowedEndpoint) {
         return NextResponse.json(
           { error: "Bạn không có quyền truy cập API này" },
           { status: 403 }

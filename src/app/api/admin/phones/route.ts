@@ -1,8 +1,9 @@
-import { NextResponse } from"next/server";
+import { NextRequest, NextResponse } from"next/server";
 import dbConnect from"@/lib/mongodb";
 import { Phone, IPhone } from"@/models/Phone";
 import { User } from"@/models/User";
 import { Log } from"@/models/Log";
+import { checkPermission, logAuditTrail } from "@/lib/permissions";
 export const dynamic ="force-dynamic";
 
 interface PhoneImportItem {
@@ -49,36 +50,42 @@ interface PhoneBulkUpdateBody {
  [key: string]: unknown;
 }
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
  try {
- const userId = req.headers.get("x-user-id");
- const userRole = req.headers.get("x-user-role");
- if (!userId || (userRole !== "01" && userRole !== "02" && userRole !== "03")) {
- return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
- }
+  const userId = req.headers.get("x-user-id");
+  const userRole = req.headers.get("x-user-role");
 
- await dbConnect();
- const { searchParams } = new URL(req.url);
- const status = searchParams.get("status");
+  const hasPermission = await checkPermission(userRole || "", 3, ["all", "reports", "attendance", "staff"]);
+  if (!hasPermission) {
+    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_GET_PHONES", "phones", {}, req);
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
 
- const query: Partial<Pick<IPhone, 'status'>> = {};
- if (status) query.status = status;
+  await dbConnect();
+  const { searchParams } = new URL(req.url);
+  const status = searchParams.get("status");
 
- const phones = await Phone.find(query).sort({ createdAt: -1 });
- return NextResponse.json({ success: true, data: phones });
- } catch (unknownError) {
- const error = unknownError instanceof Error ? unknownError : new Error(String(unknownError));
- return NextResponse.json({ success: false, error: error.message }, { status: 500 });
- }
+  const query: Partial<Pick<IPhone, 'status'>> = {};
+  if (status) query.status = status;
+
+  const phones = await Phone.find(query).sort({ createdAt: -1 });
+  return NextResponse.json({ success: true, data: phones });
+  } catch (unknownError) {
+  const error = unknownError instanceof Error ? unknownError : new Error(String(unknownError));
+  return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
  try {
- const userId = req.headers.get("x-user-id");
- const userRole = req.headers.get("x-user-role");
- if (!userId || (userRole !== "01" && userRole !== "02" && userRole !== "03")) {
- return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
- }
+  const userId = req.headers.get("x-user-id");
+  const userRole = req.headers.get("x-user-role");
+
+  const hasPermission = await checkPermission(userRole || "", 3, ["all", "reports", "attendance", "staff"]);
+  if (!hasPermission) {
+    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_IMPORT_PHONES", "phones", {}, req);
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
 
  await dbConnect();
  const body = (await req.json()) as PhoneImportBody;
@@ -135,31 +142,36 @@ export async function POST(req: Request) {
  }
  }
 
- return NextResponse.json({ success: true, message: successMsg, imported: finalPayload.length }, { status: 201 });
+  await logAuditTrail(userId || "system", "IMPORT_PHONES_SUCCESS", "phones", { batch, importedCount: finalPayload.length }, req);
+  return NextResponse.json({ success: true, message: successMsg, imported: finalPayload.length }, { status: 201 });
  } catch (unknownError) {
  const error = unknownError instanceof Error ? unknownError : new Error(String(unknownError));
  return NextResponse.json({ success: false, error: error.message }, { status: 500 });
  }
 }
 
-export async function PUT(req: Request) {
- try {
- const userId = req.headers.get("x-user-id");
- const userRole = req.headers.get("x-user-role");
- if (!userId || (userRole !== "01" && userRole !== "02" && userRole !== "03")) {
- return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
- }
+export async function PUT(req: NextRequest) {
+  try {
+  const userId = req.headers.get("x-user-id");
+  const userRole = req.headers.get("x-user-role");
+
+  const hasPermission = await checkPermission(userRole || "", 3, ["all", "reports", "attendance", "staff"]);
+  if (!hasPermission) {
+    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_UPDATE_PHONES", "phones", {}, req);
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
 
  await dbConnect();
  const body = (await req.json()) as PhoneBulkUpdateBody;
  const { ids, update } = body;
 
  if (ids && Array.isArray(ids) && update) {
- const result = await Phone.updateMany(
- { _id: { $in: ids } },
- { $set: update }
- );
- return NextResponse.json({ success: true, modifiedCount: result.modifiedCount });
+  const result = await Phone.updateMany(
+    { _id: { $in: ids } },
+    { $set: update }
+  );
+  await logAuditTrail(userId || "system", "BULK_UPDATE_PHONES_SUCCESS", "phones", { idsCount: ids.length }, req);
+  return NextResponse.json({ success: true, modifiedCount: result.modifiedCount });
  }
 
  const { id, ...updateData } = body;
@@ -172,6 +184,8 @@ export async function PUT(req: Request) {
  return NextResponse.json({ success: false, error:"Không tìm thấy SĐT" }, { status: 404 });
  }
 
+ await logAuditTrail(userId || "system", "UPDATE_PHONE_SUCCESS", "phones", { id, number: phone.number }, req);
+
  return NextResponse.json({ success: true, data: phone });
  } catch (unknownError) {
  const error = unknownError instanceof Error ? unknownError : new Error(String(unknownError));
@@ -179,13 +193,16 @@ export async function PUT(req: Request) {
  }
 }
 
-export async function DELETE(req: Request) {
+export async function DELETE(req: NextRequest) {
  try {
- const userId = req.headers.get("x-user-id");
- const userRole = req.headers.get("x-user-role");
- if (!userId || (userRole !== "01" && userRole !== "02" && userRole !== "03")) {
- return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
- }
+  const userId = req.headers.get("x-user-id");
+  const userRole = req.headers.get("x-user-role");
+
+  const hasPermission = await checkPermission(userRole || "", 3, ["all", "reports", "attendance", "staff"]);
+  if (!hasPermission) {
+    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_DELETE_PHONE_BATCH", "phones", {}, req);
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
 
  await dbConnect();
  const { searchParams } = new URL(req.url);
@@ -210,10 +227,11 @@ export async function DELETE(req: Request) {
  }
  }
  
+ await logAuditTrail(userId || "system", "DELETE_PHONE_BATCH_SUCCESS", "phones", { batch, deletedCount: result.deletedCount }, req);
+ 
  return NextResponse.json({ success: true, deletedCount: result.deletedCount }, { status: 200 });
  } catch (unknownError) {
  const error = unknownError instanceof Error ? unknownError : new Error(String(unknownError));
  return NextResponse.json({ success: false, error: error.message }, { status: 500 });
  }
 }
-

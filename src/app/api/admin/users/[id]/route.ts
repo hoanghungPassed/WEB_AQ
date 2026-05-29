@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
@@ -6,143 +7,272 @@ import { Task } from "@/models/Task";
 import { SatelliteMail } from "@/models/SatelliteMail";
 import { RootMail } from "@/models/RootMail";
 import { MonetizedMail } from "@/models/MonetizedMail";
+import { checkPermission, logAuditTrail } from "@/lib/permissions";
+import { UpdateUserSchema, sanitizeXSS } from "@/lib/validation";
+import { sendPasswordResetEmail } from "@/lib/email";
+
+// Lấy chi tiết thông tin nhân sự
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    await dbConnect();
+    
+    const { id } = await params;
+    const reqUserId = req.headers.get("x-user-id");
+    const role = req.headers.get("x-user-role");
+
+    const hasPermission = await checkPermission(role || "", 3, ["all", "staff", "team_tasks"]);
+    if (!hasPermission && reqUserId !== id) {
+      await logAuditTrail(reqUserId || "unknown", "UNAUTHORIZED_GET_USER", "users", { targetUserId: id }, req);
+      return NextResponse.json({ error: "Không có quyền xem thông tin nhân sự khác" }, { status: 403 });
+    }
+
+    const user = await User.findById(id).select("-password");
+    if (!user) {
+      return NextResponse.json({ error: "Không tìm thấy nhân viên" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, data: user });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+    console.error("GET user error:", error);
+    return NextResponse.json({ error: "Lỗi máy chủ: " + errorMessage }, { status: 500 });
+  }
+}
 
 // Cập nhật thông tin nhân sự
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
- try {
- await dbConnect();
- 
- const { id } = await params;
- const data = await req.json();
+  try {
+    await dbConnect();
+    
+    const { id } = await params;
+    const body = await req.json();
 
- const reqUserId = req.headers.get("x-user-id");
- const role = req.headers.get("x-user-role");
+    const reqUserId = req.headers.get("x-user-id");
+    const role = req.headers.get("x-user-role");
 
- // Nếu không phải admin (01) hoặc HR (03) thì chỉ được sửa thôngৃদtin của chính mình
- if (role !=="01" && role !=="03" && reqUserId !== id) {
- return NextResponse.json({ error:"Không có quyền chỉnh sửa nhân sự khác" }, { status: 403 });
- }
+    const hasPermission = await checkPermission(role || "", 3, ["all", "staff", "team_tasks"]);
+    if (!hasPermission && reqUserId !== id) {
+      await logAuditTrail(reqUserId || "unknown", "UNAUTHORIZED_UPDATE_USER", "users", { targetUserId: id }, req);
+      return NextResponse.json({ error: "Không có quyền chỉnh sửa nhân sự khác" }, { status: 403 });
+    }
 
- // Nếu có đổi mật khẩu, thì hash mật khẩu mới
- if (data.password) {
- data.password = await hashPassword(data.password);
- }
+    // Validate request body
+    const parsed = UpdateUserSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          details: parsed.error.issues.map(e => ({
+            field: e.path.join("."),
+            message: e.message
+          }))
+        },
+        { status: 400 }
+      );
+    }
 
-  const body = data;
-  if (body.status === 'APPROVED' || body.status === 'ACTIVE') {
-    body.lastActive = null;
-  }
+    const data = parsed.data;
 
- // { new: true } trả về document sau khi đã update, select('-password') bỏ mật khẩu
- const updatedUser = await User.findByIdAndUpdate(id, data, { new: true }).select('-password');
- 
- if (!updatedUser) {
- return NextResponse.json({ error:"Không tìm thấy nhân viên" }, { status: 404 });
- }
- 
- try {
- const { Log } = await import('@/models/Log');
- await Log.create({
- user:"System",
- role: role ==="01" ?"ADMIN" :"QL NHÂN SỰ",
- action: `Cập nhật thông tin nhân sự: ${updatedUser.name} (${updatedUser.username})`,
- type:"SUCCESS",
- timestamp: new Date().toLocaleString("vi-VN")
- });
- } catch (logErr) {
- console.error("Log error:", logErr);
- }
- 
- return NextResponse.json({ 
- message:"Cập nhật thành công", 
- user: updatedUser 
- });
- } catch (error: unknown) {
+    // Sanitize string inputs to prevent XSS
+    if (data.name) data.name = sanitizeXSS(data.name);
+    if (data.address) data.address = sanitizeXSS(data.address);
+    if (data.phone) data.phone = sanitizeXSS(data.phone);
+
+    // Nếu có đổi mật khẩu, thì hash mật khẩu mới
+    if (data.password) {
+      data.password = await hashPassword(data.password);
+    }
+
+    if ((data.status as any) === 'APPROVED' || data.status === 'ACTIVE') {
+      (data as any).lastActive = null;
+    }
+
+    // { new: true } trả về document sau khi đã update, select('-password') bỏ mật khẩu
+    const updatedUser = await User.findByIdAndUpdate(id, data, { new: true }).select('-password');
+    
+    if (!updatedUser) {
+      return NextResponse.json({ error: "Không tìm thấy nhân viên" }, { status: 404 });
+    }
+    
+    try {
+      const { Log } = await import('@/models/Log');
+      await Log.create({
+        user: "System",
+        role: role === "01" ? "ADMIN" : "QL NHÂN SỰ",
+        action: `Cập nhật thông tin nhân sự: ${updatedUser.name} (${updatedUser.username})`,
+        type: "SUCCESS",
+        timestamp: new Date().toLocaleString("vi-VN")
+      });
+    } catch (logErr) {
+      console.error("Log error:", logErr);
+    }
+    
+    await logAuditTrail(reqUserId || "system", "UPDATE_USER_SUCCESS", "users", { targetUserId: id, username: updatedUser.username }, req);
+
+    if (body.password) {
+      try {
+        if (updatedUser.email) {
+          sendPasswordResetEmail(updatedUser.email, updatedUser.name || "Nhân viên", "Mật khẩu tài khoản đã được thay đổi thành công.").catch(console.error);
+        }
+      } catch (_) {}
+      await logAuditTrail(reqUserId || "system", "PASSWORD_CHANGED", "users", { targetUserId: id, username: updatedUser.username }, req);
+    }
+
+    return NextResponse.json({ 
+      message: "Cập nhật thành công", 
+      user: updatedUser 
+    });
+  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
- console.error("LỖI CHI TIẾT TẠI BACKEND (User Update):", error);
- return NextResponse.json({ error:"Lỗi máy chủ:" + errorMessage }, { status: 500 });
- }
+    console.error("LỖI CHI TIẾT TẠI BACKEND (User Update):", error);
+    return NextResponse.json({ error: "Lỗi máy chủ: " + errorMessage }, { status: 500 });
+  }
 }
 
-// Xóa nhân sự
+// PATCH update user
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    await dbConnect();
+    
+    const { id } = await params;
+    const body = await req.json();
+
+    const reqUserId = req.headers.get("x-user-id");
+    const role = req.headers.get("x-user-role");
+
+    const hasPermission = await checkPermission(role || "", 3, ["all", "staff", "team_tasks"]);
+    if (!hasPermission && reqUserId !== id) {
+      await logAuditTrail(reqUserId || "unknown", "UNAUTHORIZED_UPDATE_USER", "users", { targetUserId: id }, req);
+      return NextResponse.json({ error: "Không có quyền chỉnh sửa nhân sự khác" }, { status: 403 });
+    }
+
+    // Validate request body
+    const parsed = UpdateUserSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          details: parsed.error.issues.map(e => ({
+            field: e.path.join("."),
+            message: e.message
+          }))
+        },
+        { status: 400 }
+      );
+    }
+
+    const data = parsed.data;
+
+    // Sanitize string inputs to prevent XSS
+    if (data.name) data.name = sanitizeXSS(data.name);
+    if (data.address) data.address = sanitizeXSS(data.address);
+    if (data.phone) data.phone = sanitizeXSS(data.phone);
+
+    // Nếu có đổi mật khẩu, thì hash mật khẩu mới
+    if (data.password) {
+      data.password = await hashPassword(data.password);
+    }
+
+    if ((data.status as any) === 'APPROVED' || data.status === 'ACTIVE') {
+      (data as any).lastActive = null;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(id, { $set: data }, { new: true }).select('-password');
+    
+    if (!updatedUser) {
+      return NextResponse.json({ error: "Không tìm thấy nhân viên" }, { status: 404 });
+    }
+    
+    try {
+      const { Log } = await import('@/models/Log');
+      await Log.create({
+        user: "System",
+        role: role === "01" ? "ADMIN" : "QL NHÂN SỰ",
+        action: `Cập nhật thông tin nhân sự (PATCH): ${updatedUser.name} (${updatedUser.username})`,
+        type: "SUCCESS",
+        timestamp: new Date().toLocaleString("vi-VN")
+      });
+    } catch (logErr) {
+      console.error("Log error:", logErr);
+    }
+    
+    await logAuditTrail(reqUserId || "system", "UPDATE_USER_SUCCESS", "users", { targetUserId: id, username: updatedUser.username }, req);
+
+    if (body.password) {
+      try {
+        if (updatedUser.email) {
+          sendPasswordResetEmail(updatedUser.email, updatedUser.name || "Nhân viên", "Mật khẩu tài khoản đã được thay đổi thành công.").catch(console.error);
+        }
+      } catch (_) {}
+      await logAuditTrail(reqUserId || "system", "PASSWORD_CHANGED", "users", { targetUserId: id, username: updatedUser.username }, req);
+    }
+
+    return NextResponse.json({ 
+      success: true,
+      message: "Cập nhật thành công", 
+      data: updatedUser 
+    });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+    console.error("PATCH user error:", error);
+    return NextResponse.json({ error: "Lỗi máy chủ: " + errorMessage }, { status: 500 });
+  }
+}
+
+// Lưu trữ nhân sự (Soft-delete)
 export async function DELETE(req: NextRequest, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
   try {
-  await dbConnect();
-  
-  const params = await paramsPromise;
-  const id = params.id;
-  const reqUserId = req.headers.get("x-user-id");
-  const role = req.headers.get("x-user-role");
+    await dbConnect();
+    
+    const params = await paramsPromise;
+    const id = params.id;
+    const reqUserId = req.headers.get("x-user-id");
+    const role = req.headers.get("x-user-role");
 
-  if (role !=="01" && role !=="03") {
-  return NextResponse.json({ error:"Không có quyền xóa nhân sự" }, { status: 403 });
-  }
+    const hasPermission = await checkPermission(role || "", 3, ["all", "staff", "team_tasks"]);
+    if (!hasPermission) {
+      await logAuditTrail(reqUserId || "unknown", "UNAUTHORIZED_DELETE_USER", "users", { targetUserId: id }, req);
+      return NextResponse.json({ error: "Không có quyền lưu trữ nhân sự" }, { status: 403 });
+    }
 
-  // Không cho phép tự xóa chính mình
-  if (id === reqUserId) {
-  return NextResponse.json({ error:"Không thể tự xóa tài khoản của chính mình" }, { status: 400 });
-  }
+    // Không cho phép tự xóa/lưu trữ chính mình
+    if (id === reqUserId) {
+      return NextResponse.json({ error: "Không thể tự lưu trữ tài khoản của chính mình" }, { status: 400 });
+    }
 
-  // Dynamically import dependent models to prevent schema registration errors
-  const { Attendance } = await import("@/models/Attendance");
-  const { Message } = await import("@/models/Message");
-  const { Kpi } = await import("@/models/Kpi");
-  const { Payroll } = await import("@/models/Payroll");
-  const { Fine } = await import("@/models/Fine");
-  const { Notification } = await import("@/models/Notification");
+    const archivedUser = await User.findByIdAndUpdate(
+      id,
+      { $set: { status: "LOCKED", deletedAt: new Date() } },
+      { new: true }
+    ).select("-password");
 
-  // CHUỖI LỆNH DỌN SẠCH MỌI DỮ LIỆU LIÊN QUAN ĐẾN USER (BẮT BUỘC)
-  await Attendance.deleteMany({ userId: params.id });
-  await Message.deleteMany({ $or: [{ senderId: params.id }, { receiverId: params.id }] });
-  await Task.updateMany({ assignedTo: params.id }, { assignedTo: null, isAssigned: false, status: 'PENDING' });
-  await SatelliteMail.updateMany({ assignedTo: params.id }, { assignedTo: null, isAssigned: false });
-  await RootMail.updateMany({ assignedTo: params.id }, { assignedTo: null, isAssigned: false });
-  await Kpi.deleteMany({ userId: params.id });
-  await Payroll.deleteMany({ userId: params.id });
-  await Fine.deleteMany({ userId: params.id });
-  await Notification.deleteMany({ author: params.id });
+    if (!archivedUser) {
+      return NextResponse.json({ error: "Không tìm thấy nhân viên" }, { status: 404 });
+    }
 
-  // Additional cleanup to safeguard fallback assignee fields and monetized mails
-  await Task.updateMany(
-    { $or: [{ assigneeId: params.id }, { assignee: params.id }] },
-    { $set: { assigneeId: null, assigneeName: null, assignee: null, isAssigned: false, status: 'PENDING' } }
-  );
-  await SatelliteMail.updateMany(
-    { $or: [{ assignee: params.id }, { assigneeId: String(params.id) }] },
-    { $set: { assignee: null, assigneeId: null, isAssigned: false } }
-  );
-  await RootMail.updateMany(
-    { $or: [{ assignee: params.id }, { assigneeId: String(params.id) }] },
-    { $set: { assignee: null, assigneeId: null, isAssigned: false } }
-  );
-  await MonetizedMail.updateMany(
-    { $or: [{ assignee: params.id }, { assigneeId: String(params.id) }, { assignedTo: params.id }] },
-    { $set: { assignee: null, assigneeId: null, assignedTo: null, isAssigned: false } }
-  );
+    try {
+      const { Log } = await import('@/models/Log');
+      await Log.create({
+        user: "System",
+        role: role === "01" ? "ADMIN" : "QL NHÂN SỰ",
+        action: `Lưu trữ nhân sự (Soft-delete): ${archivedUser.name} (${archivedUser.username})`,
+        type: "SUCCESS",
+        timestamp: new Date().toLocaleString("vi-VN")
+      });
+    } catch (logErr) {
+      console.error("Log error:", logErr);
+    }
 
-  const deletedUser = await User.findByIdAndDelete(id);
-  
-  if (!deletedUser) {
- return NextResponse.json({ error:"Không tìm thấy nhân viên" }, { status: 404 });
- }
+    await logAuditTrail(reqUserId || "system", "DELETE_USER_SUCCESS", "users", { targetUserId: id, username: archivedUser.username }, req);
 
- try {
- const { Log } = await import('@/models/Log');
- await Log.create({
- user:"System",
- role: role ==="01" ?"ADMIN" :"QL NHÂN SỰ",
- action: `Xóa nhân sự: ${deletedUser.name} (${deletedUser.username})`,
- type:"SUCCESS",
- timestamp: new Date().toLocaleString("vi-VN")
- });
- } catch (logErr) {
- console.error("Log error:", logErr);
- }
-
- return NextResponse.json({ message:"Đã xóa nhân viên thành công" });
- } catch (error: unknown) {
+    return NextResponse.json({ 
+      success: true,
+      message: "User archived successfully",
+      data: archivedUser 
+    });
+  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
- console.error("Delete user error:", error);
- return NextResponse.json({ error:"Lỗi máy chủ:" + errorMessage }, { status: 500 });
- }
+    console.error("Delete user error:", error);
+    return NextResponse.json({ error: "Lỗi máy chủ: " + errorMessage }, { status: 500 });
+  }
 }

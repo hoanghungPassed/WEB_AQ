@@ -30,6 +30,7 @@ export async function GET() {
   await User.findByIdAndUpdate(user._id, { lastActive: new Date() });
 
  const userObj = user.toObject() as any;
+ delete userObj.password;
  userObj.id = userObj._id.toString();
 
  return NextResponse.json({ user: userObj });

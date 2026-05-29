@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { RootMail } from '@/models/RootMail';
 import { SatelliteMail } from '@/models/SatelliteMail';
@@ -6,13 +6,17 @@ import { MonetizedMail } from '@/models/MonetizedMail';
 import { User } from '@/models/User';
 import { Payroll } from '@/models/Payroll';
 import { SyncStore } from '@/models/SyncStore';
+import { checkPermission, logAuditTrail } from "@/lib/permissions";
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const userId = req.headers.get("x-user-id");
     const userRole = req.headers.get("x-user-role");
-    if (!userId || (userRole !== "01" && userRole !== "02" && userRole !== "03")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const hasPermission = await checkPermission(userRole || "", 3, ["all", "reports"]);
+    if (!hasPermission) {
+      await logAuditTrail(userId || "unknown", "UNAUTHORIZED_GET_KPIS", "kpis", {}, req);
+      return NextResponse.json({ error: "Không có quyền thực hiện thao tác này" }, { status: 403 });
     }
 
     await dbConnect();
@@ -22,7 +26,7 @@ export async function GET(req: Request) {
       RootMail.find({}).sort({ createdAt: -1 }),
       SatelliteMail.find({}).sort({ createdAt: -1 }),
       MonetizedMail.find({}).sort({ createdAt: -1 }),
-      User.find({}),
+      User.find({}).select("-password"),
       Payroll.find({}).sort({ createdAt: -1 }),
       SyncStore.findOne({ key: 'global_kpi_data' })
     ]);
@@ -30,9 +34,15 @@ export async function GET(req: Request) {
     const mails = [...roots, ...sats, ...mons];
     const kpiData = syncKpi ? JSON.parse(syncKpi.value) : null;
 
+    const mappedStaff = staff.map(u => {
+      const obj = u.toObject() as any;
+      delete obj.password;
+      return obj;
+    });
+
     return NextResponse.json({
       mails: mails || [],
-      staff: staff || [],
+      staff: mappedStaff || [],
       payrollRecords: payrollRecords || [],
       kpi: kpiData
     });
@@ -43,12 +53,15 @@ export async function GET(req: Request) {
   }
 }
 
-export async function PUT(req: Request) {
+export async function PUT(req: NextRequest) {
   try {
     const userId = req.headers.get("x-user-id");
     const userRole = req.headers.get("x-user-role");
-    if (!userId || (userRole !== "01" && userRole !== "02")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const hasPermission = await checkPermission(userRole || "", 4, ["all", "reports"]);
+    if (!hasPermission) {
+      await logAuditTrail(userId || "unknown", "UNAUTHORIZED_UPDATE_KPIS", "kpis", {}, req);
+      return NextResponse.json({ error: "Không có quyền thực hiện thao tác này" }, { status: 403 });
     }
 
     await dbConnect();
@@ -61,6 +74,8 @@ export async function PUT(req: Request) {
       { new: true, upsert: true }
     );
     
+    await logAuditTrail(userId || "system", "UPDATE_KPIS_SUCCESS", "kpis", body, req);
+
     return NextResponse.json({ success: true, data: syncStore });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";

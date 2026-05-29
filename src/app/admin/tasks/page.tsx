@@ -460,6 +460,8 @@ export default function TaskManagementPage() {
  // Pagination State
  const [currentPage, setCurrentPage] = useState(1);
  const itemsPerPage = 10;
+ const [taskPage, setTaskPage] = useState(1);
+ const tasksPerPage = 8;
 
  const loadData = useCallback(async () => {
  try {
@@ -613,17 +615,36 @@ export default function TaskManagementPage() {
     }).filter(Boolean) as any[];
   }, [mails, tasks]);
 
- const targetStaffBatches = useMemo(() => {
- return (dynamicStaffBatches || []).map(b => b.name);
- }, [dynamicStaffBatches]);
+  const targetStaffBatches = useMemo(() => {
+    return (dynamicStaffBatches || []).map(b => b.name);
+  }, [dynamicStaffBatches]);
 
- useEffect(() => {
- if ((dynamicStaffBatches || []).length > 0) {
- setSelectedLo(dynamicStaffBatches[0].name);
- } else {
- setSelectedLo("");
- }
- }, [dynamicStaffBatches]);
+  const satelliteBatches = useMemo(() => {
+    const allSatellites = (mails || []).filter((m: any) => m.type === "SATELLITE");
+    const batchNames = Array.from(new Set((allSatellites || []).map((m: any) => m.batchName).filter(Boolean))) as string[];
+    
+    return (batchNames || []).map(bName => {
+      const batchMails = allSatellites.filter((m: any) => m.batchName === bName);
+      const assignedTo = batchMails[0]?.assigneeId || "";
+      return {
+        name: bName,
+        assignedTo: assignedTo
+      };
+    });
+  }, [mails]);
+
+  const selectedUserId = targetStaffId;
+  const filteredBatches = useMemo(() => {
+    return (satelliteBatches || []).filter(batch => batch.assignedTo === selectedUserId);
+  }, [satelliteBatches, selectedUserId]);
+
+  useEffect(() => {
+    if ((dynamicStaffBatches || []).length > 0) {
+      setSelectedLo(dynamicStaffBatches[0].name);
+    } else {
+      setSelectedLo("");
+    }
+  }, [dynamicStaffBatches]);
 
  const eligibleStaff = useMemo(() => {
  if (!user) return [];
@@ -685,11 +706,24 @@ export default function TaskManagementPage() {
  return (tasks || []).filter(t => String(t.assigneeId) === String(user?.id));
  }, [tasks, user, isAdminOrManager, adminTab]);
 
- const filteredTasks = useMemo(() => {
- let result = userTasks;
- if (taskFilter !=="ALL") result = (result || []).filter(t => t.status === taskFilter);
- return result;
- }, [taskFilter, userTasks]);
+  const filteredTasks = useMemo(() => {
+    let result = userTasks;
+    if (taskFilter !== "ALL") result = (result || []).filter(t => t.status === taskFilter);
+    return result;
+  }, [taskFilter, userTasks]);
+
+  const paginatedTasks = useMemo(() => {
+    const start = (taskPage - 1) * tasksPerPage;
+    return (filteredTasks || []).slice(start, start + tasksPerPage);
+  }, [filteredTasks, taskPage, tasksPerPage]);
+
+  const totalTaskPages = useMemo(() => {
+    return Math.ceil((filteredTasks || []).length / tasksPerPage) || 1;
+  }, [filteredTasks, tasksPerPage]);
+
+  useEffect(() => {
+    setTaskPage(1);
+  }, [taskFilter]);
 
  const selectedTask = useMemo(() => tasks.find(t => t.id === selectedTaskId), [selectedTaskId, tasks]);
 
@@ -1309,8 +1343,8 @@ setNotification("Đã cập nhật chi tiết mail thành công.");
  className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all ${!targetStaffId ? 'opacity-40 cursor-not-allowed' : ''}`}
  >
  <option value="" className="bg-sidebar text-white">{!targetStaffId ? '-- Vui lòng chọn nhân viên trước --' : '-- Chọn Lô Vệ Tinh --'}</option>
- {(targetStaffBatches || []).length > 0 ? (targetStaffBatches || []).map(b => (
- <option key={b} value={b} className="bg-sidebar text-white">{b}</option>
+ {(filteredBatches || []).length > 0 ? (filteredBatches || []).map(b => (
+ <option key={b.name} value={b.name} className="bg-sidebar text-white">{b.name}</option>
  )) : (
  <option disabled className="bg-sidebar text-white">Không có lô vệ tinh khả dụng</option>
  )}

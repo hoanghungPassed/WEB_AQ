@@ -26,19 +26,29 @@ export default function StaffManagementPage() {
  const searchParams = useSearchParams();
  const [staffList, setStaffList] = useState<StaffData[]>([]);
 
- // SWR real-time polling every 5s for staff list
- const { data: usersResponse, mutate: mutateUsers } = useSWR("/api/admin/users", fetcher, {
-   refreshInterval: 5000,
- });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [activeTab, setActiveTab] = useState<"ACTIVE" | "PENDING" | "DUTY" | "AUTO_MESSAGES">("ACTIVE");
+  const [pendingSubTab, setPendingSubTab] = useState<"ACCOUNTS" | "ACCESS">("ACCOUNTS");
 
- const [currentPage, setCurrentPage] = useState(1);
- const [searchQuery, setSearchQuery] = useState("");
- const [roleFilter, setRoleFilter] = useState("ALL");
- const [statusFilter, setStatusFilter] = useState("ALL");
- const [selectedStaff, setSelectedStaff] = useState<StaffData | null>(null);
- const [activeDetailDay, setActiveDetailDay] = useState<any | null>(null);
- const [activeTab, setActiveTab] = useState<"ACTIVE" | "PENDING" | "DUTY" | "AUTO_MESSAGES">("ACTIVE");
- const [pendingSubTab, setPendingSubTab] = useState<"ACCOUNTS" | "ACCESS">("ACCOUNTS");
+  const swrStatus = useMemo(() => {
+    if (activeTab === "PENDING") return "PENDING";
+    return statusFilter === "ALL" ? "ACTIVE_OR_LOCKED" : statusFilter;
+  }, [activeTab, statusFilter]);
+
+  // SWR real-time polling every 5s for staff list
+  const { data: usersResponse, mutate: mutateUsers } = useSWR(
+    `/api/admin/users?page=${currentPage}&limit=10&search=${searchQuery}&status=${swrStatus}&role=${roleFilter}`,
+    fetcher,
+    {
+      refreshInterval: 5000,
+    }
+  );
+
+  const [selectedStaff, setSelectedStaff] = useState<StaffData | null>(null);
+  const [activeDetailDay, setActiveDetailDay] = useState<any | null>(null);
 
  // Auto Messages States
  const [autoMessagesList, setAutoMessagesList] = useState<any[]>([]);
@@ -314,12 +324,24 @@ export default function StaffManagementPage() {
  });
  }, [staffList, searchQuery, roleFilter, statusFilter, activeTab]);
 
- // Pagination logic
- const totalPages = Math.ceil((filteredStaff || []).length / itemsPerPage);
- const currentStaff = useMemo(() => {
- const startIndex = (currentPage - 1) * itemsPerPage;
- return filteredStaff.slice(startIndex, startIndex + itemsPerPage);
- }, [filteredStaff, currentPage]);
+  // Pagination logic
+  const totalPages = useMemo(() => {
+    if (usersResponse && usersResponse.pagination) {
+      return usersResponse.pagination.pages || 1;
+    }
+    return 1;
+  }, [usersResponse]);
+
+  const totalStaffCount = useMemo(() => {
+    if (usersResponse && usersResponse.pagination) {
+      return usersResponse.pagination.total || 0;
+    }
+    return staffList.length;
+  }, [usersResponse, staffList]);
+
+  const currentStaff = useMemo(() => {
+    return staffList;
+  }, [staffList]);
 
  const [modalConfig, setModalConfig] = useState<{
  isOpen: boolean;
@@ -446,7 +468,7 @@ export default function StaffManagementPage() {
  const handleDenyUser = (id: string) => {
  showConfirm("Xác nhận xóa","Bạn có chắc chắn muốn xóa tài khoản này?", async () => {
  try {
- const res = await fetch(`/api/admin/users/${id}`, { method:"DELETE" });
+ const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
  if (res.ok) {
  await reloadStaffList();
  setSelectedStaff(null);
@@ -954,7 +976,7 @@ export default function StaffManagementPage() {
  <tbody className="divide-y divide-white/5">
  {activeTab ==="PENDING" && pendingSubTab ==="ACCESS" ? (
  (accessRequests || []).length > 0 ? (accessRequests || []).map((req) => (
- <tr key={req.id} className="group hover:bg-white/5 bg-zinc-900/[0.02] transition-all">
+ <tr key={req.id} className="group hover:bg-zinc-800 bg-zinc-900/[0.02] transition-all">
  <td className="px-10 py-7">
  <div className="flex items-center gap-6">
  <div className="h-16 w-16 rounded-[24px] bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center text-2xl text-gold font-black border border-gold/10 shadow-xl group-hover:scale-110 transition-all">
@@ -1004,7 +1026,7 @@ export default function StaffManagementPage() {
  )
  ) : (
  (currentStaff || []).length > 0 ? (currentStaff || []).map((staff) => (
- <tr key={`${staff.id}-${staff.username}`} className="group hover:bg-white/5 bg-zinc-900/[0.02] transition-all cursor-pointer" onClick={() => setSelectedStaff(staff)}>
+ <tr key={`${staff.id}-${staff.username}`} className="group hover:bg-zinc-800 bg-zinc-900/[0.02] transition-all cursor-pointer" onClick={() => setSelectedStaff(staff)}>
  <td className="px-10 py-7">
  <div className="flex items-center gap-6">
  <div className="h-16 w-16 rounded-[24px] bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center text-2xl text-gold font-black border border-gold/10 shadow-xl group-hover:scale-110 transition-all">
@@ -1164,7 +1186,7 @@ export default function StaffManagementPage() {
  {/* Staff Detail Modal */}
  <AnimatePresence>
  {selectedStaff && (
- <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+ <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
  <motion.div 
  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
  onClick={() => setSelectedStaff(null)}

@@ -2,15 +2,18 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import AutoMessage from "@/models/AutoMessage";
+import { checkPermission, logAuditTrail } from "@/lib/permissions";
 
 // Lấy danh sách tin nhắn tự động
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
     const role = req.headers.get("x-user-role");
+    const userId = req.headers.get("x-user-id");
 
-    // Chỉ Admin (01), QL Công việc (02), QL Nhân sự (03) được truy cập
-    if (role !== "01" && role !== "02" && role !== "03") {
+    const hasPermission = await checkPermission(role || "", 3, ["all", "tasks"]);
+    if (!hasPermission) {
+      await logAuditTrail(userId || "unknown", "UNAUTHORIZED_GET_AUTO_MESSAGES", "auto-messages", {}, req);
       return NextResponse.json({ error: "Không có quyền truy cập" }, { status: 403 });
     }
 
@@ -28,8 +31,11 @@ export async function POST(req: NextRequest) {
   try {
     await dbConnect();
     const role = req.headers.get("x-user-role");
+    const userId = req.headers.get("x-user-id");
 
-    if (role !== "01" && role !== "02" && role !== "03") {
+    const hasPermission = await checkPermission(role || "", 3, ["all", "tasks"]);
+    if (!hasPermission) {
+      await logAuditTrail(userId || "unknown", "UNAUTHORIZED_CREATE_AUTO_MESSAGE", "auto-messages", {}, req);
       return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
     }
 
@@ -40,6 +46,8 @@ export async function POST(req: NextRequest) {
 
     const newMessage = new AutoMessage(data);
     await newMessage.save();
+
+    await logAuditTrail(userId || "system", "CREATE_AUTO_MESSAGE_SUCCESS", "auto-messages", { title: data.title }, req);
 
     return NextResponse.json({ 
       success: true, 

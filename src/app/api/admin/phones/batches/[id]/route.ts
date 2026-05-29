@@ -1,19 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import { Phone } from "@/models/Phone";
 import { Log } from "@/models/Log";
+import { checkPermission, logAuditTrail } from "@/lib/permissions";
 
 export async function DELETE(
-  req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const userId = req.headers.get("x-user-id");
     const userRole = req.headers.get("x-user-role");
 
-    // Only Admin (01) or work manager (02) or HR (03) can delete batches
-    if (!userId || (userRole !== "01" && userRole !== "02" && userRole !== "03")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const hasPermission = await checkPermission(userRole || "", 3, ["all", "reports", "attendance", "staff"]);
+    if (!hasPermission) {
+      await logAuditTrail(userId || "unknown", "UNAUTHORIZED_DELETE_PHONE_BATCH", "phones", {}, req);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const { id } = await params;
@@ -37,8 +39,10 @@ export async function DELETE(
       details: `Đã xóa lô SĐT qua API: ${id} (${result.deletedCount} số điện thoại đã bị xóa)`,
       type: "SUCCESS",
       role: userRole || "ADMIN",
-      user: userId
+      user: (userId || undefined) as any
     });
+
+    await logAuditTrail(userId || "system", "DELETE_PHONE_BATCH_SUCCESS", "phones", { batchId: id, deletedCount: result.deletedCount }, req);
 
     return NextResponse.json({
       success: true,

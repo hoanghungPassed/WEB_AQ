@@ -12,6 +12,8 @@ import {
  signToken,
  COOKIE_NAME,
 } from"@/lib/auth";
+import { logAuditTrail } from "@/lib/permissions";
+import { sendFineEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
  try {
@@ -76,17 +78,26 @@ export async function POST(req: NextRequest) {
  );
  }
 
- // Kiểm tra giờ làm việc (Sau 18:00 chặn Role 03, 04)
- const now = new Date();
- const currentMins = now.getHours() * 60 + now.getMinutes();
- const isStaff = user.role ==="03" || user.role ==="04" || user.role ==="05" || String(user.role).includes("03") || String(user.role).includes("04") || String(user.role).includes("05");
- 
- if (isStaff && currentMins >= 1080) { // 1080 = 18:00
- return NextResponse.json(
- { error:"Đã quá giờ làm việc (18:00). Bạn không thể đăng nhập. Vui lòng gửi yêu cầu duyệt nếu cần truy cập." },
- { status: 403 }
- );
- }
+  // Kiểm tra giờ làm việc (Sau giờ đóng cửa + 30 phút chặn Role 03, 04, 05)
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const vnTime = new Date(utc + 3600000 * 7); // Vietnam GMT+7
+  const currentMins = vnTime.getHours() * 60 + vnTime.getMinutes();
+  const isStaff = user.role ==="03" || user.role ==="04" || user.role ==="05" || String(user.role).includes("03") || String(user.role).includes("04") || String(user.role).includes("05");
+  
+  if (isStaff) {
+    const settings = await SystemSetting.findOne();
+    const closeTime = settings?.closeTime || "18:00";
+    const [closeHour, closeMinute] = closeTime.split(":").map(Number);
+    const closeMins = (closeHour || 18) * 60 + (closeMinute || 0);
+
+    // If login occurs after closing time, allow but set a warning flag
+    if (currentMins > closeMins + 30) {
+      // Mark that login is after hours; we will include a warning in the response later
+      (global as any).loginWarning = "Hệ thống đã đóng cửa. Vui lòng quay lại vào giờ làm việc.";
+      // Continue without blocking the login
+    }
+  }
 
    // Cập nhật trạng thái online và check-in
    user.isOnline = true;
@@ -100,24 +111,16 @@ export async function POST(req: NextRequest) {
 
   // --- AUTOMATIC CHECK-IN & LATENESS CHECK ---
   try {
-    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-    const vnTime = new Date(utc + 3600000 * 7); // Vietnam GMT+7
     const yyyy = vnTime.getFullYear();
     const mm = String(vnTime.getMonth() + 1).padStart(2, "0");
     const dd = String(vnTime.getDate()).padStart(2, "0");
     const todayStr = `${yyyy}-${mm}-${dd}`;
 
-    const startOfDay = new Date(vnTime.getFullYear(), vnTime.getMonth(), vnTime.getDate(), 0, 0, 0);
-    const endOfDay = new Date(vnTime.getFullYear(), vnTime.getMonth(), vnTime.getDate(), 23, 59, 59);
-
-    // Check both the datetime range and todayStr representation to strictly prevent double check-ins
+    // Tra cứu bản ghi điểm danh hôm nay của user (dùng chuỗi date YYYY-MM-DD nhất quán)
     let attendance = await Attendance.findOne({
       userId: user._id,
-      $or: [
-        { date: { $gte: startOfDay, $lte: endOfDay } as any },
-        { date: todayStr }
-      ]
-    } as any);
+      date: todayStr
+    });
 
     if (!attendance) {
       // Lấy giờ mở cửa làm mốc đi muộn từ SystemSetting
@@ -136,47 +139,85 @@ export async function POST(req: NextRequest) {
       const isLate = !isAdminOrWorkManager && (currentTotalMins > limitTotalMins);
       const status = isLate ? "Đi muộn" : "Đúng giờ";
 
-      attendance = await Attendance.create({
-        userId: user._id,
-        username: user.username,
-        name: user.name,
-        date: todayStr,
-        checkInTime: now,
-        status,
-      });
-
-      if (isLate) {
-        const timeString = vnTime.toLocaleTimeString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-
-        // 1. Tạo thông báo đi muộn gửi Admin
-        await Notification.create({
-          title: "Cảnh báo đi muộn",
-          message: `Nhân viên ${user.name} vừa đăng nhập đi muộn vào lúc ${timeString}`,
-          type: "LATE_WARNING",
-          author: user._id,
-          isRead: false,
-        });
-
-        // 2. Tạo bản ghi Fine (phạt) với mức phí lũy tiến: dưới 5 phút phạt 10k, dưới 20 phút phạt 20k, trên 20 phút phạt 50k
-        const lateMinutes = currentTotalMins - limitTotalMins;
-        let fineAmount = 20000; // Mặc định 20k
-        if (lateMinutes < 5) {
-          fineAmount = 10000;
-        } else if (lateMinutes <= 20) {
-          fineAmount = 20000;
-        } else {
-          fineAmount = 50000;
-        }
-
-        await Fine.create({
+      try {
+        // Atomic create using the unique index constraint
+        attendance = await Attendance.create({
           userId: user._id,
-          reason: `Đi muộn ${lateMinutes} phút (Đăng nhập lúc ${timeString}, giờ quy định ${checkInLimitStr})`,
-          amount: fineAmount,
-          status: "UNPAID",
+          username: user.username,
+          name: user.name,
+          date: todayStr,
+          checkInTime: now,
+          status,
         });
+
+        // Chỉ tạo Fine và Notification một lần duy nhất khi tạo Attendance thành công
+        if (isLate) {
+          const timeString = vnTime.toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+          // 1. Tạo thông báo đi muộn gửi Admin
+          await Notification.create({
+            title: "Cảnh báo đi muộn",
+            message: `Nhân viên ${user.name} vừa đăng nhập đi muộn vào lúc ${timeString}`,
+            type: "LATE_WARNING",
+            author: user._id,
+            isRead: false,
+          });
+
+          // 2. Tạo bản ghi Fine (phạt) với mức phí lũy tiến chính xác và nhân đôi nếu vi phạm nhiều lần
+          const lateMinutes = currentTotalMins - limitTotalMins;
+
+          // Đếm số lần phạt trong tháng để tính lũy kế (trừ trạng thái CANCELLED)
+          const thisMonth = new Date();
+          const monthStart = new Date(thisMonth.getFullYear(), thisMonth.getMonth(), 1);
+          const previousFinesCount = await Fine.countDocuments({
+            userId: user._id,
+            createdAt: { $gte: monthStart },
+            status: { $ne: "CANCELLED" }
+          });
+
+          // Thang đo chính xác: Đi muộn nhiều hơn phạt nặng hơn
+          let fineAmount = 10000;
+          if (lateMinutes >= 20) {
+            fineAmount = 50000;
+          } else if (lateMinutes >= 5) {
+            fineAmount = 20000;
+          }
+
+          // Nhân đôi số tiền phạt nếu đã bị phạt từ 3 lần trở lên trong tháng
+          if (previousFinesCount >= 3) {
+            fineAmount *= 2;
+          }
+
+          await Fine.create({
+            userId: user._id,
+            reason: `Đi muộn ${lateMinutes} phút (${timeString}, qui định ${checkInLimitStr})`,
+            amount: fineAmount,
+            status: "UNPAID",
+            lateMinutes,
+            canAppeal: true,
+            monthYear: monthStart
+          });
+
+          // Send fine notification email (fire-and-forget)
+          try {
+            if (user.email) {
+              sendFineEmail(user.email, user.name || "Nhân viên", fineAmount, `Đi muộn ${lateMinutes} phút (${timeString}, qui định ${checkInLimitStr})`).catch(console.error);
+            }
+          } catch (_) {}
+        }
+      } catch (e: any) {
+        // Xử lý lỗi trùng lặp do Race Condition (mã lỗi E11000)
+        if (e.code === 11000) {
+          attendance = await Attendance.findOne({
+            userId: user._id,
+            date: todayStr
+          });
+        } else {
+          throw e;
+        }
       }
     }
   } catch (attError) {
@@ -196,10 +237,17 @@ export async function POST(req: NextRequest) {
  delete userObj.password;
  userObj.id = userObj._id.toString();
 
- const response = NextResponse.json({
- message:"Đăng nhập thành công",
- user: userObj,
- });
+  // Build response, include warning if set
+  const responsePayload: any = {
+    message: "Đăng nhập thành công",
+    user: userObj,
+  };
+  if ((global as any).loginWarning) {
+    responsePayload.warning = (global as any).loginWarning;
+    // Clear the temporary flag
+    delete (global as any).loginWarning;
+  }
+  const response = NextResponse.json(responsePayload);
 
  // Set HttpOnly cookie
  response.cookies.set(COOKIE_NAME, token, {
@@ -209,6 +257,8 @@ export async function POST(req: NextRequest) {
  path:"/",
  maxAge: 7 * 24 * 60 * 60, // 7 ngày
  });
+
+ await logAuditTrail(user._id.toString(), "LOGIN_SUCCESS", "auth", { username: user.username }, req);
 
  return response;
  } catch (error: unknown) {

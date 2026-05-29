@@ -1,24 +1,85 @@
-import { NextResponse } from"next/server";
-import dbConnect from"@/lib/mongodb";
-import { Task } from"@/models/Task";
+import { NextRequest, NextResponse } from "next/server";
+import dbConnect from "@/lib/mongodb";
+import { Task } from "@/models/Task";
+import { checkPermission, logAuditTrail } from "@/lib/permissions";
+import { UpdateTaskSchema, sanitizeXSS } from "@/lib/validation";
+import { sendTaskEmail, sendFineEmail } from "@/lib/email";
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
- try {
- const userId = req.headers.get("x-user-id");
- if (!userId) return NextResponse.json({ error:"Unauthorized" }, { status: 401 });
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const userId = req.headers.get("x-user-id");
+    const userRole = req.headers.get("x-user-role");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
- await dbConnect();
- const body = await req.json();
- const { id } = await params;
- const oldTask = await Task.findById(id);
- if (!oldTask) {
-   return NextResponse.json({ success: false, error:"Task not found" }, { status: 404 });
+    await dbConnect();
+    const body = await req.json();
+    const { id } = await params;
+    const oldTask = await Task.findById(id);
+    if (!oldTask) {
+      return NextResponse.json({ success: false, error: "Task not found" }, { status: 404 });
+    }
+
+    const hasManagerPermission = await checkPermission(userRole || "", 3, ["all", "tasks"]);
+    if (!hasManagerPermission) {
+      // Staff (level < 3) can only update status of their own task
+      const isAssignedToUser = oldTask.assigneeId?.toString() === userId;
+      if (!isAssignedToUser) {
+        await logAuditTrail(userId || "unknown", "UNAUTHORIZED_TASK_EDIT_PEER", "tasks", { taskId: id }, req);
+        return NextResponse.json({ error: "Không có quyền chỉnh sửa task của người khác" }, { status: 403 });
+      }
+      
+      // Check if they are trying to edit fields other than 'status'
+      const allowedFields = ["status"];
+      const updatedFields = Object.keys(body);
+      const hasDisallowedFields = updatedFields.some(field => !allowedFields.includes(field));
+      
+      if (hasDisallowedFields) {
+        await logAuditTrail(userId || "unknown", "UNAUTHORIZED_TASK_FIELDS_EDIT", "tasks", { taskId: id, updatedFields }, req);
+        return NextResponse.json({ error: "Không có quyền thay đổi thông tin hành chính của task" }, { status: 403 });
+      }
+    }
+
+    // Validate request body
+    const parsed = UpdateTaskSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          details: parsed.error.issues.map(e => ({
+            field: e.path.join("."),
+            message: e.message
+          }))
+        },
+        { status: 400 }
+      );
+    }
+
+    const data = parsed.data;
+
+    // Sanitize string inputs to prevent XSS
+    if (data.title) data.title = sanitizeXSS(data.title);
+    if (data.note) data.note = sanitizeXSS(data.note);
+    if (data.mailRange) data.mailRange = sanitizeXSS(data.mailRange);
+    if (data.batch) data.batch = sanitizeXSS(data.batch);
+    if (data.range) data.range = sanitizeXSS(data.range);
+    if (data.assigneeName) data.assigneeName = sanitizeXSS(data.assigneeName);
+
+    const task = await Task.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+    if (!task) {
+      return NextResponse.json({ success: false, error: "Task not found" }, { status: 404 });
+    }
+
+ // If assignee changed, notify new assignee via email
+ if (data.assigneeId && data.assigneeId.toString() !== oldTask.assigneeId?.toString()) {
+   try {
+     const User = (await import("@/models/User")).default;
+     const newAssignee = await User.findById(data.assigneeId).select("name email");
+     if (newAssignee?.email) {
+       sendTaskEmail(newAssignee.email, newAssignee.name || "Nhân viên", task.title || "", task.deadline || new Date(), task.note || "").catch(console.error);
+     }
+   } catch (_) {}
  }
 
- const task = await Task.findByIdAndUpdate(id, body, { new: true, runValidators: true });
- if (!task) {
- return NextResponse.json({ success: false, error:"Task not found" }, { status: 404 });
- }
  try {
  const { logAction } = await import('@/lib/logger');
  await logAction("system", `Cập nhật nhiệm vụ: ${task.title || id}`, `Cập nhật trạng thái/chi tiết nhiệm vụ.`);
@@ -110,6 +171,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
  status: 'UNPAID'
  });
 
+// Send overdue fine email notification (fire-and-forget)
+try {
+  const User = (await import("@/models/User")).default;
+  const overdueUser = await User.findById(task.assigneeId).select("name email");
+  if (overdueUser?.email) {
+    sendFineEmail(overdueUser.email, overdueUser.name || "Nhân viên", 50000, `Hoàn thành trễ hạn Task: ${task.title || id}`).catch(console.error);
+  }
+} catch (_) {}
+
  await Notification.create({
  recipientId: task.assigneeId,
  title:"Phạt Trễ Hạn",
@@ -122,31 +192,42 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
  } catch (logErr) {
  console.error("Log error:", logErr);
  }
- return NextResponse.json({ success: true, data: task });
+  await logAuditTrail(userId || "system", "UPDATE_TASK_SUCCESS", "tasks", { taskId: task._id, title: task.title, status: task.status }, req);
+
+  return NextResponse.json({ success: true, data: task });
  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  return NextResponse.json({ success: false, error: errorMessage }, { status: 400 });
  }
 }
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
  try {
- const userId = req.headers.get("x-user-id");
- if (!userId) return NextResponse.json({ error:"Unauthorized" }, { status: 401 });
+  const { id } = await params;
+  const userId = req.headers.get("x-user-id");
+  const userRole = req.headers.get("x-user-role");
 
- await dbConnect();
- const { id } = await params;
- const task = await Task.findByIdAndDelete(id);
- if (!task) {
- return NextResponse.json({ success: false, error:"Task not found" }, { status: 404 });
- }
- try {
- const { logAction } = await import('@/lib/logger');
- await logAction("system", `Xóa nhiệm vụ: ${task.title || id}`, `Đã xóa nhiệm vụ.`);
- } catch (logErr) {
- console.error("Log error:", logErr);
- }
- return NextResponse.json({ success: true, data: {} });
+  const hasPermission = await checkPermission(userRole || "", 3, ["all", "tasks"]);
+  if (!hasPermission) {
+    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_DELETE_TASK", "tasks", { taskId: id }, req);
+    return NextResponse.json({ error: "Không có quyền xóa nhiệm vụ" }, { status: 403 });
+  }
+
+  await dbConnect();
+  const task = await Task.findByIdAndDelete(id);
+  if (!task) {
+  return NextResponse.json({ success: false, error:"Task not found" }, { status: 404 });
+  }
+  try {
+  const { logAction } = await import('@/lib/logger');
+  await logAction("system", `Xóa nhiệm vụ: ${task.title || id}`, `Đã xóa nhiệm vụ.`);
+  } catch (logErr) {
+  console.error("Log error:", logErr);
+  }
+
+  await logAuditTrail(userId || "system", "DELETE_TASK_SUCCESS", "tasks", { taskId: id, title: task.title }, req);
+
+  return NextResponse.json({ success: true, data: {} });
  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  return NextResponse.json({ success: false, error: errorMessage }, { status: 400 });

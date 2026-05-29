@@ -27,6 +27,11 @@ const AttendanceSchema: Schema = new Schema(
   { timestamps: true }
 );
 
+// Add UNIQUE index to prevent duplicates on concurrent logins
+AttendanceSchema.index({ userId: 1, date: 1 }, { unique: true });
+AttendanceSchema.index({ date: 1 });
+AttendanceSchema.index({ userId: 1 });
+
 if (mongoose.models.Attendance) {
   delete mongoose.models.Attendance;
 }

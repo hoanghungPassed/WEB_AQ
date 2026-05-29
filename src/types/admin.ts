@@ -13,7 +13,6 @@ export interface StaffData {
  birthYear?: string;
  phone?: string;
  address?: string;
- password?: string;
  checkInTime?: string;
  createdAt?: string;
 }

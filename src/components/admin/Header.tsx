@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Search, Bell, Menu, User, PanelLeftClose, PanelLeftOpen, LogOut, UserSearch, UserPlus, CheckCircle2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { mutate } from "swr";
+import useSWR, { mutate } from "swr";
 
 interface HeaderProps {
   isCollapsed: boolean;
@@ -16,6 +16,16 @@ interface HeaderProps {
 
 const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: HeaderProps) => {
   const router = useRouter();
+  const fetcher = (url: string) => fetch(url).then(res => res.json());
+  const { data: messagesData } = useSWR('/api/messages', fetcher);
+  const messagesArray: any[] = Array.isArray(messagesData?.data)
+    ? messagesData.data
+    : Array.isArray(messagesData)
+    ? (messagesData as any[])
+    : [];
+  const currentUser = user;
+  const unreadMsgCount = messagesArray.filter((m) => !m.isRead && m.receiverId === currentUser?._id).length;
+
   const [mounted, setMounted] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -131,6 +141,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
               },
               body: JSON.stringify({ isRead: true })
             });
+            mutate('/api/admin/notifications');
             router.refresh();
           } catch (err) {
             console.error("Error setting notification read in DB:", err);
@@ -175,6 +186,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           },
           body: JSON.stringify({ isRead: true })
         });
+        mutate('/api/admin/notifications');
         router.refresh();
       } catch (err) {
         console.error("Error setting notification read in DB:", err);

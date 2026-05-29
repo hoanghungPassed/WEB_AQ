@@ -79,6 +79,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  const [selectedBatch, setSelectedBatch] = useState<string | null>(null);
  const [selectedBatchFilter, setSelectedBatchFilter] = useState("ALL");
  const [currentPage, setCurrentPage] = useState(1);
+ const [totalPages, setTotalPages] = useState(1);
+ const [totalCount, setTotalCount] = useState(0);
+ const [batches, setBatches] = useState<string[]>([]);
  const [showToast, setShowToast] = useState(false);
  const [toastMsg, setToastMsg] = useState("");
 
@@ -115,27 +118,59 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  roleUpper ==="QL CÔNG VIỆC" || 
  roleUpper ==="QUẢN LÝ CÔNG VIỆC";
 
- useEffect(() => {
- const loadData = async () => {
- try {
- const res = await fetch('/api/admin/mails');
- const data = await res.json();
- if (data.success) {
+  const loadData = useCallback(async () => {
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.set("type", type);
+      queryParams.set("page", String(currentPage));
+      queryParams.set("limit", String(itemsPerPage));
 
- setMails(data.data || []);
- } else {
- setMails([]);
- }
- } catch (err) {
- console.error("Error fetching mails:", err);
- setMails([]);
- }
- };
+      if (searchTerm) queryParams.set("search", searchTerm);
+      if (statusFilter && statusFilter !== "ALL") queryParams.set("status", statusFilter);
+      if (selectedBatchFilter && selectedBatchFilter !== "ALL") queryParams.set("batch", selectedBatchFilter);
 
- loadData();
- window.addEventListener("storage", loadData);
- return () => window.removeEventListener("storage", loadData);
- }, [triggerToast]);
+      if (assignmentFilter === "ASSIGNED") {
+        queryParams.set("assigned", "true");
+      } else if (assignmentFilter === "UNASSIGNED") {
+        queryParams.set("assigned", "false");
+      }
+
+      if (isStaff && type === "SATELLITE" && user?.id) {
+        queryParams.set("assigneeId", user.id);
+      }
+
+      const res = await fetch(`/api/admin/mails?${queryParams.toString()}`);
+      const data = await res.json();
+      if (data.success) {
+        setMails(data.data || []);
+        if (data.pagination) {
+          setTotalPages(data.pagination.pages || 1);
+          setTotalCount(data.pagination.total || 0);
+        } else {
+          setTotalPages(1);
+          setTotalCount((data.data || []).length);
+        }
+        if (data.batches) {
+          setBatches(data.batches);
+        }
+      } else {
+        setMails([]);
+        setTotalPages(1);
+        setTotalCount(0);
+      }
+    } catch (err) {
+      console.error("Error fetching mails:", err);
+      setMails([]);
+      setTotalPages(1);
+      setTotalCount(0);
+    }
+  }, [type, currentPage, searchTerm, statusFilter, selectedBatchFilter, assignmentFilter, isStaff, user]);
+
+  useEffect(() => {
+    loadData();
+    window.addEventListener("storage", loadData);
+    return () => window.removeEventListener("storage", loadData);
+  }, [loadData]);
 
   useEffect(() => {
     if (currentPage !== 1) {
@@ -147,12 +182,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  requestAnimationFrame(() => setSelectedBatchFilter("ALL"));
  }, [type]);
 
- const availableBatches = useMemo(() => {
- const scannedNames = new Set(
- (mails || []).filter(m => (type ==="ALL" || m.type === type) && m.batchName).map(m => m.batchName)
- );
- return Array.from(scannedNames).map(name => ({ id: name as string, name: name as string }));
- }, [mails, type]);
+  const availableBatches = useMemo(() => {
+    return (batches || []).map(name => ({ id: name, name }));
+  }, [batches]);
 
  const copyToClipboard = (text: string, label: string) => {
  if (!text) return;
@@ -827,8 +859,17 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  };
  }, [mails, user]);
 
-  const totalPages = Math.ceil((filteredMails || []).length / itemsPerPage);
-  const displayedMails = filteredMails.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const displayedMails = useMemo(() => {
+    return (mails || []).map((m: MailData) => {
+      const globalSTT = m.type === "ROOT" ? (m.stt || m.id || 0)
+        : m.type === "SATELLITE" ? (m.stt || m.id || 1000) - 1000
+        : (m.stt || m.id || 2000) - 2000;
+      return {
+        ...m,
+        originalSTT: globalSTT
+      };
+    });
+  }, [mails]);
 
  const staffBatches = useMemo(() => {
  if (!isStaff || type !=="SATELLITE") return [];
@@ -1187,7 +1228,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  <div className="hidden xl:flex items-center gap-3 px-5 py-2 bg-gold/10 border-2 border-gold/20 rounded-2xl shadow-lg shadow-gold/5 group">
  <Mail size={18} className="text-gold animate-pulse" />
  <span className="text-base font-black text-white uppercase tracking-widest">
- Tổng cộng: <span className="text-gold text-base ml-1">{(filteredMails || []).length}</span> <span className="text-gold/60 text-[10px] ml-1">Mail</span>
+  Tổng cộng: <span className="text-gold text-base ml-1">{totalCount}</span> <span className="text-gold/60 text-[10px] ml-1">Mail</span>
  </span>
  </div>
  </div>

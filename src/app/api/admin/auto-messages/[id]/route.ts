@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import AutoMessage from "@/models/AutoMessage";
+import { checkPermission, logAuditTrail } from "@/lib/permissions";
 
 // Cập nhật tin nhắn tự động
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -8,8 +9,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     await dbConnect();
     const { id } = await params;
     const role = req.headers.get("x-user-role");
+    const userId = req.headers.get("x-user-id");
 
-    if (role !== "01" && role !== "02" && role !== "03") {
+    const hasPermission = await checkPermission(role || "", 3, ["all", "tasks"]);
+    if (!hasPermission) {
+      await logAuditTrail(userId || "unknown", "UNAUTHORIZED_UPDATE_AUTO_MESSAGE", "auto-messages", { id }, req);
       return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
     }
 
@@ -19,6 +23,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!updated) {
       return NextResponse.json({ error: "Không tìm thấy tin nhắn mẫu" }, { status: 404 });
     }
+
+    await logAuditTrail(userId || "system", "UPDATE_AUTO_MESSAGE_SUCCESS", "auto-messages", { id, title: updated.title }, req);
 
     return NextResponse.json({ 
       success: true, 
@@ -38,8 +44,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await dbConnect();
     const { id } = await params;
     const role = req.headers.get("x-user-role");
+    const userId = req.headers.get("x-user-id");
 
-    if (role !== "01" && role !== "02" && role !== "03") {
+    const hasPermission = await checkPermission(role || "", 3, ["all", "tasks"]);
+    if (!hasPermission) {
+      await logAuditTrail(userId || "unknown", "UNAUTHORIZED_DELETE_AUTO_MESSAGE", "auto-messages", { id }, req);
       return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
     }
 
@@ -48,6 +57,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!deleted) {
       return NextResponse.json({ error: "Không tìm thấy tin nhắn mẫu" }, { status: 404 });
     }
+
+    await logAuditTrail(userId || "system", "DELETE_AUTO_MESSAGE_SUCCESS", "auto-messages", { id, title: deleted.title }, req);
 
     return NextResponse.json({ 
       success: true, 

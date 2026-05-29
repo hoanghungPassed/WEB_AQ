@@ -22,6 +22,10 @@ export interface IUser extends Document {
  checkInTime?: string;
  checkOutTime?: string;
  offWorkTime?: string;
+ deletedAt?: Date | null;
+ twoFAEnabled?: boolean;
+ twoFASecret?: string;
+ backupCodes?: string[];
 }
 
 const userSchema = new Schema<IUser>(
@@ -101,6 +105,22 @@ const userSchema = new Schema<IUser>(
  type: String,
  default:"17:30", // Mặc định là 17:30
  },
+ twoFAEnabled: {
+ type: Boolean,
+ default: false,
+ },
+ twoFASecret: {
+ type: String,
+ default: null,
+ },
+ backupCodes: {
+ type: [String],
+ default: [],
+ },
+ deletedAt: {
+ type: Date,
+ default: null,
+ },
  },
  {
  timestamps: true, // Tự động thêm createdAt & updatedAt
@@ -120,6 +140,11 @@ const userSchema = new Schema<IUser>(
  },
  }
 );
+
+userSchema.index({ username: 1 }, { unique: true });
+userSchema.index({ email: 1 }, { sparse: true, unique: true });
+userSchema.index({ role: 1 });
+userSchema.index({ isOnline: 1 });
 
 /**
  * Sử dụng cơ chế check model tồn tại để tránh lỗi

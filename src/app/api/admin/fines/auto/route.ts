@@ -1,16 +1,27 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { Fine } from '@/models/Fine';
 import { User } from '@/models/User';
 import { Task } from '@/models/Task';
 import { Kpi } from '@/models/Kpi';
 import { logAction } from '@/lib/logger';
+import { checkPermission, logAuditTrail } from "@/lib/permissions";
+import { sendFineEmail } from "@/lib/email";
 
 export const dynamic ="force-dynamic";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
  try {
- await dbConnect();
+  await dbConnect();
+  
+  const userId = req.headers.get("x-user-id");
+  const userRole = req.headers.get("x-user-role");
+
+  const hasPermission = await checkPermission(userRole || "", 5, ["all"]);
+  if (!hasPermission) {
+    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_RUN_AUTO_FINES", "fines", {}, req);
+    return NextResponse.json({ error: "Không có quyền chạy tự động tính phạt" }, { status: 403 });
+  }
  
  // Auto-fining logic: Check staff KPI and fine if they didn't meet the target after offWorkTime
  const staffs = await User.find({ role: { $in: ["04","05"] } });
@@ -51,6 +62,12 @@ export async function POST() {
  amount: 50000,
  status:"UNPAID"
  });
+
+ // Send auto fine email notification (fire-and-forget)
+ if (staff.email) {
+   sendFineEmail(staff.email, staff.name || "Nhân viên", 50000, `Không hoàn thành task đúng hạn (sau ${offWorkStr})`).catch(console.error);
+ }
+
  count++;
  }
  }
@@ -60,6 +77,8 @@ export async function POST() {
  if (count > 0) {
  await logAction("system","Tự động tính toán và áp dụng phạt", `Đã kiểm tra KPI của ${staffs.length} nhân sự. Phạt: ${count} người.`);
  }
+
+ await logAuditTrail(userId || "system", "RUN_AUTO_FINES_SUCCESS", "fines", { staffsChecked: staffs.length, finedCount: count }, req);
 
  return NextResponse.json({ success: true, message: `Auto fines calculation completed for ${staffs.length} staff members. Fined: ${count}` });
  } catch (error: unknown) {
