@@ -6,7 +6,7 @@ import Header from"@/components/admin/Header";
 import ProfileModal from"@/components/admin/ProfileModal";
 import AccessLock from"@/components/admin/modals/AccessLock";
 import { useRouter } from"next/navigation";
-import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle, Plus, FileText, Download, Paperclip, Phone, Minus, Copy, ExternalLink, ShieldAlert } from "lucide-react";
+import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle, Plus, FileText, Download, Paperclip, Phone, Minus, Copy, ExternalLink, ShieldAlert, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSWR } from "@/lib/useSWR";
 
@@ -265,10 +265,6 @@ export default function AdminLayout({
  try {
  const res = await fetch('/api/admin/tasks/reminders');
  if (res.ok) {
- // Note: API already sends Notification to DB. We can also fetch unread Notifications here to show a toast.
- // But since the API returns success, we might rely on the existing checkNewNotifications() to show it, 
- // or trigger it directly. 
- // For now, the API calculates and creates Notifications. The frontend checkNewNotifications() will pick them up if we trigger a storage event.
  window.dispatchEvent(new Event("storage"));
  }
  } catch (err) {
@@ -281,94 +277,97 @@ export default function AdminLayout({
  const reminderInterval = setInterval(pollReminders, 60000);
  return () => clearInterval(reminderInterval);
  }, []);
+
   const checkAccess = async () => {
-     const activeUserStr = typeof window !== "undefined" ? (sessionStorage.getItem("user") || localStorage.getItem("user")) : null;
-     if (!activeUserStr) return;
-     const currentUser = JSON.parse(activeUserStr);
+    const activeUserStr = typeof window !== "undefined" ? (sessionStorage.getItem("user") || localStorage.getItem("user")) : null;
+    if (!activeUserStr) return;
+    const currentUser = JSON.parse(activeUserStr);
 
+    // 1. Lệnh bài miễn tử cho Admin/Manager
     const roleStr = String(currentUser?.role || "");
-    const isBypassed = roleStr === '01' || roleStr === '02' || roleStr.toUpperCase() === 'ADMIN' || roleStr.toUpperCase() === 'QL CÔNG VIỆC' || currentUser?.username === '01';
+    const isAdminOrWorkManager = 
+      roleStr === "01" || 
+      roleStr === "02" || 
+      roleStr.toUpperCase() === "ADMIN" || 
+      roleStr.toUpperCase() === "QL CÔNG VIỆC" || 
+      roleStr.toUpperCase() === "QUẢN LÝ CÔNG VIỆC" ||
+      currentUser?.username === "01";
 
-    if (isBypassed) {
+    if (isAdminOrWorkManager) {
       setAccessStatus('GRANTED');
+      setIsChecking(false);
       return;
     }
 
-    // Vietnam ICT Time check
-    const nowTime = new Date();
-    const utcTime = nowTime.getTime() + nowTime.getTimezoneOffset() * 60000;
-    const vnTime = new Date(utcTime + 3600000 * 7);
-    const vnTotalMinutes = vnTime.getHours() * 60 + vnTime.getMinutes();
-
-    // Use polled settings if available, else standard fallback
-    const savedWorkConfigStr = localStorage.getItem("global_work_config");
-    let openTimeStr = "08:00";
-    let closeTimeStr = "18:00";
-    if (savedWorkConfigStr) {
-      try {
-        const wc = JSON.parse(savedWorkConfigStr);
-        if (wc.startTime) openTimeStr = wc.startTime;
-        if (wc.endTime) closeTimeStr = wc.endTime;
-      } catch (e) {}
-    }
-
-    const [openH, openM] = openTimeStr.split(":").map(Number);
-    const [closeH, closeM] = closeTimeStr.split(":").map(Number);
-    const startMins = openH * 60 + openM - 10; // Allow 10 minutes early check-in
-    const closeMins = closeH * 60 + closeM;
-
-    const isWithinWorkingHours = vnTotalMinutes >= startMins && vnTotalMinutes < closeMins;
-
-    if (!isWithinWorkingHours) {
-      setAccessStatus('CLOSED');
-      return;
-    }
-
-    const fetchFines = async () => {
-      try {
-        const res = await fetch("/api/admin/fines", {
+    try {
+      // 2. Fetch Cài đặt và Phạt (Gộp lại để xử lý 1 lần)
+      const [settingsRes, finesRes] = await Promise.all([
+        fetch('/api/admin/settings').then(r => r.json()),
+        fetch('/api/admin/fines', {
           headers: {
             'x-user-id': currentUser?.id || currentUser?._id || '',
             'x-user-role': currentUser?.role || ''
           }
-        });
-        if (res.ok) {
-          const finesList = await res.json();
-          // Filter LATE type fines created today that are UNPAID
-          const todayDateStr = vnTime.toISOString().split("T")[0];
-          const unpaidTodayLateFine = (finesList || []).find((f: any) => {
-            const isLateType = f.reason && (f.reason.includes("Đi muộn") || f.reason.includes("đăng nhập ngoài giờ"));
-            const isToday = f.createdAt && f.createdAt.startsWith(todayDateStr);
-            const isUnpaid = f.status === "UNPAID";
-            return isLateType && isToday && isUnpaid;
-          });
+        }).then(r => r.json())
+      ]);
 
-          if (unpaidTodayLateFine) {
-            setAccessStatus('LATE');
-            // Automatically set late info for the modal
-            setFineAmount(unpaidTodayLateFine.amount || 50000);
-            if (unpaidTodayLateFine.lateMinutes) {
-              setLateMins(unpaidTodayLateFine.lateMinutes);
-            }
-            return true;
-          }
+      const settings = settingsRes.success ? settingsRes.data : null;
+      const fines = Array.isArray(finesRes) ? finesRes : (finesRes?.data || []);
+
+      // 3. Kiểm tra Phạt Đi Muộn TRƯỚC TIÊN
+      const unpaidLateFine = (fines || []).find((f: any) => {
+        const isLateType = f.type === 'LATE' || (f.reason && (f.reason.includes("Đi muộn") || f.reason.includes("đăng nhập ngoài giờ")));
+        const isUnpaidOrPending = f.status === 'UNPAID' || f.status === 'PENDING_APPROVAL';
+        return isLateType && isUnpaidOrPending;
+      });
+
+      if (unpaidLateFine) {
+        setAccessStatus('LATE');
+        setFineAmount(unpaidLateFine.amount || 50000);
+        if (unpaidLateFine.lateMinutes) {
+          setLateMins(unpaidLateFine.lateMinutes);
         }
-      } catch (err) {
-        console.error("checkAccess fines check failed:", err);
+        setIsChecking(false);
+        return; // Dừng luồng ở đây, bung màn hình Phạt!
       }
-      return false;
-    };
 
-    if (isWithinWorkingHours) {
-      const hasFine = await fetchFines();
-      if (!hasFine) {
-        setAccessStatus('GRANTED');
+      // 4. Nếu không nợ phạt, kiểm tra Giờ giấc
+      const nowTime = new Date();
+      const utcTime = nowTime.getTime() + nowTime.getTimezoneOffset() * 60000;
+      const vnTime = new Date(utcTime + 3600000 * 7);
+      const vnTotalMinutes = vnTime.getHours() * 60 + vnTime.getMinutes();
+
+      let openTimeStr = "08:00";
+      let closeTimeStr = "18:00";
+      if (settings) {
+        if (settings.startTime) openTimeStr = settings.startTime;
+        if (settings.endTime) closeTimeStr = settings.endTime;
       }
+
+      const [openH, openM] = openTimeStr.split(":").map(Number);
+      const [closeH, closeM] = closeTimeStr.split(":").map(Number);
+      const startMins = openH * 60 + openM - 10; // Allow 10 minutes early check-in
+      const closeMins = closeH * 60 + closeM;
+
+      const isWithinWorkingHours = vnTotalMinutes >= startMins && vnTotalMinutes < closeMins;
+
+      if (!isWithinWorkingHours) {
+        setAccessStatus('CLOSED');
+        setIsChecking(false);
+        return;
+      }
+    } catch (err) {
+      console.error("checkAccess error:", err);
     }
-  }
+
+    // 5. Mọi thứ hợp lệ -> Cho vào làm
+    setAccessStatus('GRANTED');
+    setIsChecking(false);
+  };
 
  const [isAccessGranted, setIsAccessGranted] = useState(false);
  const [accessStatus, setAccessStatus] = useState<string | null>(null);
+ const [isChecking, setIsChecking] = useState(true);
  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
  const [showManagerNotif, setShowManagerNotif] = useState(false);
  const [roleUpdateNotif, setRoleUpdateNotif] = useState<{ title: string, message: string } | null>(null);
@@ -1655,7 +1654,12 @@ const typingTimer = setInterval(checkTyping, 1000);
  <main className="flex-1 mt-16 p-4 md:p-6 overflow-y-auto custom-scrollbar">
  <div className="min-h-full mx-auto max-w-[1600px] relative">
  {/* CHẶN TUYỆT ĐỐI: Không render children khi bị khóa */}
- {shouldLock || isLateLocked ? null : children}
+  {isChecking ? (
+    <div className="min-h-[50vh] flex flex-col items-center justify-center gap-4 py-20 text-center">
+      <Loader2 className="animate-spin text-gold" size={36} />
+      <span className="text-sm font-black uppercase tracking-widest text-zinc-500 animate-pulse">Đang xác thực quyền truy cập...</span>
+    </div>
+  ) : (shouldLock || isLateLocked ? null : children)}
 
  {/* Real-time Task Notification Toast */}
  <AnimatePresence>

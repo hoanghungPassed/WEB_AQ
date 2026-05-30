@@ -20,11 +20,12 @@ export async function GET() {
  const user = await User.findById(authUser.userId).select("-password");
 
  if (!user) {
- return NextResponse.json(
- { error:"Người dùng không tồn tại" },
- { status: 404 }
- );
- }
+    // Nếu user không còn trong DB (do reset), ném ra 401 ngay lập tức
+    return NextResponse.json(
+      { error: "Tài khoản không tồn tại" },
+      { status: 401 }
+    );
+  }
 
   // Cập nhật lastActive khi người dùng tương tác/gọi API
   await User.findByIdAndUpdate(user._id, { lastActive: new Date() });

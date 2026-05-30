@@ -22,7 +22,39 @@ export async function GET(req: NextRequest) {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     await dbConnect();
-    const batches = await Batch.find({ type: "SATELLITE" }).sort({ createdAt: -1 });
+
+    const assignedTo = req.nextUrl.searchParams.get("assignedTo");
+    if (assignedTo) {
+      const batchCount = await Batch.countDocuments({ assignedTo, type: "SATELLITE" });
+      if (batchCount === 0) {
+        const UserModel = (await import("@/models/User")).default;
+        const assigneeUser = await UserModel.findById(assignedTo);
+        const suffix = assigneeUser ? ` (${assigneeUser.username})` : ` (${assignedTo})`;
+
+        // Tự động sinh 6 lô rỗng
+        const defaultBatches = [];
+        for (let i = 1; i <= 6; i++) {
+          defaultBatches.push({
+            name: `Lô ${i}${suffix}`,
+            type: "SATELLITE",
+            importedAt: new Date().toISOString().split("T")[0],
+            importedBy: "Hệ thống",
+            assignedTo,
+            mailCount: 0,
+            totalMails: 0,
+            startIndex: 0,
+            endIndex: 0
+          });
+        }
+        await Batch.insertMany(defaultBatches);
+      }
+    }
+
+    const filter: any = { type: "SATELLITE" };
+    if (assignedTo) {
+      filter.assignedTo = assignedTo;
+    }
+    const batches = await Batch.find(filter).sort({ createdAt: -1 });
 
     return NextResponse.json({ success: true, batches });
   } catch (error: unknown) {
@@ -58,20 +90,11 @@ export async function POST(req: NextRequest) {
     await dbConnect();
     const body = await req.json();
 
-    if (!body.name?.trim()) {
-      return NextResponse.json({ error: "Thiếu tên lô" }, { status: 400 });
-    }
     if (!body.assignedTo) {
       return NextResponse.json({ error: "Thiếu nhân sự gán" }, { status: 400 });
     }
 
-    // ── 1. Kiểm tra trùng tên lô ──
-    const exists = await Batch.findOne({ name: body.name.trim() });
-    if (exists) {
-      return NextResponse.json({ error: "Tên lô đã tồn tại" }, { status: 400 });
-    }
-
-    // ── 2. Tra cứu nhân sự ──
+    // ── 1. Tra cứu nhân sự ──
     const UserModel = (await import("@/models/User")).default;
     const assigneeUser = await UserModel.findById(body.assignedTo);
     if (!assigneeUser) {
@@ -83,9 +106,19 @@ export async function POST(req: NextRequest) {
       if (creator) userName = creator.name;
     }
 
+    // ── 2. Đếm tổng số lô CỦA RIÊNG nhân viên đó ──
+    const userBatchCount = await Batch.countDocuments({ assignedTo: body.assignedTo, type: "SATELLITE" });
+    const batchName = body.name?.trim() || `Lô ${userBatchCount + 1} (${assigneeUser.username})`;
+
+    // ── 3. Kiểm tra trùng tên lô ──
+    const exists = await Batch.findOne({ name: batchName });
+    if (exists) {
+      return NextResponse.json({ error: "Tên lô đã tồn tại" }, { status: 400 });
+    }
+
     // Tạo lô rỗng
     const newBatch = await Batch.create({
-      name: body.name.trim(),
+      name: batchName,
       type: "SATELLITE",
       importedAt: new Date().toISOString().split("T")[0],
       importedBy: body.importedBy || userName,
@@ -96,13 +129,13 @@ export async function POST(req: NextRequest) {
       endIndex: 0
     });
 
-    // ── 3. Ghi log ──
+    // ── 4. Ghi log ──
     try {
       const { Log } = await import("@/models/Log");
       await Log.create({
         user: userName,
         role: "ADMIN",
-        action: `Tạo lô rỗng "${body.name.trim()}" gán cho ${assigneeUser.name}`,
+        action: `Tạo lô rỗng "${batchName}" gán cho ${assigneeUser.name}`,
         type: "SUCCESS",
         timestamp: new Date().toLocaleString("vi-VN")
       });
@@ -112,7 +145,7 @@ export async function POST(req: NextRequest) {
       userId || "system",
       "CREATE_BATCH_SUCCESS",
       "mails",
-      { name: body.name, assignedTo: body.assignedTo, mailCount: 0, startIndex: 0, endIndex: 0 },
+      { name: batchName, assignedTo: body.assignedTo, mailCount: 0, startIndex: 0, endIndex: 0 },
       req
     );
 

@@ -29,7 +29,15 @@ export async function POST(request: NextRequest) {
     const collections = await db.listCollections().toArray();
     
     for (const col of collections) {
-      if (col.name !== "users" && col.name !== "system_settings" && col.name !== "systemsettings" && !col.name.startsWith("system.")) {
+      if (
+        col.name !== "users" && 
+        col.name !== "system_settings" && 
+        col.name !== "systemsettings" && 
+        col.name !== "satellite_mails" &&
+        col.name !== "monetized_mails" &&
+        col.name !== "root_mails" &&
+        !col.name.startsWith("system.")
+      ) {
         await db.dropCollection(col.name);
       }
     }
@@ -38,15 +46,30 @@ export async function POST(request: NextRequest) {
     const User = (await import("@/models/User")).default;
     await User.deleteMany({ role: { $ne: "01" } });
 
-    // Explicitly wipe direct messages and templates to avoid ghost data
+    // Explicitly wipe direct messages, notifications, tasks, batches, fines, attendances
     const { Message } = await import("@/models/Message");
     const { AutoMessage } = await import("@/models/AutoMessage");
+    const { Notification } = await import("@/models/Notification");
+    const { Task } = await import("@/models/Task");
+    const { Batch } = await import("@/models/Batch");
+    const { Fine } = await import("@/models/Fine");
+    const { Attendance } = await import("@/models/Attendance");
+    const { SatelliteMail } = await import("@/models/SatelliteMail");
+
     await Message.deleteMany({});
     await AutoMessage.deleteMany({});
+    await Notification.deleteMany({});
+    await Task.deleteMany({});
+    await Batch.deleteMany({});
+    await Fine.deleteMany({});
+    await Attendance.deleteMany({});
+
+    // Cập nhật kho Mail: giải phóng mọi email vệ tinh
+    await SatelliteMail.updateMany({}, { $set: { isAssigned: false, assigneeId: null, assignedTo: null, batchId: null, batchName: null } });
 
     try {
       const { logAction } = await import('@/lib/logger');
-      await logAction("system", "Reset Database", "Đã xóa toàn bộ dữ liệu (trừ Users).");
+      await logAction("system", "Reset Database", "Đã xóa toàn bộ dữ liệu (trừ Users và Kho Mail).");
     } catch(e) {}
 
     // Log successful operation

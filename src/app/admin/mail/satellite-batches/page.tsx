@@ -175,6 +175,29 @@ export default function SatelliteBatchesPage() {
  return () => window.removeEventListener("storage", loadData);
  }, []);
 
+  useEffect(() => {
+    if (!selectedStaff) return;
+    const fetchUserBatches = async () => {
+      try {
+        const res = await fetch(`/api/admin/mail/satellite-batches?assignedTo=${selectedStaff.id || selectedStaff._id}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.batches) {
+            const savedBatches = localStorage.getItem("global_satellite_batches");
+            const localList: BatchItem[] = savedBatches ? JSON.parse(savedBatches) : [];
+            const otherBatches = localList.filter(b => String(b.assignedTo) !== String(selectedStaff.id));
+            const newList = [...otherBatches, ...data.batches];
+            localStorage.setItem("global_satellite_batches", JSON.stringify(newList));
+            setBatches(newList);
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi fetch user batches:", err);
+      }
+    };
+    fetchUserBatches();
+  }, [selectedStaff]);
+
  const triggerToast = (msg: string) => {
  setToastMsg(msg);
  setTimeout(() => setToastMsg(""), 3000);
@@ -1007,7 +1030,7 @@ export default function SatelliteBatchesPage() {
  </div>
 
  <h3 className="text-xl font-black text-white mt-4 uppercase tracking-tight transition-colors">
- {batch.name}
+ {(batch.name || "").replace(/\s*\(.*\)$/, "")}
  </h3>
 
  <div className="flex items-baseline gap-1.5 my-3 bg-black/10 rounded-xl p-3 border border-white/0">
@@ -1078,7 +1101,7 @@ export default function SatelliteBatchesPage() {
  <Layers size={24} />
  </div>
  <div>
- <h3 className="text-2xl font-black text-white uppercase tracking-tight">Cấu hình {selectedBatch.name}</h3>
+ <h3 className="text-2xl font-black text-white uppercase tracking-tight">Cấu hình {(selectedBatch?.name || "").replace(/\s*\(.*\)$/, "")}</h3>
  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">
  Tổng số: {(batchMails || []).length} Mail vệ tinh trong Lô này
  </p>
@@ -1383,7 +1406,7 @@ export default function SatelliteBatchesPage() {
 
  <div className="space-y-4 mb-8 text-base text-gray-300 font-medium relative z-10 leading-relaxed">
  <p>
- Bạn có chắc chắn muốn xóa Lô <span className="text-gold font-black uppercase">"{batchToDelete.name}"</span>?
+ Bạn có chắc chắn muốn xóa Lô <span className="text-gold font-black uppercase">"{(batchToDelete?.name || "").replace(/\s*\(.*\)$/, "")}"</span>?
  </p>
  <p className="text-sm text-red-400 bg-red-500/5 border border-red-500/10 rounded-xl p-3">
  ⚠️ Tất cả các tài khoản mail trong lô này sẽ ngay lập tức được giải phóng và trả về kho vệ tinh unassigned.
@@ -1438,7 +1461,7 @@ export default function SatelliteBatchesPage() {
 
  <div className="space-y-4 mb-8 text-base text-gray-300 font-medium relative z-10 leading-relaxed">
  <p>
- Bạn có chắc muốn xóa toàn bộ link kênh của các mail vệ tinh trong Lô <span className="text-gold font-black uppercase">"{batchToReset.name}"</span> không?
+ Bạn có chắc muốn xóa toàn bộ link kênh của các mail vệ tinh trong Lô <span className="text-gold font-black uppercase">"{(batchToReset?.name || "").replace(/\s*\(.*\)$/, "")}"</span> không?
  </p>
  <p className="text-sm text-blue-400 bg-blue-500/5 border border-blue-500/10 rounded-xl p-3">
  ℹ️ Tất cả link kênh, tên kênh, trạng thái đủ giờ của mail trong lô này sẽ bị xóa trắng và đưa về trạng thái"Chưa làm".
