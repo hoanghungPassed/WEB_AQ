@@ -332,7 +332,7 @@ export default function SatelliteBatchesPage() {
  };
 
  // Assign rolling mail range cuốn chiếu to staff
- const handleAssignBatchCuonChieu = () => {
+ const handleAssignBatchCuonChieu = async () => {
  if (!selectedBatch) return;
  if (!selectedStaffToAssign) {
  triggerToast("Vui lòng chọn một nhân viên để gán!");
@@ -355,80 +355,82 @@ export default function SatelliteBatchesPage() {
  return;
  }
 
- const savedMails = localStorage.getItem("global_mails_data");
- const mails = savedMails ? JSON.parse(savedMails) : [];
- const now = new Date().toISOString();
- const chunkMailsIds = (chunk.mails || []).map((cm: any) => cm.id);
+ setIsSubmitting(true);
+ try {
+   const chunkMailsIds = (chunk.mails || []).map((cm: any) => cm._id || cm.id);
+   
+   const res = await fetch("/api/admin/mails/batch-update", {
+     method: "PUT",
+     headers: { "Content-Type": "application/json" },
+     body: JSON.stringify({
+       ids: chunkMailsIds,
+       updateData: {
+         isAssigned: true,
+         assigneeId: staff.id || staff.username,
+         assignedTo: staff.name,
+         batchName: selectedBatch.name,
+         batchId: selectedBatch.id
+       }
+     })
+   });
 
- const updatedMails = (mails || []).map((m: any) => {
- if (m.type ==="SATELLITE" && chunkMailsIds.includes(m.id)) {
- return {
- ...m,
- assigneeId: staff.id || staff.username,
- assignedTo: staff.name,
- batchName: selectedBatch.name,
- batchId: selectedBatch.id,
- lastUpdated: now,
- updatedAt: now,
- updatedBy: user?.name ||"Admin"
- };
+   if (res.ok) {
+     // Reload mails from DB to sync UI
+     try {
+       const mailRes = await fetch("/api/admin/mails?type=SATELLITE&all=true");
+       if (mailRes.ok) {
+         const mailData = await mailRes.json();
+         if (mailData.success && mailData.data) {
+           localStorage.setItem("global_mails_data", JSON.stringify(mailData.data));
+           window.dispatchEvent(new Event("storage"));
+           
+           const inBatch = mailData.data.filter((m: any) => 
+             m.type ==="SATELLITE" && 
+             m.batchName === selectedBatch.name && 
+             String(m.assigneeId) === String(selectedStaff.id)
+           );
+           setBatchMails(inBatch);
+         }
+       }
+     } catch (_) {}
+
+     // Sync batches count
+     const savedBatches = localStorage.getItem("global_satellite_batches");
+     const list = savedBatches ? JSON.parse(savedBatches) : [];
+     const syncedList = (list || []).map((b: any) => {
+       if (b.name === selectedBatch.name) {
+         return { ...b, mailCount: b.mailCount + chunkMailsIds.length };
+       }
+       return b;
+     });
+     setBatches(syncedList);
+     localStorage.setItem("global_satellite_batches", JSON.stringify(syncedList));
+
+     // Log Activity
+     const existingLogs = localStorage.getItem("global_system_logs");
+     const logsList = existingLogs ? JSON.parse(existingLogs) : [];
+     const newLog = {
+       id: `log-${Date.now()}`,
+       user: user?.name ||"Admin",
+       role:"ADMIN",
+       action: `Gán cuốn chiếu ${(chunk.mails || []).length} mail (${chunk.startIdx}-${chunk.endIdx}) của ${selectedBatch.name} cho nhân sự ${staff.name}`,
+       type:"SUCCESS",
+       timestamp: new Date().toLocaleString("vi-VN")
+     };
+     localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
+
+     triggerToast(`Đã gán thành công dải mail ${chunk.startIdx}-${chunk.endIdx} của Lô "${selectedBatch.name}" cho ${staff.name}!`);
+     setSelectedChunkId("");
+   } else {
+     const data = await res.json();
+     triggerToast(data.error || "Gán mail thất bại!");
+   }
+ } catch (err) {
+   console.error(err);
+   triggerToast("Lỗi kết nối máy chủ!");
+ } finally {
+   setIsSubmitting(false);
  }
- return m;
- });
-
- localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
- window.dispatchEvent(new Event("storage"));
-
- // Recalculate batch mails for this specific staff member
- const inBatch = (updatedMails || []).filter((m: any) => 
- m.type ==="SATELLITE" && 
- m.batchName === selectedBatch.name && 
- String(m.assigneeId) === String(selectedStaff.id)
- );
- setBatchMails(inBatch);
-
- // Sync batches count
- const savedBatches = localStorage.getItem("global_satellite_batches");
- const list = savedBatches ? JSON.parse(savedBatches) : [];
- const syncedList = (list || []).map((b: any) => {
- if (b.name === selectedBatch.name) {
- return { ...b, mailCount: (inBatch || []).length };
- }
- return b;
- });
- setBatches(syncedList);
- localStorage.setItem("global_satellite_batches", JSON.stringify(syncedList));
-
- // Log Activity
- const existingLogs = localStorage.getItem("global_system_logs");
- const logsList = existingLogs ? JSON.parse(existingLogs) : [];
- const newLog = {
- id: `log-${Date.now()}`,
- user: user?.name ||"Admin",
- role:"ADMIN",
- action: `Gán cuốn chiếu ${(chunk.mails || []).length} mail (${chunk.startIdx}-${chunk.endIdx}) của ${selectedBatch.name} cho nhân sự ${staff.name}`,
- type:"SUCCESS",
- timestamp: new Date().toLocaleString("vi-VN")
- };
- localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
-
- // Push real-time notification for target staff member
- const existingNotifs = localStorage.getItem("admin_notifications");
- const notifList = existingNotifs ? JSON.parse(existingNotifs) : [];
- const newNotif = {
- id: `notif-${Date.now()}`,
- title:"Giao việc Cuốn Chiếu",
- message: `Bạn được giao ${(chunk.mails || []).length} mail vệ tinh mới thuộc Lô"${selectedBatch.name}" (dải ${chunk.startIdx} - ${chunk.endIdx}).`,
- time: new Date().toLocaleTimeString("vi-VN") +" -" + new Date().toLocaleDateString("vi-VN"),
- type:"ASSIGNMENT",
- read: false,
- targetUsername: staff.username
- };
- localStorage.setItem("admin_notifications", JSON.stringify([newNotif, ...notifList]));
- window.dispatchEvent(new Event("storage"));
-
- triggerToast(`Đã gán thành công dải mail ${chunk.startIdx}-${chunk.endIdx} của Lô"${selectedBatch.name}" cho ${staff.name}!`);
- setSelectedChunkId("");
  };
 
  // Unassign/Release all mails inside a batch for the current staff member
@@ -840,11 +842,11 @@ export default function SatelliteBatchesPage() {
 
  <div className="flex-1 overflow-y-auto custom-scrollbar mt-4 space-y-2 pr-2">
  {(filteredStaffList || []).map((staff) => {
+ const staffBatches = (batches || []).filter((b: any) => String(b.assignedTo) === String(staff.id) || String(b.assignedTo) === String(staff.username));
  const staffMails = (satelliteMails || []).filter((m: any) => String(m.assigneeId) === String(staff.id));
- const uniqueBatches = Array.from(new Set((staffMails || []).map((m: any) => m.batchName).filter(Boolean)));
  const isOnline = staff.lastActive ? (Date.now() - new Date(staff.lastActive).getTime() < 15 * 60000) : (staff.isOnline === true);
- const hasAssignment = (staffMails || []).length > 0;
- const unassignedCountForStaff = Math.max(0, (batches || []).length - (uniqueBatches || []).length);
+ const hasAssignment = staffBatches.length > 0;
+ const unassignedCountForStaff = staffBatches.filter((b: any) => !b.mailCount || b.mailCount === 0).length;
 
  return (
  <div
@@ -863,7 +865,7 @@ export default function SatelliteBatchesPage() {
  <div className="truncate">
  <p className="text-base font-black text-white transition-colors truncate uppercase">{staff.name}</p>
  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
- @{staff.username} {hasAssignment ? `(${(uniqueBatches || []).length} lô - ${(staffMails || []).length} mail)` :"(Chưa gán)"}
+ @{staff.username} {hasAssignment ? `(${staffBatches.length} lô - ${(staffMails || []).length} mail)` :"(Chưa gán)"}
  </p>
  </div>
  </div>
@@ -1251,11 +1253,11 @@ export default function SatelliteBatchesPage() {
  <p className="text-sm text-gray-500 mb-6">Chọn các mail chưa được gán vào lô nào dưới đây:</p>
 
  <div className="space-y-2 overflow-y-auto max-h-[40vh] pr-2 custom-scrollbar">
- {(unassignedSats || []).map((m) => {
+ {(unassignedSats || []).map((m, idx) => {
  const isChecked = selectedMailsToAdd.includes(m.id);
  return (
  <label 
- key={m.id}
+ key={m._id || m.id || idx}
  className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
  isChecked 
  ?"bg-gold/10 border-white/0 text-gold" 
@@ -1277,7 +1279,7 @@ export default function SatelliteBatchesPage() {
  />
  <div>
  <p className="text-sm font-black">{m.email}</p>
- <p className="text-[9px] opacity-60">STT: #{m.id - 1000}</p>
+ <p className="text-[9px] opacity-60">STT: #{m.stt || idx + 1}</p>
  </div>
  </div>
  </label>
