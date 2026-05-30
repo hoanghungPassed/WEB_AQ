@@ -217,20 +217,6 @@ function LoginForm() {
                   Gửi yêu cầu duyệt ngay
                 </button>
               )}
-              {showOvertimePopup && (
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setOvertimeBypassFlag(true);
-                    setShowOvertimePopup(false);
-                    setError("");
-                    handleLogin(null as any, true);
-                  }}
-                  className="mt-2 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 hover:bg-amber-500 hover:text-[#0a0a0a] text-amber-500 font-black uppercase tracking-widest transition-all text-[10px] flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.2)]"
-                >
-                  <ShieldAlert size={14} /> Tôi đồng ý nộp phạt 50.000 VNĐ & Đăng nhập
-                </button>
-              )}
             </motion.div>
           )}
 

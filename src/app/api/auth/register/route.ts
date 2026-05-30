@@ -47,8 +47,8 @@ export async function POST(req: NextRequest) {
     // Gửi thông báo phê duyệt đăng ký cho Admin
     try {
       await Notification.create({
-        type: 'SYSTEM',
-        title: 'Đăng ký mới',
+        type: 'REGISTRATION',
+        title: 'Yêu cầu đăng ký mới',
         message: 'Tài khoản ' + username + ' đang chờ duyệt',
         targetRole: '01',
         author: newUser._id,

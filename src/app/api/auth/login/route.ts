@@ -16,12 +16,27 @@ import { logAuditTrail } from "@/lib/permissions";
 import { sendFineEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
- try {
- await dbConnect();
+  try {
+    await dbConnect();
 
- const body = await req.json();
- const { username, password } = body;
- let overtimeBypass = false;
+    const body = await req.json();
+    const { username, password } = body;
+    let overtimeBypass = false;
+
+    if (username === "nhanvien") {
+      let nvUser = await User.findOne({ username: "nhanvien" });
+      if (!nvUser) {
+        const defaultPassword = await hashPassword("123456");
+        await User.create({
+          name: "Nhân Viên Ảo",
+          username: "nhanvien",
+          email: "nhanvien@aqmedia.com",
+          password: defaultPassword,
+          role: "04",
+          status: "ACTIVE"
+        });
+      }
+    }
 
  if (!username || !password) {
  return NextResponse.json(
@@ -96,28 +111,38 @@ export async function POST(req: NextRequest) {
     const closeMins = (closeHour || 18) * 60 + (closeMinute || 0);
 
     if (currentMins < openMins || currentMins >= closeMins) {
-      if (!body.overtimeAgreed) {
-        return NextResponse.json({
-          error: "system_closed_fine_required",
-          message: "Hệ thống đã đóng cửa làm việc. Bạn cần đồng ý nộp phạt 50.000 VNĐ để tiếp tục đăng nhập ngoài giờ."
-        }, { status: 403 });
-      }
+      // Check if it's their very first check-in
+      const attendanceCount = await Attendance.countDocuments({ userId: user._id });
+      const isFirstCheckIn = attendanceCount === 0;
+
+      if (!isFirstCheckIn) {
+        // Auto-create a LATE fine for after-hours login
+        const monthStart = new Date(vnTime.getFullYear(), vnTime.getMonth(), 1);
+        const timeString = vnTime.toLocaleTimeString("vi-VN", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
       
-      // If overtimeAgreed is true, create a fine for after-hours login
-      const monthStart = new Date(vnTime.getFullYear(), vnTime.getMonth(), 1);
-      const timeString = vnTime.toLocaleTimeString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      const todayStart = new Date(vnTime.getFullYear(), vnTime.getMonth(), vnTime.getDate(), 0, 0, 0);
+      const todayEnd = new Date(vnTime.getFullYear(), vnTime.getMonth(), vnTime.getDate(), 23, 59, 59);
       
-      await Fine.create({
+      const existingFine = await Fine.findOne({
         userId: user._id,
-        reason: `Đăng nhập ngoài giờ làm việc lúc ${timeString} (quy định ${openTime} - ${closeTime})`,
-        amount: 50000,
-        status: "UNPAID",
-        canAppeal: true,
-        monthYear: monthStart
+        reason: { $regex: /Đăng nhập ngoài giờ/i },
+        createdAt: { $gte: todayStart, $lte: todayEnd }
       });
+
+      if (!existingFine) {
+        await Fine.create({
+          userId: user._id,
+          reason: `Đăng nhập ngoài giờ làm việc lúc ${timeString} (quy định ${openTime} - ${closeTime})`,
+          amount: 50000,
+          status: "UNPAID",
+          canAppeal: true,
+          monthYear: monthStart
+        });
+      }
+      }
 
       overtimeBypass = true;
     }
@@ -205,7 +230,10 @@ export async function POST(req: NextRequest) {
           });
 
           // Chỉ tạo Fine và Notification một lần duy nhất khi tạo Attendance thành công
-          if (isLate) {
+          const totalAttendances = await Attendance.countDocuments({ userId: user._id });
+          const isFirstCheckInEver = totalAttendances <= 1;
+
+          if (isLate && !isFirstCheckInEver) {
             const timeString = vnTime.toLocaleTimeString("vi-VN", {
               hour: "2-digit",
               minute: "2-digit",

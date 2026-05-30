@@ -48,6 +48,14 @@ export default function StaffManagementPage() {
     }
   );
 
+  const { data: allUsersResponse, mutate: mutateAllUsers } = useSWR(
+    '/api/admin/users?all=true',
+    fetcher,
+    {
+      refreshInterval: 15000,
+    }
+  );
+
   const [selectedStaff, setSelectedStaff] = useState<StaffData | null>(null);
   const [activeDetailDay, setActiveDetailDay] = useState<any | null>(null);
 
@@ -165,13 +173,14 @@ export default function StaffManagementPage() {
  curRoleUpper ==="QUẢN LÝ NHÂN SỰ";
  }, [currentUser]);
 
- // Handle tab from URL
- useEffect(() => {
- const tab = searchParams.get("tab");
- if (tab ==="pending" && !isRestricted) {
- setActiveTab("PENDING");
- }
- }, [searchParams, isRestricted]);
+  // Handle tab from URL
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab ==="pending" && !isRestricted) {
+      setActiveTab("PENDING");
+      setPendingSubTab("ACCOUNTS");
+    }
+  }, [searchParams, isRestricted]);
 
  // Force active tab to ACTIVE if restricted role tries to view PENDING
  useEffect(() => {
@@ -182,14 +191,14 @@ export default function StaffManagementPage() {
  }
  }, [currentUser, isRestricted, activeTab]);
 
- // === FETCH STAFF LIST TỪ API ===
- const reloadStaffList = async () => {
-   try {
-     await mutateUsers();
-   } catch (err) {
-     console.error("Error loading staff from API:", err);
-   }
- };
+  // === FETCH STAFF LIST TỪ API ===
+  const reloadStaffList = async () => {
+    try {
+      await Promise.all([mutateUsers(), mutateAllUsers()]);
+    } catch (err) {
+      console.error("Error loading staff from API:", err);
+    }
+  };
 
  const loadAccessRequests = async () => {
  try {
@@ -290,13 +299,14 @@ export default function StaffManagementPage() {
 
  // Stats calculation
  const stats = useMemo(() => {
+ const listToUse = allUsersResponse?.success ? (allUsersResponse?.data || allUsersResponse?.users || []) : staffList;
  return {
- total: (staffList || []).filter(s => s.status ==="ACTIVE").length,
- online: (staffList || []).filter(s => s.isOnline && s.status ==="ACTIVE").length,
- offline: (staffList || []).filter(s => !s.isOnline && s.status ==="ACTIVE").length,
- pending: (staffList || []).filter(s => s.status ==="PENDING").length
+ total: (listToUse || []).filter((s: any) => s.status ==="ACTIVE").length,
+  online: (listToUse || []).filter((s: any) => (s.lastActive ? (Date.now() - new Date(s.lastActive).getTime() < 15 * 60 * 1000) : false) && s.status ==="ACTIVE").length,
+  offline: (listToUse || []).filter((s: any) => !(s.lastActive ? (Date.now() - new Date(s.lastActive).getTime() < 15 * 60 * 1000) : false) && s.status ==="ACTIVE").length,
+  pending: (listToUse || []).filter((s: any) => s.status ==="PENDING").length
  };
- }, [staffList]);
+ }, [staffList, allUsersResponse]);
 
  // Filtered staff list
  const filteredStaff = useMemo(() => {

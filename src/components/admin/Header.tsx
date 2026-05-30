@@ -32,6 +32,9 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showAllNotificationsModal, setShowAllNotificationsModal] = useState(false);
   const [notifTab, setNotifTab] = useState<"UNREAD" | "READ">("UNREAD");
+  const [pendingApproveUser, setPendingApproveUser] = useState<any | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string>("04");
+  const [isActionSubmitting, setIsActionSubmitting] = useState(false);
   const [dateTimeStr, setDateTimeStr] = useState("");
 
   const safeText = (value: unknown) => {
@@ -209,10 +212,29 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
     window.dispatchEvent(new Event("storage"));
   };
 
-  const handleNotificationClick = (notif: any) => {
+  const handleNotificationClick = async (notif: any) => {
     markSingleAsRead(notif.id);
     
     if (notif.type === "REGISTRATION") {
+      try {
+        const res = await fetch(`/api/admin/users/${notif.author}`, {
+          headers: {
+            'x-user-id': currentUser?.id || currentUser?._id || '',
+            'x-user-role': currentUser?.role || ''
+          }
+        });
+        if (res.ok) {
+          const resData = await res.json();
+          if (resData.success && resData.data) {
+            setPendingApproveUser(resData.data);
+            setSelectedRole("04");
+            setIsNotifOpen(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching user details:", err);
+      }
       router.push("/admin/staff?tab=pending");
     } else if (notif.type === "NEWSFEED") {
       if (notif.postId) {
@@ -568,6 +590,147 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Quick Registration Approval Modal */}
+      {pendingApproveUser && (
+        <div className="fixed inset-0 z-[600] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#18181b] border border-[#a07800]/25 w-full max-w-lg rounded-[32px] p-8 shadow-[0_0_50px_rgba(160,120,0,0.15)] relative overflow-hidden">
+            <div className="absolute top-0 right-0 h-40 w-40 bg-[#a07800]/5 blur-[50px] -mr-20 -mt-20" />
+            
+            <div className="flex items-center gap-4 mb-6 relative z-10">
+              <div className="h-12 w-12 rounded-2xl bg-[#a07800]/10 text-[#a07800] flex items-center justify-center border border-[#a07800]/20">
+                <UserPlus size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white uppercase tracking-tight">Duyệt Đăng Ký Nhân Sự</h3>
+                <p className="text-[10px] text-[#a07800] font-bold uppercase tracking-wider">Phê duyệt quyền truy cập hệ thống</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 mb-8 text-sm text-gray-300 font-medium relative z-10 leading-relaxed bg-zinc-950/40 p-6 rounded-2xl border border-white/0">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block mb-0.5">Họ và tên</span>
+                  <span className="text-white font-bold text-base">{pendingApproveUser.name}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block mb-0.5">Tên đăng nhập</span>
+                  <span className="text-[#a07800] font-mono font-bold text-base">@{pendingApproveUser.username}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block mb-0.5">Số điện thoại</span>
+                  <span className="text-white font-semibold">{pendingApproveUser.phone || "---"}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block mb-0.5">Năm sinh</span>
+                  <span className="text-white font-semibold">{pendingApproveUser.birthYear || "---"}</span>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-white/5">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block mb-0.5">Địa chỉ</span>
+                <span className="text-white font-semibold text-xs leading-relaxed">{pendingApproveUser.address || "---"}</span>
+              </div>
+            </div>
+
+            {/* Role Selector */}
+            <div className="flex flex-col gap-2 mb-8 relative z-10">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 ml-1">Chọn chức vụ (Role)</label>
+              <div className="relative group">
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  className="w-full h-12 bg-black/40 border border-white/0 rounded-xl px-4 text-sm font-bold text-white uppercase outline-none focus:border-[#a07800]/30 cursor-pointer"
+                >
+                  <option value="04">Nhân viên chính thức</option>
+                  <option value="05">Nhân viên thử việc</option>
+                  <option value="03">QL Nhân sự</option>
+                  <option value="02">QL Công việc</option>
+                  <option value="01">Admin</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 relative z-10">
+              <button
+                onClick={async () => {
+                  if (isActionSubmitting) return;
+                  setIsActionSubmitting(true);
+                  try {
+                    const res = await fetch(`/api/admin/users/${pendingApproveUser.id || pendingApproveUser._id}`, {
+                      method: "DELETE",
+                      headers: {
+                        'x-user-id': user?.id || user?._id || '',
+                        'x-user-role': user?.role || ''
+                      }
+                    });
+                    if (res.ok) {
+                      mutate('/api/admin/users?page=1&limit=10&search=&status=ACTIVE_OR_LOCKED&role=ALL');
+                      mutate('/api/admin/users?all=true');
+                      setPendingApproveUser(null);
+                      window.dispatchEvent(new Event("storage"));
+                    }
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setIsActionSubmitting(false);
+                  }
+                }}
+                disabled={isActionSubmitting}
+                className="flex-1 h-12 bg-red-500/10 border border-red-500/20 text-red-500 font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
+              >
+                Từ chối
+              </button>
+              <button
+                onClick={async () => {
+                  if (isActionSubmitting) return;
+                  setIsActionSubmitting(true);
+                  try {
+                    const res = await fetch(`/api/admin/users/${pendingApproveUser.id || pendingApproveUser._id}`, {
+                      method: "PUT",
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'x-user-id': user?.id || user?._id || '',
+                        'x-user-role': user?.role || ''
+                      },
+                      body: JSON.stringify({
+                        status: "ACTIVE",
+                        role: selectedRole
+                      })
+                    });
+                    if (res.ok) {
+                      mutate('/api/admin/users?page=1&limit=10&search=&status=ACTIVE_OR_LOCKED&role=ALL');
+                      mutate('/api/admin/users?all=true');
+                      setPendingApproveUser(null);
+                      window.dispatchEvent(new Event("storage"));
+                    }
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setIsActionSubmitting(false);
+                  }
+                }}
+                disabled={isActionSubmitting}
+                className="flex-1 h-12 bg-[#a07800] hover:bg-[#a07800]/80 text-black font-black uppercase text-[10px] tracking-widest rounded-xl transition-all shadow-xl shadow-[#a07800]/20 disabled:opacity-50"
+              >
+                Phê duyệt & Đồng ý
+              </button>
+            </div>
+
+            {/* Link directly to staff page */}
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => {
+                  setPendingApproveUser(null);
+                  router.push("/admin/staff?tab=pending");
+                }}
+                className="text-[10px] font-black text-gray-500 hover:text-[#a07800] uppercase tracking-widest transition-all bg-transparent border-none outline-none cursor-pointer"
+              >
+                Xem chi tiết tại trang Quản trị Nhân sự →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

@@ -299,39 +299,42 @@ export default function AdminLayout({
       return;
     }
 
-    try {
-      // 2. Fetch Cài đặt và Phạt (Gộp lại để xử lý 1 lần)
-      const [settingsRes, finesRes] = await Promise.all([
-        fetch('/api/admin/settings').then(r => r.json()),
-        fetch('/api/admin/fines', {
+    const fetchFines = async () => {
+      try {
+        const finesRes = await fetch('/api/admin/fines', {
           headers: {
             'x-user-id': currentUser?.id || currentUser?._id || '',
             'x-user-role': currentUser?.role || ''
           }
-        }).then(r => r.json())
-      ]);
+        }).then(r => r.json());
 
-      const settings = settingsRes.success ? settingsRes.data : null;
-      const fines = Array.isArray(finesRes) ? finesRes : (finesRes?.data || []);
+        const fines = Array.isArray(finesRes) ? finesRes : (finesRes?.data || []);
+        const unpaidLateFine = (fines || []).find((f: any) => {
+          const isLateType = f.type === 'LATE' || (f.reason && (f.reason.includes("Đi muộn") || f.reason.includes("đăng nhập ngoài giờ")));
+          const isUnpaidOrPending = f.status === 'UNPAID' || f.status === 'PENDING_APPROVAL';
+          return isLateType && isUnpaidOrPending;
+        });
 
-      // 3. Kiểm tra Phạt Đi Muộn TRƯỚC TIÊN
-      const unpaidLateFine = (fines || []).find((f: any) => {
-        const isLateType = f.type === 'LATE' || (f.reason && (f.reason.includes("Đi muộn") || f.reason.includes("đăng nhập ngoài giờ")));
-        const isUnpaidOrPending = f.status === 'UNPAID' || f.status === 'PENDING_APPROVAL';
-        return isLateType && isUnpaidOrPending;
-      });
-
-      if (unpaidLateFine) {
-        setAccessStatus('LATE');
-        setFineAmount(unpaidLateFine.amount || 50000);
-        if (unpaidLateFine.lateMinutes) {
-          setLateMins(unpaidLateFine.lateMinutes);
+        if (unpaidLateFine) {
+          setAccessStatus('LATE');
+          setFineAmount(unpaidLateFine.amount || 50000);
+          if (unpaidLateFine.lateMinutes) {
+            setLateMins(unpaidLateFine.lateMinutes);
+          }
+          setActiveFine(unpaidLateFine);
+          return true;
         }
-        setIsChecking(false);
-        return; // Dừng luồng ở đây, bung màn hình Phạt!
+      } catch (err) {
+        console.error("fetchFines error:", err);
       }
+      setActiveFine(null);
+      return false;
+    };
 
-      // 4. Nếu không nợ phạt, kiểm tra Giờ giấc
+    try {
+      const settingsRes = await fetch('/api/admin/settings').then(r => r.json());
+      const settings = settingsRes.success ? settingsRes.data : null;
+
       const nowTime = new Date();
       const utcTime = nowTime.getTime() + nowTime.getTimezoneOffset() * 60000;
       const vnTime = new Date(utcTime + 3600000 * 7);
@@ -356,12 +359,16 @@ export default function AdminLayout({
         setIsChecking(false);
         return;
       }
+
+      if (isWithinWorkingHours) {
+        const hasFine = await fetchFines();
+        if (!hasFine) {
+          setAccessStatus('GRANTED');
+        }
+      }
     } catch (err) {
       console.error("checkAccess error:", err);
     }
-
-    // 5. Mọi thứ hợp lệ -> Cho vào làm
-    setAccessStatus('GRANTED');
     setIsChecking(false);
   };
 
@@ -377,6 +384,7 @@ export default function AdminLayout({
  const [isLate, setIsLate] = useState(false);
  const [lateMins, setLateMins] = useState(0);
  const [fineAmount, setFineAmount] = useState(0);
+ const [activeFine, setActiveFine] = useState<any>(null);
  const [isFinePaid, setIsFinePaid] = useState(false);
  const [showQRModal, setShowQRModal] = useState(false);
  const [fineSuccessToast, setFineSuccessToast] = useState<string | null>(null);
@@ -700,12 +708,16 @@ const totalWorkingMins = overlap1 + overlap2;
  const mins = H * 60 + M;
  if (mins > 480) { // 8:00 AM
  const diff = mins - 480;
+ if (!activeFine) {
  setLateMins(diff);
+ }
 
  let amt = 50000;
  if (diff >= 1 && diff <= 5) amt = 10000;
  else if (diff >= 6 && diff <= 19) amt = 20000;
+ if (!activeFine) {
  setFineAmount(amt);
+ }
 
  // If they are late and user profile isLateLocked hasn't been set yet
  if (userProfile && userProfile.isLateLocked === undefined) {
@@ -1748,25 +1760,60 @@ const typingTimer = setInterval(checkTyping, 1000);
  )}
 
  {/* Late Access Lock Screen */}
- {!shouldLock && isLateLocked && (
+{!shouldLock && isLateLocked && (
  <div className="fixed inset-0 z-[500] bg-[#070707]/75 backdrop-blur-md text-white flex flex-col items-center justify-center p-6 overflow-y-auto custom-scrollbar">
  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.05)_0%,transparent_70%)] pointer-events-none" />
 
  <div className="w-full max-w-2xl bg-sidebar/85 backdrop-blur-lg border border-gold/20 rounded-[32px] p-8 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] shadow-gold/5 relative overflow-hidden text-center my-auto">
- {isPendingApproval ? (
- <div className="py-12 space-y-6">
- <div className="h-16 px-10 rounded-2xl bg-gold/10 border border-gold/20 text-gold font-black uppercase tracking-widest flex items-center justify-center gap-3 animate-pulse">
- ⏳ Hệ thống đang xử lý... Vui lòng chờ Admin phê duyệt yêu cầu của bạn!
- </div>
- <div className="pt-6">
- <button
- onClick={handleLogout}
- className="px-8 h-12 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg shadow-red-500/5"
- >
- Đăng xuất
- </button>
- </div>
- </div>
+  {isPendingApproval ? (
+    <div className="py-10 px-4 space-y-8 flex flex-col items-center justify-center animate-fade-in">
+      {/* Multilayered Animated Loading Icon */}
+      <div className="relative flex items-center justify-center mb-2">
+        {/* Inner pulsating glow */}
+        <div className="absolute inset-0 rounded-full bg-amber-500/10 blur-xl animate-pulse" />
+        
+        {/* Double ring border */}
+        <div className="h-24 w-24 rounded-full border border-amber-500/20 border-dashed animate-[spin_25s_linear_infinite] absolute" />
+        <div className="h-20 w-20 rounded-full border border-amber-500/30 animate-[spin_12s_linear_infinite_reverse] absolute" />
+
+        {/* Main Loader Icon Badge */}
+        <div className="h-16 w-16 bg-gradient-to-b from-amber-500/10 to-amber-950/30 border border-amber-500/30 text-amber-400 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.15)] relative z-10">
+          <Loader2 size={36} className="animate-spin text-gold" style={{ animationDuration: '3s' }} />
+        </div>
+      </div>
+
+      {/* Premium Typography */}
+      <div className="space-y-3 text-center">
+        <h2 className="text-3xl font-extrabold uppercase tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500">
+          Đang xử lý yêu cầu...
+        </h2>
+        <div className="w-16 h-1 bg-gradient-to-r from-amber-400 to-amber-600 mx-auto rounded-full" />
+      </div>
+
+      {/* Elegant Notification Card */}
+      <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden backdrop-blur-sm">
+        <div className="absolute top-0 left-0 w-1 h-full bg-amber-500 animate-pulse" />
+        <p className="text-gray-300 text-sm font-medium leading-relaxed text-left">
+          Hệ thống đang tiếp nhận bằng chứng của bạn. Vui lòng chờ **Admin hoặc Quản lý** đối soát và phê duyệt yêu cầu để tự động mở khóa tài khoản!
+        </p>
+        <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center text-[10px] text-gray-500 uppercase tracking-widest font-black">
+          <span>Trạng thái kiểm duyệt:</span>
+          <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold uppercase tracking-wider animate-pulse">
+            Chờ phê duyệt
+          </span>
+        </div>
+      </div>
+
+      {/* Premium Action Buttons */}
+      <div className="pt-4 flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
+        <button
+          onClick={handleLogout}
+          className="px-8 h-12 bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/20 text-gray-300 hover:text-red-400 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2"
+        >
+          Đăng xuất tài khoản
+        </button>
+      </div>
+    </div>
  ) : (() => {
  // Calculate isDeniedApproval here
  let isDeniedApproval = false;
