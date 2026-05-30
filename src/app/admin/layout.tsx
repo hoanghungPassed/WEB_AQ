@@ -317,47 +317,54 @@ export default function AdminLayout({
     const startMins = openH * 60 + openM - 10; // Allow 10 minutes early check-in
     const closeMins = closeH * 60 + closeM;
 
-    const isInsideHours = vnTotalMinutes >= startMins && vnTotalMinutes < closeMins;
+    const isWithinWorkingHours = vnTotalMinutes >= startMins && vnTotalMinutes < closeMins;
 
-    if (!isInsideHours) {
+    if (!isWithinWorkingHours) {
       setAccessStatus('CLOSED');
       return;
     }
 
-    // Inside hours: Check if they have an unpaid LATE fine for today
-    try {
-      const res = await fetch("/api/admin/fines", {
-        headers: {
-          'x-user-id': currentUser?.id || currentUser?._id || '',
-          'x-user-role': currentUser?.role || ''
-        }
-      });
-      if (res.ok) {
-        const finesList = await res.json();
-        // Filter LATE type fines created today that are UNPAID
-        const todayDateStr = vnTime.toISOString().split("T")[0];
-        const unpaidTodayLateFine = (finesList || []).find((f: any) => {
-          const isLateType = f.reason && (f.reason.includes("Đi muộn") || f.reason.includes("đăng nhập ngoài giờ"));
-          const isToday = f.createdAt && f.createdAt.startsWith(todayDateStr);
-          const isUnpaid = f.status === "UNPAID";
-          return isLateType && isToday && isUnpaid;
-        });
-
-        if (unpaidTodayLateFine) {
-          setAccessStatus('LATE');
-          // Automatically set late info for the modal
-          setFineAmount(unpaidTodayLateFine.amount || 50000);
-          if (unpaidTodayLateFine.lateMinutes) {
-            setLateMins(unpaidTodayLateFine.lateMinutes);
+    const fetchFines = async () => {
+      try {
+        const res = await fetch("/api/admin/fines", {
+          headers: {
+            'x-user-id': currentUser?.id || currentUser?._id || '',
+            'x-user-role': currentUser?.role || ''
           }
-          return;
-        }
-      }
-    } catch (err) {
-      console.error("checkAccess fines check failed:", err);
-    }
+        });
+        if (res.ok) {
+          const finesList = await res.json();
+          // Filter LATE type fines created today that are UNPAID
+          const todayDateStr = vnTime.toISOString().split("T")[0];
+          const unpaidTodayLateFine = (finesList || []).find((f: any) => {
+            const isLateType = f.reason && (f.reason.includes("Đi muộn") || f.reason.includes("đăng nhập ngoài giờ"));
+            const isToday = f.createdAt && f.createdAt.startsWith(todayDateStr);
+            const isUnpaid = f.status === "UNPAID";
+            return isLateType && isToday && isUnpaid;
+          });
 
-    setAccessStatus('GRANTED');
+          if (unpaidTodayLateFine) {
+            setAccessStatus('LATE');
+            // Automatically set late info for the modal
+            setFineAmount(unpaidTodayLateFine.amount || 50000);
+            if (unpaidTodayLateFine.lateMinutes) {
+              setLateMins(unpaidTodayLateFine.lateMinutes);
+            }
+            return true;
+          }
+        }
+      } catch (err) {
+        console.error("checkAccess fines check failed:", err);
+      }
+      return false;
+    };
+
+    if (isWithinWorkingHours) {
+      const hasFine = await fetchFines();
+      if (!hasFine) {
+        setAccessStatus('GRANTED');
+      }
+    }
   }
 
  const [isAccessGranted, setIsAccessGranted] = useState(false);

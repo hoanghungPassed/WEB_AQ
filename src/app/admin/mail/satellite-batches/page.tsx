@@ -20,6 +20,7 @@ import {
 } from"lucide-react";
 import { motion, AnimatePresence } from"framer-motion";
 import { useRouter } from"next/navigation";
+import useSWR from "swr";
 
 interface BatchItem {
  _id?: string;
@@ -58,6 +59,7 @@ export default function SatelliteBatchesPage() {
  const [newBatchName, setNewBatchName] = useState("");
  const [targetStaffId, setTargetStaffId] = useState("");
  const [isSubmitting, setIsSubmitting] = useState(false);
+ const [showRangeModal, setShowRangeModal] = useState(false);
 
  // Group unassigned satellite mails in chunks of 17 (cuốn chiếu)
  const unassignedMailChunks = useMemo(() => {
@@ -1203,14 +1205,22 @@ export default function SatelliteBatchesPage() {
  </div>
  </div>
  ))}
- {(batchMails || []).length === 0 && (
- <div className="h-full flex flex-col items-center justify-center text-center py-20">
- <Mail className="mb-3 animate-pulse" size={32} />
- <p className="text-sm text-gray-500 uppercase font-black tracking-widest">
- Lô trống, hãy gán cuốn chiếu ở bên trái
- </p>
- </div>
- )}
+  {(batchMails || []).length === 0 && (
+  <div className="h-full flex flex-col items-center justify-center text-center py-20 space-y-6">
+  <div className="flex flex-col items-center">
+  <Mail className="mb-3 animate-pulse text-gold" size={40} />
+  <p className="text-sm text-gray-400 uppercase font-black tracking-widest">
+  Lô trống, hãy chọn dải mail từ kho
+  </p>
+  </div>
+  <button
+  onClick={() => setShowRangeModal(true)}
+  className="px-6 py-3.5 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest rounded-2xl transition-all shadow-xl shadow-gold/20 flex items-center gap-2"
+  >
+  📥 Chọn Dải Mail Từ Kho
+  </button>
+  </div>
+  )}
  </div>
  </div>
 
@@ -1232,6 +1242,36 @@ export default function SatelliteBatchesPage() {
  </motion.div>
  )}
  </AnimatePresence>
+
+  {/* Range Selection Modal */}
+  <AnimatePresence>
+  {showRangeModal && selectedBatch && (
+    <RangeSelectionModal
+      batchId={selectedBatch._id || selectedBatch.id}
+      onClose={() => setShowRangeModal(false)}
+      onSelectSuccess={async () => {
+        triggerToast("Gán dải mail thành công!");
+        try {
+          const mailRes = await fetch("/api/admin/mails?type=SATELLITE&all=true");
+          if (mailRes.ok) {
+            const mailData = await mailRes.json();
+            if (mailData.success && mailData.data) {
+              localStorage.setItem("global_mails_data", JSON.stringify(mailData.data));
+              window.dispatchEvent(new Event("storage"));
+              
+              const inBatch = mailData.data.filter((m: any) => 
+                m.type === "SATELLITE" && 
+                m.batchName === selectedBatch.name && 
+                String(m.assigneeId) === String(selectedStaff.id)
+              );
+              setBatchMails(inBatch);
+            }
+          }
+        } catch (_) {}
+      }}
+    />
+  )}
+  </AnimatePresence>
 
  {/* Add Mail Modal */}
  <AnimatePresence>
@@ -1549,4 +1589,121 @@ function formatDate(dateStr: string) {
  } catch {
  return dateStr;
  }
+}
+
+interface RangeSelectionModalProps {
+  batchId: string;
+  onClose: () => void;
+  onSelectSuccess: () => void;
+}
+
+function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelectionModalProps) {
+  const fetcher = (url: string) => fetch(url).then((res) => res.json());
+  const { data, error, mutate } = useSWR("/api/admin/mails/available-ranges", fetcher);
+  const [isAssigning, setIsAssigning] = useState(false);
+
+  const ranges = data?.data || [];
+  const isLoading = !data && !error;
+
+  const handleSelectRange = async (range: any) => {
+    if (isAssigning) return;
+    setIsAssigning(true);
+    try {
+      const res = await fetch(`/api/admin/mail/satellite-batches/${batchId}/assign-range`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mailIds: range.mailIds })
+      });
+      if (res.ok) {
+        mutate();
+        onSelectSuccess();
+        onClose();
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "Gán dải mail thất bại!");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi kết nối máy chủ!");
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[250] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-[#121212] border border-white/10 rounded-[32px] p-8 w-full max-w-2xl max-h-[85vh] shadow-2xl flex flex-col justify-between overflow-hidden relative">
+        <div className="absolute top-0 right-0 h-40 w-40 bg-gold/5 blur-[50px] -mr-20 -mt-20 pointer-events-none" />
+        
+        <div>
+          <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-gold/10 text-gold border border-gold/20 rounded-xl flex items-center justify-center">
+                <Layers size={20} />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white uppercase tracking-tight">Chọn Dải Mail Từ Kho</h3>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">
+                  Phân chia tự động tối đa 17 mail mỗi dải
+                </p>
+              </div>
+            </div>
+            <button 
+              onClick={onClose}
+              className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-zinc-800 text-gray-500 hover:text-white transition-all"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="space-y-3 overflow-y-auto max-h-[50vh] pr-2 custom-scrollbar min-h-[200px]">
+            {isLoading && (
+              <div className="h-40 flex flex-col items-center justify-center text-center text-gray-400 gap-2">
+                <Loader2 className="animate-spin text-gold" size={28} />
+                <span className="text-xs font-bold uppercase tracking-widest">Đang tải dải mail...</span>
+              </div>
+            )}
+
+            {!isLoading && ranges.length === 0 && (
+              <div className="h-40 flex flex-col items-center justify-center text-center text-gray-500">
+                <Mail size={32} className="mb-2 opacity-50" />
+                <p className="text-sm font-black uppercase tracking-widest">Kho mail trống hoặc đã được gán hết!</p>
+              </div>
+            )}
+
+            {!isLoading && ranges.map((range: any, idx: number) => (
+              <div
+                key={idx}
+                onClick={() => handleSelectRange(range)}
+                className={`p-5 rounded-2xl border bg-white/0 border-white/5 hover:border-gold/30 hover:bg-gold/5 flex items-center justify-between transition-all cursor-pointer group ${
+                  isAssigning ? "opacity-50 pointer-events-none" : ""
+                }`}
+              >
+                <div>
+                  <h4 className="text-sm font-black text-white group-hover:text-gold transition-colors">
+                    Dải {range.rangeIndex} - {range.count} mail
+                  </h4>
+                  <p className="text-[10px] text-gray-500 mt-1 font-semibold uppercase tracking-wider">
+                    STT: {range.startIndex} - {range.endIndex}
+                  </p>
+                </div>
+                <div className="h-8 px-4 rounded-xl bg-gold/10 text-gold border border-gold/10 group-hover:bg-gold group-hover:text-sidebar text-xs font-black uppercase tracking-wider flex items-center justify-center transition-all">
+                  Chọn dải này
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex gap-4 mt-8 pt-4 border-t border-white/5">
+          <button
+            onClick={onClose}
+            className="flex-1 h-12 bg-white/5 border border-white/0 text-white font-bold uppercase text-sm tracking-widest rounded-xl hover:bg-white/10 transition-all"
+          >
+            Hủy
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

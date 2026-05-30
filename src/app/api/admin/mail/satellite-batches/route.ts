@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST: Tự động hóa tạo lô mail vệ tinh (auto-slice 17 mail rảnh từ kho)
+// POST: Tạo lô mail vệ tinh rỗng
 export async function POST(req: NextRequest) {
   try {
     // ── Auth ──
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Tên lô đã tồn tại" }, { status: 400 });
     }
 
-    // ── 2. Tra cứu nhân sự & người tạo ──
+    // ── 2. Tra cứu nhân sự ──
     const UserModel = (await import("@/models/User")).default;
     const assigneeUser = await UserModel.findById(body.assignedTo);
     if (!assigneeUser) {
@@ -83,62 +83,26 @@ export async function POST(req: NextRequest) {
       if (creator) userName = creator.name;
     }
 
-    // ── 3. Auto-slice: Lấy tối đa 17 mail rảnh từ kho (FIFO) ──
-    const availableMails = await SatelliteMail.find({
-      $or: [{ isAssigned: false }, { isAssigned: { $exists: false } }],
-      status: { $in: ["ACTIVE", "LIVE"] }
-    })
-      .limit(17)
-      .sort({ createdAt: 1 });
-
-    if (availableMails.length === 0) {
-      return NextResponse.json(
-        { error: "Trong kho không còn mail rảnh để gán" },
-        { status: 400 }
-      );
-    }
-    const mailIds = availableMails.map(m => m._id);
-
-    // ── 4. Tìm Lô cuối cùng để nối tiếp STT ──
-    const lastBatch = await Batch.findOne({ type: "SATELLITE" }).sort({ createdAt: -1 });
-    const nextStartIndex = lastBatch && lastBatch.endIndex ? lastBatch.endIndex + 1 : 1;
-    const newEndIndex = nextStartIndex + availableMails.length - 1;
-
-    // ── 5. Atomic updateMany: đánh dấu mail đã gán ──
-    const batchId = `batch-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-
-    await SatelliteMail.updateMany(
-      { _id: { $in: mailIds } },
-      {
-        $set: {
-          isAssigned: true,
-          assigneeId: body.assignedTo,
-          assignedTo: assigneeUser.name,
-          batchName: body.name.trim(),
-          batchId: batchId
-        }
-      }
-    );
-
-    // ── 6. Tạo bản ghi Lô trong collection batches ──
+    // Tạo lô rỗng
     const newBatch = await Batch.create({
       name: body.name.trim(),
       type: "SATELLITE",
       importedAt: new Date().toISOString().split("T")[0],
-      mailCount: availableMails.length,
       importedBy: body.importedBy || userName,
-      startIndex: nextStartIndex,
-      endIndex: newEndIndex,
-      assignedTo: body.assignedTo
+      assignedTo: body.assignedTo,
+      mailCount: 0,
+      totalMails: 0,
+      startIndex: 0,
+      endIndex: 0
     });
 
-    // ── 7. Ghi log ──
+    // ── 3. Ghi log ──
     try {
       const { Log } = await import("@/models/Log");
       await Log.create({
         user: userName,
         role: "ADMIN",
-        action: `Tự động tạo lô "${body.name.trim()}" gán cho ${assigneeUser.name} (${availableMails.length} mail, STT ${nextStartIndex}→${newEndIndex})`,
+        action: `Tạo lô rỗng "${body.name.trim()}" gán cho ${assigneeUser.name}`,
         type: "SUCCESS",
         timestamp: new Date().toLocaleString("vi-VN")
       });
@@ -148,11 +112,11 @@ export async function POST(req: NextRequest) {
       userId || "system",
       "CREATE_BATCH_SUCCESS",
       "mails",
-      { name: body.name, assignedTo: body.assignedTo, mailCount: availableMails.length, startIndex: nextStartIndex, endIndex: newEndIndex },
+      { name: body.name, assignedTo: body.assignedTo, mailCount: 0, startIndex: 0, endIndex: 0 },
       req
     );
 
-    return NextResponse.json({ success: true, batch: newBatch });
+    return NextResponse.json({ success: true, data: newBatch, batch: newBatch });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("POST satellite batches error:", error);

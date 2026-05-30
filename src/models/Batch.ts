@@ -5,6 +5,7 @@ export interface IBatch extends Document {
   type: "ROOT" | "SATELLITE" | "MONETIZED";
   importedAt: string;
   mailCount: number;
+  totalMails?: number;
   importedBy: string;
   startIndex?: number;
   endIndex?: number;
@@ -19,6 +20,7 @@ const BatchSchema: Schema = new Schema(
     type: { type: String, required: true, enum: ["ROOT", "SATELLITE", "MONETIZED"] },
     importedAt: { type: String, required: true },
     mailCount: { type: Number, default: 0 },
+    totalMails: { type: Number, default: 0 },
     importedBy: { type: String, required: true },
     startIndex: { type: Number },
     endIndex: { type: Number },
