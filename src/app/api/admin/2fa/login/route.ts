@@ -4,6 +4,7 @@ import { verifyToken, generateBackupCodes } from '@/lib/2fa';
 import { decrypt } from '@/lib/crypto';
 import { logAuditTrail } from '@/lib/permissions';
 import { signToken, COOKIE_NAME } from '@/lib/auth';
+import dbConnect from '@/lib/mongodb';
 
 /**
  * POST /api/admin/2fa/login
@@ -11,6 +12,7 @@ import { signToken, COOKIE_NAME } from '@/lib/auth';
  * Successful verification sets a secure HttpOnly `twoFAValidated` cookie.
  */
 export async function POST(request: Request) {
+  await dbConnect();
   // Rate limiting – simple wrapper call (assume it returns a handler) – omitted for brevity
   const { token, backupCode, overtimeBypass } = await request.json();
 

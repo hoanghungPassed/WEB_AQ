@@ -3,8 +3,10 @@ import { User } from '@/models/User';
 import { generateSecret, generateQrDataUrl, generateBackupCodes } from '@/lib/2fa';
 import { encrypt } from '@/lib/crypto';
 import { logAuditTrail } from '@/lib/permissions';
+import dbConnect from '@/lib/mongodb';
 
 export async function POST(request: Request) {
+  await dbConnect();
   const { email, userId } = await request.json();
   // Only admins or the user themselves can initiate setup
   const sessionUserId = request.headers.get('x-user-id') || request.headers.get('x-session-user-id') || '';

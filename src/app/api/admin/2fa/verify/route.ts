@@ -3,6 +3,7 @@ import { User } from '@/models/User';
 import { verifyToken } from '@/lib/2fa';
 import { decrypt } from '@/lib/crypto';
 import { logAuditTrail } from '@/lib/permissions';
+import dbConnect from '@/lib/mongodb';
 
 /**
  * POST /api/admin/2fa/verify
@@ -10,6 +11,7 @@ import { logAuditTrail } from '@/lib/permissions';
  * On success, enables 2FA for the user and generates fresh backup codes.
  */
 export async function POST(request: Request) {
+  await dbConnect();
   const { token, userId } = await request.json();
 
   const sessionUserId = request.headers.get('x-user-id') || request.headers.get('x-session-user-id') || '';

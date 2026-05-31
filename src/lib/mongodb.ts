@@ -34,12 +34,13 @@ function loadDotEnvLocal(): void {
   }
 }
 
-// Bắt buộc Node.js luôn dùng Google DNS để vượt Tường lửa nhà mạng
+// Bắt buộc Node.js luôn dùng Google DNS để vượt Tường lửa nhà mạng (Chỉ dùng ở môi trường DEV nếu cần)
 function ensureDnsServers(): void {
+  if (process.env.NODE_ENV === "production") return;
   try {
     dns.setServers(["8.8.8.8", "8.8.4.4"]);
   } catch (error) {
-    console.error("⚠️ Không thể ghi đè DNS:", error);
+    // Chỉ log lỗi ở môi trường dev, production bỏ qua
   }
 }
 
@@ -63,8 +64,8 @@ if (!globalThis.mongoose) {
 }
 
 async function dbConnect(): Promise<typeof mongoose> {
-  loadDotEnvLocal();
-  ensureDnsServers(); // Gọi hàm ép DNS
+  // loadDotEnvLocal(); // Next.js handles this automatically in most cases
+  ensureDnsServers(); 
 
   const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -80,8 +81,8 @@ async function dbConnect(): Promise<typeof mongoose> {
     const opts: mongoose.ConnectOptions = {
       bufferCommands: false,
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 30000, // Tăng lên 30 giây để tránh lỗi kết nối ảo
-      socketTimeoutMS: 45000,
+      serverSelectionTimeoutMS: 10000, // Giảm xuống 10s thay vì 30s
+      socketTimeoutMS: 30000,
     };
 
     cached.promise = mongoose.connect(MONGODB_URI as string, opts).then((mongooseInstance) => {
