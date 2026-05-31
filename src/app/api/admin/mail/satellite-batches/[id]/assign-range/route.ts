@@ -5,10 +5,10 @@ import { SatelliteMail } from "@/models/SatelliteMail";
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { mailIds, startIndex, endIndex } = await req.json();
 
     if (!mailIds || !Array.isArray(mailIds)) {
