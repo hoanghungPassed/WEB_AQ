@@ -19,6 +19,8 @@ export interface IUser extends Document {
  birthYear?: string;
  phone?: string;
  address?: string;
+ baseSalary?: number;
+ allowance?: number;
  checkInTime?: string;
  checkOutTime?: string;
  offWorkTime?: string;
@@ -92,6 +94,14 @@ const userSchema = new Schema<IUser>(
  address: {
  type: String,
  default:"",
+ },
+ baseSalary: {
+ type: Number,
+ default: 5000000,
+ },
+ allowance: {
+ type: Number,
+ default: 500000,
  },
  checkInTime: {
  type: String,
