@@ -33,6 +33,44 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [showAllNotificationsModal, setShowAllNotificationsModal] = useState(false);
+  const [notifTab, setNotifTab] = useState<"UNREAD" | "READ">("UNREAD");
+  const [pendingApproveUser, setPendingApproveUser] = useState<any | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string>("04");
+  const [isActionSubmitting, setIsActionSubmitting] = useState(false);
+  const [dateTimeStr, setDateTimeStr] = useState("");
+
+  const safeText = (value: unknown) => {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "object") return "";
+    return String(value);
+  };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Real-time Date and Time Widget
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      const ss = String(now.getSeconds()).padStart(2, "0");
+      
+      const day = String(now.getDate()).padStart(2, "0");
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const year = now.getFullYear();
+      
+      const days = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+      const dayName = days[now.getDay()];
+      
+      setDateTimeStr(`${dayName}, ${day}/${month}/${year} - ${hh}:${mm}:${ss}`);
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Use SWR for notifications to optimize performance
   const { data: dbNotifs } = useSWR('/api/admin/notifications', fetcher, {
