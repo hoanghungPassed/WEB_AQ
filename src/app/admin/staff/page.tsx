@@ -701,7 +701,6 @@ export default function StaffManagementPage() {
           { time: actualTime, title: "Điểm danh sáng (Check-in)", desc: "Bắt đầu ca làm việc." },
           { time: checkoutTime || "---", title: "Điểm danh chiều (Check-out)", desc: checkoutTime ? "Hoàn tất ca làm việc." : "Đang làm việc..." }
         ];
-      }
       } else if (status === "SUNDAY") {
         workLog = [
           { time: "N/A", title: "Chủ nhật nghỉ", desc: "Ngày nghỉ cuối tuần theo quy định, không tính công làm việc." }

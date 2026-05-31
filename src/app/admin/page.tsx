@@ -494,17 +494,6 @@ export default function AdminDashboard() {
  }
  };
 
- const loadRequests = () => {
-  const saved = localStorage.getItem("pending_access_requests");
-  if (saved) setPendingRequests(JSON.parse(saved));
-  else setPendingRequests([]);
-  };
- 
-  const loadDutyRoster = () => {
-  const saved = localStorage.getItem("duty_roster");
-  if (saved) setDutyRosterData(JSON.parse(saved));
-  };
-
  useEffect(() => {
  const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
  if (storedUser) setUser(JSON.parse(storedUser));
