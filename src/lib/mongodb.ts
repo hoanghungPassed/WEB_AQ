@@ -34,38 +34,8 @@ function loadDotEnvLocal(): void {
   }
 }
 
-// Bắt buộc Node.js luôn dùng Google DNS để vượt Tường lửa nhà mạng (Chỉ dùng ở môi trường DEV nếu cần)
-function ensureDnsServers(): void {
-  if (process.env.NODE_ENV === "production") return;
-  try {
-    dns.setServers(["8.8.8.8", "8.8.4.4"]);
-  } catch (error) {
-    // Chỉ log lỗi ở môi trường dev, production bỏ qua
-  }
-}
-
-interface MongooseCache {
-  conn: typeof mongoose | null;
-  promise: Promise<typeof mongoose> | null;
-}
-
-declare global {
-  // eslint-disable-next-line no-var
-  var mongoose: MongooseCache | undefined;
-}
-
-const cached: MongooseCache = globalThis.mongoose ?? {
-  conn: null,
-  promise: null,
-};
-
-if (!globalThis.mongoose) {
-  globalThis.mongoose = cached;
-}
-
 async function dbConnect(): Promise<typeof mongoose> {
   // loadDotEnvLocal(); // Next.js handles this automatically in most cases
-  ensureDnsServers(); 
 
   const MONGODB_URI = process.env.MONGODB_URI;
 
