@@ -104,52 +104,19 @@ export default function SatelliteBatchesPage() {
  }
 
  const loadData = async () => {
-  // 1. Load Batches
-  const savedBatches = localStorage.getItem("global_satellite_batches");
-  const savedMails = localStorage.getItem("global_mails_data");
-  const mails = savedMails ? JSON.parse(savedMails) : [];
-
-  let list: BatchItem[] = [];
   try {
-    const res = await fetch("/api/admin/mail/satellite-batches");
-    if (res.ok) {
-      const data = await res.json();
+    const [batchesRes, staffRes] = await Promise.all([
+      fetch("/api/admin/mail/satellite-batches"),
+      fetch("/api/admin/users")
+    ]);
+
+    let list: BatchItem[] = [];
+    if (batchesRes.ok) {
+      const data = await batchesRes.json();
       list = data.batches || [];
       localStorage.setItem("global_satellite_batches", JSON.stringify(list));
     }
-  } catch (err) {
-    console.error("Lỗi fetch batches từ DB:", err);
-  }
 
-  if ((list || []).length === 0) {
-    if (!savedBatches) {
-      // Seed 6 default batches
-      const nowStr = new Date().toISOString().split("T")[0];
-      const defaultBatches: BatchItem[] = Array.from({ length: 6 }, (_, i) => ({
-        id: `sat-batch-${i + 1}`,
-        name: `Lô ${i + 1}`,
-        type: "SATELLITE",
-        importedAt: nowStr,
-        mailCount: 0,
-        importedBy: "Hệ thống"
-      }));
-      localStorage.setItem("global_satellite_batches", JSON.stringify(defaultBatches));
-      list = defaultBatches;
-    } else {
-      list = JSON.parse(savedBatches);
-    }
-  }
-
- // Sync mail counts dynamically
- const syncedList = (list || []).map(b => {
- const count = (mails || []).filter((m: any) => m.type ==="SATELLITE" && m.batchName === b.name).length;
- return { ...b, mailCount: count };
- });
- setBatches(syncedList);
-
-  // 2. Load Staff from API (real-time online status from DB)
-  try {
-    const staffRes = await fetch("/api/admin/users");
     if (staffRes.ok) {
       const staffData = await staffRes.json();
       const allUsers = staffData.users || staffData.data || [];
@@ -158,15 +125,39 @@ export default function SatelliteBatchesPage() {
       );
       setStaffList(staffOnly);
     }
+
+    const savedMails = localStorage.getItem("global_mails_data");
+    const mails = savedMails ? JSON.parse(savedMails) : [];
+
+    // Sync mail counts dynamically
+    const syncedList = (list || []).map(b => {
+      const count = (mails || []).filter((m: any) => m.type ==="SATELLITE" && m.batchName === b.name).length;
+      return { ...b, mailCount: count };
+    });
+    setBatches(syncedList);
+
   } catch (err) {
-    console.error("Lỗi fetch danh sách nhân sự:", err);
-    // Fallback to localStorage if API fails
+    console.error("Lỗi loadData satellite-batches:", err);
+    
+    // Fallback logic
+    const savedBatches = localStorage.getItem("global_satellite_batches");
     const savedUsers = localStorage.getItem("global_users");
+    const savedMails = localStorage.getItem("global_mails_data");
+    const mails = savedMails ? JSON.parse(savedMails) : [];
+
+    let list = savedBatches ? JSON.parse(savedBatches) : [];
     const users = savedUsers ? JSON.parse(savedUsers) : [];
+
     const staffOnly = (users || []).filter((u: any) => 
       u.role ==="04" || u.role ==="05" || u.role ==="03" || u.role ==="NHÂN VIÊN" || u.role ==="NV THỬ VIỆC" || u.role ==="QUẢN LÝ NHÂN SỰ"
     );
     setStaffList(staffOnly);
+
+    const syncedList = (list || []).map((b: any) => {
+      const count = (mails || []).filter((m: any) => m.type ==="SATELLITE" && m.batchName === b.name).length;
+      return { ...b, mailCount: count };
+    });
+    setBatches(syncedList);
   }
  };
 

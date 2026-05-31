@@ -146,7 +146,6 @@ export async function sendMail(to: string, subject: string, html: string) {
       html: html,
     });
 
-    console.log(`[MAIL SUCCESS]: Sent message ${info.messageId} successfully to ${cleanTo}.`);
     return true;
   } catch (err) {
     console.error(`[MAIL ERROR]: Failed to send notification email to ${to}:`, err);

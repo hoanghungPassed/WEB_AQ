@@ -37,12 +37,9 @@ function loadDotEnvLocal(): void {
 // Bắt buộc Node.js luôn dùng Google DNS để vượt Tường lửa nhà mạng
 function ensureDnsServers(): void {
   try {
-    console.log('DEBUG before setServers:', dns.getServers());
     dns.setServers(["8.8.8.8", "8.8.4.4"]);
-    console.log('DEBUG after setServers:', dns.getServers());
   } catch (error) {
-    console.log("⚠️ Không thể ghi đè DNS, tiếp tục dùng mặc định...");
-    console.error(error);
+    console.error("⚠️ Không thể ghi đè DNS:", error);
   }
 }
 
@@ -74,16 +71,6 @@ async function dbConnect(): Promise<typeof mongoose> {
   if (!MONGODB_URI) {
     throw new Error("❌ Vui lòng định nghĩa biến MONGODB_URI trong file .env.local");
   }
-
-  console.log('DEBUG dbConnect MONGODB_URI=', MONGODB_URI.slice(0, 40) + (MONGODB_URI.length > 40 ? '...' : ''));
-  console.log('DEBUG dbConnect dns.getServers before resolveSrv=', dns.getServers());
-  await new Promise<void>((resolve) => {
-    dns.resolveSrv('_mongodb._tcp.aq-media-cluster.uwjtsq1.mongodb.net', (err, records) => {
-      console.log('DEBUG resolveSrv err=', err);
-      console.log('DEBUG resolveSrv records=', records);
-      resolve();
-    });
-  });
 
   if (cached.conn) {
     return cached.conn;

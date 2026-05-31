@@ -696,28 +696,12 @@ export default function StaffManagementPage() {
       }
 
       let workLog: any[] = [];
-      if (status === "PRESENT") {
-        const tasks = [
-          "Kiểm tra định kỳ & dọn dẹp các tài khoản Die trong Lô",
-          "Giao việc, mời kênh YouTube vệ tinh tham gia Network",
-          "Xem giờ xem (Watch Hours) và tối ưu hóa SEO video",
-          "Chỉnh sửa thông tin khôi phục tài khoản (Recovery Email)",
-          "Tải lên video hàng loạt & quét trạng thái bản quyền kênh",
-          "Xác minh danh tính CCCD & thiết lập mã PIN AdSense",
-          "Khắc phục sự cố 2FA & cập nhật khóa bảo mật dự phòng",
-          "Hỗ trợ bộ phận kỹ thuật cấu hình luồng livestream tự động",
-          "Rà soát dữ liệu doanh thu Lô Mail Vệ Tinh quý trước"
-        ];
-        
-        const task1 = tasks[(Math.abs(dayNum * 3) + (selectedStaff.name || []).length) % (tasks || []).length];
-        const task2 = tasks[(Math.abs(dayNum * 7) + (selectedStaff.name || []).length + 2) % (tasks || []).length];
-        
+      if (hasCheckedIn) {
         workLog = [
-          { time: actualTime, title: "Điểm danh ca sáng (Check-in)", desc: "Bắt đầu ca làm việc đúng giờ và thực hiện đồng bộ hóa hệ thống." },
-          { time: "10:30", title: `Nhiệm vụ chính: ${task1}`, desc: "Báo cáo tiến độ đầy đủ cho quản lý và đảm bảo chất lượng công việc." },
-          { time: "14:15", title: `Nhiệm vụ phụ: ${task2}`, desc: "Hoạt động ghi nhận trơn tru, không có sự cố kỹ thuật phát sinh." },
-          { time: checkoutTime, title: "Điểm danh ca chiều (Check-out)", desc: "Hoàn tất ca làm việc, ký số nhật ký công việc đầy đủ." }
+          { time: actualTime, title: "Điểm danh sáng (Check-in)", desc: "Bắt đầu ca làm việc." },
+          { time: checkoutTime || "---", title: "Điểm danh chiều (Check-out)", desc: checkoutTime ? "Hoàn tất ca làm việc." : "Đang làm việc..." }
         ];
+      }
       } else if (status === "SUNDAY") {
         workLog = [
           { time: "N/A", title: "Chủ nhật nghỉ", desc: "Ngày nghỉ cuối tuần theo quy định, không tính công làm việc." }

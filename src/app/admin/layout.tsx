@@ -459,7 +459,6 @@ export default function AdminLayout({
  try {
  res = await fetch(`/api/sync?t=${Date.now()}`, { cache:"no-store", headers: { 'Cache-Control': 'no-cache' } });
  } catch (error) {
- console.debug("Sync tạm thời gián đoạn:", error);
  return;
  }
  if (!res.ok) return;
@@ -540,7 +539,6 @@ export default function AdminLayout({
  window.dispatchEvent(new Event("storage"));
  }
  } catch (err) {
- console.debug("Sync tạm thời gián đoạn:", err);
  }
  }, []);
 

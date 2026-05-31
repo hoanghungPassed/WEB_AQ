@@ -332,7 +332,7 @@ export default function SettingsPage() {
 
  // Account holder simulated lookup triggered manually
  const handleLookupAccount = () => {
- if (!bankAccountNumber || (bankAccountNumber || []).length < 6) {
+ if (!bankAccountNumber || bankAccountNumber.length < 6) {
  triggerToast("Vui lòng nhập STK hợp lệ để tra cứu!");
  return;
  }
@@ -341,24 +341,12 @@ export default function SettingsPage() {
  setLookupSuccess(null);
 
  setTimeout(() => {
- const lastNamePool = ["NGUYEN","TRAN","PHAM","LE","HOANG","VU","PHAN","DANG","BUI","DO"];
- const middleNamePool = ["VAN","THI","MINH","ANH","DUC","HONG","XUAN","HUY","HAI","NGOC"];
- const firstNamePool = ["HUNG","DUNG","LAN","MAI","PHONG","NAM","LONG","VY","LINH","TRANG","THANG","TUAN","MINH","THAO","TUNG"];
- 
- let hash = 0;
- for (let i = 0; i < (bankAccountNumber || []).length; i++) {
- hash += bankAccountNumber.charCodeAt(i) * (i + 1);
- }
- 
- const ln = lastNamePool[hash % (lastNamePool || []).length];
- const mn = middleNamePool[(hash >> 2) % (middleNamePool || []).length];
- const fn = firstNamePool[(hash >> 4) % (firstNamePool || []).length];
- 
- const simulatedName = `${ln} ${mn} ${fn}`;
- setBankAccountHolder(simulatedName);
- setIsLookingUp(false);
- setLookupSuccess(true);
- triggerToast("Đã tra cứu & xác thực tài khoản!");
+   // In a real app, this would call a banking API. 
+   // Removing mock name generation as requested.
+   setBankAccountHolder("Tài khoản đã nhập"); 
+   setIsLookingUp(false);
+   setLookupSuccess(true);
+   triggerToast("Đã ghi nhận thông tin tài khoản!");
  }, 800);
  };
 

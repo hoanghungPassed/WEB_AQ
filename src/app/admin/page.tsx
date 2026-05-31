@@ -172,39 +172,7 @@ export default function AdminDashboard() {
  if (saved) {
  setPosts(JSON.parse(saved));
  } else {
- const initialPosts = [
- {
- id:"post-1",
- authorName:"Nguyễn Admin",
- authorRole:"ADMIN",
- text:"Chào mừng toàn thể anh chị em đến với hệ thống quản trị AQ MEDIA phiên bản nâng cấp hoàn hảo! Chúc cả nhà một tuần làm việc hiệu suất bùng nổ, vượt chỉ tiêu KPI đã đề ra! 🚀🔥",
- imageUrl:"https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&auto=format&fit=crop&q=60",
- likes: 12,
- likedBy: [],
- comments: [
- {
- id:"cmt-1",
- authorName:"Trần Quản Lý CV",
- authorRole:"QL CÔNG VIỆC",
- text:"Phiên bản mới đẹp xuất sắc sếp ơi! Hệ thống mượt mà quá! 😍",
- timestamp:"10 phút trước"
- }
- ],
- timestamp:"1 giờ trước"
- },
- {
- id:"post-2",
- authorName:"Trần Quản Lý CV",
- authorRole:"QL CÔNG VIỆC",
- text:"Mọi người chú ý hoàn thành phân công mail trong ngày nhé! Ai thiếu link nhớ cập nhật ngay trước 17:00 nha. Cảm ơn cả nhà!",
- likes: 8,
- likedBy: [],
- comments: [],
- timestamp:"3 giờ trước"
- }
- ];
- localStorage.setItem("global_newsfeed_posts", JSON.stringify(initialPosts));
- setPosts(initialPosts);
+ setPosts([]);
  }
  };
 
@@ -440,12 +408,14 @@ export default function AdminDashboard() {
 
  const refreshStats = async () => {
  try {
- const [mailsRes, tasksRes] = await Promise.all([
+ const [mailsRes, tasksRes, statsRes] = await Promise.all([
  fetch('/api/admin/mails'),
- fetch('/api/admin/tasks')
+ fetch('/api/admin/tasks'),
+ fetch('/api/admin/stats')
  ]);
  const mailsData = await mailsRes.json();
  const tasksData = await tasksRes.json();
+ const apiStatsData = await statsRes.json();
  
  const currentMails = mailsData.success ? mailsData.data : [];
  const currentTasks = tasksData.success ? tasksData.data : [];
@@ -492,18 +462,14 @@ export default function AdminDashboard() {
  }));
  }
 
- fetch('/api/admin/stats')
-   .then(res => res.json())
-   .then(data => {
-     if (data.success && data.data) {
-       setStats((prev: any) => ({ ...prev, ...data.data }));
-       if (data.data.checkInTime) setCheckInTime(data.data.checkInTime);
-       if (data.data.checkOutTime) setCheckOutTime(data.data.checkOutTime);
-     } else {
-       setStats((prev: any) => ({ ...prev, ...data }));
-     }
-   })
-   .catch(err => console.debug("Lỗi lấy API stats:", err));
+ // Apply API stats
+ if (apiStatsData.success && apiStatsData.data) {
+   setStats((prev: any) => ({ ...prev, ...apiStatsData.data }));
+   if (apiStatsData.data.checkInTime) setCheckInTime(apiStatsData.data.checkInTime);
+   if (apiStatsData.data.checkOutTime) setCheckOutTime(apiStatsData.data.checkOutTime);
+ } else {
+   setStats((prev: any) => ({ ...prev, ...apiStatsData }));
+ }
  
  } catch (error) {
  console.error("Error refreshing stats", error);
@@ -528,25 +494,37 @@ export default function AdminDashboard() {
  }
  };
 
+ const loadRequests = () => {
+  const saved = localStorage.getItem("pending_access_requests");
+  if (saved) setPendingRequests(JSON.parse(saved));
+  else setPendingRequests([]);
+  };
+ 
+  const loadDutyRoster = () => {
+  const saved = localStorage.getItem("duty_roster");
+  if (saved) setDutyRosterData(JSON.parse(saved));
+  };
+
  useEffect(() => {
  const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
  if (storedUser) setUser(JSON.parse(storedUser));
 
- const savedKPI = null;
- if (savedKPI) setKpi(JSON.parse(savedKPI));
+ // Parallel load all data
+ Promise.all([
+   refreshStats(),
+   loadStaff(),
+   loadRequests(),
+   loadPosts(),
+   loadDutyRoster()
+ ]).catch(err => console.error("Initial data load error:", err));
 
- refreshStats();
- loadStaff();
- loadRequests();
- loadPosts();
- loadDutyRoster();
  const staffInterval = setInterval(() => {
  loadStaff();
  loadRequests();
  loadDutyRoster();
  const saved = localStorage.getItem("global_newsfeed_posts");
  if (saved) setPosts(JSON.parse(saved));
- }, 2000);
+ }, 10000); // Increased interval to 10s for performance
 
  const handleStorage = (e: StorageEvent) => {
  if (e.key ==="global_kpi_data" && e.newValue) {
