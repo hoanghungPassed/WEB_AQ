@@ -1,6 +1,7 @@
 import { NextResponse } from"next/server";
 import dbConnect from"@/lib/mongodb";
 import { SyncStore } from"@/models/SyncStore";
+import { getAuthUser } from "@/lib/auth";
 
 export const dynamic ="force-dynamic";
 
@@ -26,14 +27,39 @@ export async function POST(req: Request) {
  try {
  await dbConnect();
  const body = await req.json();
+ 
+ const authUser = await getAuthUser();
+ const roleStr = String(authUser?.role || "").toUpperCase();
+ const isAdminOrManager = 
+   roleStr === "01" || 
+   roleStr === "02" || 
+   roleStr === "ADMIN" || 
+   roleStr.includes("QUẢN LÝ") || 
+   roleStr === "QL CÔNG VIỆC";
 
- const ops = Object.entries(body).map(([key, value]) => ({
- updateOne: {
- filter: { key },
- update: { $set: { key, value: value as string } },
- upsert: true,
- },
- }));
+ const ops = [];
+ for (const [key, value] of Object.entries(body)) {
+   // BẢO MẬT TỐI ĐA: Nhân viên KHÔNG được phép ghi đè các key nhạy cảm
+   const isSensitiveKey = 
+     key === "global_users" || 
+     key.startsWith("access_response_") || 
+     key.startsWith("access_") || 
+     key === "admin_notifications" || 
+     key === "pending_access_requests";
+     
+   if (isSensitiveKey && !isAdminOrManager) {
+     // Nếu là employee mà cố tình gửi key nhạy cảm -> Bỏ qua key này
+     continue;
+   }
+
+   ops.push({
+     updateOne: {
+       filter: { key },
+       update: { $set: { key, value: value as string } },
+       upsert: true,
+     },
+   });
+ }
 
  if (ops.length > 0) {
  await SyncStore.bulkWrite(ops);

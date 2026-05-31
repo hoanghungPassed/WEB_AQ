@@ -1,82 +1,56 @@
-export const dynamic = "force-dynamic";
-
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Batch from "@/models/Batch";
 import { SatelliteMail } from "@/models/SatelliteMail";
-import { getAuthUser } from "@/lib/auth";
-import { checkPermission, logAuditTrail } from "@/lib/permissions";
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    // ── Auth & Permissions ──
-    let userId = req.headers.get("x-user-id");
-    let userRole = req.headers.get("x-user-role");
+    const { id } = params;
+    const { mailIds, startIndex, endIndex } = await req.json();
 
-    if (!userId) {
-      const authUser = await getAuthUser();
-      if (authUser) {
-        userId = authUser.userId;
-        userRole = authUser.role;
-      }
+    if (!mailIds || !Array.isArray(mailIds)) {
+      return NextResponse.json({ success: false, error: "Thiếu danh sách mailIds" }, { status: 400 });
     }
 
-    const hasPermission = await checkPermission(userRole || "", 3, ["all", "tasks", "staff"]);
-    if (!hasPermission) {
-      return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
-    }
-
-    // ── Connect & Parse ──
     await dbConnect();
-    const { id } = await params;
-    const body = await req.json();
 
-    const { mailIds } = body;
-    if (!Array.isArray(mailIds) || mailIds.length === 0) {
-      return NextResponse.json({ error: "Thiếu danh sách mailIds" }, { status: 400 });
-    }
-
-    // ── Find Batch ──
     const batch = await Batch.findById(id);
     if (!batch) {
-      return NextResponse.json({ error: "Không tìm thấy lô mail" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Lô không tồn tại" }, { status: 404 });
     }
 
-    // ── Bulk update SatelliteMail ──
-    await SatelliteMail.updateMany(
+    // 1. Cập nhật các mail trong dải đã chọn
+    const updateResult = await SatelliteMail.updateMany(
       { _id: { $in: mailIds } },
       {
         $set: {
           isAssigned: true,
-          assigneeId: batch.assignedTo,
-          assignedTo: batch.assignedTo, // as specified: assignedTo: batch.assignedTo
+          assignedTo: batch.assignedTo,
           batchId: batch._id,
-          batchName: batch.name
+          batchName: batch.name,
+          assigneeId: batch.assignedTo
         }
       }
     );
 
-    // ── Update Batch totalMails & mailCount ──
-    batch.totalMails = (batch.totalMails || 0) + mailIds.length;
-    batch.mailCount = (batch.mailCount || 0) + mailIds.length;
+    // 2. Cập nhật thông tin lô
+    batch.totalMails = mailIds.length;
+    batch.mailCount = mailIds.length;
+    if (startIndex !== undefined) batch.startIndex = startIndex;
+    if (endIndex !== undefined) batch.endIndex = endIndex;
+    
     await batch.save();
 
-    // ── Log success ──
-    await logAuditTrail(
-      userId || "system",
-      "ASSIGN_RANGE_SUCCESS",
-      "mails",
-      { batchId: batch._id, count: mailIds.length },
-      req
-    );
-
-    return NextResponse.json({ success: true, data: batch, message: "Gán dải mail vào lô thành công" });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-    console.error("PUT assign-range error:", error);
-    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
+    return NextResponse.json({ 
+      success: true, 
+      message: `Đã gán thành công ${mailIds.length} mail vào ${batch.name}`,
+      updatedCount: updateResult.modifiedCount
+    });
+  } catch (error: any) {
+    console.error("Assign range error:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

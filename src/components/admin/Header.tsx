@@ -17,7 +17,10 @@ interface HeaderProps {
 const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: HeaderProps) => {
   const router = useRouter();
   const fetcher = (url: string) => fetch(url).then(res => res.json());
-  const { data: messagesData } = useSWR('/api/messages', fetcher);
+  const { data: messagesData } = useSWR('/api/messages', fetcher, {
+    refreshInterval: 10000, // Poll every 10 seconds
+    dedupingInterval: 5000  // Dedup requests within 5 seconds
+  });
   const messagesArray: any[] = Array.isArray(messagesData?.data)
     ? messagesData.data
     : Array.isArray(messagesData)
@@ -30,54 +33,15 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
-  const [showAllNotificationsModal, setShowAllNotificationsModal] = useState(false);
-  const [notifTab, setNotifTab] = useState<"UNREAD" | "READ">("UNREAD");
-  const [pendingApproveUser, setPendingApproveUser] = useState<any | null>(null);
-  const [selectedRole, setSelectedRole] = useState<string>("04");
-  const [isActionSubmitting, setIsActionSubmitting] = useState(false);
-  const [dateTimeStr, setDateTimeStr] = useState("");
 
-  const safeText = (value: unknown) => {
-    if (value === null || value === undefined) return "";
-    if (typeof value === "object") return "";
-    return String(value);
-  };
+  // Use SWR for notifications to optimize performance
+  const { data: dbNotifs } = useSWR('/api/admin/notifications', fetcher, {
+    refreshInterval: 30000,
+    dedupingInterval: 10000
+  });
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Real-time Date and Time Widget
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const hh = String(now.getHours()).padStart(2, "0");
-      const mm = String(now.getMinutes()).padStart(2, "0");
-      const ss = String(now.getSeconds()).padStart(2, "0");
-      
-      const day = String(now.getDate()).padStart(2, "0");
-      const month = String(now.getMonth() + 1).padStart(2, "0");
-      const year = now.getFullYear();
-      
-      const days = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
-      const dayName = days[now.getDay()];
-      
-      setDateTimeStr(`${dayName}, ${day}/${month}/${year} - ${hh}:${mm}:${ss}`);
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const loadNotifs = async () => {
-      let stored = [];
-      try {
-        const res = await fetch('/api/admin/notifications');
-        if (res.ok) stored = await res.json();
-      } catch (err) {}
-      
-      // Nạp thêm thông báo hệ thống (như đăng ký mới, cập nhật role) từ localStorage admin_notifications
+    const loadLocalNotifs = () => {
       let adminNotifs = [];
       try {
         adminNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
@@ -98,24 +62,18 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           data: req
         }));
       }
-      
-      // Kết hợp tất cả các nguồn thông báo
-      setNotifications([...stored, ...adminNotifs, ...accessNotifs]);
+
+      const dbNotifications = Array.isArray(dbNotifs) ? dbNotifs : (dbNotifs?.data || []);
+      setNotifications([...dbNotifications, ...adminNotifs, ...accessNotifs]);
     };
 
-    loadNotifs();
-    const interval = setInterval(loadNotifs, 30000); 
-    
+    loadLocalNotifs();
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === "admin_notifications" || e.key === "pending_access_requests" || e.key === "request_trigger") loadNotifs();
+      if (e.key === "admin_notifications" || e.key === "pending_access_requests" || e.key === "request_trigger") loadLocalNotifs();
     };
     window.addEventListener("storage", handleStorage);
-    
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("storage", handleStorage);
-    };
-  }, [user?.role]);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [user?.role, dbNotifs]);
 
   const filteredNotifications = (notifications || []).filter(n => {
     if (n.type === "REGISTRATION") {

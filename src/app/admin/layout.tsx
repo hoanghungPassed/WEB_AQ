@@ -246,7 +246,7 @@ export default function AdminLayout({
 
  checkRealtimeToast();
  window.addEventListener("storage", checkRealtimeToast);
- const pollInterval = setInterval(checkRealtimeToast, 1000);
+ const pollInterval = setInterval(checkRealtimeToast, 5000); // 5s thay vì 1s
 
  return () => {
  window.removeEventListener("storage", checkRealtimeToast);
@@ -283,7 +283,6 @@ export default function AdminLayout({
     if (!activeUserStr) return;
     const currentUser = JSON.parse(activeUserStr);
 
-    // 1. Lệnh bài miễn tử cho Admin/Manager
     const roleStr = String(currentUser?.role || "");
     const isAdminOrWorkManager = 
       roleStr === "01" || 
@@ -299,46 +298,26 @@ export default function AdminLayout({
       return;
     }
 
-    const fetchFines = async () => {
-      try {
-        const finesRes = await fetch('/api/admin/fines', {
+    try {
+      // Parallel fetch settings and fines
+      const [settingsRes, finesRes] = await Promise.all([
+        fetch('/api/admin/settings').then(r => r.json()),
+        fetch('/api/admin/fines', {
           headers: {
             'x-user-id': currentUser?.id || currentUser?._id || '',
             'x-user-role': currentUser?.role || ''
           }
-        }).then(r => r.json());
+        }).then(r => r.json())
+      ]);
 
-        const fines = Array.isArray(finesRes) ? finesRes : (finesRes?.data || []);
-        const unpaidLateFine = (fines || []).find((f: any) => {
-          const isLateType = f.type === 'LATE' || (f.reason && (f.reason.includes("Đi muộn") || f.reason.includes("đăng nhập ngoài giờ")));
-          const isUnpaidOrPending = f.status === 'UNPAID' || f.status === 'PENDING_APPROVAL';
-          return isLateType && isUnpaidOrPending;
-        });
-
-        if (unpaidLateFine) {
-          setAccessStatus('LATE');
-          setFineAmount(unpaidLateFine.amount || 50000);
-          if (unpaidLateFine.lateMinutes) {
-            setLateMins(unpaidLateFine.lateMinutes);
-          }
-          setActiveFine(unpaidLateFine);
-          return true;
-        }
-      } catch (err) {
-        console.error("fetchFines error:", err);
-      }
-      setActiveFine(null);
-      return false;
-    };
-
-    try {
-      const settingsRes = await fetch('/api/admin/settings').then(r => r.json());
       const settings = settingsRes.success ? settingsRes.data : null;
+      const fines = Array.isArray(finesRes) ? finesRes : (finesRes?.data || []);
 
       const nowTime = new Date();
       const utcTime = nowTime.getTime() + nowTime.getTimezoneOffset() * 60000;
       const vnTime = new Date(utcTime + 3600000 * 7);
       const vnTotalMinutes = vnTime.getHours() * 60 + vnTime.getMinutes();
+      const isSunday = vnTime.getDay() === 0;
 
       let openTimeStr = "08:00";
       let closeTimeStr = "18:00";
@@ -349,22 +328,45 @@ export default function AdminLayout({
 
       const [openH, openM] = openTimeStr.split(":").map(Number);
       const [closeH, closeM] = closeTimeStr.split(":").map(Number);
-      const startMins = openH * 60 + openM - 10; // Allow 10 minutes early check-in
+      const startMins = openH * 60 + openM - 10;
       const closeMins = closeH * 60 + closeM;
 
       const isWithinWorkingHours = vnTotalMinutes >= startMins && vnTotalMinutes < closeMins;
+      const isRestrictedRole = roleStr === "03" || roleStr === "04" || roleStr === "05" || 
+                               roleStr.includes("03") || roleStr.includes("04") || roleStr.includes("05") ||
+                               ["QL NHÂN SỰ", "NHÂN VIÊN", "NV THỬ VIỆC"].includes(roleStr.toUpperCase());
 
-      if (!isWithinWorkingHours) {
+      // Phase 2 logic integration here for better flow
+      const accessResponse = localStorage.getItem(`access_response_${currentUser?.name}`);
+      const isApprovedAccess = accessResponse === "APPROVED";
+
+      if (isSunday && isRestrictedRole && !isApprovedAccess) {
         setAccessStatus('CLOSED');
         setIsChecking(false);
         return;
       }
 
-      if (isWithinWorkingHours) {
-        const hasFine = await fetchFines();
-        if (!hasFine) {
-          setAccessStatus('GRANTED');
-        }
+      if (!isWithinWorkingHours && !isApprovedAccess) {
+        setAccessStatus('CLOSED');
+        setIsChecking(false);
+        return;
+      }
+
+      // Check fines if within hours or approved
+      const unpaidLateFine = (fines || []).find((f: any) => {
+        const isLateType = f.type === 'LATE' || (f.reason && (f.reason.includes("Đi muộn") || f.reason.includes("đăng nhập ngoài giờ")));
+        const isUnpaidOrPending = f.status === 'UNPAID' || f.status === 'PENDING_APPROVAL';
+        return isLateType && isUnpaidOrPending;
+      });
+
+      if (unpaidLateFine) {
+        setAccessStatus('LATE');
+        setFineAmount(unpaidLateFine.amount || 50000);
+        if (unpaidLateFine.lateMinutes) setLateMins(unpaidLateFine.lateMinutes);
+        setActiveFine(unpaidLateFine);
+      } else {
+        setAccessStatus('GRANTED');
+        setActiveFine(null);
       }
     } catch (err) {
       console.error("checkAccess error:", err);
@@ -405,7 +407,7 @@ export default function AdminLayout({
  };
  loadPhones();
  window.addEventListener("storage", loadPhones);
- const interval = setInterval(loadPhones, 2000);
+ const interval = setInterval(loadPhones, 10000);
  return () => {
  window.removeEventListener("storage", loadPhones);
  clearInterval(interval);
@@ -783,33 +785,43 @@ const totalWorkingMins = overlap1 + overlap2;
  }
  };
 
- syncDatabase();
- syncUserRole();
- checkNewNotifications();
- checkLateStatus();
- checkAccess();
+    syncDatabase();
+    syncUserRole();
+    checkNewNotifications();
+    checkLateStatus();
+    checkAccess();
 
- const interval = setInterval(async () => {
- // Sync trước, sau đó mới kiểm tra quyền để đảm bảo data đã được kéo từ server về
- await syncDatabase();
- syncUserRole();
- checkNewNotifications();
- checkLateStatus();
- checkAccess();
+    const interval = setInterval(async () => {
+      // Sync trước, sau đó mới kiểm tra quyền để đảm bảo data đã được kéo từ server về
+      await syncDatabase();
+      syncUserRole();
+      checkNewNotifications();
+      checkLateStatus();
+      checkAccess();
 
- // Kiểm tra định kỳ và cập nhật isAccessGranted từ localStorage đã được đồng bộ
- const activeUserStr = getActiveUserStr();
- if (activeUserStr) {
- const currentUser = JSON.parse(activeUserStr);
- const emergencyAccess = localStorage.getItem(`access_${getStableDateString()}_${currentUser?.name}`);
- const accessResponse = localStorage.getItem(`access_response_${currentUser?.name}`);
- if (emergencyAccess ==="true" || accessResponse ==="APPROVED") {
- setIsAccessGranted(true);
- } else {
- setIsAccessGranted(false);
- }
- }
- }, 1500);
+      // Kiểm tra định kỳ và cập nhật isAccessGranted từ localStorage đã được đồng bộ
+      const activeUserStr = getActiveUserStr();
+      if (activeUserStr) {
+        const currentUser = JSON.parse(activeUserStr);
+        const emergencyAccess = localStorage.getItem(`access_${getStableDateString()}_${currentUser?.name}`);
+        const accessResponse = localStorage.getItem(`access_response_${currentUser?.name}`);
+        
+        if (emergencyAccess === "true" || accessResponse === "APPROVED") {
+          setIsAccessGranted(true);
+        } else {
+          setIsAccessGranted(false);
+        }
+
+        // Cập nhật trạng thái chờ duyệt cho yêu cầu truy cập ngoài giờ/Chủ Nhật
+        const savedRequests = localStorage.getItem("pending_access_requests");
+        const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+        const hasPendingAccess = currentRequests.some((r: any) => (r.staffName === currentUser?.name || r.username === currentUser?.username) && r.status === "PENDING");
+        
+        if (hasPendingAccess) {
+          setIsPendingApproval(true);
+        }
+      }
+    }, 10000); // Tăng interval lên 10 giây để tối ưu hiệu suất
 
  const handleStorageChange = (e: StorageEvent) => {
  if (!e.key || e.key ==="global_users" || e.key ==="admin_notifications" || e.key ==="pending_access_requests" || e.key ==="request_trigger" || e.key.startsWith("checkin_time_") || e.key.startsWith("late_fine_paid_")) {
@@ -1108,7 +1120,7 @@ const totalWorkingMins = overlap1 + overlap2;
   useEffect(() => {
     if (!user) return;
     syncRealUsersFromDB();
-    const interval = setInterval(syncRealUsersFromDB, 5000);
+    const interval = setInterval(syncRealUsersFromDB, 30000);
     return () => clearInterval(interval);
   }, [user, syncRealUsersFromDB]);
 

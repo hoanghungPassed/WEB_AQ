@@ -1,4 +1,5 @@
-import { NextResponse } from"next/server";
+export const dynamic = 'force-dynamic';
+import { NextResponse } from "next/server";
 import dbConnect from"@/lib/mongodb";
 import User from"@/models/User";
 import { getAuthUser } from"@/lib/auth";

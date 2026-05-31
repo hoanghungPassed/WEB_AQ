@@ -29,9 +29,9 @@ export async function GET(req: NextRequest) {
       if (batchCount === 0) {
         const UserModel = (await import("@/models/User")).default;
         const assigneeUser = await UserModel.findById(assignedTo);
-        const suffix = assigneeUser ? ` (${assigneeUser.username})` : ` (${assignedTo})`;
+        const suffix = assigneeUser ? ` (${assigneeUser.username})` : "";
 
-        // Tự động sinh 6 lô rỗng
+        // Tự động sinh 6 lô rỗng mặc định
         const defaultBatches = [];
         for (let i = 1; i <= 6; i++) {
           defaultBatches.push({
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     if (assignedTo) {
       filter.assignedTo = assignedTo;
     }
-    const batches = await Batch.find(filter).sort({ createdAt: -1 });
+    const batches = await Batch.find(filter).sort({ createdAt: 1 }); // Sort by creation time ascending to show Lo 1, 2, 3...
 
     return NextResponse.json({ success: true, batches });
   } catch (error: unknown) {

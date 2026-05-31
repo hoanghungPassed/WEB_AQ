@@ -87,7 +87,7 @@ export default function SatelliteBatchesPage() {
  });
  }
  return chunks;
- }, [selectedBatch, toastMsg]);
+ }, [selectedBatch]);
 
  useEffect(() => {
  // Authenticate
@@ -698,7 +698,7 @@ export default function SatelliteBatchesPage() {
  ).length;
  return { ...b, mailCount: count };
  });
- }, [batches, selectedStaff, toastMsg]);
+ }, [batches, selectedStaff]);
 
  // Count how many satellite batches are currently unassigned (i.e. have no assigned mails)
  const unassignedBatchesCount = useMemo(() => {
@@ -711,7 +711,7 @@ export default function SatelliteBatchesPage() {
  const bMails = (satelliteMails || []).filter((m: any) => m.batchName === b.name);
  return (bMails || []).length === 0 || bMails.every((m: any) => !m.assigneeId);
  }).length;
- }, [batches, toastMsg]);
+ }, [batches]);
 
  const renderStaffSelectionScreen = () => {
  const savedMails = typeof window !=="undefined" ? localStorage.getItem("global_mails_data") : null;
@@ -1625,7 +1625,7 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
   const { data, error, mutate } = useSWR("/api/admin/mails/available-ranges", fetcher);
   const [isAssigning, setIsAssigning] = useState(false);
 
-  const ranges = data?.data || [];
+  const ranges = data?.data || data?.chunks || [];
   const isLoading = !data && !error;
 
   const handleSelectRange = async (range: any) => {

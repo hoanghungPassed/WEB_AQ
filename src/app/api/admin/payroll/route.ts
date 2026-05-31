@@ -91,10 +91,6 @@ async function calculateMonthlyPayroll(body: any, requesterId: string | null, re
     return NextResponse.json({ error: "Month is required in YYYY-MM format" }, { status: 400 });
   }
 
-  const baseSalaryDefault = body.baseSalary || 5000000;
-  const allowanceDefault = body.allowance || 500000;
-  const workingDaysDefault = body.workingDays || 26;
-
   // Get all ACTIVE users
   const users = await User.find({ status: "ACTIVE" }).select("-password");
 
@@ -110,6 +106,11 @@ async function calculateMonthlyPayroll(body: any, requesterId: string | null, re
 
   for (const user of users) {
     const uid = user._id.toString();
+    const workingDaysDefault = body.workingDays || 26;
+    
+    // SECURE: Lấy mức lương và phụ cấp trực tiếp từ DB User, KHÔNG lấy từ client request body.
+    const baseSalary = user.baseSalary || 5000000;
+    const allowance = user.allowance || 500000;
 
     // Count attendance days in the month
     const attendanceCount = await Attendance.countDocuments({
@@ -137,8 +138,6 @@ async function calculateMonthlyPayroll(body: any, requesterId: string | null, re
     const attendanceDays = attendanceCount || 0;
 
     // Calculate payroll
-    const baseSalary = baseSalaryDefault;
-    const allowance = allowanceDefault;
     const overtimePay = 0; // Can be expanded later
     const bonus = 0; // Can be expanded later
 
