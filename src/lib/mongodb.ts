@@ -1,7 +1,6 @@
-import dns from "dns";
+import mongoose from "mongoose";
 import fs from "fs";
 import path from "path";
-import mongoose from "mongoose";
 
 const ENV_PATH = path.join(process.cwd(), ".env.local");
 
@@ -34,6 +33,25 @@ function loadDotEnvLocal(): void {
   }
 }
 
+interface MongooseCache {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+}
+
+declare global {
+  // eslint-disable-next-line no-var
+  var mongoose: MongooseCache | undefined;
+}
+
+const cached: MongooseCache = globalThis.mongoose ?? {
+  conn: null,
+  promise: null,
+};
+
+if (!globalThis.mongoose) {
+  globalThis.mongoose = cached;
+}
+
 async function dbConnect(): Promise<typeof mongoose> {
   // loadDotEnvLocal(); // Next.js handles this automatically in most cases
 
@@ -51,7 +69,7 @@ async function dbConnect(): Promise<typeof mongoose> {
     const opts: mongoose.ConnectOptions = {
       bufferCommands: false,
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 10000, // Giảm xuống 10s thay vì 30s
+      serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 30000,
     };
 
