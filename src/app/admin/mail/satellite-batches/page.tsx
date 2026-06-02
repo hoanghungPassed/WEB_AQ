@@ -1616,7 +1616,7 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
   const { data, error, mutate } = useSWR("/api/admin/mails/available-ranges", fetcher);
   const [isAssigning, setIsAssigning] = useState(false);
 
-  const ranges = data?.data || data?.chunks || [];
+  const ranges = Array.isArray(data) ? data : (data?.data || data?.chunks || []);
   const isLoading = !data && !error;
 
   const handleSelectRange = async (range: any) => {
@@ -1695,11 +1695,8 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
               >
                 <div>
                   <h4 className="text-sm font-black text-white group-hover:text-gold transition-colors">
-                    Dải {range.rangeIndex} - {range.count} mail
+                    Dải {range.rangeIndex} ( {range.count} mail {range.startIndex} - {range.endIndex} )
                   </h4>
-                  <p className="text-[10px] text-gray-500 mt-1 font-semibold uppercase tracking-wider">
-                    STT: {range.startIndex} - {range.endIndex}
-                  </p>
                 </div>
                 <div className="h-8 px-4 rounded-xl bg-gold/10 text-gold border border-gold/10 group-hover:bg-gold group-hover:text-sidebar text-xs font-black uppercase tracking-wider flex items-center justify-center transition-all">
                   Chọn dải này

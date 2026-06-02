@@ -53,7 +53,7 @@ if (!globalThis.mongoose) {
 }
 
 async function dbConnect(): Promise<typeof mongoose> {
-  // loadDotEnvLocal(); // Next.js handles this automatically in most cases
+  loadDotEnvLocal(); // Next.js handles this automatically in most cases, but keep for scripts
 
   const MONGODB_URI = process.env.MONGODB_URI;
 

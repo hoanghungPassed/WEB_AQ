@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { User } from '@/models/User';
-import { verifyToken, generateBackupCodes } from '@/lib/2fa';
-import { decrypt } from '@/lib/crypto';
+import { verifyTokenAny, generateBackupCodes } from '@/lib/2fa';
+import { decrypt, encrypt } from '@/lib/crypto';
 import { logAuditTrail } from '@/lib/permissions';
 import { signToken, COOKIE_NAME } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
@@ -12,88 +12,152 @@ import dbConnect from '@/lib/mongodb';
  * Successful verification sets a secure HttpOnly `twoFAValidated` cookie.
  */
 export async function POST(request: Request) {
-  await dbConnect();
-  // Rate limiting – simple wrapper call (assume it returns a handler) – omitted for brevity
-  const { token, backupCode, overtimeBypass } = await request.json();
+  try {
+    await dbConnect();
+    const { token, backupCode, overtimeBypass } = await request.json();
 
-  // Retrieve user from session cookie (assume cookie value is the user ID)
-  const sessionCookie = request.headers.get('cookie')?.match(/session=([^;]*)/);
-  const userId = sessionCookie ? sessionCookie[1] : null;
-  if (!userId) {
-    await logAuditTrail('unknown', 'LOGIN_2FA', 'User', { success: false, reason: 'no_session' }, request);
-    return NextResponse.json({ error: 'Session missing' }, { status: 401 });
-  }
-
-  const user = await User.findById(userId);
-  if (!user || !user.twoFAEnabled || !user.twoFASecret) {
-    await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: false, reason: '2fa_not_enabled' }, request);
-    return NextResponse.json({ error: '2FA not enabled' }, { status: 400 });
-  }
-
-  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '';
-
-  // ----- Token verification -----
-  if (token && String(token).trim().length === 6) {
-    const secretBase32 = decrypt(user.twoFASecret);
-    if (!verifyToken(secretBase32, token)) {
-      await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: false, reason: 'invalid_token', ip }, request);
-      return NextResponse.json({ error: 'Mã xác thực OTP không chính xác hoặc đã hết hạn.' }, { status: 401 });
+    // Use the reliable manual cookie parsing
+    let userId = "";
+    try {
+      const cookieStore = request.headers.get('cookie');
+      if (cookieStore) {
+        // Robust manual parsing for session cookie
+        const pairs = cookieStore.split(';').map(c => c.trim().split('='));
+        const sessionPair = pairs.find(p => p[0] === 'session');
+        if (sessionPair) userId = sessionPair[1];
+      }
+    } catch (e) {
+      console.error("2FA Cookie Parsing Error:", e);
     }
-    // Token valid – sign full JWT token with 2FA verified flags
-    const userObj = user.toObject() as any;
-    delete userObj.password;
-    userObj.id = userObj._id.toString();
 
-    const jwtToken = signToken({
-      userId: user._id.toString(),
-      role: user.role,
-      username: user.username,
-      twoFAEnabled: true,
-      twoFAValidated: true,
-      overtimeBypass: !!overtimeBypass,
-    });
+    if (!userId) {
+      await logAuditTrail('unknown', 'LOGIN_2FA', 'User', { success: false, reason: 'no_session' }, request);
+      return NextResponse.json({ error: 'Phiên làm việc tạm thời đã hết hạn hoặc bị trình duyệt chặn (Local). Vui lòng thử đăng nhập lại.' }, { status: 401 });
+    }
 
-    const response = NextResponse.json({
-      message: '2FA success',
-      user: userObj,
-    });
+    const user = await User.findById(userId);
+    if (!user || !user.twoFAEnabled || !user.twoFASecret) {
+      await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: false, reason: '2fa_not_enabled' }, request);
+      return NextResponse.json({ error: '2FA chưa được kích hoạt cho tài khoản này.' }, { status: 400 });
+    }
 
-    // Set the standard aq_token cookie
-    response.cookies.set(COOKIE_NAME, jwtToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-    });
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '';
 
-    // Set twoFAValidated cookie for compatibility
-    response.cookies.set('twoFAValidated', '1', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 60 * 60, // 1 hour
-    });
+    // ----- Token verification -----
+    if (token && String(token).trim().length === 6) {
+      const storedSecret = String(user.twoFASecret || "").trim();
+      if (!storedSecret) {
+         return NextResponse.json({ error: 'Khóa bảo mật 2FA trống. Vui lòng liên hệ Admin.' }, { status: 500 });
+      }
 
-    // Clear temporary session cookie
-    response.cookies.delete('session');
+      let secretBase32 = "";
+      let isVerified = false;
+      let needsReEncryption = false;
 
-    await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: true, method: 'token', ip }, request);
-    return response;
-  }
+      // STRATEGY 1: Try current decryption
+      try {
+        secretBase32 = decrypt(storedSecret);
+        if (verifyTokenAny(secretBase32, token)) {
+          isVerified = true;
+        }
+      } catch (e) {
+        console.warn("2FA: Current key decryption failed.");
+      }
 
-  // ----- Backup code verification -----
-  if (backupCode) {
-    const hashedCodes = user.backupCodes || [];
-    // Verify against each hash; on success, remove that hash.
-    const bcrypt = (await import('bcryptjs')).default;
-    for (let i = 0; i < hashedCodes.length; i++) {
-      if (await bcrypt.compare(backupCode, hashedCodes[i])) {
+      // STRATEGY 2: If fail, maybe it's unencrypted Base32 or Hex (legacy)
+      if (!isVerified) {
+        if (verifyTokenAny(storedSecret, token)) {
+          secretBase32 = storedSecret.toUpperCase();
+          isVerified = true;
+          needsReEncryption = true;
+          console.log("2FA: Verified via raw legacy fallback.");
+        }
+      }
+
+      if (!isVerified) {
+        await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: false, reason: 'invalid_token_all_strategies', ip }, request);
+        return NextResponse.json({ 
+          error: 'Mã OTP không chính xác hoặc đã hết hạn. Hãy đảm bảo giờ trên điện thoại đã được đặt ở chế độ TỰ ĐỘNG (đồng bộ mạng).',
+          server_time: new Date().toLocaleTimeString("vi-VN")
+        }, { status: 401 });
+      }
+
+      // AUTO-MIGRATION: Update DB with encrypted secret using current key
+      if (needsReEncryption) {
+        try {
+          user.twoFASecret = encrypt(secretBase32);
+          await user.save();
+          console.log(`2FA: Successfully migrated/re-encrypted secret for ${user.username}`);
+        } catch (migErr) {
+          console.error("2FA: Migration encryption failed:", migErr);
+        }
+      }
+
+      // Token valid – sign full JWT token with 2FA verified flags
+      const userObj = user.toObject() as any;
+      delete userObj.password;
+      userObj.id = userObj._id.toString();
+
+      const jwtToken = signToken({
+        userId: user._id.toString(),
+        role: user.role,
+        username: user.username,
+        twoFAEnabled: true,
+        twoFAValidated: true,
+        overtimeBypass: !!overtimeBypass,
+      });
+
+      const response = NextResponse.json({
+        message: 'Xác thực 2FA thành công',
+        user: userObj,
+      });
+
+      const isProd = process.env.NODE_ENV === "production";
+
+      // Set the standard aq_token cookie
+      response.cookies.set(COOKIE_NAME, jwtToken, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+      });
+
+      // Set twoFAValidated cookie for compatibility
+      response.cookies.set('twoFAValidated', '1', {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60, // 1 hour
+      });
+
+      // Clear temporary session cookie
+      response.cookies.delete('session');
+
+      await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: true, method: 'token', ip }, request);
+      return response;
+    }
+
+    // ----- Backup code verification -----
+    if (backupCode) {
+      const hashedCodes = user.backupCodes || [];
+      const bcrypt = (await import('bcryptjs')).default;
+      
+      let foundIndex = -1;
+      for (let i = 0; i < hashedCodes.length; i++) {
+        if (await bcrypt.compare(backupCode, hashedCodes[i])) {
+          foundIndex = i;
+          break;
+        }
+      }
+
+      if (foundIndex !== -1) {
         // Remove used code
-        hashedCodes.splice(i, 1);
+        hashedCodes.splice(foundIndex, 1);
         user.backupCodes = hashedCodes;
         await user.save();
+
         const userObj = user.toObject() as any;
         delete userObj.password;
         userObj.id = userObj._id.toString();
@@ -108,24 +172,26 @@ export async function POST(request: Request) {
         });
 
         const response = NextResponse.json({
-          message: 'Backup code accepted',
+          message: 'Mã dự phòng chính xác',
           user: userObj,
         });
+
+        const isProd = process.env.NODE_ENV === "production";
 
         // Set the standard aq_token cookie
         response.cookies.set(COOKIE_NAME, jwtToken, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
+          secure: isProd,
           sameSite: "lax",
           path: "/",
-          maxAge: 7 * 24 * 60 * 60, // 7 days
+          maxAge: 7 * 24 * 60 * 60,
         });
 
         // Set twoFAValidated cookie for compatibility
         response.cookies.set('twoFAValidated', '1', {
           httpOnly: true,
-          secure: true,
-          sameSite: 'strict',
+          secure: isProd,
+          sameSite: 'lax',
           path: '/',
           maxAge: 60 * 60,
         });
@@ -136,11 +202,14 @@ export async function POST(request: Request) {
         await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: true, method: 'backup', ip }, request);
         return response;
       }
+      
+      await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: false, reason: 'invalid_backup', ip }, request);
+      return NextResponse.json({ error: 'Mã dự phòng không chính xác.' }, { status: 401 });
     }
-    await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: false, reason: 'invalid_backup', ip }, request);
-    return NextResponse.json({ error: 'Invalid backup code' }, { status: 401 });
-  }
 
-  await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: false, reason: 'no_token_or_backup' }, request);
-  return NextResponse.json({ error: 'Token or backup code required' }, { status: 400 });
+    return NextResponse.json({ error: 'Vui lòng nhập mã xác thực hoặc mã dự phòng.' }, { status: 400 });
+  } catch (error: any) {
+    console.error("2FA Login Error:", error);
+    return NextResponse.json({ error: 'Lỗi máy chủ khi xác thực 2FA: ' + error.message }, { status: 500 });
+  }
 }

@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
 
-    const assignedTo = req.nextUrl.searchParams.get("assignedTo");
+    const assignedTo = req.nextUrl.searchParams.get("assignedTo") || req.nextUrl.searchParams.get("userId");
     if (assignedTo) {
       const batchCount = await Batch.countDocuments({ assignedTo, type: "SATELLITE" });
       if (batchCount === 0) {
@@ -108,7 +108,14 @@ export async function POST(req: NextRequest) {
 
     // ── 2. Đếm tổng số lô CỦA RIÊNG nhân viên đó ──
     const userBatchCount = await Batch.countDocuments({ assignedTo: body.assignedTo, type: "SATELLITE" });
-    const batchName = body.name?.trim() || `Lô ${userBatchCount + 1} (${assigneeUser.username})`;
+    const suffix = assigneeUser ? ` (${assigneeUser.username})` : "";
+    
+    // Auto-name: Lô + (số lô hiện có + 1)
+    let baseName = body.name?.trim();
+    if (!baseName) {
+      baseName = `Lô ${userBatchCount + 1}`;
+    }
+    const batchName = baseName.includes(suffix) ? baseName : `${baseName}${suffix}`;
 
     // ── 3. Kiểm tra trùng tên lô ──
     const exists = await Batch.findOne({ name: batchName });

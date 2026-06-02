@@ -8,10 +8,9 @@ export async function GET(req: NextRequest) {
   try {
     await dbConnect();
 
-    // Lấy tất cả mail vệ tinh đang rảnh (isAssigned: false, status: 'ACTIVE' hoặc 'LIVE')
-    // Chú ý: model SatelliteMail default status là 'LIVE' hoặc 'ACTIVE' tùy project, ở đây check status: 'LIVE' hoặc 'ACTIVE'
+    // Truy vấn tất cả SatelliteMail rảnh (isAssigned: false), sắp xếp theo thời gian tạo cũ nhất trước.
     const availableMails = await SatelliteMail.find({
-      isAssigned: { $ne: true },
+      isAssigned: false,
       type: 'SATELLITE'
     }).sort({ createdAt: 1 });
 
@@ -27,11 +26,11 @@ export async function GET(req: NextRequest) {
         count: chunkMails.length,
         startIndex: i + 1,
         endIndex: i + chunkMails.length,
-        mailIds: chunkMails.map(m => m._id)
+        mailIds: chunkMails.map(m => m._id.toString())
       });
     }
 
-    return NextResponse.json({ success: true, data: chunks, chunks });
+    return NextResponse.json(chunks);
   } catch (error: any) {
     console.error("GET available ranges error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

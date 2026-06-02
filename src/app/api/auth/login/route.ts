@@ -316,9 +316,11 @@ export async function POST(req: NextRequest) {
       username: user.username,
       overtimeBypass,
     });
+    
+    const isProd = process.env.NODE_ENV === "production";
     response.cookies.set('session', user._id.toString(), {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isProd,
       sameSite: "lax",
       path: "/",
       maxAge: 300, // 5 minutes
