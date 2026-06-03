@@ -94,6 +94,7 @@ function LoginForm() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
+            userId: tempUserId,
             token: totpCode, 
             backupCode: totpCode,
             overtimeBypass: overtimeAgreedOption || overtimeBypassFlag

@@ -22,16 +22,25 @@ export async function PUT(
       return NextResponse.json({ success: false, error: "Lô không tồn tại" }, { status: 404 });
     }
 
+    // Tra cứu thông tin nhân sự để lấy tên gán vào mail
+    let staffName = "Nhân viên";
+    const UserModel = (await import("@/models/User")).default;
+    const staff = await UserModel.findById(batch.assignedTo);
+    if (staff) {
+      staffName = staff.name;
+    }
+
     // 1. Cập nhật các mail trong dải đã chọn
     const updateResult = await SatelliteMail.updateMany(
       { _id: { $in: mailIds } },
       {
         $set: {
           isAssigned: true,
-          assignedTo: batch.assignedTo,
+          assignedTo: staffName,
+          assigneeId: batch.assignedTo,
+          assignee: batch.assignedTo,
           batchId: batch._id,
-          batchName: batch.name,
-          assigneeId: batch.assignedTo
+          batchName: batch.name
         }
       }
     );
@@ -43,6 +52,18 @@ export async function PUT(
     if (endIndex !== undefined) batch.endIndex = endIndex;
     
     await batch.save();
+
+    // 3. Ghi log activity
+    try {
+      const { Log } = await import("@/models/Log");
+      await Log.create({
+        user: "Admin",
+        role: "ADMIN",
+        action: `Gán dải mail ${startIndex}-${endIndex} của "${batch.name}" cho nhân sự ${staffName}`,
+        type: "SUCCESS",
+        timestamp: new Date().toLocaleString("vi-VN")
+      });
+    } catch (_) {}
 
     return NextResponse.json({ 
       success: true, 

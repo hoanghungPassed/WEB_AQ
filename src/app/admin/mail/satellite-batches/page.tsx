@@ -11,6 +11,7 @@ import {
  Calendar, 
  Mail, 
  PlusCircle, 
+ Plus,
  Search,
  CheckCircle2,
  FolderOpen,
@@ -52,7 +53,6 @@ export default function SatelliteBatchesPage() {
  const [showAddMailModal, setShowAddMailModal] = useState(false);
  const [selectedMailsToAdd, setSelectedMailsToAdd] = useState<number[]>([]);
  const [selectedStaffToAssign, setSelectedStaffToAssign] = useState("");
- const [selectedChunkId, setSelectedChunkId] = useState("");
  const [batchToDelete, setBatchToDelete] = useState<BatchItem | null>(null);
  const [batchToReset, setBatchToReset] = useState<BatchItem | null>(null);
  const [showCreateModal, setShowCreateModal] = useState(false);
@@ -60,34 +60,6 @@ export default function SatelliteBatchesPage() {
  const [targetStaffId, setTargetStaffId] = useState("");
  const [isSubmitting, setIsSubmitting] = useState(false);
  const [showRangeModal, setShowRangeModal] = useState(false);
-
- // Group unassigned satellite mails in chunks of 17 (cuốn chiếu)
- const unassignedMailChunks = useMemo(() => {
- const savedMails = typeof window !=="undefined" ? localStorage.getItem("global_mails_data") : null;
- const allMails = savedMails ? JSON.parse(savedMails) : [];
- const satelliteMails = (allMails || []).filter((m: any) => m.type ==="SATELLITE");
- const unassigned = (satelliteMails || []).filter((m: any) => !m.batchName || m.batchName.trim() ==="");
-
- const chunks = [];
- const chunkSize = 17;
- for (let i = 0; i < (unassigned || []).length; i += chunkSize) {
- const chunkMails = unassigned.slice(i, i + chunkSize);
- if ((chunkMails || []).length === 0) continue;
-
- // Find the absolute position in the global satelliteMails list
- const startIdx = satelliteMails.findIndex((m: any) => m.id === chunkMails[0].id) + 1;
- const endIdx = satelliteMails.findIndex((m: any) => m.id === chunkMails[(chunkMails || []).length - 1].id) + 1;
-
- chunks.push({
- id: `chunk-${i}`,
- label: `Chọn mail: ${(chunkMails || []).length} mail (${startIdx} đến ${endIdx})`,
- mails: chunkMails,
- startIdx,
- endIdx
- });
- }
- return chunks;
- }, [selectedBatch]);
 
  useEffect(() => {
  // Authenticate
@@ -345,108 +317,6 @@ export default function SatelliteBatchesPage() {
  window.dispatchEvent(new Event("storage"));
 
  triggerToast(`Đã gán thành công Lô"${selectedBatch.name}" cho ${staff.name}!`);
- };
-
- // Assign rolling mail range cuốn chiếu to staff
- const handleAssignBatchCuonChieu = async () => {
- if (!selectedBatch) return;
- if (!selectedStaffToAssign) {
- triggerToast("Vui lòng chọn một nhân viên để gán!");
- return;
- }
- if (!selectedChunkId) {
- triggerToast("Vui lòng chọn dải mail cuốn chiếu!");
- return;
- }
-
- const chunk = unassignedMailChunks.find(c => c.id === selectedChunkId);
- if (!chunk || (chunk.mails || []).length === 0) {
- triggerToast("Dải mail không hợp lệ hoặc đã trống!");
- return;
- }
-
- const staff = staffList.find(s => String(s.id) === String(selectedStaffToAssign) || s.username === selectedStaffToAssign);
- if (!staff) {
- triggerToast("Nhân viên không hợp lệ hoặc offline!");
- return;
- }
-
- setIsSubmitting(true);
- try {
-   const chunkMailsIds = (chunk.mails || []).map((cm: any) => cm._id || cm.id);
-   
-   const res = await fetch("/api/admin/mails/batch-update", {
-     method: "PUT",
-     headers: { "Content-Type": "application/json" },
-     body: JSON.stringify({
-       ids: chunkMailsIds,
-       updateData: {
-         isAssigned: true,
-         assigneeId: staff.id || staff.username,
-         assignedTo: staff.name,
-         batchName: selectedBatch.name,
-         batchId: selectedBatch.id
-       }
-     })
-   });
-
-   if (res.ok) {
-     // Reload mails from DB to sync UI
-     try {
-       const mailRes = await fetch("/api/admin/mails?type=SATELLITE&all=true");
-       if (mailRes.ok) {
-         const mailData = await mailRes.json();
-         if (mailData.success && mailData.data) {
-           localStorage.setItem("global_mails_data", JSON.stringify(mailData.data));
-           window.dispatchEvent(new Event("storage"));
-           
-           const inBatch = mailData.data.filter((m: any) => 
-             m.type ==="SATELLITE" && 
-             m.batchName === selectedBatch.name && 
-             String(m.assigneeId) === String(selectedStaff.id)
-           );
-           setBatchMails(inBatch);
-         }
-       }
-     } catch (_) {}
-
-     // Sync batches count
-     const savedBatches = localStorage.getItem("global_satellite_batches");
-     const list = savedBatches ? JSON.parse(savedBatches) : [];
-     const syncedList = (list || []).map((b: any) => {
-       if (b.name === selectedBatch.name) {
-         return { ...b, mailCount: b.mailCount + chunkMailsIds.length };
-       }
-       return b;
-     });
-     setBatches(syncedList);
-     localStorage.setItem("global_satellite_batches", JSON.stringify(syncedList));
-
-     // Log Activity
-     const existingLogs = localStorage.getItem("global_system_logs");
-     const logsList = existingLogs ? JSON.parse(existingLogs) : [];
-     const newLog = {
-       id: `log-${Date.now()}`,
-       user: user?.name ||"Admin",
-       role:"ADMIN",
-       action: `Gán cuốn chiếu ${(chunk.mails || []).length} mail (${chunk.startIdx}-${chunk.endIdx}) của ${selectedBatch.name} cho nhân sự ${staff.name}`,
-       type:"SUCCESS",
-       timestamp: new Date().toLocaleString("vi-VN")
-     };
-     localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
-
-     triggerToast(`Đã gán thành công dải mail ${chunk.startIdx}-${chunk.endIdx} của Lô "${selectedBatch.name}" cho ${staff.name}!`);
-     setSelectedChunkId("");
-   } else {
-     const data = await res.json();
-     triggerToast(data.error || "Gán mail thất bại!");
-   }
- } catch (err) {
-   console.error(err);
-   triggerToast("Lỗi kết nối máy chủ!");
- } finally {
-   setIsSubmitting(false);
- }
  };
 
  // Unassign/Release all mails inside a batch for the current staff member
@@ -1110,134 +980,121 @@ export default function SatelliteBatchesPage() {
  </div>
 
  {/* Main Grid split */}
- <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-0 mb-6">
- 
- {/* Left Column: Roll-over Assignment */}
- <div className="lg:col-span-5 flex flex-col justify-between bg-sidebar/30 border border-white/0 rounded-3xl p-6">
- <div className="space-y-6">
- <div>
- <h4 className="text-base font-black text-gold uppercase tracking-widest mb-1">Gán Phân Phối Mail Cuốn Chiếu</h4>
- <p className="text-[10px] text-gray-500 font-medium">Giao gói 17 mail cuốn chiếu từ kho unassigned cho nhân sự</p>
- </div>
+ <div className="flex-1 min-h-0 mb-6">
+  {(batchMails || []).length === 0 ? (
+    <div className="h-full bg-black/20 border border-white/5 rounded-[36px] flex flex-col items-center justify-center text-center py-20 space-y-8">
+      <div className="flex flex-col items-center">
+        <div className="h-20 w-20 bg-gold/10 text-gold border border-gold/20 rounded-full flex items-center justify-center mb-6 animate-pulse">
+          <Mail size={40} />
+        </div>
+        <h4 className="text-xl font-black text-white uppercase tracking-tight mb-2">Lô Mail Đang Trống</h4>
+        <p className="text-sm text-gray-500 uppercase font-bold tracking-widest max-w-md">
+          Hệ thống chưa gán dải mail nào cho lô này. Vui lòng chọn dải mail từ kho unassigned (tối đa 17 mail/dải).
+        </p>
+      </div>
+      
+      <div className="flex flex-col items-center gap-4">
+        <button
+          onClick={() => setShowRangeModal(true)}
+          className="px-10 py-5 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest rounded-[24px] transition-all shadow-2xl shadow-gold/20 flex items-center gap-3 hover:scale-105 active:scale-95"
+        >
+          <div className="h-6 w-6 bg-sidebar/20 rounded-lg flex items-center justify-center">
+            <Plus size={16} />
+          </div>
+          📥 Chọn Dải Mail Từ Kho
+        </button>
+        <p className="text-[10px] text-gray-600 font-bold uppercase tracking-[0.2em]">
+          Tự động chẻ dữ liệu từ kho mail rảnh
+        </p>
+      </div>
+    </div>
+  ) : (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
+      {/* Left Column: Staff info & Actions */}
+      <div className="lg:col-span-4 flex flex-col justify-between bg-sidebar/30 border border-white/0 rounded-3xl p-6">
+        <div className="space-y-6">
+          <div>
+            <h4 className="text-base font-black text-gold uppercase tracking-widest mb-1">Thông Tin Giao Việc</h4>
+            <p className="text-[10px] text-gray-500 font-medium italic">Lô mail đã được kích hoạt và gán cho nhân sự</p>
+          </div>
 
- {/* Read-only target employee info */}
- <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">Nhân sự nhận việc</label>
- <div className="flex items-center gap-3 bg-black/40 border border-white/0 rounded-2xl h-14 px-4">
- <div className="h-7 w-7 bg-gold/15 text-gold border border-gold/20 rounded-lg flex items-center justify-center font-black text-sm uppercase shrink-0">
- {selectedStaff.name.charAt(0)}
- </div>
- <div className="truncate">
- <p className="text-sm font-black text-white uppercase truncate">{selectedStaff.name}</p>
- <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">@{selectedStaff.username}</p>
- </div>
- </div>
- </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">Nhân sự đang xử lý</label>
+            <div className="flex items-center gap-3 bg-black/40 border border-white/0 rounded-2xl h-16 px-4 border border-white/5">
+              <div className="h-9 w-9 bg-gold/15 text-gold border border-gold/20 rounded-xl flex items-center justify-center font-black text-base uppercase shrink-0">
+                {selectedStaff.name.charAt(0)}
+              </div>
+              <div className="truncate">
+                <p className="text-sm font-black text-white uppercase truncate">{selectedStaff.name}</p>
+                <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">@{selectedStaff.username}</p>
+              </div>
+            </div>
+          </div>
 
- {/* Choose rolling chunk of 17 */}
- <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Dải mail cuốn chiếu (Gói 17 mail)</label>
- <select
- value={selectedChunkId}
- onChange={(e) => setSelectedChunkId(e.target.value)}
- className="w-full bg-black/40 border border-white/0 rounded-2xl h-14 px-4 text-sm font-black text-white uppercase tracking-wider outline-none focus:border-white/5 cursor-pointer transition-all"
- >
- <option value="" className="bg-zinc-900 text-white hover:bg-zinc-700">--- Chọn dải mail ---</option>
- {(unassignedMailChunks || []).map((chunk) => (
- <option key={chunk.id} value={chunk.id} className="bg-zinc-900 text-white hover:bg-zinc-700">
- {chunk.label}
- </option>
- ))}
- </select>
- {(unassignedMailChunks || []).length === 0 && (
- <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider ml-1">Kho mail trống hoặc đã phân chia hết!</p>
- )}
- </div>
+          <div className="p-5 rounded-2xl bg-gold/5 border border-gold/10 space-y-3">
+             <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider">
+                <span className="text-gray-500">Trạng thái:</span>
+                <span className="text-green-500">Đang hoạt động</span>
+             </div>
+             <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider">
+                <span className="text-gray-500">Số lượng mail:</span>
+                <span className="text-white">{(batchMails || []).length} / 17</span>
+             </div>
+          </div>
+        </div>
 
- <button
- onClick={handleAssignBatchCuonChieu}
- disabled={!selectedStaffToAssign || !selectedChunkId}
- className="w-full h-14 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest rounded-2xl transition-all shadow-xl shadow-gold/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
- >
- <UserCheck size={16} />
- Xác nhận gán cuốn chiếu
- </button>
- </div>
+        <div className="pt-6 mt-6 border-t border-white/5 space-y-3">
+          <button
+            onClick={handleUnassignBatch}
+            className="w-full h-14 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 font-black uppercase text-xs tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2"
+          >
+            <Trash2 size={16} />
+            Hủy gán & giải phóng lô
+          </button>
+        </div>
+      </div>
 
- {/* If batch already has assignments, allow release */}
- {(batchMails || []).length > 0 && (
- <div className="pt-6 mt-6 border-t border-white/0 space-y-3">
- <div className="flex items-center justify-between text-sm font-bold">
- <span className="text-gray-500">Đang xử lý:</span>
- <span className="text-gold font-black uppercase">{batchMails[0].assignedTo ||"---"}</span>
- </div>
- <button
- onClick={handleUnassignBatch}
- className="w-full h-12 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 font-black uppercase text-sm tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2"
- >
- <Trash2 size={16} />
- Hủy gán & giải phóng lô
- </button>
- </div>
- )}
- </div>
+      {/* Right Column: Mail list */}
+      <div className="lg:col-span-8 flex flex-col justify-between bg-black/20 border border-white/0 rounded-3xl p-6 min-h-0">
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <span className="text-sm font-black text-gray-400 uppercase tracking-widest">
+            Danh sách tài khoản ({(batchMails || []).length} mail)
+          </span>
+          <button
+            onClick={() => setShowAddMailModal(true)}
+            className="text-xs font-black text-gold hover:underline flex items-center gap-1.5 uppercase tracking-widest"
+          >
+            + Gán lẻ thủ công
+          </button>
+        </div>
 
- {/* Right Column: Mail list inside batch */}
- <div className="lg:col-span-7 flex flex-col justify-between bg-black/20 border border-white/0 rounded-3xl p-6 min-h-0">
- <div className="flex items-center justify-between mb-4 flex-shrink-0">
- <span className="text-sm font-black text-gray-400 uppercase tracking-widest">
- Danh sách tài khoản ({(batchMails || []).length} mail)
- </span>
- <button
- onClick={() => setShowAddMailModal(true)}
- className="text-sm font-black text-gold hover:underline flex items-center gap-1.5"
- >
- + Gán lẻ thủ công
- </button>
- </div>
-
- <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-2">
- {(batchMails || []).map((mail, idx) => (
- <div key={mail._id || mail.id || idx} className="flex items-center justify-between p-3.5 rounded-2xl bg-white/0 border border-white/0 hover:border-gray-300 hover:border-white/0 transition-colors">
- <div className="flex items-center gap-3">
- <span className="text-[10px] font-bold font-mono">STT #{idx + 1}</span>
- <div>
- <p className="text-sm font-black text-white">{mail.email}</p>
- <p className="text-[9px] text-gray-500">Recovery: {mail.recovery ||"---"}</p>
- </div>
- </div>
- <div className="flex items-center gap-3">
- <span className={`px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider ${
- mail.workStatus ==="Đã làm" 
- ?"bg-green-500/10 text-green-500 border border-green-500/20" 
- : mail.workStatus ==="Lỗi"
- ?"bg-red-500/10 text-red-500 border border-red-500/20"
- :"bg-gray-500/10 text-gray-400 border border-gray-500/20"
- }`}>
- {mail.workStatus ||"Chưa làm"}
- </span>
- </div>
- </div>
- ))}
-  {(batchMails || []).length === 0 && (
-  <div className="h-full flex flex-col items-center justify-center text-center py-20 space-y-6">
-  <div className="flex flex-col items-center">
-  <Mail className="mb-3 animate-pulse text-gold" size={40} />
-  <p className="text-sm text-gray-400 uppercase font-black tracking-widest">
-  Lô trống, hãy chọn dải mail từ kho
-  </p>
-  </div>
-  <button
-  onClick={() => setShowRangeModal(true)}
-  className="px-6 py-3.5 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest rounded-2xl transition-all shadow-xl shadow-gold/20 flex items-center gap-2"
-  >
-  📥 Chọn Dải Mail Từ Kho
-  </button>
-  </div>
+        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-2">
+          {(batchMails || []).map((mail, idx) => (
+            <div key={mail._id || mail.id || idx} className="flex items-center justify-between p-3.5 rounded-2xl bg-white/0 border border-white/5 hover:border-white/10 transition-colors bg-zinc-900/20">
+              <div className="flex items-center gap-3">
+                <span className="text-[9px] font-bold font-mono text-gray-600">#{idx + 1}</span>
+                <div>
+                  <p className="text-sm font-black text-white">{mail.email}</p>
+                  <p className="text-[9px] text-gray-500">Recovery: {mail.recoveryMail || mail.recovery || "---"}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider ${
+                  mail.workStatus === "Đã làm" 
+                    ? "bg-green-500/10 text-green-500 border border-green-500/20" 
+                    : mail.workStatus === "Lỗi"
+                      ? "bg-red-500/10 text-red-500 border border-red-500/20"
+                      : "bg-gray-500/10 text-gray-400 border border-gray-500/20"
+                }`}>
+                  {mail.workStatus || "Chưa làm"}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   )}
- </div>
- </div>
-
  </div>
 
  {/* Footer */}
@@ -1626,7 +1483,11 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
       const res = await fetch(`/api/admin/mail/satellite-batches/${batchId}/assign-range`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mailIds: range.mailIds })
+        body: JSON.stringify({ 
+          mailIds: range.mailIds,
+          startIndex: range.startIndex,
+          endIndex: range.endIndex
+        })
       });
       if (res.ok) {
         mutate();

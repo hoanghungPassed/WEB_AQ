@@ -14,7 +14,8 @@ import dbConnect from '@/lib/mongodb';
 export async function POST(request: Request) {
   try {
     await dbConnect();
-    const { token, backupCode, overtimeBypass } = await request.json();
+    const body = await request.json();
+    const { token, backupCode, overtimeBypass, userId: userIdFromBody } = body;
 
     // Use the reliable manual cookie parsing
     let userId = "";
@@ -28,6 +29,11 @@ export async function POST(request: Request) {
       }
     } catch (e) {
       console.error("2FA Cookie Parsing Error:", e);
+    }
+
+    // Fallback to userId from body if cookie is missing (Fix for Local environment cookie blocking)
+    if (!userId && userIdFromBody) {
+      userId = userIdFromBody;
     }
 
     if (!userId) {

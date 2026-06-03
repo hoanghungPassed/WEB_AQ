@@ -80,8 +80,8 @@ export async function GET(req: NextRequest) {
     ]);
     const uniqueBatches = Array.from(new Set([...distinctRoot, ...distinctSatellite, ...distinctMonetized])).filter(Boolean);
 
-    // Fallback: If no pagination requested and not all=true, return full data (for dropdown inventory counters etc)
-    if (!searchParams.has("page") && !searchParams.has("limit") && searchParams.get("all") !== "true") {
+    // Fallback: If no pagination requested OR all=true is specified, return full data
+    if ((!searchParams.has("page") && !searchParams.has("limit")) || searchParams.get("all") === "true") {
       let mails: any[] = [];
       if (!type || type === "ALL" || type === "ROOT") {
         const rootMails = await RootMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 });
@@ -95,7 +95,10 @@ export async function GET(req: NextRequest) {
         const monetizedMails = await MonetizedMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 });
         mails = [...mails, ...monetizedMails];
       }
-      mails.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      // Only sort combined array if type was "ALL" or not specified
+      if (!type || type === "ALL") {
+        mails.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      }
       return NextResponse.json({ success: true, data: mails, batches: uniqueBatches });
     }
 

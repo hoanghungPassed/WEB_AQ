@@ -1,8 +1,21 @@
 import mongoose from "mongoose";
 import fs from "fs";
 import path from "path";
+import dns from "dns";
 
 const ENV_PATH = path.join(process.cwd(), ".env.local");
+
+// DNS Fix for querySrv ECONNREFUSED on some local machines
+const fixDns = () => {
+  try {
+    const servers = dns.getServers();
+    if (servers.length === 1 && servers[0] === "127.0.0.1") {
+      dns.setServers(["8.8.8.8", "8.8.4.4"]);
+    }
+  } catch (err) {
+    console.warn("DNS Fix Warning:", err);
+  }
+};
 
 function loadDotEnvLocal(): void {
   if (!fs.existsSync(ENV_PATH)) {
@@ -53,6 +66,7 @@ if (!globalThis.mongoose) {
 }
 
 async function dbConnect(): Promise<typeof mongoose> {
+  fixDns();
   loadDotEnvLocal(); // Next.js handles this automatically in most cases, but keep for scripts
 
   const MONGODB_URI = process.env.MONGODB_URI;
