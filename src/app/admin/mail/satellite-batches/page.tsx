@@ -971,7 +971,6 @@ export default function SatelliteBatchesPage() {
  <button 
  onClick={() => {
  setSelectedBatch(null);
- setSelectedChunkId("");
  }}
  className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-zinc-800/50 bg-zinc-900/5 text-gray-500 hover:text-white transition-all border border-white/0"
  >
@@ -1102,7 +1101,6 @@ export default function SatelliteBatchesPage() {
  <button
  onClick={() => {
  setSelectedBatch(null);
- setSelectedChunkId("");
  }}
  className="h-12 px-8 bg-white/5 border border-white/0 hover:border-white/5 text-white text-sm font-black uppercase tracking-widest rounded-2xl transition-all"
  >
