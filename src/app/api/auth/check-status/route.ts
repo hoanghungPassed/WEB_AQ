@@ -24,14 +24,19 @@ export async function GET(req: NextRequest) {
 
     // Ánh xạ trạng thái từ Database:
     // PENDING -> PENDING
-    // ACTIVE -> APPROVED
+    // ACTIVE -> GRANTED
     // LOCKED -> REJECTED
-    let responseStatus: "PENDING" | "APPROVED" | "REJECTED" = "PENDING";
+    let responseStatus: "PENDING" | "GRANTED" | "REJECTED" = "PENDING";
     if (user.status === "ACTIVE") {
-      responseStatus = "APPROVED";
-    } else if (user.status === "LOCKED") {
-      responseStatus = "REJECTED";
+      responseStatus = "GRANTED";
+      user.isOnline = true;
+    } else {
+      user.isOnline = false;
+      if (user.status === "LOCKED") {
+        responseStatus = "REJECTED";
+      }
     }
+    await user.save();
 
     return NextResponse.json({ status: responseStatus });
   } catch (error: unknown) {

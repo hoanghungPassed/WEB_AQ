@@ -438,6 +438,8 @@ export default function TaskManagementPage() {
  const [adminTab, setAdminTab] = useState<"ASSIGN" |"TASKS">("ASSIGN");
  const [selectedTemplate, setSelectedTemplate] = useState<string>("Check, xÃ³a, táº¡o");
  const [targetStaffId, setTargetStaffId] = useState<string>("");
+ const [staffSearch, setStaffSearch] = useState("");
+ const [staffOnlineFilter, setStaffOnlineFilter] = useState("ALL");
  const [mailTypeSelection, setMailTypeSelection] = useState<"ROOT" |"SATELLITE" |"MONETIZED">("ROOT");
  const [mailRangeStart, setMailRangeStart] = useState<number>(1);
  const [mailRangeEnd, setMailRangeEnd] = useState<number>(10);
@@ -1235,12 +1237,12 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
 
            <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">TÃƒÂ¬m nhÃƒÂ¢n viÃƒÂªn</label>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Tìm nhân viên</label>
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
                 <input
                   type="text"
-                  placeholder="TÃƒÂªn nhÃƒÂ¢n viÃƒÂªn..."
+                  placeholder="Tên nhân viên..."
                   value={staffSearch}
                   onChange={(e) => setStaffSearch(e.target.value)}
                   className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl pl-12 pr-6 text-white text-base outline-none focus:border-white/5 transition-all"
@@ -1248,15 +1250,15 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">LÃ¡Â»dc trÃ¡ÂºÂ¡ng thÃƒÂ¡i</label>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Lọc trạng thái</label>
               <select
                 value={staffOnlineFilter}
                 onChange={(e) => setStaffOnlineFilter(e.target.value)}
                 className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all"
               >
-                <option value="ALL" className="bg-zinc-900">TÃ¡ÂºÂ¥t cÃ¡ÂºÂ£</option>
-                <option value="ONLINE" className="bg-zinc-900">Ã„Â»ang Online</option>
-                <option value="OFFLINE" className="bg-zinc-900">NgoÃ¡ÂºÂ¡i tuyÃ¡ÂºÂ¿n</option>
+                <option value="ALL" className="bg-zinc-900">Tất cả</option>
+                <option value="ONLINE" className="bg-zinc-900">Đang Online</option>
+                <option value="OFFLINE" className="bg-zinc-900">Ngoại tuyến</option>
               </select>
             </div>
           </div>

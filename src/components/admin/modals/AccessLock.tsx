@@ -20,7 +20,7 @@ export default function AccessLock({
   isPendingApproval = false,
 }: AccessLockProps) {
   const [requestSent, setRequestSent] = useState(false);
-  const [status, setStatus] = useState<"IDLE" | "PENDING" | "APPROVED" | "DENIED">("IDLE");
+  const [status, setStatus] = useState<"IDLE" | "PROCESSING" | "GRANTED" | "REJECTED">("IDLE");
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -28,56 +28,26 @@ export default function AccessLock({
     return () => clearInterval(timer);
   }, []);
 
-  // Khôi phục trạng thái nếu đã gửi yêu cầu trước đó (khi đăng nhập lại)
   useEffect(() => {
-    const localResponse = localStorage.getItem(`access_response_${userName}`);
-    if (localResponse === "DENIED") {
-      setStatus("DENIED");
-      setRequestSent(true);
-      return;
+    if (!requestSent && !isPendingApproval) return;
+    
+    if (isPendingApproval && status === "IDLE") {
+      setStatus("PROCESSING");
     }
-    if (localResponse === "APPROVED") {
-      setStatus("APPROVED");
-      setRequestSent(true);
-      return;
-    }
-
-    // Kiểm tra xem có đang nằm trong danh sách pending không
-    const pendingReqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
-    if (pendingReqs.some((req: any) => req.staffName === userName)) {
-      setStatus("PENDING");
-      setRequestSent(true);
-    }
-  }, [userName]);
-
-  // Kiểm tra phản hồi từ quản lý - kéo từ cả localStorage lẫn server
-  useEffect(() => {
-    if (!requestSent) return;
 
     const checkApproval = async () => {
-      // 1. Kiểm tra localStorage (cùng tab hoặc đã được sync về)
-      const localResponse = localStorage.getItem(`access_response_${userName}`);
-      if (localResponse === "APPROVED") {
-        setStatus("APPROVED");
-        return true;
-      } else if (localResponse === "DENIED") {
-        setStatus("DENIED");
-        return true;
-      }
-
-      // 2. Nếu chưa có trong localStorage, fetch thẳng từ server (cho tab ẩn danh)
       try {
-        const res = await fetch("/api/sync");
+        const res = await fetch(`/api/auth/check-status?username=${userName}`);
         if (res.ok) {
-          const serverStore = await res.json();
-          const serverResponse = serverStore[`access_response_${userName}`];
-          if (serverResponse === "APPROVED") {
-            localStorage.setItem(`access_response_${userName}`, "APPROVED");
-            setStatus("APPROVED");
+          const data = await res.json();
+          if (data.status === "GRANTED") {
+            setStatus("GRANTED");
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000);
             return true;
-          } else if (serverResponse === "DENIED") {
-            localStorage.setItem(`access_response_${userName}`, "DENIED");
-            setStatus("DENIED");
+          } else if (data.status === "REJECTED") {
+            setStatus("REJECTED");
             return true;
           }
         }
@@ -90,20 +60,18 @@ export default function AccessLock({
     const checkInterval = setInterval(async () => {
       const done = await checkApproval();
       if (done) clearInterval(checkInterval);
-    }, 1000);
+    }, 3000);
 
-    // Kiểm tra ngay lập tức
     checkApproval();
 
     return () => clearInterval(checkInterval);
-  }, [requestSent, userName]);
+  }, [requestSent, userName, isPendingApproval, status]);
 
   const handleSend = () => {
-    // Xóa phản hồi cũ nếu có
     localStorage.removeItem(`access_response_${userName}`);
     onSendRequest();
     setRequestSent(true);
-    setStatus("PENDING");
+    setStatus("PROCESSING");
   };
 
   return (
@@ -123,7 +91,9 @@ export default function AccessLock({
           <Lock size={48} />
         </div>
 
-        <h1 className="text-4xl font-black text-white tracking-tighter mb-4 uppercase">Hệ thống đã khóa</h1>
+        <h1 className="text-4xl font-black text-white tracking-tighter mb-4 uppercase">
+          Hệ thống đã khóa
+        </h1>
         <div className="bg-white/5 border border-white/0 rounded-2xl py-4 px-8 mb-8 inline-flex items-center gap-4">
           <Clock className="text-gold" size={24} />
           <span className="text-2xl font-mono font-black text-white">
@@ -135,10 +105,10 @@ export default function AccessLock({
           {message}
         </p>
 
-        {isPendingApproval ? (
+        {isPendingApproval || status === "PROCESSING" ? (
           <div className="flex flex-col gap-6 items-center">
             <div className="h-16 px-10 rounded-2xl bg-gold/10 border border-gold/20 text-gold font-black uppercase tracking-widest flex items-center justify-center gap-3 animate-pulse">
-              ⏳ Hệ thống đang xử lý... Vui lòng chờ Admin phê duyệt yêu cầu của bạn!
+              ⌛ Hệ thống đang xử lý... Vui lòng chờ
             </div>
             <button
               onClick={onLogout}
@@ -148,52 +118,51 @@ export default function AccessLock({
             </button>
           </div>
         ) : (
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {status === "IDLE" && (
+          <div className="flex flex-col gap-6 items-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center w-full">
+              {status === "IDLE" && (
+                <button
+                  onClick={handleSend}
+                  className="h-16 px-10 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-xl shadow-gold/20"
+                >
+                  <Send size={24} /> Gửi yêu cầu truy cập
+                </button>
+              )}
+
+              {status === "GRANTED" && (
+                <div className="h-16 px-10 rounded-2xl bg-green-500/10 border border-green-500/50 text-green-500 font-black uppercase tracking-widest flex items-center justify-center gap-3">
+                  <CheckCircle2 size={24} /> Đã được đồng ý!
+                </div>
+              )}
+
+              {status === "REJECTED" && (
+                <div className="h-16 px-10 rounded-2xl bg-red-500/10 border border-red-500/50 text-red-500 font-black uppercase tracking-widest flex items-center justify-center gap-3">
+                  <ShieldAlert size={24} /> Yêu cầu bị từ chối
+                </div>
+              )}
+
               <button
-                onClick={handleSend}
-                className="h-16 px-10 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-xl shadow-gold/20"
+                onClick={onLogout}
+                className="h-16 px-10 rounded-2xl bg-white/5 border border-white/0 text-gray-400 font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 transition-all"
               >
-                <Send size={24} /> Gửi yêu cầu truy cập
+                <LogOut size={24} /> Đăng xuất
+              </button>
+            </div>
+            
+            {status === "REJECTED" && (
+              <button
+                onClick={() => setStatus("IDLE")}
+                className="text-gold text-base font-bold hover:underline"
+              >
+                Thử gửi lại yêu cầu
               </button>
             )}
-
-            {status === "PENDING" && (
-              <div className="h-16 px-10 rounded-2xl bg-white/5 border border-white/5 text-gold font-black uppercase tracking-widest flex items-center justify-center gap-3 animate-pulse">
-                <ShieldAlert size={24} /> Đang chờ phê duyệt...
-              </div>
-            )}
-
-            {status === "APPROVED" && (
-              <div className="h-16 px-10 rounded-2xl bg-green-500 text-white font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-green-500/20">
-                <CheckCircle2 size={24} /> Đã được đồng ý!
-              </div>
-            )}
-
-            {status === "DENIED" && (
-              <div className="flex flex-col gap-4">
-                <div className="h-16 px-10 rounded-2xl bg-red-500/10 border border-red-500 text-red-500 font-black uppercase tracking-widest flex items-center justify-center gap-3">
-                  <ShieldAlert size={24} /> Yêu cầu đăng nhập đã bị từ chối
-                </div>
-                <button
-                  onClick={() => setStatus("IDLE")}
-                  className="text-gold text-base font-bold hover:underline"
-                >
-                  Thử gửi lại yêu cầu
-                </button>
-              </div>
-            )}
-
-            <button
-              onClick={onLogout}
-              className="h-16 px-10 rounded-2xl bg-white/5 border border-white/0 text-gray-400 font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 transition-all"
-            >
-              <LogOut size={24} /> Đăng xuất
-            </button>
           </div>
         )}
 
-        <p className="mt-12 text-sm font-bold uppercase tracking-widest">AQ MEDIA Management System &copy; 2026</p>
+        <p className="mt-12 text-sm font-bold uppercase tracking-widest text-gray-500">
+          AQ MEDIA Management System &copy; 2026
+        </p>
       </motion.div>
     </div>
   );

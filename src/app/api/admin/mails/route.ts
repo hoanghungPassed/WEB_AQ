@@ -209,6 +209,21 @@ export async function POST(req: NextRequest) {
  let newMails = [];
  let items = Array.isArray(payload) ? payload : [payload];
 
+ // Duplicate check
+ const emailsToTest = items.map(i => i.email.toLowerCase());
+ const [existingRoot, existingSat, existingMon] = await Promise.all([
+   RootMail.find({ email: { $in: emailsToTest } }).select("email").lean(),
+   SatelliteMail.find({ email: { $in: emailsToTest } }).select("email").lean(),
+   MonetizedMail.find({ email: { $in: emailsToTest } }).select("email").lean()
+ ]);
+ const existingEmails = new Set([
+   ...existingRoot.map(r => r.email.toLowerCase()),
+   ...existingSat.map(r => r.email.toLowerCase()),
+   ...existingMon.map(r => r.email.toLowerCase())
+ ]);
+
+ items = items.filter(i => !existingEmails.has(i.email.toLowerCase()));
+
  const rootItems = items.filter(i => i.type ==="ROOT");
  const satelliteItems = items.filter(i => i.type ==="SATELLITE");
  const monetizedItems = items.filter(i => i.type ==="MONETIZED");

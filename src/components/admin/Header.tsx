@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState } from "react";
 import { Search, Bell, Menu, User, PanelLeftClose, PanelLeftOpen, LogOut, UserSearch, UserPlus, CheckCircle2, X } from "lucide-react";
@@ -62,7 +62,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
       const month = String(now.getMonth() + 1).padStart(2, "0");
       const year = now.getFullYear();
       
-      const days = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+      const days = ["CN", "Thá»© 2", "Thá»© 3", "Thá»© 4", "Thá»© 5", "Thá»© 6", "Thá»© 7"];
       const dayName = days[now.getDay()];
       
       setDateTimeStr(`${dayName}, ${day}/${month}/${year} - ${hh}:${mm}:${ss}`);
@@ -86,14 +86,14 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
       } catch (err) {}
 
       const roleUpper = String(user?.role || "").toUpperCase();
-      const isAuthorizedManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
+      const isAuthorizedManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUáº¢N LÃ CÃ”NG VIá»†C" || roleUpper === "QL CÃ”NG VIá»†C";
       let accessNotifs: any[] = [];
       if (isAuthorizedManager) {
         const accessReqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
         accessNotifs = (accessReqs || []).map((req: any) => ({
           id: `access-${req.id}`,
-          title: "Yêu cầu truy cập ngoài giờ",
-          message: `Nhân viên ${req.staffName} đang xin phép vào hệ thống.`,
+          title: "YÃªu cáº§u truy cáº­p ngoÃ i giá»",
+          message: `NhÃ¢n viÃªn ${req.staffName} Ä‘ang xin phÃ©p vÃ o há»‡ thá»‘ng.`,
           time: req.time,
           type: "ACCESS_REQUEST",
           read: false,
@@ -116,7 +116,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
   const filteredNotifications = (notifications || []).filter(n => {
     if (n.type === "REGISTRATION") {
       const roleUpper = String(user?.role || "").toUpperCase();
-      return roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
+      return roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUáº¢N LÃ CÃ”NG VIá»†C" || roleUpper === "QL CÃ”NG VIá»†C";
     }
     return !n.targetUsername || n.targetUsername?.toLowerCase() === user?.username?.toLowerCase();
   });
@@ -152,7 +152,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
     }));
     setNotifications(updated);
     
-    // Chỉ cập nhật trạng thái đã đọc cho các thông báo hệ thống nằm trong localStorage
+    // Chá»‰ cáº­p nháº­t tráº¡ng thÃ¡i Ä‘Ã£ Ä‘á»c cho cÃ¡c thÃ´ng bÃ¡o há»‡ thá»‘ng náº±m trong localStorage
     try {
       const originalAdminNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
       const updatedAdminNotifs = originalAdminNotifs.map((an: any) => {
@@ -192,7 +192,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
       }
     }
     
-    // Chỉ cập nhật trạng thái đã đọc cho đúng thông báo hệ thống trong localStorage
+    // Chá»‰ cáº­p nháº­t tráº¡ng thÃ¡i Ä‘Ã£ Ä‘á»c cho Ä‘Ãºng thÃ´ng bÃ¡o há»‡ thá»‘ng trong localStorage
     try {
       const originalAdminNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
       const updatedAdminNotifs = originalAdminNotifs.map((an: any) => {
@@ -239,6 +239,8 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
       router.push("/admin/newsfeed");
     } else if (notif.type === "TASK" || notif.type === "SATELLITE_ASSIGNMENT") {
       router.push("/admin/mail/satellite-batches");
+    } else if (notif.type === "LATE_WARNING") {
+      router.push("/admin/staff");
     }
     setIsNotifOpen(false);
   };
@@ -246,16 +248,16 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
   const getRoleLabel = (role?: string) => {
     const r = String(role || "").toUpperCase();
     if (r === "01" || r === "ADMIN") return "ADMIN";
-    if (r === "02" || r === "QL CÔNG VIỆC" || r === "QUẢN LÝ CÔNG VIỆC") return "QL CÔNG VIỆC";
-    if (r === "03" || r === "QL NHÂN SỰ" || r === "QUẢN LÝ NHÂN SỰ") return "QL NHÂN SỰ";
-    if (r === "04" || r === "NHÂN VIÊN") return "NHÂN VIÊN";
-    if (r === "05" || r === "NV THỬ VIỆC") return "NV THỬ VIỆC";
+    if (r === "02" || r === "QL CÃ”NG VIá»†C" || r === "QUáº¢N LÃ CÃ”NG VIá»†C") return "QL CÃ”NG VIá»†C";
+    if (r === "03" || r === "QL NHÃ‚N Sá»°" || r === "QUáº¢N LÃ NHÃ‚N Sá»°") return "QL NHÃ‚N Sá»°";
+    if (r === "04" || r === "NHÃ‚N VIÃŠN") return "NHÃ‚N VIÃŠN";
+    if (r === "05" || r === "NV THá»¬ VIá»†C") return "NV THá»¬ VIá»†C";
     return "GUEST";
   };
 
   const handleLogout = async () => {
     try {
-      // Gọi API logout để backend set lastActive=null, isOnline=false TRƯỚC
+      // Gá»i API logout Ä‘á»ƒ backend set lastActive=null, isOnline=false TRÆ¯á»šC
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch (err) {
       console.error("Logout API error:", err);
@@ -301,7 +303,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
               <Search className="absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#a07800] transition-colors" />
               <input
                 type="text"
-                placeholder="Tìm kiếm nội dung..."
+                placeholder="TÃ¬m kiáº¿m ná»™i dung..."
                 className="h-11 w-full rounded-xl border border-white/0 bg-zinc-900/50 pl-11 pr-6 text-sm text-zinc-100 placeholder-zinc-500 transition-all focus:border-[#a07800] focus:outline-none focus:ring-2 focus:ring-[#a07800]/10"
               />
             </div>
@@ -312,7 +314,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           {/* Real-time DateTime Widget */}
           <div className="hidden xl:flex items-center gap-3 px-6 border-l border-white/0 h-8">
             <div className="flex flex-col items-end">
-              <span className="text-[8px] font-black text-[#a07800] uppercase tracking-[0.2em] leading-none mb-1">Thời gian hệ thống</span>
+              <span className="text-[8px] font-black text-[#a07800] uppercase tracking-[0.2em] leading-none mb-1">Thá»i gian há»‡ thá»‘ng</span>
               <div className="flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
                 <span className="text-sm font-bold text-zinc-100 font-mono tracking-wider">{dateTimeStr}</span>
@@ -345,8 +347,8 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                     className="absolute right-0 top-full mt-3 z-20 w-80 rounded-2xl border border-white/0 bg-[#18181b] p-5 shadow-2xl backdrop-blur-md animate-fade-in"
                   >
                     <div className="flex items-center justify-between mb-4 px-1">
-                      <p className="text-xs font-black uppercase tracking-[0.15em] text-zinc-100">Thông báo</p>
-                      <button onClick={markAllRead} className="text-[9px] font-black text-[#a07800] hover:underline uppercase">Đọc tất cả</button>
+                      <p className="text-xs font-black uppercase tracking-[0.15em] text-zinc-100">ThÃ´ng bÃ¡o</p>
+                      <button onClick={markAllRead} className="text-[9px] font-black text-[#a07800] hover:underline uppercase">Äá»c táº¥t cáº£</button>
                     </div>
                     
                     <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
@@ -378,7 +380,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                         ))
                       ) : (
                         <div className="py-8 text-center">
-                          <p className="text-xs font-bold text-zinc-500 italic">Không có thông báo mới</p>
+                          <p className="text-xs font-bold text-zinc-500 italic">KhÃ´ng cÃ³ thÃ´ng bÃ¡o má»›i</p>
                         </div>
                       )}
                     </div>
@@ -392,7 +394,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                         }}
                         className="w-full h-9 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 text-xs font-semibold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-sm"
                       >
-                        Xem tất cả thông báo
+                        Xem táº¥t cáº£ thÃ´ng bÃ¡o
                       </button>
                     </div>
                   </motion.div>
@@ -404,7 +406,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           {/* User Profile */}
           <div className="relative flex items-center gap-4 pl-6 border-l border-white/0">
             <div className="text-right hidden lg:block overflow-hidden">
-              <p className="text-sm font-semibold text-zinc-100 leading-none uppercase tracking-tight">{safeText(user?.name) || "Người dùng"}</p>
+              <p className="text-sm font-semibold text-zinc-100 leading-none uppercase tracking-tight">{safeText(user?.name) || "NgÆ°á»i dÃ¹ng"}</p>
               <p className="text-[8px] font-bold text-[#a07800] mt-1 uppercase tracking-[0.2em]">{getRoleLabel(user?.role)}</p>
             </div>
             
@@ -445,7 +447,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                       className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-wider text-zinc-400 transition-colors hover:bg-zinc-800/40 hover:text-zinc-100"
                     >
                       <UserSearch size={16} />
-                      Hồ sơ chi tiết
+                      Há»“ sÆ¡ chi tiáº¿t
                     </button>
                     
                     <div className="h-px bg-zinc-800/80 my-1.5" />
@@ -455,7 +457,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                       className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-wider text-red-500 transition-colors hover:bg-red-500/10"
                     >
                       <LogOut size={16} />
-                      Đăng xuất hệ thống
+                      ÄÄƒng xuáº¥t há»‡ thá»‘ng
                     </button>
                   </motion.div>
                 </>
@@ -483,14 +485,14 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
               <div className="flex items-center justify-between mb-6 border-b border-white/0 pb-4">
                 <div className="flex items-center gap-3">
                   <Bell className="text-[#a07800]" size={24} />
-                  <h3 className="text-xl font-bold text-zinc-100 uppercase tracking-tight">Trung tâm thông báo</h3>
+                  <h3 className="text-xl font-bold text-zinc-100 uppercase tracking-tight">Trung tÃ¢m thÃ´ng bÃ¡o</h3>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={markAllRead}
                     className="text-xs font-semibold text-[#a07800] hover:underline uppercase tracking-wider flex items-center gap-2 bg-[#a07800]/10 px-4 py-2 rounded-xl border border-[#a07800]/20 hover:bg-[#a07800]/20 transition-all"
                   >
-                    Đọc tất cả
+                    Äá»c táº¥t cáº£
                   </button>
                   <button
                     onClick={() => setShowAllNotificationsModal(false)}
@@ -511,7 +513,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                       : "text-zinc-400 hover:text-zinc-200"
                   }`}
                 >
-                  Chưa đọc ({(uniqueNotifications || []).filter(n => !n.read).length})
+                  ChÆ°a Ä‘á»c ({(uniqueNotifications || []).filter(n => !n.read).length})
                 </button>
                 <button
                   onClick={() => setNotifTab("READ")}
@@ -521,7 +523,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                       : "text-zinc-400 hover:text-zinc-200"
                   }`}
                 >
-                  Đã đọc ({(uniqueNotifications || []).filter(n => n.read).length})
+                  ÄÃ£ Ä‘á»c ({(uniqueNotifications || []).filter(n => n.read).length})
                 </button>
               </div>
 
@@ -569,7 +571,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                             }}
                             className="mt-2 text-[9px] font-black text-[#a07800] hover:underline uppercase tracking-wider"
                           >
-                            Đánh dấu đã đọc
+                            ÄÃ¡nh dáº¥u Ä‘Ã£ Ä‘á»c
                           </button>
                         )}
                       </div>
@@ -578,7 +580,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                 ) : (
                   <div className="py-12 text-center border border-dashed border-white/0 rounded-xl bg-zinc-950/20">
                     <Bell className="mx-auto mb-2 text-zinc-500" size={32} />
-                    <p className="text-xs font-bold text-zinc-500 italic">Không có thông báo nào trong mục này</p>
+                    <p className="text-xs font-bold text-zinc-500 italic">KhÃ´ng cÃ³ thÃ´ng bÃ¡o nÃ o trong má»¥c nÃ y</p>
                   </div>
                 )}
               </div>
@@ -598,49 +600,49 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                 <UserPlus size={24} />
               </div>
               <div>
-                <h3 className="text-lg font-black text-white uppercase tracking-tight">Duyệt Đăng Ký Nhân Sự</h3>
-                <p className="text-[10px] text-[#a07800] font-bold uppercase tracking-wider">Phê duyệt quyền truy cập hệ thống</p>
+                <h3 className="text-lg font-black text-white uppercase tracking-tight">Duyá»‡t ÄÄƒng KÃ½ NhÃ¢n Sá»±</h3>
+                <p className="text-[10px] text-[#a07800] font-bold uppercase tracking-wider">PhÃª duyá»‡t quyá»n truy cáº­p há»‡ thá»‘ng</p>
               </div>
             </div>
 
             <div className="space-y-4 mb-8 text-sm text-gray-300 font-medium relative z-10 leading-relaxed bg-zinc-950/40 p-6 rounded-2xl border border-white/0">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block mb-0.5">Họ và tên</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block mb-0.5">Há» vÃ  tÃªn</span>
                   <span className="text-white font-bold text-base">{pendingApproveUser.name}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block mb-0.5">Tên đăng nhập</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block mb-0.5">TÃªn Ä‘Äƒng nháº­p</span>
                   <span className="text-[#a07800] font-mono font-bold text-base">@{pendingApproveUser.username}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block mb-0.5">Số điện thoại</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block mb-0.5">Sá»‘ Ä‘iá»‡n thoáº¡i</span>
                   <span className="text-white font-semibold">{pendingApproveUser.phone || "---"}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block mb-0.5">Năm sinh</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block mb-0.5">NÄƒm sinh</span>
                   <span className="text-white font-semibold">{pendingApproveUser.birthYear || "---"}</span>
                 </div>
               </div>
               <div className="pt-2 border-t border-white/5">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block mb-0.5">Địa chỉ</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block mb-0.5">Äá»‹a chá»‰</span>
                 <span className="text-white font-semibold text-xs leading-relaxed">{pendingApproveUser.address || "---"}</span>
               </div>
             </div>
 
             {/* Role Selector */}
             <div className="flex flex-col gap-2 mb-8 relative z-10">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 ml-1">Chọn chức vụ (Role)</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 ml-1">Chá»n chá»©c vá»¥ (Role)</label>
               <div className="relative group">
                 <select
                   value={selectedRole}
                   onChange={(e) => setSelectedRole(e.target.value)}
                   className="w-full h-12 bg-black/40 border border-white/0 rounded-xl px-4 text-sm font-bold text-white uppercase outline-none focus:border-[#a07800]/30 cursor-pointer"
                 >
-                  <option value="04">Nhân viên chính thức</option>
-                  <option value="05">Nhân viên thử việc</option>
-                  <option value="03">QL Nhân sự</option>
-                  <option value="02">QL Công việc</option>
+                  <option value="04">NhÃ¢n viÃªn chÃ­nh thá»©c</option>
+                  <option value="05">NhÃ¢n viÃªn thá»­ viá»‡c</option>
+                  <option value="03">QL NhÃ¢n sá»±</option>
+                  <option value="02">QL CÃ´ng viá»‡c</option>
                   <option value="01">Admin</option>
                 </select>
               </div>
@@ -674,7 +676,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                 disabled={isActionSubmitting}
                 className="flex-1 h-12 bg-red-500/10 border border-red-500/20 text-red-500 font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
               >
-                Từ chối
+                Tá»« chá»‘i
               </button>
               <button
                 onClick={async () => {
@@ -708,7 +710,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                 disabled={isActionSubmitting}
                 className="flex-1 h-12 bg-[#a07800] hover:bg-[#a07800]/80 text-black font-black uppercase text-[10px] tracking-widest rounded-xl transition-all shadow-xl shadow-[#a07800]/20 disabled:opacity-50"
               >
-                Phê duyệt & Đồng ý
+                PhÃª duyá»‡t & Äá»“ng Ã½
               </button>
             </div>
 
@@ -721,7 +723,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                 }}
                 className="text-[10px] font-black text-gray-500 hover:text-[#a07800] uppercase tracking-widest transition-all bg-transparent border-none outline-none cursor-pointer"
               >
-                Xem chi tiết tại trang Quản trị Nhân sự →
+                Xem chi tiáº¿t táº¡i trang Quáº£n trá»‹ NhÃ¢n sá»± â†’
               </button>
             </div>
           </div>
