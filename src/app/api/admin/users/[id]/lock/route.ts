@@ -36,6 +36,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     user.status = newStatus;
     if (newStatus === "ACTIVE") {
       user.lastActive = null;
+      (user as any).isLateLocked = false;
+      (user as any).finePaymentStatus = "APPROVED";
+      (user as any).lateExcuseStatus = "APPROVED";
     }
     
     await user.save();

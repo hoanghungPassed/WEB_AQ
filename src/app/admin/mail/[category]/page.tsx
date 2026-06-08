@@ -30,7 +30,7 @@ export default function MailCategoryPage() {
  };
 
  return (
- <div className="h-full">
+ <div className="h-full font-sans text-sm">
  <MailManagement type={getType()} user={user} />
  </div>
  );

@@ -276,7 +276,7 @@ export default function AdminDashboard() {
 
  // Nếu đây là yêu cầu nộp phạt hoặc giải trình đi muộn
  if (request.type ==="FINE_PAYMENT" || request.type ==="LATE_EXCUSE") {
- const savedUsers = null;
+ const savedUsers = localStorage.getItem("global_users");
  if (savedUsers) {
  const allUsers = JSON.parse(savedUsers);
  const updatedUsers = (allUsers || []).map((u: any) =>
@@ -289,7 +289,8 @@ export default function AdminDashboard() {
  }
  : u
  );
- 
+ localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+ syncDatabase();
  }
  }
  
@@ -308,7 +309,7 @@ export default function AdminDashboard() {
 
  // Nếu đây là yêu cầu nộp phạt hoặc giải trình đi muộn
  if (request.type ==="FINE_PAYMENT" || request.type ==="LATE_EXCUSE") {
- const savedUsers = null;
+ const savedUsers = localStorage.getItem("global_users");
  if (savedUsers) {
  const allUsers = JSON.parse(savedUsers);
  const updatedUsers = (allUsers || []).map((u: any) =>
@@ -320,7 +321,8 @@ export default function AdminDashboard() {
  }
  : u
  );
- 
+ localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+ syncDatabase();
  }
  }
  

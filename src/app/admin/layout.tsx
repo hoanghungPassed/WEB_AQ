@@ -1015,7 +1015,28 @@ const totalWorkingMins = overlap1 + overlap2;
     setUnreadCount(unread);
   }, [user]);
 
-    // Realtime useSWR Polling for systemSettings (30s interval)
+  // Polling for access requests every 5 seconds (realtime notification for Admin/Managers)
+  useSWR("admin_pending_requests_polling", async () => {
+    if (!user || !(user.role === "01" || user.role === "02" || String(user.role).toUpperCase() === "ADMIN")) {
+      return Date.now();
+    }
+    try {
+      const res = await fetch(`/api/sync?t=${Date.now()}`);
+      if (res.ok) {
+        const store = await res.json();
+        if (store.pending_access_requests) {
+          const reqs = JSON.parse(store.pending_access_requests);
+          setPendingRequests(reqs);
+          localStorage.setItem("pending_access_requests", store.pending_access_requests);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to poll access requests:", err);
+    }
+    return Date.now();
+  }, { refreshInterval: 5000 });
+
+  // Realtime useSWR Polling for systemSettings (30s interval)
   const { data: systemSettings } = useSWR("/api/admin/settings", async () => {
     try {
       const res = await fetch("/api/admin/settings");
@@ -1544,6 +1565,7 @@ const typingTimer = setInterval(checkTyping, 1000);
  const newRequest = {
  id: Date.now(),
  staffName: user?.name,
+ username: user?.username,
  time: new Date().toLocaleTimeString(),
  reason:"Xin phép vào hệ thống làm việc ngoài giờ",
  status:"PENDING"
@@ -1559,67 +1581,155 @@ const typingTimer = setInterval(checkTyping, 1000);
  syncDatabase();
  };
 
- const handleApprove = (request: any) => {
- const updated = (pendingRequests || []).filter(r => r.id !== request.id);
- setPendingRequests(updated);
- localStorage.setItem("pending_access_requests", JSON.stringify(updated));
- // Cấp quyền và thông báo cho nhân viên
- localStorage.setItem(`access_response_${request.staffName}`,"APPROVED");
- localStorage.setItem(`access_${getStableDateString()}_${request.staffName}`,"true");
+  const handleApprove = async (request: any) => {
+    const updated = (pendingRequests || []).filter(r => r.id !== request.id);
+    setPendingRequests(updated);
+    localStorage.setItem("pending_access_requests", JSON.stringify(updated));
+    localStorage.setItem(`access_response_${request.staffName}`, "APPROVED");
+    localStorage.setItem(`access_${getStableDateString()}_${request.staffName}`, "true");
 
- // Nếu đây là yêu cầu nộp phạt hoặc giải trình đi muộn
- if (request.type ==="FINE_PAYMENT" || request.type ==="LATE_EXCUSE") {
- const savedUsers = localStorage.getItem("global_users");
- if (savedUsers) {
- const allUsers = JSON.parse(savedUsers);
- const updatedUsers = (allUsers || []).map((u: any) =>
- u.username === request.username || u.name === request.staffName
- ? { 
- ...u, 
- isLateLocked: false, 
- finePaymentStatus: request.type ==="FINE_PAYMENT" ?"APPROVED" : u.finePaymentStatus,
- lateExcuseStatus: request.type ==="LATE_EXCUSE" ?"APPROVED" : u.lateExcuseStatus
- }
- : u
- );
- localStorage.setItem("global_users", JSON.stringify(updatedUsers));
- }
- }
+    if (request.type === "FINE_PAYMENT" || request.type === "LATE_EXCUSE") {
+      const savedUsersStr = localStorage.getItem("global_users");
+      const allUsers = savedUsersStr ? JSON.parse(savedUsersStr) : [];
+      const targetUser = allUsers.find(
+        (u: any) => u.username === request.username || u.name === request.staffName
+      );
 
- // Đồng bộ lên server ngay lập tức để Nhân viên nhận được quyền mở khóa!
- syncDatabase();
+      if (targetUser) {
+        const userId = targetUser.id || targetUser._id;
+        const userUpdateData: any = { isLateLocked: false };
+        if (request.type === "FINE_PAYMENT") {
+          userUpdateData.finePaymentStatus = "APPROVED";
+        } else if (request.type === "LATE_EXCUSE") {
+          userUpdateData.lateExcuseStatus = "APPROVED";
+        }
 
- setAccessSuccessMsg(`Đã duyệt yêu cầu cho ${request.staffName}`);
- };
+        try {
+          await fetch(`/api/admin/users/${userId}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "x-user-id": user?.id || user?._id || "",
+              "x-user-role": user?.role || ""
+            },
+            body: JSON.stringify(userUpdateData)
+          });
+        } catch (err) {
+          console.error("Failed to update user database:", err);
+        }
 
- const handleDeny = (request: any) => {
- const updated = (pendingRequests || []).filter(r => r.id !== request.id);
- setPendingRequests(updated);
- localStorage.setItem("pending_access_requests", JSON.stringify(updated));
- // Thông báo từ chối cho nhân viên
- localStorage.setItem(`access_response_${request.staffName}`,"DENIED");
+        try {
+          let targetFineId = request.fineId;
+          if (!targetFineId) {
+            const finesRes = await fetch("/api/admin/fines", {
+              headers: {
+                "x-user-id": user?.id || user?._id || "",
+                "x-user-role": user?.role || ""
+              }
+            });
+            if (finesRes.ok) {
+              const allFines = await finesRes.json();
+              const userFine = (allFines || []).find((f: any) => {
+                const fUserId = f.userId?._id || f.userId?.id || f.userId;
+                return (
+                  String(fUserId) === String(userId) &&
+                  (f.status === "UNPAID" || f.status === "PENDING_APPROVAL") &&
+                  (f.type === "LATE" || (f.reason && (f.reason.includes("Đi muộn") || f.reason.includes("đăng nhập ngoài giờ"))))
+                );
+              });
+              if (userFine) {
+                targetFineId = userFine._id || userFine.id;
+              }
+            }
+          }
 
- // Nếu đây là yêu cầu nộp phạt hoặc giải trình đi muộn
- if (request.type ==="FINE_PAYMENT" || request.type ==="LATE_EXCUSE") {
- const savedUsers = localStorage.getItem("global_users");
- if (savedUsers) {
- const allUsers = JSON.parse(savedUsers);
- const updatedUsers = (allUsers || []).map((u: any) =>
- u.username === request.username || u.name === request.staffName
- ? { 
- ...u, 
- finePaymentStatus: request.type ==="FINE_PAYMENT" ?"DENIED" : u.finePaymentStatus,
- lateExcuseStatus: request.type ==="LATE_EXCUSE" ?"DENIED" : u.lateExcuseStatus
- }
- : u
- );
- localStorage.setItem("global_users", JSON.stringify(updatedUsers));
- }
- }
+          if (targetFineId) {
+            await fetch("/api/admin/fines", {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                "x-user-id": user?.id || user?._id || "",
+                "x-user-role": user?.role || ""
+              },
+              body: JSON.stringify({
+                id: targetFineId,
+                status: "PAID"
+              })
+            });
+          }
+        } catch (err) {
+          console.error("Failed to update fine database:", err);
+        }
 
- // Đồng bộ lên server ngay lập tức
- syncDatabase();
- };
+        const updatedUsers = (allUsers || []).map((u: any) =>
+          u.username === request.username || u.name === request.staffName
+            ? { 
+                ...u, 
+                isLateLocked: false, 
+                finePaymentStatus: request.type === "FINE_PAYMENT" ? "APPROVED" : u.finePaymentStatus,
+                lateExcuseStatus: request.type === "LATE_EXCUSE" ? "APPROVED" : u.lateExcuseStatus
+              }
+            : u
+        );
+        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+      }
+    }
+
+    await syncDatabase();
+    setAccessSuccessMsg(`Đã duyệt yêu cầu cho ${request.staffName}`);
+  };
+
+  const handleDeny = async (request: any) => {
+    const updated = (pendingRequests || []).filter(r => r.id !== request.id);
+    setPendingRequests(updated);
+    localStorage.setItem("pending_access_requests", JSON.stringify(updated));
+    localStorage.setItem(`access_response_${request.staffName}`, "DENIED");
+
+    if (request.type === "FINE_PAYMENT" || request.type === "LATE_EXCUSE") {
+      const savedUsersStr = localStorage.getItem("global_users");
+      const allUsers = savedUsersStr ? JSON.parse(savedUsersStr) : [];
+      const targetUser = allUsers.find(
+        (u: any) => u.username === request.username || u.name === request.staffName
+      );
+
+      if (targetUser) {
+        const userId = targetUser.id || targetUser._id;
+        const userUpdateData: any = {};
+        if (request.type === "FINE_PAYMENT") {
+          userUpdateData.finePaymentStatus = "DENIED";
+        } else if (request.type === "LATE_EXCUSE") {
+          userUpdateData.lateExcuseStatus = "DENIED";
+        }
+
+        try {
+          await fetch(`/api/admin/users/${userId}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "x-user-id": user?.id || user?._id || "",
+              "x-user-role": user?.role || ""
+            },
+            body: JSON.stringify(userUpdateData)
+          });
+        } catch (err) {
+          console.error("Failed to deny user database update:", err);
+        }
+
+        const updatedUsers = (allUsers || []).map((u: any) =>
+          u.username === request.username || u.name === request.staffName
+            ? { 
+                ...u, 
+                finePaymentStatus: request.type === "FINE_PAYMENT" ? "DENIED" : u.finePaymentStatus,
+                lateExcuseStatus: request.type === "LATE_EXCUSE" ? "DENIED" : u.lateExcuseStatus
+              }
+            : u
+        );
+        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+      }
+    }
+
+    await syncDatabase();
+  };
 
  // Thông tin mặc định nếu chưa load xong hoặc để modal hiển thị
  const displayUser = user || {
@@ -1724,36 +1834,46 @@ const typingTimer = setInterval(checkTyping, 1000);
  </AnimatePresence>
 
  {/* Manager Approval Notification */}
- {(user?.role ==="ADMIN" || user?.role ==="01" || user?.role ==="02" || String(user?.role).toUpperCase().includes("QUẢN LÝ")) && (pendingRequests || []).length > 0 && (
- <div className="fixed bottom-10 right-10 z-50">
- <div className="bg-sidebar border border-white/0 p-6 rounded-[32px] shadow-2xl w-96">
- <div className="flex items-center gap-3 mb-4">
- <div className="h-10 w-10 bg-gold rounded-full flex items-center justify-center text-sidebar">
- <Bell size={20} />
- </div>
- <div>
- <p className="text-[10px] font-bold text-gold uppercase tracking-widest">Yêu cầu truy cập mới</p>
- <p className="text-lg font-black text-white">{safeText(pendingRequests[0]?.staffName)}</p>
- </div>
- </div>
- <p className="text-gray-400 text-base mb-6 font-medium">Nhân viên này đang xin phép truy cập hệ thống ngoài giờ làm việc.</p>
- <div className="flex gap-3">
- <button
- onClick={() => handleApprove(pendingRequests[0])}
- className="flex-1 h-12 bg-green-500 rounded-xl text-white font-bold flex items-center justify-center gap-2 hover:bg-green-600 transition-all"
- >
- <Check size={18} /> Đồng ý
- </button>
- <button
- onClick={() => handleDeny(pendingRequests[0])}
- className="flex-1 h-12 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 font-bold flex items-center justify-center gap-2 hover:bg-red-500/20 transition-all"
- >
- <X size={18} /> Từ chối
- </button>
- </div>
- </div>
- </div>
- )}
+ {(user?.role ==="ADMIN" || user?.role ==="01" || user?.role ==="02" || String(user?.role).toUpperCase().includes("QUẢN LÝ")) && (pendingRequests || []).length > 0 && (() => {
+   const request = pendingRequests[0];
+   const isLateRequest = request?.type === "FINE_PAYMENT" || request?.type === "LATE_EXCUSE";
+   return (
+     <div className="fixed bottom-10 right-10 z-50">
+       <div className="bg-sidebar border border-white/0 p-6 rounded-[32px] shadow-2xl w-96">
+         <div className="flex items-center gap-3 mb-4">
+           <div className="h-10 w-10 bg-gold rounded-full flex items-center justify-center text-sidebar animate-pulse">
+             <Bell size={20} />
+           </div>
+           <div>
+             <p className="text-[10px] font-bold text-gold uppercase tracking-widest">
+               {isLateRequest ? "Yêu cầu duyệt đi muộn" : "Yêu cầu truy cập mới"}
+             </p>
+             <p className="text-lg font-black text-white">{safeText(request?.staffName)}</p>
+           </div>
+         </div>
+         <p className="text-gray-400 text-base mb-6 font-medium">
+           {isLateRequest 
+             ? `Nhân viên ${safeText(request?.staffName)} vừa gửi yêu cầu mở khóa do đi muộn/chuyển khoản.`
+             : "Nhân viên này đang xin phép truy cập hệ thống ngoài giờ làm việc."}
+         </p>
+         <div className="flex gap-3">
+           <button
+             onClick={() => handleApprove(request)}
+             className="flex-1 h-12 bg-green-500 rounded-xl text-white font-bold flex items-center justify-center gap-2 hover:bg-green-600 transition-all shadow-lg shadow-green-500/20"
+           >
+             <Check size={18} /> {isLateRequest ? "Duyệt ngay" : "Đồng ý"}
+           </button>
+           <button
+             onClick={() => handleDeny(request)}
+             className="flex-1 h-12 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 font-bold flex items-center justify-center gap-2 hover:bg-red-500/20 transition-all"
+           >
+             <X size={18} /> Từ chối
+           </button>
+         </div>
+       </div>
+     </div>
+   );
+ })()}
  </div>
  </main>
  </div>
@@ -1769,289 +1889,126 @@ const typingTimer = setInterval(checkTyping, 1000);
  />
  )}
 
- {/* Late Access Lock Screen */}
-{!shouldLock && isLateLocked && (
- <div className="fixed inset-0 z-[500] bg-[#070707]/75 backdrop-blur-md text-white flex flex-col items-center justify-center p-6 overflow-y-auto custom-scrollbar">
- <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.05)_0%,transparent_70%)] pointer-events-none" />
+  {/* Late Access Lock Screen */}
+  {!shouldLock && isLateLocked && (
+    <AccessLock
+      message="Báo cáo đi muộn"
+      userName={user?.name || "Nhân viên"}
+      onSendRequest={() => {}}
+      onLogout={handleLogout}
+      isPendingApproval={isPendingApproval}
+      isLateLock={true}
+      username={user?.username}
+      fineAmount={fineAmount}
+      bankConfig={bankConfig}
+      lateMins={lateMins}
+      onSendExcuse={(reason) => {
+        if (user) {
+          const newRequest = {
+            id: Date.now(),
+            staffName: user?.name,
+            username: user?.username,
+            time: new Date().toLocaleTimeString(),
+            reason: `Giải trình đi muộn: ${reason}`,
+            status: "PENDING",
+            type: "LATE_EXCUSE",
+            fineId: activeFine?._id || activeFine?.id
+          };
+          const savedRequests = localStorage.getItem("pending_access_requests");
+          const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+          const updatedRequests = [...currentRequests, newRequest];
+          localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
 
- <div className="w-full max-w-2xl bg-sidebar/85 backdrop-blur-lg border border-gold/20 rounded-[32px] p-8 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] shadow-gold/5 relative overflow-hidden text-center my-auto">
-  {isPendingApproval ? (
-    <div className="py-10 px-4 space-y-8 flex flex-col items-center justify-center animate-fade-in">
-      {/* Multilayered Animated Loading Icon */}
-      <div className="relative flex items-center justify-center mb-2">
-        {/* Inner pulsating glow */}
-        <div className="absolute inset-0 rounded-full bg-amber-500/10 blur-xl animate-pulse" />
-        
-        {/* Double ring border */}
-        <div className="h-24 w-24 rounded-full border border-amber-500/20 border-dashed animate-[spin_25s_linear_infinite] absolute" />
-        <div className="h-20 w-20 rounded-full border border-amber-500/30 animate-[spin_12s_linear_infinite_reverse] absolute" />
+          const savedUsers = localStorage.getItem("global_users");
+          if (savedUsers) {
+            const allUsers = JSON.parse(savedUsers);
+            const updated = (allUsers || []).map((u: any) =>
+              u.username === user?.username ? { 
+                ...u, 
+                isLateLocked: true, 
+                lateExcuseStatus: "PENDING_APPROVAL",
+                status: "PENDING_APPROVAL" 
+              } : u
+            );
+            localStorage.setItem("global_users", JSON.stringify(updated));
+          }
+          window.dispatchEvent(new Event("storage"));
+          syncDatabase();
+          setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
+          setTimeout(() => setFineSuccessToast(null), 5000);
+        }
+      }}
+      onReportPayment={() => {
+        if (user) {
+          const newRequest = {
+            id: Date.now(),
+            staffName: user?.name,
+            username: user?.username,
+            time: new Date().toLocaleTimeString(),
+            reason: `Nộp phạt đi muộn: ${formatLateMins(lateMins)} (${fineAmount.toLocaleString("vi-VN")} VND)`,
+            status: "PENDING",
+            type: "FINE_PAYMENT",
+            fineId: activeFine?._id || activeFine?.id
+          };
+          const savedRequests = localStorage.getItem("pending_access_requests");
+          const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+          const updatedRequests = [...currentRequests, newRequest];
+          localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
 
-        {/* Main Loader Icon Badge */}
-        <div className="h-16 w-16 bg-gradient-to-b from-amber-500/10 to-amber-950/30 border border-amber-500/30 text-amber-400 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.15)] relative z-10">
-          <Loader2 size={36} className="animate-spin text-gold" style={{ animationDuration: '3s' }} />
-        </div>
-      </div>
-
-      {/* Premium Typography */}
-      <div className="space-y-3 text-center">
-        <h2 className="text-3xl font-extrabold uppercase tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500">
-          Đang xử lý yêu cầu...
-        </h2>
-        <div className="w-16 h-1 bg-gradient-to-r from-amber-400 to-amber-600 mx-auto rounded-full" />
-      </div>
-
-      {/* Elegant Notification Card */}
-      <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden backdrop-blur-sm">
-        <div className="absolute top-0 left-0 w-1 h-full bg-amber-500 animate-pulse" />
-        <p className="text-gray-300 text-sm font-medium leading-relaxed text-left">
-          Hệ thống đang tiếp nhận bằng chứng của bạn. Vui lòng chờ **Admin hoặc Quản lý** đối soát và phê duyệt yêu cầu để tự động mở khóa tài khoản!
-        </p>
-        <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center text-[10px] text-gray-500 uppercase tracking-widest font-black">
-          <span>Trạng thái kiểm duyệt:</span>
-          <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold uppercase tracking-wider animate-pulse">
-            Chờ phê duyệt
-          </span>
-        </div>
-      </div>
-
-      {/* Premium Action Buttons */}
-      <div className="pt-4 flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
-        <button
-          onClick={handleLogout}
-          className="px-8 h-12 bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/20 text-gray-300 hover:text-red-400 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2"
-        >
-          Đăng xuất tài khoản
-        </button>
-      </div>
-    </div>
- ) : (() => {
- // Calculate isDeniedApproval here
- let isDeniedApproval = false;
- if (user) {
- const savedUsers = localStorage.getItem("global_users");
- if (savedUsers) {
- const allUsers = JSON.parse(savedUsers);
- const u = allUsers.find((u: any) => u.username === user?.username);
- if (u && (u.finePaymentStatus ==="DENIED" || u.lateExcuseStatus ==="DENIED")) {
- isDeniedApproval = true;
- }
- }
- }
-
- if (isDeniedApproval) {
- return (
- <div className="py-12 space-y-6">
- <div className="h-20 w-20 bg-red-500/10 border border-red-500/30 text-red-500 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-red-500/5">
- <ShieldAlert size={40} className="animate-pulse" />
- </div>
- <h2 className="text-3xl font-bold uppercase tracking-tight text-red-500">Yêu cầu bị từ chối</h2>
- <p className="text-gray-300 text-base font-medium max-w-md mx-auto leading-relaxed">
- Yêu cầu giải trình hoặc nộp phạt của bạn đã bị Admin/Quản lý từ chối. Vui lòng kiểm tra lại thông tin và thử gửi lại.
- </p>
- <div className="pt-6 flex gap-3 justify-center">
- <button
- onClick={() => {
- if (user) {
- const savedUsers = localStorage.getItem("global_users");
- if (savedUsers) {
- const allUsers = JSON.parse(savedUsers);
- const updated = (allUsers || []).map((u: any) => 
- u.username === user?.username ? {
- ...u,
- finePaymentStatus: u.finePaymentStatus ==="DENIED" ? null : u.finePaymentStatus,
- lateExcuseStatus: u.lateExcuseStatus ==="DENIED" ? null : u.lateExcuseStatus
- } : u
- );
- localStorage.setItem("global_users", JSON.stringify(updated));
- window.dispatchEvent(new Event("storage"));
- window.location.reload();
- }
- }
- }}
- className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-zinc-50 font-bold rounded-xl transition-colors mt-4"
- >
- Thử gửi lại
- </button>
- <button
- onClick={handleLogout}
- className="px-8 h-12 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg shadow-red-500/5"
- >
- Đăng xuất
- </button>
- </div>
- </div>
- );
- }
-
- return (
- <>
- {/* Header info */}
- <div className="h-16 w-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-500/5">
- <Clock size={32} className="animate-pulse" />
- </div>
-
- <h2 className="text-3xl font-bold uppercase tracking-tight text-white mb-2">Báo cáo đi muộn</h2>
- <p className="text-gray-400 text-base font-medium max-w-md mx-auto leading-relaxed mb-6">
- Hôm nay bạn check-in lúc <span className="text-red-400 font-bold font-mono">
- {user ? new Date(localStorage.getItem(`checkin_time_${user?.username}`) ||"").toLocaleTimeString("vi-VN") :"---"}
- </span>, đi muộn <span className="text-red-400 font-bold font-mono">{formatLateMins(lateMins)}</span> so với giờ quy định (8:00 AM).
- </p>
-
- <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center border-t border-b border-white/0 py-8 my-6 text-left">
- {/* QR Code and Payment details */}
- <div className="flex flex-col items-center justify-center border-r border-white/0 pr-0 md:pr-6 pb-6 md:pb-0">
- <div className="bg-zinc-900 p-6 rounded-2xl shadow-xl border-2 border-white/0 relative">
- <img
- src={`https://img.vietqr.io/image/${bankConfig?.bankBin || bankConfig?.bankName ||"MB"}-${bankConfig?.accountNumber ||"686820388888"}-compact2.png?amount=${fineAmount}&addInfo=${user?.username || 'Guest'}_Nop_Phat&accountName=${encodeURIComponent(bankConfig?.accountHolder ||"CÔNG TY TNHH AQ MEDIA")}`}
- alt="VietQR Fine Code"
- className="h-[180px] w-[180px] object-contain rounded-xl"
- />
- </div>
- <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black mt-3 text-center">Quét mã nộp phạt qua Ngân hàng</p>
- </div>
-
- <div className="space-y-4">
- <div>
- <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Ngân hàng thụ hưởng</span>
- <span className="text-base font-black text-white">{bankConfig?.bankFullName || `${bankConfig?.bankName ||"MB"} Bank`}</span>
- </div>
- <div>
- <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Số tài khoản</span>
- <span className="text-base font-black text-gold font-mono">{bankConfig?.accountNumber ||"686820388888"}</span>
- </div>
- <div>
- <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Tên người nhận</span>
- <span className="text-base font-black text-white">{bankConfig?.accountHolder ||"CÔNG TY TNHH AQ MEDIA"}</span>
- </div>
- <div>
- <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Số tiền nộp phạt</span>
- <span className="text-lg font-black text-red-400 font-mono">
- {fineAmount.toLocaleString("vi-VN")} VND
- </span>
- </div>
- <div>
- <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Nội dung chuyển khoản</span>
- <span className="text-sm font-bold text-gray-300 font-mono bg-white/5 border border-white/0 px-3 py-1.5 rounded-lg block overflow-hidden text-ellipsis whitespace-nowrap">
- {user?.username.toUpperCase()}_NOP_PHAT
- </span>
- </div>
- </div>
- </div>
-
- {/* excuse reason textarea */}
- <div className="border-t border-white/0 pt-6 my-6 text-left">
- <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-2">Hoặc gửi lý do giải trình đi muộn (Mở khóa lập tức)</label>
- <textarea
- value={excuseReason}
- onChange={(e) => setExcuseReason(e.target.value)}
- placeholder="Nhập lý do đi muộn của bạn tại đây (ví dụ: tắc đường, hỏng xe, việc gia đình đột xuất...)"
- className="w-full bg-white/5 border border-white/0 rounded-2xl p-6 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/5 focus:ring-1 focus:ring-gold/5 transition-all resize-none"
- rows={3}
- />
- </div>
-
- <div className="flex flex-col sm:flex-row gap-3 justify-center">
- <button
- disabled={finePaymentPending}
- onClick={() => {
- if (user) {
- const newRequest = {
- id: Date.now(),
- staffName: user?.name,
- username: user?.username,
- time: new Date().toLocaleTimeString(),
- reason: `Nộp phạt đi muộn: ${formatLateMins(lateMins)} (${fineAmount.toLocaleString("vi-VN")} VND)`,
- status:"PENDING",
- type:"FINE_PAYMENT"
- };
- const savedRequests = localStorage.getItem("pending_access_requests");
- const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
- const updatedRequests = [...currentRequests, newRequest];
- localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
-
- const savedUsers = localStorage.getItem("global_users");
- if (savedUsers) {
- const allUsers = JSON.parse(savedUsers);
- const updated = (allUsers || []).map((u: any) =>
- u.username === user?.username ? { 
- ...u, 
- isLateLocked: true, 
- finePaymentStatus:"PENDING_APPROVAL",
- status:"PENDING_APPROVAL"
- } : u
- );
- localStorage.setItem("global_users", JSON.stringify(updated));
- }
- window.dispatchEvent(new Event("storage"));
- syncDatabase();
- setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
- setTimeout(() => setFineSuccessToast(null), 5000);
- }
- }}
- className={`flex-1 h-14 font-black text-base uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-lg ${finePaymentPending ?"bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 cursor-not-allowed" :"bg-gold text-sidebar hover:bg-amber-700 bg-amber-600 hover:text-white shadow-gold/25"}`}
- >
- {finePaymentPending ?"Chờ duyệt..." :"Đã chuyển khoản"}
- </button>
-
- <button
- onClick={() => {
- if (!excuseReason.trim()) {
- alert("Vui lòng nhập lý do giải trình trước khi gửi!");
- return;
- }
- if (user) {
- const newRequest = {
- id: Date.now(),
- staffName: user?.name,
- username: user?.username,
- time: new Date().toLocaleTimeString(),
- reason: `Giải trình đi muộn: ${excuseReason}`,
- status:"PENDING",
- type:"LATE_EXCUSE"
- };
- const savedRequests = localStorage.getItem("pending_access_requests");
- const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
- const updatedRequests = [...currentRequests, newRequest];
- localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
-
- const savedUsers = localStorage.getItem("global_users");
- if (savedUsers) {
- const allUsers = JSON.parse(savedUsers);
- const updated = (allUsers || []).map((u: any) =>
- u.username === user?.username ? { 
- ...u, 
- isLateLocked: true, 
- lateExcuseStatus:"PENDING_APPROVAL",
- status:"PENDING_APPROVAL" 
- } : u
- );
- localStorage.setItem("global_users", JSON.stringify(updated));
- }
- window.dispatchEvent(new Event("storage"));
- syncDatabase();
- setExcuseReason("");
- setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
- setTimeout(() => setFineSuccessToast(null), 5000);
- }
- }}
- className="flex-1 h-14 bg-white/5 border border-white/0 hover:border-white/5 text-white font-black text-base uppercase tracking-widest rounded-2xl transition-all duration-300"
- >
- Gửi yêu cầu
- </button>
-
- <button
- onClick={handleLogout}
- className="h-14 px-6 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 font-black text-base uppercase tracking-widest rounded-2xl transition-all duration-300"
- >
- Đăng xuất
- </button>
- </div>
- </>
- );
- })()}
- </div>
- </div>
- )}
+          const savedUsers = localStorage.getItem("global_users");
+          if (savedUsers) {
+            const allUsers = JSON.parse(savedUsers);
+            const updated = (allUsers || []).map((u: any) =>
+              u.username === user?.username ? { 
+                ...u, 
+                isLateLocked: true, 
+                finePaymentStatus: "PENDING_APPROVAL",
+                status: "PENDING_APPROVAL"
+              } : u
+            );
+            localStorage.setItem("global_users", JSON.stringify(updated));
+          }
+          window.dispatchEvent(new Event("storage"));
+          syncDatabase();
+          setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
+          setTimeout(() => setFineSuccessToast(null), 5000);
+        }
+      }}
+      finePaymentPending={finePaymentPending}
+      isDeniedApproval={(() => {
+        let isDeniedApproval = false;
+        if (user) {
+          const savedUsers = localStorage.getItem("global_users");
+          if (savedUsers) {
+            const allUsers = JSON.parse(savedUsers);
+            const u = allUsers.find((u: any) => u.username === user?.username);
+            if (u && (u.finePaymentStatus === "DENIED" || u.lateExcuseStatus === "DENIED")) {
+              isDeniedApproval = true;
+            }
+          }
+        }
+        return isDeniedApproval;
+      })()}
+      onRetry={() => {
+        if (user) {
+          const savedUsers = localStorage.getItem("global_users");
+          if (savedUsers) {
+            const allUsers = JSON.parse(savedUsers);
+            const updated = (allUsers || []).map((u: any) => 
+              u.username === user?.username ? {
+                ...u,
+                finePaymentStatus: u.finePaymentStatus === "DENIED" ? null : u.finePaymentStatus,
+                lateExcuseStatus: u.lateExcuseStatus === "DENIED" ? null : u.lateExcuseStatus
+              } : u
+            );
+            localStorage.setItem("global_users", JSON.stringify(updated));
+            window.dispatchEvent(new Event("storage"));
+            window.location.reload();
+          }
+        }
+      }}
+    />
+  )}
 
  {/* Fine Success Toast */}
  <AnimatePresence>

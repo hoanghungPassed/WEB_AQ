@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from"react";
 import {
@@ -1237,7 +1237,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
  <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto custom-scrollbar">
  <div className="min-w-[1200px]">
- <table className="w-full text-left text-base whitespace-nowrap">
+ <table className="w-full text-left text-sm font-sans whitespace-nowrap">
  <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0">
  <tr>
  <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">STT</th>

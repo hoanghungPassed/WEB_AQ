@@ -48,6 +48,9 @@ export const CreateUserSchema = z.object({
   checkInTime: z.string().max(20).optional(),
   checkOutTime: z.string().max(20).optional(),
   offWorkTime: z.string().max(20).optional(),
+  isLateLocked: z.boolean().optional(),
+  finePaymentStatus: z.enum(["PENDING_APPROVAL", "APPROVED", "DENIED"]).or(z.null()).optional(),
+  lateExcuseStatus: z.enum(["PENDING_APPROVAL", "APPROVED", "DENIED"]).or(z.null()).optional(),
 });
 
 export const UpdateUserSchema = CreateUserSchema.partial().extend({

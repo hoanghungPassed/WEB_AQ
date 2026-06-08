@@ -28,6 +28,9 @@ export interface IUser extends Document {
  twoFAEnabled?: boolean;
  twoFASecret?: string;
  backupCodes?: string[];
+ isLateLocked?: boolean;
+ finePaymentStatus?: "PENDING_APPROVAL" | "APPROVED" | "DENIED" | null;
+ lateExcuseStatus?: "PENDING_APPROVAL" | "APPROVED" | "DENIED" | null;
 }
 
 const userSchema = new Schema<IUser>(
@@ -129,6 +132,20 @@ const userSchema = new Schema<IUser>(
  },
  deletedAt: {
  type: Date,
+ default: null,
+ },
+ isLateLocked: {
+ type: Boolean,
+ default: false,
+ },
+ finePaymentStatus: {
+ type: String,
+ enum: ["PENDING_APPROVAL", "APPROVED", "DENIED", null],
+ default: null,
+ },
+ lateExcuseStatus: {
+ type: String,
+ enum: ["PENDING_APPROVAL", "APPROVED", "DENIED", null],
  default: null,
  },
  },
