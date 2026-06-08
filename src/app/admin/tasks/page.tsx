@@ -456,6 +456,8 @@ export default function TaskManagementPage() {
  // Filter States
  const [searchQuery, setSearchQuery] = useState("");
  const [roleFilter, setRoleFilter] = useState("ALL");
+ const [staffSearch, setStaffSearch] = useState("");
+ const [staffOnlineFilter, setStaffOnlineFilter] = useState("ALL");
 
  // Pagination State
  const [currentPage, setCurrentPage] = useState(1);
@@ -666,15 +668,25 @@ export default function TaskManagementPage() {
  const is02 = user?.role ==="02" || user?.role ==="QUáº¢N LÃ CÃ”NG VIá»†C";
 
  return (staffList || []).filter((s: StaffData) => {
- // 1. Must be ONLINE
- if (!s.isOnline) return false;
+ // 1. Online Filter
+ if (staffOnlineFilter ==="ONLINE" && !s.isOnline) return false;
+ if (staffOnlineFilter ==="OFFLINE" && s.isOnline) return false;
 
- // 2. Templates restriction rules
+ // 2. Search Filter
+ if (staffSearch) {
+ const q = staffSearch.toLowerCase();
+ const matches = s.name.toLowerCase().includes(q) || 
+ s.username.toLowerCase().includes(q) ||
+ (s.phone && s.phone.includes(q));
+ if (!matches) return false;
+ }
+
+ // 3. Templates restriction rules
  if (selectedTemplate ==="Check, xÃ³a, táº¡o" || selectedTemplate ==="KÃªnh báº­t kiáº¿m tiá»n") {
  return s.role ==="02";
  }
 
- // 3. General role hierarchy restrictions
+ // 4. General role hierarchy restrictions
  if (is01) {
  return s.role ==="02" || s.role ==="03" || s.role ==="04" || s.role ==="05";
  }
@@ -683,7 +695,7 @@ export default function TaskManagementPage() {
  }
  return false;
  });
- }, [staffList, user, selectedTemplate]);
+ }, [staffList, user, selectedTemplate, staffSearch, staffOnlineFilter]);
 
  const filteredStaff = useMemo(() => {
  return (staffList || []).filter(staff => {
