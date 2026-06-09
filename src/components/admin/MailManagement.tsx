@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from"react";
 import {
@@ -81,16 +81,16 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  const roleUpper = String(user?.role ||"").toUpperCase();
  const isStaff = roleUpper ==="04" || 
  roleUpper ==="05" || 
- roleUpper ==="NHÃ‚N VIÃŠN" || 
- roleUpper ==="NV THá»¬ VIá»†C" || 
+ roleUpper ==="NHÃƒâ€šN VIÃƒÅ N" || 
+ roleUpper ==="NV THÃ¡Â»Â¬ VIÃ¡Â»â€ C" || 
  roleUpper ==="03" || 
- roleUpper ==="QL NHÃ‚N Sá»°" || 
- roleUpper ==="QUáº¢N LÃ NHÃ‚N Sá»°";
+ roleUpper ==="QL NHÃƒâ€šN SÃ¡Â»Â°" || 
+ roleUpper ==="QUÃ¡ÂºÂ¢N LÃƒÂ NHÃƒâ€šN SÃ¡Â»Â°";
  const isAdminOrManager = roleUpper ==="01" || 
  roleUpper ==="ADMIN" || 
  roleUpper ==="02" || 
- roleUpper ==="QL CÃ”NG VIá»†C" || 
- roleUpper ==="QUáº¢N LÃ CÃ”NG VIá»†C";
+ roleUpper ==="QL CÃƒâ€NG VIÃ¡Â»â€ C" || 
+ roleUpper ==="QUÃ¡ÂºÂ¢N LÃƒÂ CÃƒâ€NG VIÃ¡Â»â€ C";
 
   const fetchMails = useCallback(async () => {
     const queryParams = new URLSearchParams();
@@ -155,20 +155,20 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  const copyToClipboard = (text: string, label: string) => {
  if (!text) return;
  navigator.clipboard.writeText(text);
- triggerToast(`ÄÃ£ sao chÃ©p ${label}`);
+ triggerToast(`Ã„ÂÃƒÂ£ sao chÃƒÂ©p ${label}`);
  };
 
  const handleWorkStatusChange = async (identifier: string | number, newStatus: string) => {
  const now = new Date().toISOString();
  let updatedMail: MailData | null = null;
  
- // Validation: Require 3 links for SATELLITE mails if marking as"ÄÃ£ lÃ m"
+ // Validation: Require 3 links for SATELLITE mails if marking as"Ã„ÂÃƒÂ£ lÃƒÂ m"
  const targetMail = mails.find(m => m._id === identifier || m.id === identifier);
- if (newStatus ==="ÄÃ£ lÃ m" && targetMail?.type ==="SATELLITE") {
+ if (newStatus ==="Ã„ÂÃƒÂ£ lÃƒÂ m" && targetMail?.type ==="SATELLITE") {
  const links = targetMail.links || [];
  const filledCount = [0, 1, 2].filter(i => links[i] && links[i].trim() !=="").length;
  if (filledCount < 3) {
- alert("Vui lÃ²ng Ä‘iá»n Ä‘á»§ 3 link kÃªnh trÆ°á»›c khi chuyá»ƒn tráº¡ng thÃ¡i ÄÃ£ lÃ m");
+ alert("Vui lÃƒÂ²ng Ã„â€˜iÃ¡Â»Ân Ã„â€˜Ã¡Â»Â§ 3 link kÃƒÂªnh trÃ†Â°Ã¡Â»â€ºc khi chuyÃ¡Â»Æ’n trÃ¡ÂºÂ¡ng thÃƒÂ¡i Ã„ÂÃƒÂ£ lÃƒÂ m");
  return;
  }
  }
@@ -176,9 +176,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  const updated = (mails || []).map(m => {
  if (m._id === identifier || m.id === identifier) {
  let status = m.status;
- if (newStatus ==="ÄÃ£ lÃ m" || newStatus ==="ÄÃ£ bÃ¡n" || newStatus ==="ChÆ°a lÃ m") {
+ if (newStatus ==="Ã„ÂÃƒÂ£ lÃƒÂ m" || newStatus ==="Ã„ÂÃƒÂ£ bÃƒÂ¡n" || newStatus ==="ChÃ†Â°a lÃƒÂ m") {
  status ="LIVE";
- } else if (newStatus ==="Lá»—i") {
+ } else if (newStatus ==="LÃ¡Â»â€”i") {
  status ="DIE";
  }
  updatedMail = {
@@ -187,7 +187,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  status,
  lastUpdated: now,
  updatedAt: now,
- updatedBy: user?.name || user?.username ||"Há»‡ thá»‘ng"
+ updatedBy: user?.name || user?.username ||"HÃ¡Â»â€¡ thÃ¡Â»â€˜ng"
  };
  return updatedMail;
  }
@@ -195,7 +195,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  });
  if (!updatedMail || typeof identifier !== 'string' || identifier.length <= 10) {
  setMails(updated);
- triggerToast("ÄÃ£ cáº­p nháº­t tráº¡ng thÃ¡i cÃ´ng viá»‡c! (Chá»‰ trÃªn giao diá»‡n)");
+ triggerToast("Ã„ÂÃƒÂ£ cÃ¡ÂºÂ­p nhÃ¡ÂºÂ­t trÃ¡ÂºÂ¡ng thÃƒÂ¡i cÃƒÂ´ng viÃ¡Â»â€¡c! (ChÃ¡Â»â€° trÃƒÂªn giao diÃ¡Â»â€¡n)");
  return;
  }
 
@@ -216,14 +216,14 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
  if (res.ok) {
  setMails(updated);
- triggerToast("ÄÃ£ cáº­p nháº­t tráº¡ng thÃ¡i cÃ´ng viá»‡c thÃ nh cÃ´ng!");
+ triggerToast("Ã„ÂÃƒÂ£ cÃ¡ÂºÂ­p nhÃ¡ÂºÂ­t trÃ¡ÂºÂ¡ng thÃƒÂ¡i cÃƒÂ´ng viÃ¡Â»â€¡c thÃƒÂ nh cÃƒÂ´ng!");
  } else {
  const errorData = await res.json();
- triggerToast(`Lá»—i: ${errorData.error || 'KhÃ´ng thá»ƒ cáº­p nháº­t'}`);
+ triggerToast(`LÃ¡Â»â€”i: ${errorData.error || 'KhÃƒÂ´ng thÃ¡Â»Æ’ cÃ¡ÂºÂ­p nhÃ¡ÂºÂ­t'}`);
  }
  } catch (err) {
- console.error("Lá»—i khi update workStatus lÃªn DB:", err);
- triggerToast("ÄÃ£ xáº£y ra lá»—i há»‡ thá»‘ng khi lÆ°u.");
+ console.error("LÃ¡Â»â€”i khi update workStatus lÃƒÂªn DB:", err);
+ triggerToast("Ã„ÂÃƒÂ£ xÃ¡ÂºÂ£y ra lÃ¡Â»â€”i hÃ¡Â»â€¡ thÃ¡Â»â€˜ng khi lÃ†Â°u.");
  }
  };
 
@@ -236,7 +236,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  if (m._id === identifier || m.id === identifier) {
  if (fieldsToSave.verificationStatus) {
  const vs = fieldsToSave.verificationStatus;
- if (vs ==="Mail veri" || vs?.startsWith("QuÃ©t CCCD")) {
+ if (vs ==="Mail veri" || vs?.startsWith("QuÃƒÂ©t CCCD")) {
  fieldsToSave.status ="DIE";
  } else {
  fieldsToSave.status ="LIVE";
@@ -248,7 +248,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  ...fieldsToSave,
  lastUpdated: now,
  updatedAt: now,
- updatedBy: user?.name || user?.username ||"Há»‡ thá»‘ng"
+ updatedBy: user?.name || user?.username ||"HÃ¡Â»â€¡ thÃ¡Â»â€˜ng"
  };
  return updatedMail;
  }
@@ -256,7 +256,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  });
  if (!updatedMail || typeof identifier !== 'string' || identifier.length <= 10) {
  setMails(updated);
- triggerToast("ÄÃ£ cáº­p nháº­t chi tiáº¿t thÃ nh cÃ´ng! (Chá»‰ trÃªn giao diá»‡n)");
+ triggerToast("Ã„ÂÃƒÂ£ cÃ¡ÂºÂ­p nhÃ¡ÂºÂ­t chi tiÃ¡ÂºÂ¿t thÃƒÂ nh cÃƒÂ´ng! (ChÃ¡Â»â€° trÃƒÂªn giao diÃ¡Â»â€¡n)");
  return;
  }
 
@@ -269,23 +269,23 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
  if (res.ok) {
  setMails(updated);
- triggerToast("ÄÃ£ cáº­p nháº­t chi tiáº¿t thÃ nh cÃ´ng!");
+ triggerToast("Ã„ÂÃƒÂ£ cÃ¡ÂºÂ­p nhÃ¡ÂºÂ­t chi tiÃ¡ÂºÂ¿t thÃƒÂ nh cÃƒÂ´ng!");
  } else {
  const errorData = await res.json();
- triggerToast(`Lá»—i: ${errorData.error || 'KhÃ´ng thá»ƒ cáº­p nháº­t'}`);
+ triggerToast(`LÃ¡Â»â€”i: ${errorData.error || 'KhÃƒÂ´ng thÃ¡Â»Æ’ cÃ¡ÂºÂ­p nhÃ¡ÂºÂ­t'}`);
  }
  } catch (err) {
- console.error("Lá»—i khi update detail lÃªn DB:", err);
- triggerToast("ÄÃ£ xáº£y ra lá»—i há»‡ thá»‘ng khi lÆ°u.");
+ console.error("LÃ¡Â»â€”i khi update detail lÃƒÂªn DB:", err);
+ triggerToast("Ã„ÂÃƒÂ£ xÃ¡ÂºÂ£y ra lÃ¡Â»â€”i hÃ¡Â»â€¡ thÃ¡Â»â€˜ng khi lÃ†Â°u.");
  }
  };
 
  const getStatusSelectStyle = (status: string) => {
  const val = (status ||"").toLowerCase().trim();
- if (val.startsWith("Ä‘Ã£") || val.startsWith("hoÃ n thÃ nh")) {
+ if (val.startsWith("Ã„â€˜ÃƒÂ£") || val.startsWith("hoÃƒÂ n thÃƒÂ nh")) {
  return"bg-green-500/10 text-green-500 border-green-500/20";
  }
- if (val ==="lá»—i" || val ==="die" || val ==="mail veri" || val.startsWith("quÃ©t cccd")) {
+ if (val ==="lÃ¡Â»â€”i" || val ==="die" || val ==="mail veri" || val.startsWith("quÃƒÂ©t cccd")) {
  return"bg-red-500/10 text-red-500 border-red-500/20";
  }
  return"bg-amber-500/10 text-amber-500 border-amber-500/20";
@@ -293,8 +293,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
  const deleteMail = (identifier: string | number) => {
  setConfirmConfig({
- title:"XÃ¡c nháº­n xÃ³a",
- msg:"Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a mail nÃ y?",
+ title:"XÃƒÂ¡c nhÃ¡ÂºÂ­n xÃƒÂ³a",
+ msg:"BÃ¡ÂºÂ¡n cÃƒÂ³ chÃ¡ÂºÂ¯c chÃ¡ÂºÂ¯n muÃ¡Â»â€˜n xÃƒÂ³a mail nÃƒÂ y?",
  onConfirm: async () => {
  try {
  // Delete from MongoDB if it has a MongoDB ID
@@ -306,10 +306,10 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  const finalMails = (mails || []).filter(m => String(m._id) !== String(identifier) && String(m.id) !== String(identifier));
  setMails(finalMails);
  setShowConfirm(false);
- triggerToast("ÄÃ£ xÃ³a mail thÃ nh cÃ´ng!");
+ triggerToast("Ã„ÂÃƒÂ£ xÃƒÂ³a mail thÃƒÂ nh cÃƒÂ´ng!");
  } else {
  const errorData = await res.json();
- triggerToast(`Lá»—i: ${errorData.error || 'KhÃ´ng thá»ƒ xÃ³a'}`);
+ triggerToast(`LÃ¡Â»â€”i: ${errorData.error || 'KhÃƒÂ´ng thÃ¡Â»Æ’ xÃƒÂ³a'}`);
  setShowConfirm(false);
  }
  } else {
@@ -317,11 +317,11 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  const finalMails = (mails || []).filter(m => String(m._id) !== String(identifier) && String(m.id) !== String(identifier));
  setMails(finalMails);
  setShowConfirm(false);
- triggerToast("ÄÃ£ xÃ³a mail (local) thÃ nh cÃ´ng!");
+ triggerToast("Ã„ÂÃƒÂ£ xÃƒÂ³a mail (local) thÃƒÂ nh cÃƒÂ´ng!");
  }
  } catch (err) {
- console.error("Lá»—i xÃ³a mail:", err);
- triggerToast("Lá»—i khi xÃ³a mail!");
+ console.error("LÃ¡Â»â€”i xÃƒÂ³a mail:", err);
+ triggerToast("LÃ¡Â»â€”i khi xÃƒÂ³a mail!");
  setShowConfirm(false);
  }
  }
@@ -342,7 +342,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
 
  if ((rawRows || []).length === 0) {
- triggerToast("KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u mail há»£p lá»‡!");
+ triggerToast("KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y dÃ¡Â»Â¯ liÃ¡Â»â€¡u mail hÃ¡Â»Â£p lÃ¡Â»â€¡!");
  return;
  }
 
@@ -355,13 +355,13 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  const isHeaderRow = !hasAt && (
  firstCellStr ==="mail" || 
  firstCellStr ==="email" || 
- firstCellStr.includes("tÃ i khoáº£n") || 
+ firstCellStr.includes("tÃƒÂ i khoÃ¡ÂºÂ£n") || 
  firstCellStr.includes("tai khoan") || 
  firstCellStr ==="tk" ||
  firstCellStr ==="stt" ||
  firstRow.some(cell => {
  const s = String(cell ||"").toLowerCase().trim();
- return s ==="pass" || s ==="recovery" || s ==="2fa" || s ==="sÄ‘t" || s ==="sdt" || s ==="link otp" || s ==="link sÄ‘t" || s ==="stt";
+ return s ==="pass" || s ==="recovery" || s ==="2fa" || s ==="sÃ„â€˜t" || s ==="sdt" || s ==="link otp" || s ==="link sÃ„â€˜t" || s ==="stt";
  }));
 
  let emailIdx = 0;
@@ -376,15 +376,15 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  firstRow.forEach((cell, idx) => {
  const s = String(cell ||"").trim().toUpperCase()
  .replace(/\s+/g, ' ')
- .replace(/[Ã€ÃÃ‚ÃƒÃˆÃ‰ÃŠÃŒÃÃ’Ã“Ã”Ã•Ã™ÃšÄ‚ÄÄ¨Å¨Æ Ã Ã¡Ã¢Ã£Ã¨Ã©ÃªÃ¬Ã­Ã²Ã³Ã´ÃµÃ¹ÃºÄƒÄ‘Ä©Å©Æ¡Æ¯Ä‚Ã‚ÃŠÃ”Æ Æ¯Æ°ÄƒÃ¢ÃªÃ´Æ¡Æ°]/g, (c) => {
+ .replace(/[Ãƒâ‚¬ÃƒÂÃƒâ€šÃƒÆ’ÃƒË†Ãƒâ€°ÃƒÅ ÃƒÅ’ÃƒÂÃƒâ€™Ãƒâ€œÃƒâ€Ãƒâ€¢Ãƒâ„¢ÃƒÅ¡Ã„â€šÃ„ÂÃ„Â¨Ã…Â¨Ã†Â ÃƒÂ ÃƒÂ¡ÃƒÂ¢ÃƒÂ£ÃƒÂ¨ÃƒÂ©ÃƒÂªÃƒÂ¬ÃƒÂ­ÃƒÂ²ÃƒÂ³ÃƒÂ´ÃƒÂµÃƒÂ¹ÃƒÂºÃ„Æ’Ã„â€˜Ã„Â©Ã…Â©Ã†Â¡Ã†Â¯Ã„â€šÃƒâ€šÃƒÅ Ãƒâ€Ã†Â Ã†Â¯Ã†Â°Ã„Æ’ÃƒÂ¢ÃƒÂªÃƒÂ´Ã†Â¡Ã†Â°]/g, (c) => {
  const map: Record<string, string> = {
- 'Ä': 'D', 'Ä‘': 'd',
- 'Ã€': 'A', 'Ã': 'A', 'Ã‚': 'A', 'Ãƒ': 'A', 'Ãˆ': 'E', 'Ã‰': 'E', 'ÃŠ': 'E',
- 'ÃŒ': 'I', 'Ã': 'I', 'Ã’': 'O', 'Ã“': 'O', 'Ã”': 'O', 'Ã•': 'O', 'Ã™': 'U',
- 'Ãš': 'U', 'Ä‚': 'A', 'Ä¨': 'I', 'Å¨': 'U', 'Æ ': 'O',
- 'Ã ': 'a', 'Ã¡': 'a', 'Ã¢': 'a', 'Ã£': 'a', 'Ã¨': 'e', 'Ã©': 'e', 'Ãª': 'e',
- 'Ã¬': 'i', 'Ã­': 'i', 'Ã²': 'o', 'Ã³': 'o', 'Ã´': 'o', 'Ãµ': 'o', 'Ã¹': 'u',
- 'Ãº': 'u', 'Äƒ': 'a', 'Ä©': 'i', 'Å©': 'u', 'Æ¡': 'o'
+ 'Ã„Â': 'D', 'Ã„â€˜': 'd',
+ 'Ãƒâ‚¬': 'A', 'ÃƒÂ': 'A', 'Ãƒâ€š': 'A', 'ÃƒÆ’': 'A', 'ÃƒË†': 'E', 'Ãƒâ€°': 'E', 'ÃƒÅ ': 'E',
+ 'ÃƒÅ’': 'I', 'ÃƒÂ': 'I', 'Ãƒâ€™': 'O', 'Ãƒâ€œ': 'O', 'Ãƒâ€': 'O', 'Ãƒâ€¢': 'O', 'Ãƒâ„¢': 'U',
+ 'ÃƒÅ¡': 'U', 'Ã„â€š': 'A', 'Ã„Â¨': 'I', 'Ã…Â¨': 'U', 'Ã†Â ': 'O',
+ 'ÃƒÂ ': 'a', 'ÃƒÂ¡': 'a', 'ÃƒÂ¢': 'a', 'ÃƒÂ£': 'a', 'ÃƒÂ¨': 'e', 'ÃƒÂ©': 'e', 'ÃƒÂª': 'e',
+ 'ÃƒÂ¬': 'i', 'ÃƒÂ­': 'i', 'ÃƒÂ²': 'o', 'ÃƒÂ³': 'o', 'ÃƒÂ´': 'o', 'ÃƒÂµ': 'o', 'ÃƒÂ¹': 'u',
+ 'ÃƒÂº': 'u', 'Ã„Æ’': 'a', 'Ã„Â©': 'i', 'Ã…Â©': 'u', 'Ã†Â¡': 'o'
  };
  return map[c] || c;
  });
@@ -494,8 +494,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  otpLink: String(row[otpLinkIdx] ||"").trim(),
  type: targetType,
  status:"LIVE" as const,
- workStatus: targetType ==="ROOT" ? undefined : (targetType ==="MONETIZED" ?"ChÆ°a bÃ¡n" :"ChÆ°a lÃ m"),
- verificationStatus: targetType ==="ROOT" ?"ChÆ°a xanh" : undefined,
+ workStatus: targetType ==="ROOT" ? undefined : (targetType ==="MONETIZED" ?"ChÃ†Â°a bÃƒÂ¡n" :"ChÃ†Â°a lÃƒÂ m"),
+ verificationStatus: targetType ==="ROOT" ?"ChÃ†Â°a xanh" : undefined,
  cccdDate: targetType ==="ROOT" ?"" : undefined,
  createdAt: new Date().toISOString().split("T")[0]
  });
@@ -504,22 +504,22 @@ export default function MailManagement({ type, user }: MailManagementProps) {
 
  if ((importedMails || []).length === 0) {
  if (duplicateCount > 0) {
- triggerToast(`Bá» qua táº¥t cáº£ ${duplicateCount} mail do bá»‹ trÃ¹ng láº·p!`);
+ triggerToast(`BÃ¡Â»Â qua tÃ¡ÂºÂ¥t cÃ¡ÂºÂ£ ${duplicateCount} mail do bÃ¡Â»â€¹ trÃƒÂ¹ng lÃ¡ÂºÂ·p!`);
  } else {
- triggerToast("KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u mail há»£p lá»‡!");
+ triggerToast("KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y dÃ¡Â»Â¯ liÃ¡Â»â€¡u mail hÃ¡Â»Â£p lÃ¡Â»â€¡!");
  }
  return;
  }
 
  if (duplicateCount > 0) {
- triggerToast(`ÄÃ£ bá» qua ${duplicateCount} mail bá»‹ trÃ¹ng!`);
+ triggerToast(`Ã„ÂÃƒÂ£ bÃ¡Â»Â qua ${duplicateCount} mail bÃ¡Â»â€¹ trÃƒÂ¹ng!`);
  }
  setPendingMails(importedMails);
  setImportBatchName("");
  setShowBatchNameModal(true);
  } catch (err) {
  console.error("Import Error:", err);
- triggerToast("Lá»—i xá»­ lÃ½ dá»¯ liá»‡u file Excel!");
+ triggerToast("LÃ¡Â»â€”i xÃ¡Â»Â­ lÃƒÂ½ dÃ¡Â»Â¯ liÃ¡Â»â€¡u file Excel!");
  }
  };
  reader.readAsBinaryString(file);
@@ -533,14 +533,14 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     "Mail KP": m.recovery,
     "Pass": m.pass,
     "2FA": m.twoFA,
-    "SÄT": m.phone,
-    "Link SÄT": m.otpLink
+    "SÃ„ÂT": m.phone,
+    "Link SÃ„ÂT": m.otpLink
   }));
   const ws = XLSX.utils.json_to_sheet(data);
  const wb = XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb, ws,"Danh_Sach");
  XLSX.writeFile(wb, `AQ_MEDIA_${type}.xlsx`);
- triggerToast("ÄÃ£ xuáº¥t Excel thÃ nh cÃ´ng!");
+ triggerToast("Ã„ÂÃƒÂ£ xuÃ¡ÂºÂ¥t Excel thÃƒÂ nh cÃƒÂ´ng!");
  };
 
  const filteredMails: (MailData & { originalSTT: number })[] = (mails || [])
@@ -560,7 +560,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  if (selectedBatch && m.batchId !== selectedBatch && m.batchName !== selectedBatch) return false;
  }
 
- // Lá»c theo LÃ´
+ // LÃ¡Â»Âc theo LÃƒÂ´
  if (selectedBatchFilter !=="ALL") {
  if (m.batchId !== selectedBatchFilter && m.batchName !== selectedBatchFilter) {
  return false;
@@ -576,13 +576,13 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  let matchesStatus = true;
  if (statusFilter !=="ALL") {
  if (type ==="ROOT") {
- const val = m.verificationStatus ||"ChÆ°a xanh";
+ const val = m.verificationStatus ||"ChÃ†Â°a xanh";
  matchesStatus = String(val).toLowerCase() === statusFilter.toLowerCase();
  } else if (type ==="MONETIZED") {
- const val = m.workStatus ||"ChÆ°a bÃ¡n";
+ const val = m.workStatus ||"ChÃ†Â°a bÃƒÂ¡n";
  matchesStatus = String(val).toLowerCase() === statusFilter.toLowerCase();
  } else {
- const val = m.workStatus ||"ChÆ°a lÃ m";
+ const val = m.workStatus ||"ChÃ†Â°a lÃƒÂ m";
  matchesStatus = String(val).toLowerCase() === statusFilter.toLowerCase();
  }
  }
@@ -610,7 +610,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  }
  };
 
- const dateToFilter = (type ==="ROOT" && m.verificationStatus ==="QuÃ©t CCCD")
+ const dateToFilter = (type ==="ROOT" && m.verificationStatus ==="QuÃƒÂ©t CCCD")
  ? m.cccdDate
  : (m.updatedAt || m.createdAt);
 
@@ -638,8 +638,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  const myMails = (mails || []).filter(m => String(m.assigneeId) === String(user?.id) && m.type ==="SATELLITE");
  return {
  totalAssigned: (myMails || []).length,
- doneChannel: (myMails || []).filter(m => (m.workStatus as string) ==="ÄÃ£ lÃ m").length,
- failed: (myMails || []).filter(m => (m.workStatus as string) ==="Lá»—i").length,
+ doneChannel: (myMails || []).filter(m => (m.workStatus as string) ==="Ã„ÂÃƒÂ£ lÃƒÂ m").length,
+ failed: (myMails || []).filter(m => (m.workStatus as string) ==="LÃ¡Â»â€”i").length,
  };
  }, [mails, user]);
 
@@ -660,9 +660,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  const mySats = (mails || []).filter(m => String(m.assigneeId) === String(user?.id) && m.type ==="SATELLITE");
  const counts: Record<string, { id: string; name: string; count: number }> = {};
  mySats.forEach(m => {
- const key = m.batchId || m.batchName ||"LÃ´ chÆ°a phÃ¢n loáº¡i";
+ const key = m.batchId || m.batchName ||"LÃƒÂ´ chÃ†Â°a phÃƒÂ¢n loÃ¡ÂºÂ¡i";
  if (!counts[key]) {
- counts[key] = { id: key, name: m.batchName ||"LÃ´ chÆ°a phÃ¢n loáº¡i", count: 0 };
+ counts[key] = { id: key, name: m.batchName ||"LÃƒÂ´ chÃ†Â°a phÃƒÂ¢n loÃ¡ÂºÂ¡i", count: 0 };
  }
  counts[key].count++;
  });
@@ -697,8 +697,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  <h3 className="text-lg font-bold text-white uppercase tracking-tight mb-2">{confirmConfig.title}</h3>
  <p className="text-zinc-400 font-medium mb-6 leading-relaxed text-sm">{confirmConfig.msg}</p>
  <div className="flex gap-3">
- <button onClick={() => setShowConfirm(false)} className="flex-1 h-10 rounded-xl border border-zinc-700 text-zinc-300 font-semibold uppercase text-xs tracking-wider hover:bg-zinc-800 bg-transparent transition-all">Há»§y bá»</button>
- <button onClick={confirmConfig.onConfirm} className="flex-1 h-10 rounded-xl bg-red-600 text-white font-bold uppercase text-xs tracking-wider hover:bg-red-700 transition-all shadow-sm">XÃ¡c nháº­n XÃ³a</button>
+ <button onClick={() => setShowConfirm(false)} className="flex-1 h-10 rounded-xl border border-zinc-700 text-zinc-300 font-semibold uppercase text-xs tracking-wider hover:bg-zinc-800 bg-transparent transition-all">HÃ¡Â»Â§y bÃ¡Â»Â</button>
+ <button onClick={confirmConfig.onConfirm} className="flex-1 h-10 rounded-xl bg-red-600 text-white font-bold uppercase text-xs tracking-wider hover:bg-red-700 transition-all shadow-sm">XÃƒÂ¡c nhÃ¡ÂºÂ­n XÃƒÂ³a</button>
  </div>
  </motion.div>
  </motion.div>
@@ -761,19 +761,19 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         otpLink: String(parts[5] || "").trim(),
         type: targetType,
         status: "LIVE" as const,
-        workStatus: (targetType === "MONETIZED" ? "ChÆ°a bÃ¡n" : "ChÆ°a lÃ m"),
+        workStatus: (targetType === "MONETIZED" ? "ChÃ†Â°a bÃƒÂ¡n" : "ChÃ†Â°a lÃƒÂ m"),
         createdAt: new Date().toISOString().split("T")[0]
       });
       importedCount++;
     });
 
     if ((newItems || []).length === 0) {
-      if (duplicateCount > 0) triggerToast(`Bá» qua táº¥t cáº£ ${duplicateCount} mail thá»§ cÃ´ng do trÃ¹ng láº·p!`);
-      else triggerToast("KhÃ´ng cÃ³ dá»¯ liá»‡u há»£p lá»‡!");
+      if (duplicateCount > 0) triggerToast(`BÃ¡Â»Â qua tÃ¡ÂºÂ¥t cÃ¡ÂºÂ£ ${duplicateCount} mail thÃ¡Â»Â§ cÃƒÂ´ng do trÃƒÂ¹ng lÃ¡ÂºÂ·p!`);
+      else triggerToast("KhÃƒÂ´ng cÃƒÂ³ dÃ¡Â»Â¯ liÃ¡Â»â€¡u hÃ¡Â»Â£p lÃ¡Â»â€¡!");
       return;
     }
 
-    if (duplicateCount > 0) triggerToast(`ÄÃ£ bá» qua ${duplicateCount} mail bá»‹ trÃ¹ng!`);
+    if (duplicateCount > 0) triggerToast(`Ã„ÂÃƒÂ£ bÃ¡Â»Â qua ${duplicateCount} mail bÃ¡Â»â€¹ trÃƒÂ¹ng!`);
     setPendingMails(newItems);
     setShowBatchNameModal(true);
  }}
@@ -784,11 +784,11 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  onClose={() => setShowHistoryModal(false)}
  importHistory={importHistory}
  onDeleteRow={(id) => {
-    if (!confirm("Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a dÃ²ng lá»‹ch sá»­ import nÃ y?")) return;
+    if (!confirm("BÃ¡ÂºÂ¡n cÃƒÂ³ chÃ¡ÂºÂ¯c chÃ¡ÂºÂ¯n muÃ¡Â»â€˜n xÃƒÂ³a dÃƒÂ²ng lÃ¡Â»â€¹ch sÃ¡Â»Â­ import nÃƒÂ y?")) return;
     setImportHistory(prev => (prev || []).filter(item => item.id !== id));
  }}
  onClearAll={() => {
-    if (!confirm("XÃ¡c nháº­n xÃ³a TOÃ€N Bá»˜ lá»‹ch sá»­ import?")) return;
+    if (!confirm("XÃƒÂ¡c nhÃ¡ÂºÂ­n xÃƒÂ³a TOÃƒâ‚¬N BÃ¡Â»Ëœ lÃ¡Â»â€¹ch sÃ¡Â»Â­ import?")) return;
     setImportHistory([]);
  }}
  />
@@ -802,17 +802,17 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  <div>
  <h2 className="text-2xl font-bold text-zinc-100 uppercase tracking-tight flex items-center gap-2">
  <Mail className="text-[#a07800]" size={24} />
- Danh sÃ¡ch {type ==="ALL" ?"Táº¥t cáº£" : type ==="ROOT" ?"Mail Gá»‘c" : type ==="SATELLITE" ?"Mail Vá»‡ Tinh" :"Mail Báº­t Kiáº¿m Tiá»n"}
+ Danh sÃƒÂ¡ch {type ==="ALL" ?"TÃ¡ÂºÂ¥t cÃ¡ÂºÂ£" : type ==="ROOT" ?"Mail GÃ¡Â»â€˜c" : type ==="SATELLITE" ?"Mail VÃ¡Â»â€¡ Tinh" :"Mail BÃ¡ÂºÂ­t KiÃ¡ÂºÂ¿m TiÃ¡Â»Ân"}
  </h2>
- <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Quáº£n lÃ½ kho dá»¯ liá»‡u email vÃ  SÄT cá»§a há»‡ thá»‘ng</p>
+ <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">QuÃ¡ÂºÂ£n lÃƒÂ½ kho dÃ¡Â»Â¯ liÃ¡Â»â€¡u email vÃƒÂ  SÃ„ÂT cÃ¡Â»Â§a hÃ¡Â»â€¡ thÃ¡Â»â€˜ng</p>
  </div>
  </div>
  <div className="flex flex-wrap items-center gap-2">
 
  {isAdminOrManager && (
  <>
- <button onClick={() => setShowHistoryModal(true)} className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 border border-white/0 rounded-xl text-zinc-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"><FileText size={14} className="text-[#a07800]" /> Lá»‹ch sá»­ Import</button>
- <button onClick={() => setShowManualImport(true)} className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 border border-white/0 rounded-xl text-zinc-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"><PlusCircle size={14} className="text-[#a07800]" /> ThÃªm thá»§ cÃ´ng</button>
+ <button onClick={() => setShowHistoryModal(true)} className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 border border-white/0 rounded-xl text-zinc-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"><FileText size={14} className="text-[#a07800]" /> LÃ¡Â»â€¹ch sÃ¡Â»Â­ Import</button>
+ <button onClick={() => setShowManualImport(true)} className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 border border-white/0 rounded-xl text-zinc-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"><PlusCircle size={14} className="text-[#a07800]" /> ThÃƒÂªm thÃ¡Â»Â§ cÃƒÂ´ng</button>
  <label className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 border border-white/0 rounded-xl text-zinc-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer"><Upload size={14} className="text-[#a07800]" /> Import Excel <input type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={handleImportExcel} /></label>
  <button onClick={handleExport} className="h-9 px-4 bg-[#a07800]/10 border border-[#a07800]/20 hover:bg-[#a07800]/20 rounded-xl text-[#a07800] text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"><Download size={14} /> Export</button>
  </>
@@ -825,21 +825,21 @@ export default function MailManagement({ type, user }: MailManagementProps) {
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
   <div className="bg-[#18181b] border border-white/0 p-5 rounded-xl flex items-center justify-between shadow-sm">
   <div>
-  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Tá»•ng mail Ä‘Æ°á»£c giao</p>
+  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">TÃ¡Â»â€¢ng mail Ã„â€˜Ã†Â°Ã¡Â»Â£c giao</p>
   <h3 className="text-xl font-bold text-zinc-100">{staffStats.totalAssigned}</h3>
   </div>
   <div className="h-10 w-10 rounded-lg bg-zinc-800 text-zinc-400 flex items-center justify-center border border-zinc-700/50"><Mail size={20} /></div>
   </div>
   <div className="bg-[#18181b] border border-white/0 p-5 rounded-xl flex items-center justify-between shadow-sm">
   <div>
-  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">ÄÃ£ lÃ m</p>
+  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Ã„ÂÃƒÂ£ lÃƒÂ m</p>
   <h3 className="text-xl font-bold text-green-500">{staffStats.doneChannel}</h3>
   </div>
   <div className="h-10 w-10 rounded-lg bg-green-500/10 text-green-400 flex items-center justify-center border border-green-500/20"><CheckCircle size={20} /></div>
   </div>
   <div className="bg-[#18181b] border border-white/0 p-5 rounded-xl flex items-center justify-between shadow-sm">
   <div>
-  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Lá»—i (Die)</p>
+  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">LÃ¡Â»â€”i (Die)</p>
   <h3 className="text-xl font-bold text-red-500">{staffStats.failed}</h3>
   </div>
   <div className="h-10 w-10 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center border border-red-500/20"><AlertTriangle size={20} /></div>
@@ -860,7 +860,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  <ChevronRight size={18} className="text-zinc-500 group-hover:text-[#a07800] group-hover:translate-x-1 transition-all" />
  </div>
  <h3 className="text-lg font-bold text-zinc-100 uppercase tracking-tight group-hover:text-[#a07800] transition-colors">{batch.name}</h3>
- <p className="text-xs text-zinc-400 mt-2 font-medium">Báº¥m vÃ o Ä‘á»ƒ xem vÃ  xá»­ lÃ½ cÃ¡c mail trong lÃ´ nÃ y.</p>
+ <p className="text-xs text-zinc-400 mt-2 font-medium">BÃ¡ÂºÂ¥m vÃƒÂ o Ã„â€˜Ã¡Â»Æ’ xem vÃƒÂ  xÃ¡Â»Â­ lÃƒÂ½ cÃƒÂ¡c mail trong lÃƒÂ´ nÃƒÂ y.</p>
  </button>
  ))}
  </div>
@@ -876,39 +876,39 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  onClick={() => setSelectedBatch(null)}
  className="h-10 px-4 flex items-center gap-2 bg-white/5 hover:bg-white/10 rounded-xl text-white font-black text-sm uppercase tracking-widest transition-all"
  >
- <ArrowLeft size={16} /> Quay láº¡i
+ <ArrowLeft size={16} /> Quay lÃ¡ÂºÂ¡i
  </button>
  )}
- <h3 className="text-xl font-black text-white uppercase tracking-tighter shrink-0">Dá»¯ liá»‡u chi tiáº¿t {selectedBatch ? `- LÃ´ mail` :""}</h3>
+ <h3 className="text-xl font-black text-white uppercase tracking-tighter shrink-0">DÃ¡Â»Â¯ liÃ¡Â»â€¡u chi tiÃ¡ÂºÂ¿t {selectedBatch ? `- LÃƒÂ´ mail` :""}</h3>
  <div className="h-8 w-px bg-white/0 hidden md:block" />
  <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-xl px-4 h-10 w-full md:w-64 lg:w-80 focus-within:border-gold transition-all">
  <Search size={16} className="text-gray-500 shrink-0" />
- <input type="text" placeholder="TÃ¬m kiáº¿m Email, Pass, Mail KP, SÄT..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none text-sm text-white w-full" />
+ <input type="text" placeholder="TÃƒÂ¬m kiÃ¡ÂºÂ¿m Email, Pass, Mail KP, SÃ„ÂT..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none text-sm text-white w-full" />
  </div>
  <select
  value={statusFilter}
  onChange={(e) => setStatusFilter(e.target.value)}
  className="bg-black/20 border border-white/0 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
  >
- <option value="ALL" className="bg-sidebar text-white">Táº¥t cáº£ tráº¡ng thÃ¡i</option>
+ <option value="ALL" className="bg-sidebar text-white">TÃ¡ÂºÂ¥t cÃ¡ÂºÂ£ trÃ¡ÂºÂ¡ng thÃƒÂ¡i</option>
  {type ==="ROOT" ? (
  <>
  <option value="Mail veri" className="bg-sidebar text-white">Mail veri</option>
- <option value="ÄÃ£ xanh" className="bg-sidebar text-white">ÄÃ£ xanh</option>
- <option value="ChÆ°a xanh" className="bg-sidebar text-white">ChÆ°a xanh</option>
- <option value="QuÃ©t CCCD" className="bg-sidebar text-white">QuÃ©t CCCD</option>
+ <option value="Ã„ÂÃƒÂ£ xanh" className="bg-sidebar text-white">Ã„ÂÃƒÂ£ xanh</option>
+ <option value="ChÃ†Â°a xanh" className="bg-sidebar text-white">ChÃ†Â°a xanh</option>
+ <option value="QuÃƒÂ©t CCCD" className="bg-sidebar text-white">QuÃƒÂ©t CCCD</option>
  </>
  ) : type ==="MONETIZED" ? (
  <>
- <option value="ÄÃ£ bÃ¡n" className="bg-sidebar text-white">ÄÃ£ bÃ¡n</option>
- <option value="ChÆ°a bÃ¡n" className="bg-sidebar text-white">ChÆ°a bÃ¡n</option>
+ <option value="Ã„ÂÃƒÂ£ bÃƒÂ¡n" className="bg-sidebar text-white">Ã„ÂÃƒÂ£ bÃƒÂ¡n</option>
+ <option value="ChÃ†Â°a bÃƒÂ¡n" className="bg-sidebar text-white">ChÃ†Â°a bÃƒÂ¡n</option>
  </>
  ) : (
  <>
- <option value="Äang xá»­ lÃ­" className="bg-sidebar text-white">Äang xá»­ lÃ­</option>
- <option value="ÄÃ£ lÃ m" className="bg-sidebar text-white">ÄÃ£ lÃ m</option>
- <option value="ChÆ°a lÃ m" className="bg-sidebar text-white">ChÆ°a lÃ m</option>
- <option value="Lá»—i" className="bg-sidebar text-white">Lá»—i</option>
+ <option value="Ã„Âang xÃ¡Â»Â­ lÃƒÂ­" className="bg-sidebar text-white">Ã„Âang xÃ¡Â»Â­ lÃƒÂ­</option>
+ <option value="Ã„ÂÃƒÂ£ lÃƒÂ m" className="bg-sidebar text-white">Ã„ÂÃƒÂ£ lÃƒÂ m</option>
+ <option value="ChÃ†Â°a lÃƒÂ m" className="bg-sidebar text-white">ChÃ†Â°a lÃƒÂ m</option>
+ <option value="LÃ¡Â»â€”i" className="bg-sidebar text-white">LÃ¡Â»â€”i</option>
  </>
  )}
  </select>
@@ -918,9 +918,9 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  onChange={(e) => setAssignmentFilter(e.target.value as"ALL" |"ASSIGNED" |"UNASSIGNED")}
  className="bg-black/20 border border-white/0 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all animate-fade-in"
  >
- <option value="ALL" className="bg-sidebar text-white">Tráº¡ng thÃ¡i gÃ¡n</option>
- <option value="ASSIGNED" className="bg-sidebar text-white">ÄÃ£ gÃ¡n</option>
- <option value="UNASSIGNED" className="bg-sidebar text-white">ChÆ°a gÃ¡n</option>
+ <option value="ALL" className="bg-sidebar text-white">TrÃ¡ÂºÂ¡ng thÃƒÂ¡i gÃƒÂ¡n</option>
+ <option value="ASSIGNED" className="bg-sidebar text-white">Ã„ÂÃƒÂ£ gÃƒÂ¡n</option>
+ <option value="UNASSIGNED" className="bg-sidebar text-white">ChÃ†Â°a gÃƒÂ¡n</option>
  </select>
  )}
  {(type ==="SATELLITE" || type ==="ROOT" || type ==="MONETIZED") && (
@@ -929,7 +929,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  onChange={(e) => setSelectedBatchFilter(e.target.value)}
  className="bg-black/20 border border-white/0 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all animate-fade-in"
  >
- <option value="ALL" className="bg-sidebar text-white">Lá»c theo LÃ´</option>
+ <option value="ALL" className="bg-sidebar text-white">LÃ¡Â»Âc theo LÃƒÂ´</option>
  {(availableBatches || []).map((b: { id: string; name: string }) => (
  <option key={b.id} value={b.id} className="bg-sidebar text-white">
  {b.name}
@@ -942,15 +942,15 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  onChange={(e) => setDateFilter(e.target.value as"ALL" |"1_WEEK" |"1_MONTH" |"2_MONTH")}
  className="bg-black/20 border border-white/0 rounded-xl px-4 h-10 text-sm text-gold font-bold uppercase tracking-wider outline-none focus:border-gold cursor-pointer transition-all"
  >
- <option value="ALL" className="bg-sidebar text-white">Táº¥t cáº£ thá»i gian</option>
- <option value="1_WEEK" className="bg-sidebar text-white">1 tuáº§n gáº§n Ä‘Ã¢y</option>
- <option value="1_MONTH" className="bg-sidebar text-white">1 thÃ¡ng gáº§n Ä‘Ã¢y</option>
- <option value="2_MONTH" className="bg-sidebar text-white">2 thÃ¡ng gáº§n Ä‘Ã¢y</option>
+ <option value="ALL" className="bg-sidebar text-white">TÃ¡ÂºÂ¥t cÃ¡ÂºÂ£ thÃ¡Â»Âi gian</option>
+ <option value="1_WEEK" className="bg-sidebar text-white">1 tuÃ¡ÂºÂ§n gÃ¡ÂºÂ§n Ã„â€˜ÃƒÂ¢y</option>
+ <option value="1_MONTH" className="bg-sidebar text-white">1 thÃƒÂ¡ng gÃ¡ÂºÂ§n Ã„â€˜ÃƒÂ¢y</option>
+ <option value="2_MONTH" className="bg-sidebar text-white">2 thÃƒÂ¡ng gÃ¡ÂºÂ§n Ã„â€˜ÃƒÂ¢y</option>
  </select>
  <div className="hidden xl:flex items-center gap-3 px-5 py-2 bg-gold/10 border-2 border-gold/20 rounded-2xl shadow-lg shadow-gold/5 group">
  <Mail size={18} className="text-gold animate-pulse" />
  <span className="text-base font-black text-white uppercase tracking-widest">
-  Tá»•ng cá»™ng: <span className="text-gold text-base ml-1">{totalCount}</span> <span className="text-gold/60 text-[10px] ml-1">Mail</span>
+  TÃ¡Â»â€¢ng cÃ¡Â»â„¢ng: <span className="text-gold text-base ml-1">{totalCount}</span> <span className="text-gold/60 text-[10px] ml-1">Mail</span>
  </span>
  </div>
  </div>
@@ -967,13 +967,13 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Mail KP</th>
  <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Pass</th>
  <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">2FA</th>
- <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">SÄT</th>
- <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Link SÄT</th>
+ <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">SÃ„ÂT</th>
+ <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Link SÃ„ÂT</th>
  {isAdminOrManager && (type ==="SATELLITE" || type ==="ROOT" || type ==="MONETIZED") && (
- <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Quáº£n lÃ½</th>
+ <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">QuÃ¡ÂºÂ£n lÃƒÂ½</th>
  )}
- <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] text-center whitespace-nowrap">Tráº¡ng thÃ¡i</th>
- <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] text-center whitespace-nowrap">Thao tÃ¡c</th>
+ <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] text-center whitespace-nowrap">TrÃ¡ÂºÂ¡ng thÃƒÂ¡i</th>
+ <th className="py-3 px-6 font-black uppercase tracking-widest text-[10px] text-center whitespace-nowrap">Thao tÃƒÂ¡c</th>
  </tr>
  </thead>
  <tbody className="divide-y divide-white/5 text-gray-300">
@@ -993,7 +993,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  return (
  <div className="mb-1">
  <span className="text-[10px] font-black uppercase text-red-400 bg-red-500/10 border border-red-500/30 px-2 py-0.5 rounded-lg animate-pulse inline-flex items-center gap-1">
- âš ï¸ Thiáº¿u {missingCount} kÃªnh
+ Ã¢Å¡Â Ã¯Â¸Â ThiÃ¡ÂºÂ¿u {missingCount} kÃƒÂªnh
  </span>
  </div>
  );
@@ -1003,7 +1003,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  {mail.email}
  </td>
  <td className={`${rowPadding} cursor-pointer text-sm text-gray-400 hover:text-gold transition-colors whitespace-nowrap`} onClick={() => copyToClipboard(mail.recoveryMail || mail.recovery,"Mail KP")}>{mail.recoveryMail || mail.recovery}</td>
- <td className={`${rowPadding} cursor-pointer text-sm text-gray-500 hover:text-gold transition-colors font-mono whitespace-nowrap`} onClick={() => copyToClipboard(mail.password || mail.pass,"Máº­t kháº©u")}>{mail.password || mail.pass}</td>
+ <td className={`${rowPadding} cursor-pointer text-sm text-gray-500 hover:text-gold transition-colors font-mono whitespace-nowrap`} onClick={() => copyToClipboard(mail.password || mail.pass,"MÃ¡ÂºÂ­t khÃ¡ÂºÂ©u")}>{mail.password || mail.pass}</td>
  {/* 2FA - TOTP real-time */}
  <td className={`${rowPadding} whitespace-nowrap`}>
  {mail.twoFA ? (
@@ -1012,11 +1012,11 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  <span className="">---</span>
  )}
  </td>
- {/* SÄT - click to copy */}
+ {/* SÃ„ÂT - click to copy */}
  <td className={`${rowPadding} whitespace-nowrap`}>
  {mail.phone ? (
  <button
- onClick={() => copyToClipboard(mail.phone ||"","SÄT")}
+ onClick={() => copyToClipboard(mail.phone ||"","SÃ„ÂT")}
  className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gold transition-colors font-bold group/sdt"
  >
  <Phone size={12} className="group-hover/sdt:text-gold" />
@@ -1036,7 +1036,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  rel="noopener noreferrer"
  className="inline-flex items-center gap-1.5 text-blue-400 hover:text-blue-300 transition-colors font-bold text-sm"
  >
- Má»Ÿ OTP <ExternalLink size={12} />
+ MÃ¡Â»Å¸ OTP <ExternalLink size={12} />
  </a>
  ) : (
  <span className="">---</span>
@@ -1046,54 +1046,54 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  <td className={`${rowPadding} text-sm font-bold whitespace-nowrap`}>
  {mail.assigneeId ? (
  <span className="text-gold">
- {mail.assignedTo ||"ÄÃ£ gÃ¡n"}{mail.batchName ? ` - ${mail.batchName}` :""}
+ {mail.assignedTo ||"Ã„ÂÃƒÂ£ gÃƒÂ¡n"}{mail.batchName ? ` - ${mail.batchName}` :""}
  </span>
  ) : (
- <span className="text-gray-500">ChÆ°a gÃ¡n</span>
+ <span className="text-gray-500">ChÃ†Â°a gÃƒÂ¡n</span>
  )}
  </td>
  )}
  <td className={`${rowPadding} text-center whitespace-nowrap`}>
  {type ==="ROOT" ? (
  <select
- value={mail.verificationStatus ||"ChÆ°a xanh"}
+ value={mail.verificationStatus ||"ChÃ†Â°a xanh"}
  onChange={(e) => handleSaveUnifiedDetails(mail._id || mail.id, { verificationStatus: e.target.value })}
- className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.verificationStatus ||"ChÆ°a xanh")}`}
+ className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.verificationStatus ||"ChÃ†Â°a xanh")}`}
  >
  <option value="Mail veri" className="bg-sidebar text-white">Mail veri</option>
- <option value="ÄÃ£ xanh" className="bg-sidebar text-white">ÄÃ£ xanh</option>
- <option value="ChÆ°a xanh" className="bg-sidebar text-white">ChÆ°a xanh</option>
- <option value="QuÃ©t CCCD" className="bg-sidebar text-white">
- QuÃ©t CCCD {mail.cccdDate ? `(${mail.cccdDate})` :""}
+ <option value="Ã„ÂÃƒÂ£ xanh" className="bg-sidebar text-white">Ã„ÂÃƒÂ£ xanh</option>
+ <option value="ChÃ†Â°a xanh" className="bg-sidebar text-white">ChÃ†Â°a xanh</option>
+ <option value="QuÃƒÂ©t CCCD" className="bg-sidebar text-white">
+ QuÃƒÂ©t CCCD {mail.cccdDate ? `(${mail.cccdDate})` :""}
  </option>
  </select>
  ) : type ==="MONETIZED" ? (
  <select
- value={mail.workStatus ||"ChÆ°a bÃ¡n"}
+ value={mail.workStatus ||"ChÃ†Â°a bÃƒÂ¡n"}
  onChange={(e) => handleWorkStatusChange(mail._id || mail.id, e.target.value)}
- className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus ||"ChÆ°a bÃ¡n")}`}
+ className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus ||"ChÃ†Â°a bÃƒÂ¡n")}`}
  >
- <option value="ChÆ°a bÃ¡n" className="bg-sidebar text-white">ChÆ°a bÃ¡n</option>
- <option value="ÄÃ£ bÃ¡n" className="bg-sidebar text-white">ÄÃ£ bÃ¡n</option>
+ <option value="ChÃ†Â°a bÃƒÂ¡n" className="bg-sidebar text-white">ChÃ†Â°a bÃƒÂ¡n</option>
+ <option value="Ã„ÂÃƒÂ£ bÃƒÂ¡n" className="bg-sidebar text-white">Ã„ÂÃƒÂ£ bÃƒÂ¡n</option>
  </select>
  ) : (
  <select
- value={mail.workStatus ||"ChÆ°a lÃ m"}
+ value={mail.workStatus ||"ChÃ†Â°a lÃƒÂ m"}
  onChange={(e) => handleWorkStatusChange(mail._id || mail.id, e.target.value)}
- className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus ||"ChÆ°a lÃ m")}`}
+ className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase border outline-none cursor-pointer transition-all ${getStatusSelectStyle(mail.workStatus ||"ChÃ†Â°a lÃƒÂ m")}`}
  >
  {isStaff && type ==="SATELLITE" ? (
  <>
- <option value="ChÆ°a lÃ m" className="bg-sidebar text-white">ChÆ°a lÃ m</option>
- <option value="ÄÃ£ lÃ m" className="bg-sidebar text-white">ÄÃ£ lÃ m</option>
- <option value="Lá»—i" className="bg-sidebar text-white">Lá»—i</option>
+ <option value="ChÃ†Â°a lÃƒÂ m" className="bg-sidebar text-white">ChÃ†Â°a lÃƒÂ m</option>
+ <option value="Ã„ÂÃƒÂ£ lÃƒÂ m" className="bg-sidebar text-white">Ã„ÂÃƒÂ£ lÃƒÂ m</option>
+ <option value="LÃ¡Â»â€”i" className="bg-sidebar text-white">LÃ¡Â»â€”i</option>
  </>
  ) : (
  <>
- <option value="ChÆ°a lÃ m" className="bg-sidebar text-white">ChÆ°a lÃ m</option>
- <option value="Äang xá»­ lÃ­" className="bg-sidebar text-white">Äang xá»­ lÃ­</option>
- <option value="ÄÃ£ lÃ m" className="bg-sidebar text-white">ÄÃ£ lÃ m</option>
- <option value="Lá»—i" className="bg-sidebar text-white">Lá»—i</option>
+ <option value="ChÃ†Â°a lÃƒÂ m" className="bg-sidebar text-white">ChÃ†Â°a lÃƒÂ m</option>
+ <option value="Ã„Âang xÃ¡Â»Â­ lÃƒÂ­" className="bg-sidebar text-white">Ã„Âang xÃ¡Â»Â­ lÃƒÂ­</option>
+ <option value="Ã„ÂÃƒÂ£ lÃƒÂ m" className="bg-sidebar text-white">Ã„ÂÃƒÂ£ lÃƒÂ m</option>
+ <option value="LÃ¡Â»â€”i" className="bg-sidebar text-white">LÃ¡Â»â€”i</option>
  </>
  )}
  </select>
@@ -1107,7 +1107,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  }}
  className="px-4 py-1 rounded-xl bg-gold/10 hover:bg-gold hover:text-sidebar text-gold border border-white/0 text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-gold/5 font-black"
  >
- Xem chi tiáº¿t
+ Xem chi tiÃ¡ÂºÂ¿t
  </button>
  {isAdminOrManager && (
  <button onClick={() => deleteMail(mail._id || mail.id)} className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-inner"><Trash2 size={16} /></button>
@@ -1117,7 +1117,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  </tr>
  );
  }) : (
- <tr><td colSpan={isAdminOrManager && (type ==="SATELLITE" || type ==="ROOT" || type ==="MONETIZED") ? 10 : 9} className="py-20 text-center font-bold uppercase tracking-widest">ChÆ°a cÃ³ dá»¯ liá»‡u</td></tr>
+ <tr><td colSpan={isAdminOrManager && (type ==="SATELLITE" || type ==="ROOT" || type ==="MONETIZED") ? 10 : 9} className="py-20 text-center font-bold uppercase tracking-widest">ChÃ†Â°a cÃƒÂ³ dÃ¡Â»Â¯ liÃ¡Â»â€¡u</td></tr>
  )}
  </tbody>
  </table>
@@ -1155,7 +1155,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     onConfirm={async (batchName) => {
       // Direct integration of handleConfirmBatchImport logic
       if (!pendingMails || (pendingMails || []).length === 0) return;
-      const baseBatchName = batchName.trim() || `LÃ´ ngÃ y ${new Date().toLocaleDateString("vi-VN")}`;
+      const baseBatchName = batchName.trim() || `LÃƒÂ´ ngÃƒÂ y ${new Date().toLocaleDateString("vi-VN")}`;
       
       const isSatellite = pendingMails.some(m => m.type === "SATELLITE");
       const uniquePrefix = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
@@ -1186,12 +1186,12 @@ export default function MailManagement({ type, user }: MailManagementProps) {
             localStorage.setItem("global_satellite_batches", JSON.stringify(updatedBatches));
             }
             } catch (err) {
-            console.error("Lỗi tự động đăng ký lô mail vệ tinh:", err);
+            console.error("Lá»—i tá»± Ä‘á»™ng Ä‘Äƒng kÃ½ lÃ´ mail vá»‡ tinh:", err);
             }
             }
 
             try {
-            triggerToast(`Đang lưu ${(mappedMails || []).length} mail vào Server...`);
+            triggerToast(`Äang lÆ°u ${(mappedMails || []).length} mail vÃ o Server...`);
             const res = await fetch("/api/admin/mails", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1200,11 +1200,11 @@ export default function MailManagement({ type, user }: MailManagementProps) {
         
         if (!res.ok) {
           const errorData = await res.json();
-          throw new Error(errorData.error || "Lá»—i lÆ°u dá»¯ liá»‡u");
+          throw new Error(errorData.error || "LÃ¡Â»â€”i lÃ†Â°u dÃ¡Â»Â¯ liÃ¡Â»â€¡u");
         }
         
         const data = await res.json();
-        if (!data.success) throw new Error(data.error || "Lá»—i lÆ°u dá»¯ liá»‡u");
+        if (!data.success) throw new Error(data.error || "LÃ¡Â»â€”i lÃ†Â°u dÃ¡Â»Â¯ liÃ¡Â»â€¡u");
 
         try {
           const savedMails = localStorage.getItem("global_mails_data");
@@ -1213,21 +1213,22 @@ export default function MailManagement({ type, user }: MailManagementProps) {
           const updatedMails = [...currentMails, ...newMailsFiltered];
           localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
         } catch (err) {
-          console.error("Lỗi cập nhật localStorage global_mails_data:", err);
+          console.error("Lá»—i cáº­p nháº­t localStorage global_mails_data:", err);
         }
 
         setPendingMails(null);
         setShowBatchNameModal(false);
-        triggerToast(`Đã lưu thành công ${(mappedMails || []).length} mail!`);
+        triggerToast(`ÄÃ£ lÆ°u thÃ nh cÃ´ng ${(mappedMails || []).length} mail!`);
         mutate(); // Reload SWR
       } catch (err: unknown) {
-        console.error("Lá»—i khi gá»i API POST mails:", err);
-        if (err instanceof Error) triggerToast(`Lá»—i káº¿t ná»‘i Server: ${err.message}`);
-        else triggerToast(`Lá»—i káº¿t ná»‘i Server: KhÃ´ng thá»ƒ lÆ°u mail!`);
+        console.error("LÃ¡Â»â€”i khi gÃ¡Â»Âi API POST mails:", err);
+        if (err instanceof Error) triggerToast(`LÃ¡Â»â€”i kÃ¡ÂºÂ¿t nÃ¡Â»â€˜i Server: ${err.message}`);
+        else triggerToast(`LÃ¡Â»â€”i kÃ¡ÂºÂ¿t nÃ¡Â»â€˜i Server: KhÃƒÂ´ng thÃ¡Â»Æ’ lÃ†Â°u mail!`);
       }
     }}
   />
  </div>
  );
 }
+
 

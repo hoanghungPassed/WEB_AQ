@@ -88,7 +88,7 @@ export default function EmployeePhoneListPage() {
  user: user?.id || user?.name ||"Employee",
  role:"NHÃ‚N VIÃŠN",
  action: `Cáº­p nháº­t tráº¡ng thÃ¡i SÄT ${targetNumber} thÃ nh"${newStatus}"`,
- type: newStatus ==="Lá»—i" ?"WARNING" :"SUCCESS",
+ type: newStatus ==="Lỗi" ?"WARNING" :"SUCCESS",
  timestamp: new Date().toLocaleString("vi-VN")
  })
  }).catch(console.error);
@@ -104,10 +104,10 @@ export default function EmployeePhoneListPage() {
 
  const stats = useMemo(() => {
  const total = (myPhones || []).length;
- const pending = (myPhones || []).filter(p => p.status ==="ChÆ°a lÃ m" || p.status === ("ChÆ°a verify" as any)).length;
- const xm1 = (myPhones || []).filter(p => p.status ==="XM láº§n 1").length;
- const xm2 = (myPhones || []).filter(p => p.status ==="XM láº§n 2").length;
- const errorCount = (myPhones || []).filter(p => p.status ==="Lá»—i").length;
+ const pending = (myPhones || []).filter(p => p.status ==="Chưa làm" || p.status === ("Chưa verify" as any)).length;
+ const xm1 = (myPhones || []).filter(p => p.status ==="XM lần 1").length;
+ const xm2 = (myPhones || []).filter(p => p.status ==="XM lần 2").length;
+ const errorCount = (myPhones || []).filter(p => p.status ==="Lỗi").length;
  const progress = total > 0 ? Math.round(((total - pending) / total) * 100) : 0;
  return { total, pending, xm1, xm2, errorCount, progress };
  }, [myPhones]);

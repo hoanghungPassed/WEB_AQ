@@ -105,7 +105,7 @@ export default function ReportsPage() {
 
     let csvContent = "STT,Nhân viên,Username,Chỉ tiêu ngày,Kênh đủ giờ (Tuần),Tổng tháng (Kênh đủ giờ),KPI Tuần (%),Xếp loại\n";
     
-    const eligibleStaffList = (staffList || []).filter((s: StaffData) => s.role === "04" || s.role === "05" || s.role === "NHÃ‚N VIÃŠN" || s.role === "NV THá»¬ VIá»†C");
+    const eligibleStaffList = (staffList || []).filter((s: StaffData) => s.role === "04" || s.role === "05");
     
     // Sort staff members by their monthly channel output
     const calculatedStaff = (eligibleStaffList || []).map((staff: StaffData) => {
@@ -141,7 +141,7 @@ export default function ReportsPage() {
         progress,
         efficiency
       };
-    }).sort((a: StaffPerformance, b: StaffPerformance) => b.monthlyChannels - a.monthlyChannels);
+    }).sort((a: any, b: any) => b.monthly - a.monthly);
 
     calculatedStaff.forEach((staff: any, idx: number) => {
       csvContent += `${idx + 1},"${staff.name}","${staff.username}","50 / ngày",${staff.weekly},${staff.monthly},"${staff.progress}%","${staff.efficiency}"\n`;
@@ -469,7 +469,7 @@ export default function ReportsPage() {
  >
  Hiệu Suất KPI
  </button>
- {(user?.role ==="01" || user?.role ==="02" || user?.role ==="ADMIN" || user?.role ==="QUẢN LÝ CÔNG VIỆC") && (
+ {(user?.role ==="01" || user?.role ==="02") && (
  <button
  onClick={() => setActiveTab("PAYROLL")}
  className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab ==="PAYROLL" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :"text-gray-500 hover:text-white"}`}
