@@ -1179,21 +1179,24 @@ const typingTimer = setInterval(checkTyping, 1000);
 
       // Trigger a local state recalculation to instantly clear badge
       let unread = 0;
+      const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}`);
+      const lastReadTime = lastReadTimeStr ? parseInt(lastReadTimeStr) : 0;
+
       companyMessages.forEach((msg: any) => {
-        const isMe = msg.senderName === (user?.name || user?.username);
-        const msgTime = Number(msg.id.split("_")[1]) || 0;
-        if (!isMe && msgTime > 0 && msgTime > Date.now()) {
+        const isMe = msg.senderUsername === user?.username || msg.senderName === (user?.name || user?.username);
+        const msgTime = msg.createdAt ? new Date(msg.createdAt).getTime() : (Number(msg.id?.split("_")[1]) || 0);
+        if (!isMe && msgTime > lastReadTime) {
           unread++;
         }
       });
 
-      const privateArr = savedPrivate ? JSON.parse(savedPrivate) : [];
-      privateArr.forEach((msg: any) => {
-        const isMe = msg.sender === user?.username;
-        const isForMe = msg.receiver === user?.username;
-        const msgTime = Number(msg.id.split("_")[1]) || 0;
-        if (!isMe && isForMe && msgTime > 0) {
-          const senderReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}_${msg.sender}`);
+      privateMessages.forEach((msg: any) => {
+        const isMe = msg.senderUsername === user?.username || msg.sender === user?.username;
+        const isForMe = msg.receiverUsername === user?.username || msg.receiver === user?.username;
+        const msgTime = msg.createdAt ? new Date(msg.createdAt).getTime() : (Number(msg.id?.split("_")[1]) || 0);
+        
+        if (!isMe && isForMe) {
+          const senderReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}_${msg.senderUsername || msg.sender}`);
           const senderReadTime = senderReadTimeStr ? Number(senderReadTimeStr) : 0;
           if (msgTime > senderReadTime && !msg.isRead) {
             unread++;
