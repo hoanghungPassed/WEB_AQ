@@ -120,8 +120,13 @@ export default function PhoneBatchesPage() {
     ).map((u: any) => ({ ...u, id: u.id || u._id?.toString() }));
  }, []);
 
- const { data: phones = [], mutate: mutatePhones, isValidating: isPhonesLoading } = useSWR('phones-all', fetchPhones, { refreshInterval: 30000 });
- const { data: employees = [], mutate: mutateEmployees, isValidating: isEmployeesLoading } = useSWR('employees-staff', fetchEmployees, { refreshInterval: 60000 });
+ const { data: rawPhones, mutate: mutatePhones, isValidating: isPhonesLoading } = useSWR('phones-all', fetchPhones, { refreshInterval: 30000 });
+ const { data: rawEmployees, mutate: mutateEmployees, isValidating: isEmployeesLoading } = useSWR('employees-staff', fetchEmployees, { refreshInterval: 60000 });
+
+ const phones = rawPhones || [];
+ const employees = rawEmployees || [];
+
+ const isLoading = (!rawPhones && isPhonesLoading) || (!rawEmployees && isEmployeesLoading);
 
  const [importHistory, setImportHistory] = useState<ImportHistoryItem[]>([]);
  useEffect(() => {
@@ -143,8 +148,6 @@ export default function PhoneBatchesPage() {
  const [showHistoryModal, setShowHistoryModal] = useState(false);
  const [expandedBatches, setExpandedBatches] = useState<string[]>([]);
  const [batchToDelete, setBatchToDelete] = useState<string | null>(null);
-
- const isLoading = isPhonesLoading || isEmployeesLoading;
 
  const triggerToast = (msg: string) => {
    setToastMsg(msg);

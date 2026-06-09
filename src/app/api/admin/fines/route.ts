@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     const sortOrder = (searchParams.get("sortOrder") || "desc") as "asc" | "desc";
     const status = searchParams.get("status");
 
-    let filter: any = {};
+    const filter: any = {};
     if (status && status !== "ALL") filter.status = status;
 
     const hasPermission = await checkPermission(userRole || "", 3, ["all", "attendance"]);

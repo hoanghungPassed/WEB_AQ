@@ -71,7 +71,8 @@ export default function ReportsPage() {
     return await res.json();
  }, []);
 
- const { data: kpiData, mutate, isValidating: isLoading } = useSWR('kpi-report-data', fetchKpiData, { refreshInterval: 60000 });
+ const { data: kpiData, mutate, isValidating } = useSWR('kpi-report-data', fetchKpiData, { refreshInterval: 60000 });
+ const isLoading = !kpiData && isValidating;
 
  const [mails, setMails] = useState<MailData[]>([]);
  const [staffList, setStaffList] = useState<StaffData[]>([]);

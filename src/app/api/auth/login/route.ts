@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     let overtimeBypass = false;
 
     if (username === "nhanvien") {
-      let nvUser = await User.findOne({ username: "nhanvien" });
+      const nvUser = await User.findOne({ username: "nhanvien" });
       if (!nvUser) {
         const defaultPassword = await hashPassword("123456");
         await User.create({

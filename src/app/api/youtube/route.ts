@@ -122,7 +122,7 @@ function parseFallbackName(url: string): string {
 
 function formatName(str: string): string {
  // Convert camelCase or kebab-case or snake_case to Space Words
- let clean = str
+ const clean = str
  .replace(/([A-Z])/g," $1") // Add space before capital letters
  .replace(/[_-]+/g,"") // Replace underscores and hyphens with spaces
  .replace(/\s+/g,"") // Collapse multiple spaces

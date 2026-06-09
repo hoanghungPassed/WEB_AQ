@@ -664,7 +664,7 @@ setNotification("Đã cập nhật chi tiết mail thành công.");
     });
 
     const savedTasks = null;
-    let allTasks = savedTasks ? JSON.parse(savedTasks) : [];
+    const allTasks = savedTasks ? JSON.parse(savedTasks) : [];
 
     let rangeVal = mailRangeStr;
     if (selectedTemplate === "Làm kênh") {
@@ -749,7 +749,7 @@ setNotification("Đã cập nhật chi tiết mail thành công.");
  if (!selectedTaskId || !selectedTask) return;
 
  if (newStatus ==="COMPLETED" && selectedTask?.type ==="MAIL_VE_TINH") {
- let errorMails: string[] = [];
+ const errorMails: string[] = [];
  taskMails.forEach((m: any) => {
  const activeLinks = (m.links || []).filter((l: string) => typeof l === 'string' && l.trim() !=="");
  const linksCount = (activeLinks || []).length;

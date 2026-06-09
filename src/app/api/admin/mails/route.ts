@@ -9,6 +9,10 @@ import { paginate } from "@/lib/pagination";
 
 export const dynamic = "force-dynamic";
 
+// Global cache for batches to prevent slow distinct queries on every request
+let cachedBatches: string[] = [];
+let lastBatchCacheTime = 0;
+
 export async function GET(req: NextRequest) {
   try {
     let userId = req.headers.get("x-user-id");
@@ -34,7 +38,7 @@ export async function GET(req: NextRequest) {
     const sortOrder = (searchParams.get("sortOrder") || "desc") as "asc" | "desc";
 
     // Setup base filter query
-    let query: any = {};
+    const query: any = {};
     
     // Status filter (In Satellite/Monetized it maps to workStatus; in Root it maps to verificationStatus)
     if (status && status !== "ALL") {
@@ -72,13 +76,19 @@ export async function GET(req: NextRequest) {
       return MonetizedMail;
     };
 
-    // Calculate unique batch names across relevant collections for filters
-    const [distinctRoot, distinctSatellite, distinctMonetized] = await Promise.all([
-      RootMail.distinct("batchName"),
-      SatelliteMail.distinct("batchName"),
-      MonetizedMail.distinct("batchName")
-    ]);
-    const uniqueBatches = Array.from(new Set([...distinctRoot, ...distinctSatellite, ...distinctMonetized])).filter(Boolean);
+    // Use cached batches if less than 60 seconds old to prevent heavy DB load
+    let uniqueBatches = cachedBatches;
+    const now = Date.now();
+    if (now - lastBatchCacheTime > 60000 || cachedBatches.length === 0) {
+      const [distinctRoot, distinctSatellite, distinctMonetized] = await Promise.all([
+        RootMail.distinct("batchName").catch(() => []),
+        SatelliteMail.distinct("batchName").catch(() => []),
+        MonetizedMail.distinct("batchName").catch(() => [])
+      ]);
+      uniqueBatches = Array.from(new Set([...distinctRoot, ...distinctSatellite, ...distinctMonetized])).filter(Boolean) as string[];
+      cachedBatches = uniqueBatches;
+      lastBatchCacheTime = now;
+    }
 
     // Fallback: If no pagination requested OR all=true is specified, return full data
     if ((!searchParams.has("page") && !searchParams.has("limit")) || searchParams.get("all") === "true") {
@@ -117,7 +127,7 @@ export async function GET(req: NextRequest) {
     const rootMails = await RootMail.find(query).lean();
     const satelliteMails = await SatelliteMail.find(query).lean();
     const monetizedMails = await MonetizedMail.find(query).lean();
-    let mails: any[] = [...rootMails, ...satelliteMails, ...monetizedMails];
+    const mails: any[] = [...rootMails, ...satelliteMails, ...monetizedMails];
     
     // In-memory sort combined array
     mails.sort((a: any, b: any) => {
@@ -206,7 +216,7 @@ export async function POST(req: NextRequest) {
  payload = body;
  }
 
- let newMails = [];
+ const newMails = [];
  let items = Array.isArray(payload) ? payload : [payload];
 
  // Duplicate check

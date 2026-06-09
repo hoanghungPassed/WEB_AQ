@@ -117,7 +117,7 @@ export default function SatelliteBatchesPage() {
     const savedMails = localStorage.getItem("global_mails_data");
     const mails = savedMails ? JSON.parse(savedMails) : [];
 
-    let list = savedBatches ? JSON.parse(savedBatches) : [];
+    const list = savedBatches ? JSON.parse(savedBatches) : [];
     const users = savedUsers ? JSON.parse(savedUsers) : [];
 
     const staffOnly = (users || []).filter((u: any) => 

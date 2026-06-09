@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const month = searchParams.get("month"); // "YYYY-MM"
 
-    let filter: any = {};
+    const filter: any = {};
     if (month) filter.month = month;
 
     const records = await Payroll.find(filter)

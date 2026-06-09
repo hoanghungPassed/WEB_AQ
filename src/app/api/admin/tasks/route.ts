@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     const userRole = req.headers.get("x-user-role");
     const isStaff = userRole === "03" || userRole === "04";
 
-    let filter: any = {};
+    const filter: any = {};
     if (isStaff) {
       filter.assigneeId = userId;
     } else if (assigneeId) {

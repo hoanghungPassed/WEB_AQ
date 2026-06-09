@@ -83,9 +83,9 @@ export async function PUT(req: NextRequest) {
     const data = await req.json();
     
     // Support both workStartTime/workEndTime and openTime/closeTime naming conventions
-    let start = data.workStartTime !== undefined ? data.workStartTime : data.openTime;
-    let bStart = data.breakStartTime !== undefined ? data.breakStartTime : "12:00";
-    let bEnd = data.breakEndTime !== undefined ? data.breakEndTime : "13:30";
+    const start = data.workStartTime !== undefined ? data.workStartTime : data.openTime;
+    const bStart = data.breakStartTime !== undefined ? data.breakStartTime : "12:00";
+    const bEnd = data.breakEndTime !== undefined ? data.breakEndTime : "13:30";
 
     const updateData: any = {};
     if (data.brandName !== undefined) updateData.brandName = data.brandName;

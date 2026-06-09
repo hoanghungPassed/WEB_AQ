@@ -118,11 +118,13 @@ export default function MailManagement({ type, user }: MailManagementProps) {
     return data;
   }, [type, currentPage, searchTerm, statusFilter, selectedBatchFilter, assignmentFilter, isStaff, user]);
 
-  const { data: apiData, mutate, isValidating: isLoading } = useSWR(
+  const { data: apiData, mutate, isValidating } = useSWR(
     `mails-${type}-${currentPage}-${searchTerm}-${statusFilter}-${selectedBatchFilter}-${assignmentFilter}`,
     fetchMails,
     { refreshInterval: 30000 }
   );
+  
+  const isLoading = !apiData && isValidating;
 
   useEffect(() => {
     if (apiData?.success) {

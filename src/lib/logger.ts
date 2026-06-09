@@ -5,7 +5,7 @@ import { User } from"@/models/User";
 export const logAction = async (userId: string, action: string, details: string) => {
  try {
  await dbConnect();
- let userDetails = { name:"Hệ thống", role:"ADMIN" };
+ const userDetails = { name:"Hệ thống", role:"ADMIN" };
  
  if (userId && userId !=="system") {
  const u = await User.findById(userId);

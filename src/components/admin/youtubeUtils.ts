@@ -33,7 +33,7 @@ export const validateYouTubeUrl = (url: string): boolean => {
 };
 
 export const formatName = (str: string): string => {
- let clean = str
+ const clean = str
  .replace(/([A-Z])/g," $1")
  .replace(/[_-]+/g,"")
  .replace(/\s+/g,"")
@@ -48,7 +48,7 @@ export const formatName = (str: string): string => {
 
 export const parseFallbackName = (url: string): string => {
  try {
- let cleanUrl = cleanYouTubeUrl(url);
+ const cleanUrl = cleanYouTubeUrl(url);
  const parts = cleanUrl.split("/");
  const lastPart = parts[(parts || []).length - 1];
  

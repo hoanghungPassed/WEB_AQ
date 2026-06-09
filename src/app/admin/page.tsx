@@ -411,10 +411,10 @@ export default function AdminDashboard() {
  const todayDutyTask = useMemo(() => {
  if (!dutyRosterData || !dutyRosterData.roster) return null;
  const date = new Date();
- let dayIdx = date.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+ const dayIdx = date.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
  if (dayIdx === 0) return null; // Sunday no duty
  
- let dayName = ["","Thứ 2","Thứ 3","Thứ 4","Thứ 5","Thứ 6","Thứ 7"][dayIdx];
+ const dayName = ["","Thứ 2","Thứ 3","Thứ 4","Thứ 5","Thứ 6","Thứ 7"][dayIdx];
  const assignedItem = dutyRosterData.roster.find((r: any) => r.day === dayName);
  
  if (dayIdx === 6) {
@@ -870,7 +870,7 @@ export default function AdminDashboard() {
 
  if (newStatus ==="COMPLETED" && targetTask?.type ==="MAIL_VE_TINH") {
  const taskMails = getMailsForTask(targetTask, mails);
- let errorMails: string[] = [];
+ const errorMails: string[] = [];
  taskMails.forEach((m: any) => {
  const linksCount = (m.links || []).filter((l: string) => typeof l === 'string' && l.trim() !=="").length;
  if (linksCount < 3) {

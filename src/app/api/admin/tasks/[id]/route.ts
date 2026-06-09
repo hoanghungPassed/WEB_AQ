@@ -127,7 +127,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        let userKpi = await Kpi.findOne({ userId: task.assigneeId, date: today });
+        const userKpi = await Kpi.findOne({ userId: task.assigneeId, date: today });
         if (!userKpi) {
           await Kpi.create({
             userId: task.assigneeId,

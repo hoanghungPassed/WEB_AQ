@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     const sortBy = searchParams.get("sortBy") || "role";
     const sortOrder = (searchParams.get("sortOrder") || "asc") as "asc" | "desc";
 
-    let filter: any = {};
+    const filter: any = {};
     
     // Status Filter (Online state uses dynamic time calculations)
     if (statusParam === "online") {
