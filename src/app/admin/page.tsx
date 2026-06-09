@@ -1866,7 +1866,7 @@ return (
  </div>
  </div>
  <div className={`grid gap-8 ${isAdminOrManager ?"grid-cols-1 xl:grid-cols-2" :"grid-cols-1"}`}>
- {isAdminOrManager && !(user?.role ==="03" || user?.role ==="04" || user?.role ==="05") && (
+ {isAdminOrManager && (
  <KPIInputCard label="Kênh bật kiếm tiền" target={kpi.targetMonetized} current={kpi.currentMonetized} onChange={(val: any) => setKpi({ ...kpi, targetMonetized: val })} unit="kênh" readonly={false} />
  )}
  <div className={!isAdminOrManager ?"max-w-md mx-auto w-full" :""}>
