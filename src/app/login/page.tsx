@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
-import { Lock, User, Eye, EyeOff, Loader2, UserPlus, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Lock, User, Eye, EyeOff, Loader2, UserPlus, ShieldAlert, CheckCircle2, AlertCircle, Clock, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { StaffData } from "@/types/admin";
 import { useAuth } from "@/contexts/AuthContext";
@@ -60,6 +60,10 @@ function LoginForm() {
   // Overtime Fine States
   const [overtimeBypassFlag, setOvertimeBypassFlag] = useState(false);
   const [showOvertimePopup, setShowOvertimePopup] = useState(false);
+
+  // Approval Polling States
+  const [isWaitingApproval, setIsWaitingApproval] = useState(false);
+  const [approvalStatus, setApprovalStatus] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
 
   useEffect(() => {
     const msg = searchParams.get("message");
@@ -130,9 +134,6 @@ function LoginForm() {
           if (data.require2FA) {
             setRequire2FA(true);
             setTempUserId(data.userId);
-            if (data.overtimeBypass) {
-              setOvertimeBypassFlag(true);
-            }
             setMessage("Tài khoản đã được bảo vệ bằng 2FA. Vui lòng nhập mã OTP để đăng nhập.");
           } else {
             login(data.user);
@@ -141,6 +142,10 @@ function LoginForm() {
         } else {
           if (data.error === "system_closed_fine_required") {
             setShowOvertimePopup(true);
+          }
+          if (data.error && data.error.includes("chờ duyệt")) {
+            setIsWaitingApproval(true);
+            setApprovalStatus("PENDING");
           }
           setError(data.error === "system_closed_fine_required" ? data.message : (data.error || "Sai tên đăng nhập hoặc mật khẩu"));
         }
@@ -152,6 +157,60 @@ function LoginForm() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isWaitingApproval || !username) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/auth/check-status?username=${encodeURIComponent(username.toLowerCase())}`);
+        if (!res.ok) {
+          if (res.status === 404) {
+            setApprovalStatus("REJECTED");
+          }
+          return;
+        }
+        const data = await res.json();
+        if (data.status === "GRANTED" || data.status === "APPROVED") {
+          setApprovalStatus("APPROVED");
+          clearInterval(interval);
+          
+          // Tự động đăng nhập
+          try {
+            const loginRes = await fetch("/api/auth/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                username: username.toLowerCase(),
+                password: password
+              })
+            });
+            if (loginRes.ok) {
+              const loginData = await loginRes.json();
+              login(loginData.user);
+              setTimeout(() => {
+                router.push("/admin");
+              }, 2000);
+            } else {
+              setIsWaitingApproval(false);
+              setError("Tự động đăng nhập thất bại sau khi duyệt");
+            }
+          } catch (loginErr) {
+            console.error("Auto login error:", loginErr);
+            setIsWaitingApproval(false);
+            setError("Lỗi kết nối khi tự động đăng nhập");
+          }
+        } else if (data.status === "REJECTED") {
+          setApprovalStatus("REJECTED");
+          clearInterval(interval);
+        }
+      } catch (err) {
+        console.error("Lỗi check status:", err);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isWaitingApproval, username, password, login, router]);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0a0a0a] font-sans">
@@ -343,6 +402,97 @@ function LoginForm() {
           </div>
         </div>
       </motion.div>
+
+      {/* Pending Approval Modal Overlay */}
+      <AnimatePresence>
+        {isWaitingApproval && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="relative w-full max-w-md overflow-hidden rounded-[32px] border border-white/10 bg-[#161616]/90 p-8 text-center shadow-2xl backdrop-blur-xl"
+            >
+              {/* Ambient Background Glow */}
+              <div className="absolute -left-20 -top-20 h-40 w-40 rounded-full bg-gold/10 blur-2xl" />
+              <div className="absolute -bottom-20 -right-20 h-40 w-40 rounded-full bg-gold/10 blur-2xl" />
+
+              <div className="relative z-10 flex flex-col items-center">
+                {/* Status Icons & Spinners */}
+                {approvalStatus === "PENDING" && (
+                  <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-[28px] bg-gold/5 border border-gold/10 shadow-lg">
+                    <Loader2 className="h-10 w-10 text-gold animate-spin" />
+                    <span className="absolute inset-0 rounded-[28px] border border-gold/20 animate-pulse" />
+                  </div>
+                )}
+
+                {approvalStatus === "APPROVED" && (
+                  <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-[28px] bg-green-500/10 border border-green-500/20 shadow-lg">
+                    <CheckCircle2 className="h-10 w-10 text-green-400" />
+                    <span className="absolute inset-0 rounded-[28px] border border-green-500/20 animate-ping" />
+                  </div>
+                )}
+
+                {approvalStatus === "REJECTED" && (
+                  <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-[28px] bg-red-500/10 border border-red-500/20 shadow-lg">
+                    <AlertCircle className="h-10 w-10 text-red-400 animate-bounce" />
+                  </div>
+                )}
+
+                {/* Status Text & Message */}
+                <h3 className="text-2xl font-black uppercase tracking-tight text-white mb-3">
+                  {approvalStatus === "PENDING" && "Chờ phê duyệt"}
+                  {approvalStatus === "APPROVED" && "Tuyệt vời!"}
+                  {approvalStatus === "REJECTED" && "Từ chối phê duyệt"}
+                </h3>
+
+                <p className="text-gray-300 font-medium text-sm leading-relaxed mb-8 px-2">
+                  {approvalStatus === "PENDING" && "Tài khoản của bạn đang chờ phê duyệt. Vui lòng chờ..."}
+                  {approvalStatus === "APPROVED" && "Chúc mừng, tài khoản của bạn đã được phê duyệt thành công!"}
+                  {approvalStatus === "REJECTED" && "Yêu cầu đăng ký của bạn bị từ chối"}
+                </p>
+
+                {/* Additional Context or Actions */}
+                {approvalStatus === "PENDING" && (
+                  <div className="flex flex-col gap-2 items-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <div className="flex items-center gap-1.5">
+                      <Clock size={14} className="animate-pulse" />
+                      <span>Đang tự động kiểm tra mỗi 3s</span>
+                    </div>
+                  </div>
+                )}
+
+                {approvalStatus === "APPROVED" && (
+                  <div className="text-xs font-bold text-green-400 uppercase tracking-widest flex items-center gap-2">
+                    <Loader2 className="animate-spin" size={14} />
+                    <span>Đang chuyển vào hệ thống...</span>
+                  </div>
+                )}
+
+                {approvalStatus === "REJECTED" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsWaitingApproval(false);
+                      setApprovalStatus("PENDING");
+                    }}
+                    className="h-12 w-full rounded-2xl bg-white/5 border border-white/10 hover:border-gold hover:bg-gold/5 font-black uppercase tracking-widest text-white text-xs transition-all active:scale-95 flex items-center justify-center gap-2 group shadow-inner"
+                  >
+                    <ArrowLeft size={16} className="text-gray-400 group-hover:text-gold transition-colors" />
+                    <span>Quay lại</span>
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

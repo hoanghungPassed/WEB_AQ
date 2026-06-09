@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
   const query: Partial<Pick<IPhone, 'status'>> = {};
   if (status) query.status = status;
 
-  const phones = await Phone.find(query).sort({ createdAt: -1 });
+  const phones = await Phone.find(query).sort({ createdAt: -1 }).lean();
   return NextResponse.json({ success: true, data: phones });
   } catch (unknownError) {
   const error = unknownError instanceof Error ? unknownError : new Error(String(unknownError));
@@ -155,7 +155,8 @@ export async function PUT(req: NextRequest) {
   const userId = req.headers.get("x-user-id");
   const userRole = req.headers.get("x-user-role");
 
-  const hasPermission = await checkPermission(userRole || "", 3, ["all", "reports", "attendance", "staff"]);
+  // Allow level 2 (Staff) to update phone statuses
+  const hasPermission = await checkPermission(userRole || "", 2, ["all", "reports", "attendance", "staff"]);
   if (!hasPermission) {
     await logAuditTrail(userId || "unknown", "UNAUTHORIZED_UPDATE_PHONES", "phones", {}, req);
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

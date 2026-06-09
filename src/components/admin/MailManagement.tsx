@@ -30,46 +30,22 @@ import { MailData } from"@/types/admin";
 import { useRouter } from"next/navigation";
 import MailDetailModal from"@/components/admin/MailDetailModal";
 
-type ImportHistoryItem = {
- id: string;
- type:"ALL" |"MAIL" |"SÄT";
- fileName: string;
- quantity: number;
- importedAt: string;
- importedBy: string;
-};
-
+import { LoadingOverlay } from "@/components/ui/Loading";
+import { useSWR } from "@/lib/useSWR";
+import { ImportHistoryModal, type ImportHistoryItem } from "./modals/ImportHistoryModal";
+import { ManualImportModal } from "./modals/ManualImportModal";
+import { BatchNameModal } from "./modals/BatchNameModal";
+import { StaffData } from "@/types/admin";
 
 interface MailManagementProps {
  type:"ROOT" |"SATELLITE" |"MONETIZED" |"ALL";
- user: { id?: string; role?: string; name?: string; username?: string } | null;
+ user: StaffData | null;
 }
 
 export default function MailManagement({ type, user }: MailManagementProps) {
  const router = useRouter();
  const [importHistory, setImportHistory] = useState<ImportHistoryItem[]>([]);
- const [historyTab, setHistoryTab] = useState<"ALL" |"MAIL" |"SÄT">("ALL");
-
- useEffect(() => {
- // History is no longer loaded from localStorage. 
- // Wait for actual API if available, or just empty.
- }, []);
-
- const filteredHistory = useMemo(() => {
- if (historyTab ==="ALL") return importHistory;
- return (importHistory || []).filter((item) => item.type === historyTab);
- }, [importHistory, historyTab]);
-
- const handleDeleteHistoryRow = async (id: string) => {
- if (!confirm("Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a dÃ²ng lá»‹ch sá»­ import nÃ y? (KhÃ´ng áº£nh hÆ°á»Ÿng Ä‘áº¿n dá»¯ liá»‡u Ä‘Ã£ import)")) return;
- const updated = (importHistory || []).filter((item) => item.id !== id);
- setImportHistory(updated);
- };
-
- const handleClearAllHistory = async () => {
- if (!confirm("XÃ¡c nháº­n xÃ³a TOÃ€N Bá»˜ lá»‹ch sá»­ import? HÃ nh Ä‘á»™ng nÃ y khÃ´ng thá»ƒ hoÃ n tÃ¡c.")) return;
- setImportHistory([]);
- };
+ const [importBatchName, setImportBatchName] = useState("");
 
  const [mails, setMails] = useState<MailData[]>([]);
  const [searchTerm, setSearchTerm] = useState("");
@@ -91,9 +67,7 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  const [confirmConfig, setConfirmConfig] = useState({ title:"", msg:"", onConfirm: () => { } });
  const [selectedMailForConfig, setSelectedMailForConfig] = useState<MailData | null>(null);
 
- const [manualData, setManualData] = useState("");
  const [pendingMails, setPendingMails] = useState<MailData[] | null>(null);
- const [importBatchName, setImportBatchName] = useState("");
  const [showBatchNameModal, setShowBatchNameModal] = useState(false);
  const [showHistoryModal, setShowHistoryModal] = useState(false);
  const itemsPerPage = 15;
@@ -118,59 +92,51 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  roleUpper ==="QL CÃ”NG VIá»†C" || 
  roleUpper ==="QUáº¢N LÃ CÃ”NG VIá»†C";
 
-  const loadData = useCallback(async () => {
-    try {
-      const queryParams = new URLSearchParams();
-      queryParams.set("type", type);
-      queryParams.set("page", String(currentPage));
-      queryParams.set("limit", String(itemsPerPage));
+  const fetchMails = useCallback(async () => {
+    const queryParams = new URLSearchParams();
+    queryParams.set("type", type);
+    queryParams.set("page", String(currentPage));
+    queryParams.set("limit", String(itemsPerPage));
 
-      if (searchTerm) queryParams.set("search", searchTerm);
-      if (statusFilter && statusFilter !== "ALL") queryParams.set("status", statusFilter);
-      if (selectedBatchFilter && selectedBatchFilter !== "ALL") queryParams.set("batch", selectedBatchFilter);
+    if (searchTerm) queryParams.set("search", searchTerm);
+    if (statusFilter && statusFilter !== "ALL") queryParams.set("status", statusFilter);
+    if (selectedBatchFilter && selectedBatchFilter !== "ALL") queryParams.set("batch", selectedBatchFilter);
 
-      if (assignmentFilter === "ASSIGNED") {
-        queryParams.set("assigned", "true");
-      } else if (assignmentFilter === "UNASSIGNED") {
-        queryParams.set("assigned", "false");
-      }
-
-      if (isStaff && type === "SATELLITE" && user?.id) {
-        queryParams.set("assigneeId", user.id);
-      }
-
-      const res = await fetch(`/api/admin/mails?${queryParams.toString()}`);
-      const data = await res.json();
-      if (data.success) {
-        setMails(data.data || []);
-        if (data.pagination) {
-          setTotalPages(data.pagination.pages || 1);
-          setTotalCount(data.pagination.total || 0);
-        } else {
-          setTotalPages(1);
-          setTotalCount((data.data || []).length);
-        }
-        if (data.batches) {
-          setBatches(data.batches);
-        }
-      } else {
-        setMails([]);
-        setTotalPages(1);
-        setTotalCount(0);
-      }
-    } catch (err) {
-      console.error("Error fetching mails:", err);
-      setMails([]);
-      setTotalPages(1);
-      setTotalCount(0);
+    if (assignmentFilter === "ASSIGNED") {
+      queryParams.set("assigned", "true");
+    } else if (assignmentFilter === "UNASSIGNED") {
+      queryParams.set("assigned", "false");
     }
+
+    if (isStaff && type === "SATELLITE" && user?.id) {
+      queryParams.set("assigneeId", user.id);
+    }
+
+    const res = await fetch(`/api/admin/mails?${queryParams.toString()}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to fetch");
+    return data;
   }, [type, currentPage, searchTerm, statusFilter, selectedBatchFilter, assignmentFilter, isStaff, user]);
 
+  const { data: apiData, mutate, isValidating: isLoading } = useSWR(
+    `mails-${type}-${currentPage}-${searchTerm}-${statusFilter}-${selectedBatchFilter}-${assignmentFilter}`,
+    fetchMails,
+    { refreshInterval: 30000 }
+  );
+
   useEffect(() => {
-    loadData();
-    window.addEventListener("storage", loadData);
-    return () => window.removeEventListener("storage", loadData);
-  }, [loadData]);
+    if (apiData?.success) {
+      setMails(apiData.data || []);
+      setTotalPages(apiData.pagination?.pages || 1);
+      setTotalCount(apiData.pagination?.total || (apiData.data || []).length);
+      if (apiData.batches) setBatches(apiData.batches);
+    }
+  }, [apiData]);
+
+  useEffect(() => {
+    window.addEventListener("storage", () => mutate());
+    return () => window.removeEventListener("storage", () => mutate());
+  }, [mutate]);
 
   useEffect(() => {
     if (currentPage !== 1) {
@@ -560,188 +526,6 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  e.target.value ="";
  };
 
- const handleManualImport = () => {
- if (!manualData.trim()) return;
- const lines = manualData.split("\n");
-
- let startId = 1;
- const targetType = (type ==="ALL" ?"SATELLITE" : type) as"ROOT" |"SATELLITE" |"MONETIZED";
- if (targetType ==="ROOT") {
- const rootMails = (mails || []).filter(m => m.type ==="ROOT");
- const maxId = rootMails.reduce((max, m) => m.id > max ? m.id : max, 0);
- startId = maxId > 0 ? maxId + 1 : 1;
- } else if (targetType ==="SATELLITE") {
- const satMails = (mails || []).filter(m => m.type ==="SATELLITE");
- const maxId = satMails.reduce((max, m) => m.id > max ? m.id : max, 1000);
- startId = maxId > 1000 ? maxId + 1 : 1001;
- } else if (targetType ==="MONETIZED") {
- const monMails = (mails || []).filter(m => m.type ==="MONETIZED");
- const maxId = monMails.reduce((max, m) => m.id > max ? m.id : max, 2000);
- startId = maxId > 2000 ? maxId + 1 : 2001;
- }
-
- const newItems: MailData[] = [];
- let importedCount = 0;
- let duplicateCount = 0;
-
- (lines || []).filter(l => l.trim()).forEach((line) => {
- const parts = line.split(/[\t|]|\s{2,}/);
- const email = String(parts[0] ||"").trim();
- if (!email) return;
- const phone = String(parts[4] ||"").trim();
-
- const isEmailDuplicate = newItems.some(ni => ni.email?.toLowerCase() === email.toLowerCase()) ||
- mails.some(m => m.email?.toLowerCase() === email.toLowerCase());
-
- const isPhoneDuplicate = phone && (
- newItems.some(ni => ni.phone && ni.phone.trim() === phone) ||
- mails.some(m => m.phone && m.phone.trim() === phone)
- );
-
- if (isEmailDuplicate || isPhoneDuplicate) {
- duplicateCount++;
- return;
- }
-
- newItems.push({
- id: startId + importedCount,
- email,
- pass: String(parts[1] ||"").trim(),
- recovery: String(parts[2] ||"").trim(),
- twoFA: String(parts[3] ||"").trim(),
- phone: String(parts[4] ||"").trim(),
- otpLink: String(parts[5] ||"").trim(),
- type: targetType,
- status:"LIVE" as const,
- workStatus: (targetType ==="MONETIZED" ?"ChÆ°a bÃ¡n" :"ChÆ°a lÃ m"),
- createdAt: new Date().toISOString().split("T")[0]
- });
- importedCount++;
- });
-
- if ((newItems || []).length === 0) {
- if (duplicateCount > 0) {
- triggerToast(`Bá» qua táº¥t cáº£ ${duplicateCount} mail thá»§ cÃ´ng do trÃ¹ng láº·p!`);
- } else {
- triggerToast("KhÃ´ng cÃ³ dá»¯ liá»‡u há»£p lá»‡!");
- }
- return;
- }
-
- if (duplicateCount > 0) {
- triggerToast(`ÄÃ£ bá» qua ${duplicateCount} mail bá»‹ trÃ¹ng!`);
- }
- setPendingMails(newItems);
- setImportBatchName("");
- setShowBatchNameModal(true);
- setManualData("");
- setShowManualImport(false);
- };
-
- const handleConfirmBatchImport = async () => {
-     if (!pendingMails || (pendingMails || []).length === 0) return;
-     const baseBatchName = importBatchName.trim() || `LÃ´ ngÃ y ${new Date().toLocaleDateString("vi-VN")}`;
-     
-     // Check if we are importing SATELLITE mails
-     const isSatellite = pendingMails.some(m => m.type === "SATELLITE");
-     
-     const uniquePrefix = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-     const batchId = `batch-${uniquePrefix}`;
-     
-     const mappedMails = (pendingMails || []).map(m => ({
-       ...m,
-       batchId,
-       batchName: baseBatchName
-     }));
-
-     if (isSatellite) {
-       // Tá»± Ä‘á»™ng thÃªm LÃ´ má»›i vÃ o danh sÃ¡ch LÃ´ mail vá»‡ tinh Ä‘á»ƒ Frontend render Ä‘áº§y Ä‘á»§
-       try {
-         const savedBatches = localStorage.getItem("global_satellite_batches");
-         const batchList = savedBatches ? JSON.parse(savedBatches) : [];
-         const exists = batchList.some((b: any) => b.name === baseBatchName);
-         
-         if (!exists) {
-           const newBatch = {
-             id: batchId,
-             name: baseBatchName,
-             type: "SATELLITE",
-             importedAt: new Date().toISOString().split("T")[0],
-             mailCount: mappedMails.length,
-             importedBy: user?.name || "Admin"
-           };
-           const updatedBatches = [...batchList, newBatch];
-           localStorage.setItem("global_satellite_batches", JSON.stringify(updatedBatches));
-           
-           fetch("/api/sync", {
-             method: "POST",
-             headers: { "Content-Type": "application/json" },
-             body: JSON.stringify({
-               global_satellite_batches: JSON.stringify(updatedBatches)
-             })
-           }).catch(err => console.error("Lá»—i Ä‘á»“ng bá»™ lÃ´ mail vá»‡ tinh:", err));
-         }
-       } catch (err) {
-         console.error("Lá»—i tá»± Ä‘á»™ng Ä‘Äƒng kÃ½ lÃ´ mail vá»‡ tinh:", err);
-       }
-     }
-
-    try {
-      triggerToast(`Äang lÆ°u ${(mappedMails || []).length} mail vÃ o Server...`);
-      // 1. Send all new mails to the database
-      const res = await fetch("/api/admin/mails", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(mappedMails)
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Lá»—i lÆ°u dá»¯ liá»‡u");
-      }
-      
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.error || "Lá»—i lÆ°u dá»¯ liá»‡u");
-      }
-
-      // 2. Äá»“ng bá»™ vÃ o localStorage global_mails_data vÃ  API sync store
-      try {
-        const savedMails = localStorage.getItem("global_mails_data");
-        const currentMails = savedMails ? JSON.parse(savedMails) : [];
-        const newMailsFiltered = (mappedMails || []).filter(nm => !currentMails.some((cm: any) => cm.email === nm.email));
-        const updatedMails = [...currentMails, ...newMailsFiltered];
-        localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
-        
-        await fetch("/api/sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            global_mails_data: JSON.stringify(updatedMails)
-          })
-        }).catch(err => console.error("Lá»—i Ä‘á»“ng bá»™ sync store global_mails_data:", err));
-      } catch (err) {
-        console.error("Lá»—i Ä‘á»“ng bá»™ global_mails_data:", err);
-      }
-
-      setPendingMails(null);
-      setImportBatchName("");
-      setShowBatchNameModal(false);
-      triggerToast(`ÄÃ£ lÆ°u thÃ nh cÃ´ng ${(mappedMails || []).length} mail!`);
-
-      // TRIGGER RELOAD AFTER POST COMPLETE
-      window.dispatchEvent(new Event("storage"));
-    } catch (err: unknown) {
-      console.error("Lá»—i khi gá»i API POST mails:", err);
-      // Giá»¯ nguyÃªn modal (khÃ´ng gá»i setShowBatchNameModal(false))
-      if (err instanceof Error) {
-        triggerToast(`Lá»—i káº¿t ná»‘i Server: ${err.message}`);
-      } else {
-        triggerToast(`Lá»—i káº¿t ná»‘i Server: KhÃ´ng thá»ƒ lÆ°u mail!`);
-      }
-    }
-  };
-
  const handleExport = () => {
   const data = (filteredMails || []).map((m, i) => ({
     "STT": i + 1,
@@ -901,6 +685,8 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  )}
  </AnimatePresence>
 
+ {isLoading && <LoadingOverlay />}
+
  <AnimatePresence>
  {showConfirm && (
  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[160] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -919,157 +705,93 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  )}
  </AnimatePresence>
 
- <AnimatePresence>
- {showManualImport && (
- <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
- <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#18181b] border border-white/0 rounded-xl p-6 w-full max-w-2xl shadow-xl">
- <div className="flex items-center justify-between mb-6">
- <h3 className="text-xl font-bold text-zinc-50 uppercase tracking-tight flex items-center gap-3"><PlusCircle className="text-[#a07800]" size={24} /> Import Thá»§ CÃ´ng</h3>
- <button onClick={() => setShowManualImport(false)} className="h-9 w-9 flex items-center justify-center rounded-xl bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors border border-zinc-700/50"><X size={16} /></button>
- </div>
- <p className="text-[10px] text-zinc-500 mb-4 font-semibold uppercase tracking-wider leading-relaxed">
- Äá»‹nh dáº¡ng: Email [Tab/CÃ¡ch] Pass [Tab/CÃ¡ch] Mail KP [Tab/CÃ¡ch] 2FA [Tab/CÃ¡ch] SÄT [Tab/CÃ¡ch] Link OTP
- </p>
- <textarea
- value={manualData} onChange={(e) => setManualData(e.target.value)}
- className="w-full h-64 bg-zinc-950/60 border border-white/0 rounded-xl p-4 text-sm text-zinc-100 focus:border-[#a07800] outline-none transition-all resize-none font-mono"
- placeholder="DÃ¡n dá»¯ liá»‡u cá»§a báº¡n vÃ o Ä‘Ã¢y..."
+ <ManualImportModal
+ isOpen={showManualImport}
+ onClose={() => setShowManualImport(false)}
+ onConfirm={(data: string) => {
+
+    // Logic from handleManualImport moved/adapted here
+    const lines = data.split("\n");
+    let startId = 1;
+    const targetType = (type === "ALL" ? "SATELLITE" : type) as "ROOT" | "SATELLITE" | "MONETIZED";
+    if (targetType === "ROOT") {
+      const rootMails = (mails || []).filter(m => m.type === "ROOT");
+      const maxId = rootMails.reduce((max, m) => m.id > max ? m.id : max, 0);
+      startId = maxId > 0 ? maxId + 1 : 1;
+    } else if (targetType === "SATELLITE") {
+      const satMails = (mails || []).filter(m => m.type === "SATELLITE");
+      const maxId = satMails.reduce((max, m) => m.id > max ? m.id : max, 1000);
+      startId = maxId > 1000 ? maxId + 1 : 1001;
+    } else if (targetType === "MONETIZED") {
+      const monMails = (mails || []).filter(m => m.type === "MONETIZED");
+      const maxId = monMails.reduce((max, m) => m.id > max ? m.id : max, 2000);
+      startId = maxId > 2000 ? maxId + 1 : 2001;
+    }
+
+    const newItems: MailData[] = [];
+    let importedCount = 0;
+    let duplicateCount = 0;
+
+    (lines || []).filter(l => l.trim()).forEach((line) => {
+      const parts = line.split(/[\t|]|\s{2,}/);
+      const email = String(parts[0] || "").trim();
+      if (!email) return;
+      const phone = String(parts[4] || "").trim();
+
+      const isEmailDuplicate = newItems.some(ni => ni.email?.toLowerCase() === email.toLowerCase()) ||
+        mails.some(m => m.email?.toLowerCase() === email.toLowerCase());
+
+      const isPhoneDuplicate = phone && (
+        newItems.some(ni => ni.phone && ni.phone.trim() === phone) ||
+        mails.some(m => m.phone && m.phone.trim() === phone)
+      );
+
+      if (isEmailDuplicate || isPhoneDuplicate) {
+        duplicateCount++;
+        return;
+      }
+
+      newItems.push({
+        id: startId + importedCount,
+        email,
+        pass: String(parts[1] || "").trim(),
+        recovery: String(parts[2] || "").trim(),
+        twoFA: String(parts[3] || "").trim(),
+        phone: String(parts[4] || "").trim(),
+        otpLink: String(parts[5] || "").trim(),
+        type: targetType,
+        status: "LIVE" as const,
+        workStatus: (targetType === "MONETIZED" ? "ChÆ°a bÃ¡n" : "ChÆ°a lÃ m"),
+        createdAt: new Date().toISOString().split("T")[0]
+      });
+      importedCount++;
+    });
+
+    if ((newItems || []).length === 0) {
+      if (duplicateCount > 0) triggerToast(`Bá» qua táº¥t cáº£ ${duplicateCount} mail thá»§ cÃ´ng do trÃ¹ng láº·p!`);
+      else triggerToast("KhÃ´ng cÃ³ dá»¯ liá»‡u há»£p lá»‡!");
+      return;
+    }
+
+    if (duplicateCount > 0) triggerToast(`ÄÃ£ bá» qua ${duplicateCount} mail bá»‹ trÃ¹ng!`);
+    setPendingMails(newItems);
+    setShowBatchNameModal(true);
+ }}
  />
- <div className="flex gap-3 mt-6">
- <button onClick={() => setShowManualImport(false)} className="flex-1 h-10 rounded-xl border border-zinc-700 text-zinc-300 font-semibold uppercase text-xs tracking-wider hover:bg-zinc-800 bg-transparent transition-all">Há»§y bá»</button>
- <button onClick={handleManualImport} className="flex-1 h-10 rounded-xl bg-[#a07800] text-white font-bold uppercase text-xs tracking-wider hover:bg-[#b88c00] transition-all shadow-sm">XÃ¡c nháº­n ThÃªm</button>
- </div>
- </motion.div>
- </motion.div>
- )}
- </AnimatePresence>
 
- <AnimatePresence>
- {showHistoryModal && (
- <motion.div
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- exit={{ opacity: 0 }}
- className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
- >
- <motion.div
- initial={{ scale: 0.9, opacity: 0 }}
- animate={{ scale: 1, opacity: 1 }}
- exit={{ scale: 0.9, opacity: 0 }}
- className="bg-[#18181b] border border-white/0 rounded-xl w-full max-w-4xl h-[80vh] flex flex-col shadow-xl overflow-hidden relative p-6"
- >
- {/* Header */}
- <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/0">
- <div className="flex items-center gap-3">
- <div className="h-10 w-10 rounded-xl bg-zinc-800 flex items-center justify-center border border-zinc-700/50">
- <FileText className="text-[#a07800]" size={20} />
- </div>
- <div>
- <h3 className="text-lg font-bold text-zinc-100 uppercase tracking-tight">Lá»ŠCH Sá»¬ IMPORT Há»† THá»NG</h3>
- <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Nháº­t kÃ½ danh sÃ¡ch nháº­p dá»¯ liá»‡u</p>
- </div>
- </div>
- <div className="flex items-center gap-3">
- {(importHistory || []).length > 0 && (
- <button
- onClick={handleClearAllHistory}
- className="h-9 px-3.5 bg-red-950/20 border border-red-900/30 hover:bg-red-600 hover:text-white rounded-xl text-red-400 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all"
- >
- <Trash2 size={13} /> XÃ³a táº¥t cáº£
- </button>
- )}
- <button
- onClick={() => setShowHistoryModal(false)}
- className="h-9 w-9 flex items-center justify-center rounded-xl bg-zinc-800 text-zinc-400 hover:text-zinc-100 border border-zinc-700/50 transition-colors"
- >
- <X size={16} />
- </button>
- </div>
- </div>
-
- {/* Filters */}
- <div className="flex items-center gap-2 mb-6 bg-zinc-950/40 border border-white/0 p-1 rounded-xl w-fit">
- {(["ALL","MAIL","SÄT"] as Array<"ALL" |"MAIL" |"SÄT">).map((tab) => (
- <button
- key={tab}
- onClick={() => setHistoryTab(tab)}
- className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
- historyTab === tab
- ?"bg-[#a07800] text-white shadow-sm"
- :" text-zinc-400 hover:text-zinc-200"
- }`}
- >
- {tab ==="ALL" ?"Táº¥t cáº£" : tab}
- </button>
- ))}
- </div>
-
- {/* List Content */}
- <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1">
- {(filteredHistory || []).length === 0 ? (
- <div className="py-12 text-center border border-dashed border-white/0 rounded-xl bg-zinc-950/20">
- <div className="h-12 w-12 rounded-full bg-zinc-800 flex items-center justify-center mx-auto mb-3 border border-zinc-700/50">
- <FileText className="text-zinc-500" size={24} />
- </div>
- <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider">KhÃ´ng cÃ³ lá»‹ch sá»­ nháº­p dá»¯ liá»‡u</p>
- <p className="text-[9px] text-zinc-600 mt-1 uppercase tracking-widest font-semibold">CÃ¡c lÆ°á»£t import má»›i sáº½ tá»± Ä‘á»™ng Ä‘Æ°á»£c ghi nháº­n táº¡i Ä‘Ã¢y.</p>
- </div>
- ) : (
- (filteredHistory || []).map((item: ImportHistoryItem) => (
- <div
- key={item.id}
- className="bg-zinc-950/35 border border-white/0 rounded-xl p-4 flex items-center justify-between hover:border-zinc-700 transition-all group"
- >
- <div className="flex items-center gap-4">
- {/* Icon / Badge */}
- <div
- className={`h-9 w-9 rounded-lg flex items-center justify-center border font-mono text-[9px] font-bold tracking-widest ${
- item.type ==="MAIL"
- ?"bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
- :"bg-[#a07800]/10 text-[#a07800] border-[#a07800]/20"
- }`}
- >
- {item.type}
- </div>
- 
- {/* Details */}
- <div className="space-y-1">
- <div className="flex flex-wrap items-center gap-2">
- <span className="text-sm font-bold text-zinc-200 font-mono break-all">{item.fileName}</span>
- <span className="text-[9px] bg-green-950/30 text-green-400 border border-green-900/30 px-2 py-0.5 rounded-lg font-bold">
- +{item.quantity} {item.type ==="MAIL" ?"mail" :"sá»‘"}
- </span>
- </div>
- 
- <div className="flex items-center gap-4 text-[10px] text-zinc-500 font-medium">
- <span className="flex items-center gap-1">
- <Calendar size={12} className="" />
- {item.importedAt}
- </span>
- <span className="flex items-center gap-1">
- <UserIcon size={12} className="" />
- NgÆ°á»i nháº­p: <strong className="text-zinc-400">{item.importedBy}</strong>
- </span>
- </div>
- </div>
- </div>
-
- {/* Delete Individual Row */}
- <button
- onClick={() => handleDeleteHistoryRow(item.id)}
- className="h-8 w-8 rounded-lg bg-zinc-800 hover:bg-red-950/30 text-zinc-500 hover:text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all border border-zinc-700/50"
- title="XÃ³a dÃ²ng lá»‹ch sá»­ nÃ y"
- >
- <Trash2 size={14} />
- </button>
- </div>
- ))
- )}
- </div>
- </motion.div>
- </motion.div>
- )}
- </AnimatePresence>
+ <ImportHistoryModal
+ isOpen={showHistoryModal}
+ onClose={() => setShowHistoryModal(false)}
+ importHistory={importHistory}
+ onDeleteRow={(id) => {
+    if (!confirm("Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a dÃ²ng lá»‹ch sá»­ import nÃ y?")) return;
+    setImportHistory(prev => (prev || []).filter(item => item.id !== id));
+ }}
+ onClearAll={() => {
+    if (!confirm("XÃ¡c nháº­n xÃ³a TOÃ€N Bá»˜ lá»‹ch sá»­ import?")) return;
+    setImportHistory([]);
+ }}
+ />
 
  {(!isStaff || !selectedBatch) && (
  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1424,69 +1146,87 @@ export default function MailManagement({ type, user }: MailManagementProps) {
  )}
  </AnimatePresence>
 
- {/* Modal Nháº­p TÃªn LÃ´ Import */}
- <AnimatePresence>
- {showBatchNameModal && (
- <motion.div
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- exit={{ opacity: 0 }}
- className="fixed inset-0 bg-zinc-950/80 backdrop-blur-md z-[200] flex items-center justify-center p-4"
- >
- <motion.div
- initial={{ scale: 0.9, y: 20 }}
- animate={{ scale: 1, y: 0 }}
- exit={{ scale: 0.9, y: 20 }}
- className="bg-gray-900 border border-white/0 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
- >
- <div className="p-6 border-b border-white/0 bg-white/0 flex items-center justify-between">
- <h3 className="text-lg font-black text-white uppercase tracking-tighter">Äáº·t TÃªn LÃ´ Cho Dá»¯ Liá»‡u Import</h3>
- <button
- onClick={() => {
- setPendingMails(null);
- setShowBatchNameModal(false);
- }}
- className="p-1.5 rounded-lg bg-white/5 text-gray-500 hover:text-white transition-colors"
- >
- <X size={16} />
- </button>
- </div>
- <div className="p-6 space-y-4">
- <p className="text-sm text-gray-400 font-medium leading-relaxed">
- LÃ´ mail má»›i nháº­p sáº½ Ä‘Æ°á»£c nhÃ³m láº¡i Ä‘á»ƒ thuáº­n tiá»‡n quáº£n lÃ½ cÃ´ng viá»‡c, theo dÃµi tiáº¿n Ä‘á»™ vÃ  phÃ¢n bá»• cho nhÃ¢n viÃªn.
- </p>
- <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">TÃªn LÃ´ Import</label>
- <input
- type="text"
- placeholder="VD: LÃ´ 1 ngÃ y 15/10"
- value={importBatchName}
- onChange={(e) => setImportBatchName(e.target.value)}
- className="w-full bg-black/40 border border-white/0 rounded-xl px-4 py-3 text-base text-white focus:outline-none focus:border-gold transition-all"
- />
- </div>
- </div>
- <div className="p-6 border-t border-white/0 bg-white/0 flex items-center justify-end gap-3">
- <button
- onClick={() => {
- setPendingMails(null);
- setShowBatchNameModal(false);
- }}
- className="px-5 py-2.5 rounded-xl border border-white/0 text-sm font-bold text-gray-400 hover:text-white transition-colors"
- >
- Há»§y bá»
- </button>
- <button
- onClick={handleConfirmBatchImport}
- className="px-5 py-2.5 rounded-xl bg-gold hover:bg-gold-hover text-[#0a0a0a] text-sm font-black uppercase tracking-wider transition-all"
- >
- XÃ¡c nháº­n náº¡p
- </button>
- </div>
- </motion.div>
- </motion.div>
- )}
- </AnimatePresence>
+ <BatchNameModal
+    isOpen={showBatchNameModal}
+    onClose={() => {
+      setPendingMails(null);
+      setShowBatchNameModal(false);
+    }}
+    onConfirm={async (batchName) => {
+      // Direct integration of handleConfirmBatchImport logic
+      if (!pendingMails || (pendingMails || []).length === 0) return;
+      const baseBatchName = batchName.trim() || `LÃ´ ngÃ y ${new Date().toLocaleDateString("vi-VN")}`;
+      
+      const isSatellite = pendingMails.some(m => m.type === "SATELLITE");
+      const uniquePrefix = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      const batchId = `batch-${uniquePrefix}`;
+      
+      const mappedMails = (pendingMails || []).map(m => ({
+        ...m,
+        batchId,
+        batchName: baseBatchName
+      }));
+
+      if (isSatellite) {
+        try {
+          const savedBatches = localStorage.getItem("global_satellite_batches");
+          const batchList = savedBatches ? JSON.parse(savedBatches) : [];
+          const exists = batchList.some((b: { name: string }) => b.name === baseBatchName);
+          
+          if (!exists) {
+            const newBatch = {
+              id: batchId,
+              name: baseBatchName,
+              type: "SATELLITE",
+              importedAt: new Date().toISOString().split("T")[0],
+              mailCount: mappedMails.length,
+              importedBy: user?.name || "Admin"
+            };
+            const updatedBatches = [...batchList, newBatch];
+            localStorage.setItem("global_satellite_batches", JSON.stringify(updatedBatches));
+            }
+            } catch (err) {
+            console.error("Lỗi tự động đăng ký lô mail vệ tinh:", err);
+            }
+            }
+
+            try {
+            triggerToast(`Đang lưu ${(mappedMails || []).length} mail vào Server...`);
+            const res = await fetch("/api/admin/mails", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(mappedMails)
+        });
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || "Lá»—i lÆ°u dá»¯ liá»‡u");
+        }
+        
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || "Lá»—i lÆ°u dá»¯ liá»‡u");
+
+        try {
+          const savedMails = localStorage.getItem("global_mails_data");
+          const currentMails = savedMails ? JSON.parse(savedMails) : [];
+          const newMailsFiltered = (mappedMails || []).filter(nm => !currentMails.some((cm: any) => cm.email === nm.email));
+          const updatedMails = [...currentMails, ...newMailsFiltered];
+          localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
+        } catch (err) {
+          console.error("Lỗi cập nhật localStorage global_mails_data:", err);
+        }
+
+        setPendingMails(null);
+        setShowBatchNameModal(false);
+        triggerToast(`Đã lưu thành công ${(mappedMails || []).length} mail!`);
+        mutate(); // Reload SWR
+      } catch (err: unknown) {
+        console.error("Lá»—i khi gá»i API POST mails:", err);
+        if (err instanceof Error) triggerToast(`Lá»—i káº¿t ná»‘i Server: ${err.message}`);
+        else triggerToast(`Lá»—i káº¿t ná»‘i Server: KhÃ´ng thá»ƒ lÆ°u mail!`);
+      }
+    }}
+  />
  </div>
  );
 }

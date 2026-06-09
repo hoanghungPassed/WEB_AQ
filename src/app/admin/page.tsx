@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from"react";
+import React, { useState, useEffect, useMemo, useCallback } from"react";
 import { motion, AnimatePresence } from"framer-motion";
 import { 
  Mail, 
@@ -32,9 +32,17 @@ import {
  MessageSquare,
  Send,
  Image,
- LogOut
+ LogOut,
+ Loader2
 } from"lucide-react";
 
+import { StaffData, MailData, TaskAssignment } from"@/types/admin";
+import { useRouter } from"next/navigation";
+import MailDetailModal from"@/components/admin/MailDetailModal";
+import TOTPDisplay from"@/components/admin/TOTPDisplay";
+import { useSWR } from "@/lib/useSWR";
+import { LoadingOverlay } from "@/components/ui/Loading";
+import { Badge } from "@/components/ui/Badge";
 
 const getStableDateString = () => {
  const d = new Date();
@@ -43,10 +51,6 @@ const getStableDateString = () => {
  const day = String(d.getDate()).padStart(2, '0');
  return `${year}-${month}-${day}`;
 };
-import { StaffData } from"@/types/admin";
-import { useRouter } from"next/navigation";
-import MailDetailModal from"@/components/admin/MailDetailModal";
-import TOTPDisplay from"@/components/admin/TOTPDisplay";
 
 const getMailsForTask = (t: any, allMails: any[]) => {
  if (!t) return [];
@@ -59,7 +63,7 @@ const getMailsForTask = (t: any, allMails: any[]) => {
  }
  
  let filtered = (allMails || []).filter((m: any) => m.type === mailType && String(m.assigneeId) === String(t.assigneeId));
- if (t.title ==="Check, xóa, tạo" || t.title ==="Kênh bật kiếm tiền") {
+ if (t.title ==="Check, xÃ³a, táº¡o" || t.title ==="KÃªnh báº­t kiáº¿m tiá»n") {
  if (t.mailRange) {
  const parts = t.mailRange.split("-");
  if ((parts || []).length === 2) {
@@ -70,12 +74,12 @@ const getMailsForTask = (t: any, allMails: any[]) => {
  filtered = (filtered || []).filter((m: any) => idsInRange.includes(m.id));
  }
  }
- } else if (t.title ==="Làm kênh") {
+ } else if (t.title ==="LÃ m kÃªnh") {
  if (t.mailRange) {
  const cleanBatch = t.batch || t.mailRange.split(" (")[0];
  filtered = (filtered || []).filter((m: any) => m.batchName === cleanBatch);
  }
- } else if (t.title ==="Mời kênh" && t.mailRange) {
+ } else if (t.title ==="Má»i kÃªnh" && t.mailRange) {
  const parts = t.mailRange.split("+");
  const loPart = parts.pop()?.trim();
  filtered = (allMails || []).filter((m: any) => 
@@ -88,31 +92,59 @@ const getMailsForTask = (t: any, allMails: any[]) => {
 
 export default function AdminDashboard() {
  const router = useRouter();
- const [kpi, setKpi] = useState<any>({});
- const [user, setUser] = useState<any>(null);
- const [showSuccess, setShowSuccess] = useState(false);
- const [stats, setStats] = useState<any>({});
+ const [user, setUser] = useState<StaffData | null>(null);
  
- // States quản lý bảng tập trung
+ // State restoration
+ const [kpi, setKpi] = useState<any>({});
+ const [stats, setStats] = useState<any>({});
+ const [staffList, setStaffList] = useState<StaffData[]>([]);
+ const [mails, setMails] = useState<MailData[]>([]);
+ const [tasksList, setTasksList] = useState<TaskAssignment[]>([]);
+ const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+ const [checkInTime, setCheckInTime] = useState<string | null>(null);
+ const [checkOutTime, setCheckOutTime] = useState<string | null>(null);
+ const [timekeepingModal, setTimekeepingModal] = useState<{ type:"in" |"out"; time: string; warning?: string } | null>(null);
+ const [missingLinksWarning, setMissingLinksWarning] = useState<{stt: number; email: string; missing: number}[]>([]);
+ const [showSuccess, setShowSuccess] = useState(false);
+
+ // Data Fetching
+ const fetchDashboardData = useCallback(async () => {
+    const res = await fetch("/api/admin/kpis");
+    if (!res.ok) throw new Error("Failed to fetch dashboard data");
+    const data = await res.json();
+    if (data.success) {
+      setMails(data.mails || []);
+      setStaffList(data.staff || []);
+      setTasksList(data.tasks || []);
+      setKpi(data.kpi || {});
+      setStats(data.stats || {});
+    }
+    return data;
+ }, []);
+
+ const { data: dashData, isValidating: isLoading } = useSWR('admin-dashboard-kpis', fetchDashboardData, { refreshInterval: 45000 });
+
+ useEffect(() => {
+  const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
+  if (storedUser) {
+    setUser(JSON.parse(storedUser));
+  } else {
+    router.push("/login");
+  }
+ }, [router]);
+
+ // UI States
  const [selectedViewType, setSelectedViewType] = useState<"LIVE" |"DIE" |"STAFF" |"TASKS" | null>(null);
  const [searchQuery, setSearchQuery] = useState("");
  const [filterStatus, setFilterStatus] = useState("all");
  const [filterMailType, setFilterMailType] = useState("ALL");
  const [currentPage, setCurrentPage] = useState(1);
- const [staffList, setStaffList] = useState<StaffData[]>([]);
- const [mails, setMails] = useState<any[]>([]);
  const [showStaffTasksView, setShowStaffTasksView] = useState(false);
  const [showStaffMailsView, setShowStaffMailsView] = useState(false);
  const [selectedStaffTask, setSelectedStaffTask] = useState<any>(null);
- const [tasksList, setTasksList] = useState<any[]>([]);
  const [copyToast, setCopyToast] = useState<string | null>(null);
  const [isEligibleChannelsModalOpen, setIsEligibleChannelsModalOpen] = useState(false);
- const [selectedMailForModal, setSelectedMailForModal] = useState<any>(null);
- const [missingLinksWarning, setMissingLinksWarning] = useState<{stt: number; email: string; missing: number}[]>([]);
- const [checkInTime, setCheckInTime] = useState<string | null>(null);
- const [checkOutTime, setCheckOutTime] = useState<string | null>(null);
- const [timekeepingModal, setTimekeepingModal] = useState<{ type:"in" |"out"; time: string; warning?: string } | null>(null);
- const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+ const [selectedMailForModal, setSelectedMailForModal] = useState<MailData | null>(null);
 
  // Duty Roster
  const [dutyRosterData, setDutyRosterData] = useState<any>(null);
@@ -128,8 +160,8 @@ export default function AdminDashboard() {
  if (!user) return { total: 0, list: [] };
  
  // Filter satellite mails assigned to this employee
- const myMails = (mails || []).filter((m: any) => 
- m.type ==="SATELLITE" && String(m.assigneeId) === String(user?.id)
+ const myMails = (mails || []).filter((m: MailData) => 
+ String(m.assigneeId) === String(user?.id)
  );
 
  let total = 0;
@@ -976,12 +1008,12 @@ export default function AdminDashboard() {
 
  const roleLabel = getRoleLabel(user?.role);
  const isAdminOrManager = user?.role ==="01" || user?.role ==="02";
- const isHRManager = user?.role ==="03" || user?.role ==="QUẢN LÝ NHÂN SỰ";
+ const isHRManager = user?.role ==="03";
 
  const filteredMails = useMemo(() => {
  if (!selectedViewType || selectedViewType ==="STAFF") return [];
  
- return (mails || []).filter(m => {
+ return (mails || []).filter((m: MailData) => {
  let matchesType = true;
  if (selectedViewType ==="LIVE") matchesType = m.status ==="LIVE";
  else if (selectedViewType ==="DIE") matchesType = m.status ==="DIE";

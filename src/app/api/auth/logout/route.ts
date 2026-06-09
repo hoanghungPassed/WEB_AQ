@@ -3,6 +3,7 @@ import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import { getAuthUser, COOKIE_NAME } from "@/lib/auth";
 import { logAuditTrail } from "@/lib/permissions";
+import { pusherServer } from "@/lib/pusher";
 
 export async function POST(req: NextRequest) {
  try {
@@ -12,15 +13,25 @@ export async function POST(req: NextRequest) {
   if (authUser) {
     try {
       await dbConnect();
+      const now = new Date();
       await User.findByIdAndUpdate(authUser.userId, {
         isOnline: false,
-        lastActive: null,
-        checkOutTime: new Date().toISOString(),
+        lastActive: now,
+        checkOutTime: now.toISOString(),
       });
+
+      // Trigger Real-time status update
+      try {
+        await pusherServer.trigger("system-users", "status-changed", {
+          userId: authUser.userId,
+          username: authUser.username,
+          isOnline: false,
+          lastActive: now
+        });
+      } catch (pushErr) {}
 
       // Cập nhật bản ghi Attendance khi logout
       const { Attendance } = await import("@/models/Attendance");
-      const now = new Date();
       const utc = now.getTime() + now.getTimezoneOffset() * 60000;
       const vnTime = new Date(utc + 3600000 * 7); // Vietnam GMT+7
       const yyyy = vnTime.getFullYear();

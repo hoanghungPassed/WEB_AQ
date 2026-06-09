@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from"next/server";
 import dbConnect from"@/lib/mongodb";
 import { User } from"@/models/User";
 import { Log } from"@/models/Log";
+import { Attendance } from "@/models/Attendance";
+import { pusherServer } from "@/lib/pusher";
 
 export const dynamic ="force-dynamic";
 
@@ -20,15 +22,28 @@ export async function GET(req: NextRequest) {
  return NextResponse.json({ error:"User not found" }, { status: 404 });
  }
 
+ // Also try to find today's attendance record
+ const now = new Date();
+ const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+ const vnTime = new Date(utc + 3600000 * 7);
+ const yyyy = vnTime.getFullYear();
+ const mm = String(vnTime.getMonth() + 1).padStart(2, '0');
+ const dd = String(vnTime.getDate()).padStart(2, '0');
+ const todayStr = `${yyyy}-${mm}-${dd}`;
+ 
+ const dailyAttendance = await Attendance.findOne({ userId, date: todayStr });
+
  return NextResponse.json({
  success: true,
  checkInTime: user.checkInTime,
  checkOutTime: user.checkOutTime,
  isOnline: user.isOnline,
+ dailyStatus: dailyAttendance?.status || "Vắng mặt",
  data: {
     checkInTime: user.checkInTime,
     checkOutTime: user.checkOutTime,
     isOnline: user.isOnline,
+    dailyStatus: dailyAttendance?.status || "Vắng mặt"
   }
  });
  } catch (error: unknown) {
@@ -58,7 +73,14 @@ export async function POST(req: NextRequest) {
  }
 
  const now = new Date();
- const timeStr = now.toLocaleTimeString("vi-VN", {
+ const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+ const vnTime = new Date(utc + 3600000 * 7);
+ const yyyy = vnTime.getFullYear();
+ const mm = String(vnTime.getMonth() + 1).padStart(2, '0');
+ const dd = String(vnTime.getDate()).padStart(2, '0');
+ const todayStr = `${yyyy}-${mm}-${dd}`;
+
+ const timeStr = vnTime.toLocaleTimeString("vi-VN", {
  hour:"2-digit",
  minute:"2-digit",
  second:"2-digit",
@@ -71,6 +93,22 @@ export async function POST(req: NextRequest) {
  user.lastActive = now;
  await user.save();
 
+ // Create or update daily attendance
+ await Attendance.findOneAndUpdate(
+   { userId, date: todayStr },
+   { 
+     $setOnInsert: { 
+       userId, 
+       username: user.username, 
+       name: user.name, 
+       date: todayStr,
+       checkInTime: now,
+       status: "Đúng giờ" // Simple default, login route handles lateness better
+     } 
+   },
+   { upsert: true, new: true }
+ );
+
  try {
  await Log.create({
  user: user._id,
@@ -78,9 +116,17 @@ export async function POST(req: NextRequest) {
  action: `Check-in lúc ${timeStr}`,
  type:"SUCCESS",
  });
- } catch (logErr) {
- console.error("Log error:", logErr);
- }
+ } catch (logErr) {}
+
+ // Notify status change
+ try {
+   await pusherServer.trigger("system-users", "status-changed", {
+     userId: user._id.toString(),
+     username: user.username,
+     isOnline: true,
+     lastActive: now
+   });
+ } catch (pushErr) {}
 
  return NextResponse.json({
  success: true,
@@ -98,15 +144,21 @@ export async function POST(req: NextRequest) {
  user.isOnline = false;
  await user.save();
 
- // Calculate working hours
+ // Calculate working hours and update Attendance record
  let totalWorkingMins = 0;
- if (user.checkInTime) {
- const dIn = new Date(user.checkInTime);
- const t_in = dIn.getHours() * 60 + dIn.getMinutes();
- const t_out = now.getHours() * 60 + now.getMinutes();
- const overlap1 = Math.max(0, Math.min(720, t_out) - Math.max(480, t_in));
- const overlap2 = Math.max(0, Math.min(1080, t_out) - Math.max(810, t_in));
- totalWorkingMins = overlap1 + overlap2;
+ const attendance = await Attendance.findOne({ userId, date: todayStr });
+ if (attendance && attendance.checkInTime) {
+   attendance.checkOutTime = now;
+   const dIn = new Date(attendance.checkInTime);
+   const t_in = dIn.getHours() * 60 + dIn.getMinutes();
+   const t_out = vnTime.getHours() * 60 + vnTime.getMinutes();
+   
+   // Typical 8:00 - 12:00, 13:30 - 18:00 logic
+   const overlap1 = Math.max(0, Math.min(720, t_out) - Math.max(480, t_in));
+   const overlap2 = Math.max(0, Math.min(1080, t_out) - Math.max(810, t_in));
+   totalWorkingMins = overlap1 + overlap2;
+   attendance.totalHours = parseFloat((totalWorkingMins / 60).toFixed(2));
+   await attendance.save();
  }
 
  try {
@@ -116,9 +168,17 @@ export async function POST(req: NextRequest) {
  action: `Check-out lúc ${timeStr} (${(totalWorkingMins / 60).toFixed(2)}h)`,
  type:"SUCCESS",
  });
- } catch (logErr) {
- console.error("Log error:", logErr);
- }
+ } catch (logErr) {}
+
+ // Notify status change
+ try {
+   await pusherServer.trigger("system-users", "status-changed", {
+     userId: user._id.toString(),
+     username: user.username,
+     isOnline: false,
+     lastActive: now
+   });
+ } catch (pushErr) {}
 
  return NextResponse.json({
  success: true,
@@ -147,3 +207,4 @@ export async function POST(req: NextRequest) {
  );
  }
 }
+

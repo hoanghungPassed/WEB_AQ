@@ -14,6 +14,7 @@ import {
 } from"@/lib/auth";
 import { logAuditTrail } from "@/lib/permissions";
 import { sendFineEmail } from "@/lib/email";
+import { pusherServer } from "@/lib/pusher";
 
 export async function POST(req: NextRequest) {
   try {
@@ -157,6 +158,16 @@ export async function POST(req: NextRequest) {
    }
    await user.save();
    await User.findByIdAndUpdate(user._id, { lastActive: new Date() });
+
+   // Trigger Real-time status update
+   try {
+     await pusherServer.trigger("system-users", "status-changed", {
+       userId: user._id.toString(),
+       username: user.username,
+       isOnline: true,
+       lastActive: now
+     });
+   } catch (pushErr) {}
 
   // --- AUTOMATIC CHECK-IN & LATENESS CHECK ---
   try {

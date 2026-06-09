@@ -33,349 +33,15 @@ import {
  cleanYouTubeUrl
 } from"@/components/admin/youtubeUtils";
 
-const UnifiedMailDetailModal = ({ 
- mail, 
- type, 
- user,
- onClose, 
- onSave 
-}: { 
- mail: any; 
- type:"ROOT" |"SATELLITE" |"MONETIZED"; 
- user: any;
- onClose: () => void; 
- onSave: (updatedFields: any) => void; 
-}) => {
- const roleUpper = String(user?.role ||"").toUpperCase();
- const isAdminOrManager = roleUpper ==="01" || 
- roleUpper ==="ADMIN" || 
- roleUpper ==="02" || 
- roleUpper ==="QL CÃ”NG VIá»†C" || 
- roleUpper ==="QUáº¢N LÃ CÃ”NG VIá»†C";
-
- // State for ROOT
- const [cccdDate, setCccdDate] = useState(mail.cccdDate ||"");
- const [verificationStatus, setVerificationStatus] = useState(mail.verificationStatus ||"ChÆ°a xanh");
-
- // State for SATELLITE
- const [links, setLinks] = useState<string[]>(mail.links || ["","",""]);
- const [names, setNames] = useState<string[]>(mail.channelNames || ["","",""]);
- const [scanning, setScanning] = useState<boolean[]>([false, false, false]);
- const [eligibleChannels, setEligibleChannels] = useState<boolean[]>(mail.eligibleChannels || [false, false, false]);
-
- // Validation errors for each link (checks format, local duplicate, and global duplicate)
- const [validationErrors, setValidationErrors] = useState<boolean[]>(() => {
- const initLinks = mail.links || ["","",""];
- const savedMails = null;
- const allMails = savedMails ? JSON.parse(savedMails) : [];
-
- return (initLinks || []).map((link: string, i: number) => {
- if (!link || link.trim() ==="") return false;
- 
- const cleaned = cleanYouTubeUrl(link);
- const isFormatInvalid = !validateYouTubeUrl(link);
- if (isFormatInvalid) return true;
-
- // Check local duplicates inside this mail
- const isDuplicateLocal = initLinks.some((l: string, idx: number) => idx !== i && l && cleanYouTubeUrl(l) === cleaned);
- if (isDuplicateLocal) return true;
-
- // Check global duplicates in database
- const isDuplicateGlobal = allMails.some((m: any) => 
- m.id !== mail.id && 
- Array.isArray(m.links) && 
- m.links.some((l: string) => l && cleanYouTubeUrl(l) === cleaned)
- );
- if (isDuplicateGlobal) return true;
-
- return false;
- });
- });
-
- // State for MONETIZED
- const [reClickDate, setReClickDate] = useState(mail.reClickDate ||"");
- const [step2PendingDate, setStep2PendingDate] = useState(mail.step2PendingDate ||"");
- const [channelStatusDetail, setChannelStatusDetail] = useState(mail.channelStatusDetail ||"ChÆ°a Done");
-
- const handleLinkChange = async (idx: number, val: string) => {
- const newLinks = [...links];
- newLinks[idx] = val;
- setLinks(newLinks);
-
- const newValidationErrors = [...validationErrors];
- const newNames = [...names];
-
- if (!val.trim()) {
- newValidationErrors[idx] = false;
- newNames[idx] ="";
- setValidationErrors(newValidationErrors);
- setNames(newNames);
- return;
- }
-
- // 1. Validate format
- const isValid = validateYouTubeUrl(val);
- if (!isValid) {
- newValidationErrors[idx] = true;
- newNames[idx] ="Link khÃ´ng Ä‘Ãºng Ä‘á»‹nh dáº¡ng YouTube";
- setValidationErrors(newValidationErrors);
- setNames(newNames);
- return;
- }
-
- const cleanedVal = cleanYouTubeUrl(val);
-
- // 2. Check local duplicates within current mail inputs
- const isDuplicateLocal = newLinks.some((l, i) => i !== idx && l && cleanYouTubeUrl(l) === cleanedVal);
- if (isDuplicateLocal) {
- newValidationErrors[idx] = true;
- newNames[idx] ="Link Ä‘Ã£ Ä‘Æ°á»£c Ä‘iá»n á»Ÿ Ã´ khÃ¡c!";
- setValidationErrors(newValidationErrors);
- setNames(newNames);
- return;
- }
-
- // 3. Check global duplicates in local storage database
- const savedMails = null;
- if (savedMails) {
- const allMails = JSON.parse(savedMails);
- const matchingMail = allMails.find((m: any) => 
- m.id !== mail.id && 
- Array.isArray(m.links) && 
- m.links.some((l: string) => l && cleanYouTubeUrl(l) === cleanedVal)
- );
- if (matchingMail) {
- newValidationErrors[idx] = true;
- newNames[idx] = `Link trÃ¹ng vá»›i mail: ${matchingMail.email}`;
- setValidationErrors(newValidationErrors);
- setNames(newNames);
- return;
- }
- }
-
- // Link is completely valid & unique, proceed to fetch the real channel name
- newValidationErrors[idx] = false;
- setValidationErrors(newValidationErrors);
-
- const newScanning = [...scanning];
- newScanning[idx] = true;
- setScanning(newScanning);
-
- newNames[idx] ="Äang quÃ©t thÃ´ng tin kÃªnh...";
- setNames(newNames);
-
- try {
- const realName = await fetchChannelName(val);
- const finalNames = [...names];
- finalNames[idx] = realName;
- setNames(finalNames);
- } catch (err) {
- console.error("Error fetching channel details:", err);
- } finally {
- const finalScanning = [...scanning];
- finalScanning[idx] = false;
- setScanning(finalScanning);
- }
- };
-
- const handleSave = () => {
- if (type ==="ROOT") {
- onSave({ cccdDate, verificationStatus });
- } else if (type ==="SATELLITE") {
- // Validate all 3 links are filled and have no format error
- const newValidationErrors = [...validationErrors];
- let hasMissingOrError = false;
- [0, 1, 2].forEach(idx => {
- if (!links[idx] || links[idx].trim() ==="") {
- newValidationErrors[idx] = true;
- hasMissingOrError = true;
- } else if (validationErrors[idx]) {
- hasMissingOrError = true;
- }
- });
-
- if (hasMissingOrError) {
- setValidationErrors(newValidationErrors);
- alert("Thiáº¿u kÃªnh hoáº·c sai Ä‘á»‹nh dáº¡ng! Vui lÃ²ng Ä‘iá»n Ä‘á»§ 3 link kÃªnh há»£p lá»‡ trÆ°á»›c khi cáº­p nháº­t.");
- return;
- }
-
- onSave({ 
- links: (links || []).map(l => cleanYouTubeUrl(l)), 
- channelNames: names,
- eligibleChannels
- });
- } else if (type ==="MONETIZED") {
- onSave({ 
- reClickDate, 
- step2PendingDate, 
- channelStatusDetail 
- });
- }
- onClose();
- };
-
- return (
- <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[400] bg-zinc-950/80 backdrop-blur-sm flex items-center justify-center p-4">
- <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-sidebar border border-white/0 w-full max-w-4xl rounded-[40px] p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col max-h-[90vh]">
- <div className="absolute top-0 right-0 h-96 w-96 bg-gold/5 blur-[120px] -mr-48 -mt-48" />
-
- <div className="flex items-center justify-between mb-8 relative z-10">
- <div className="flex items-center gap-4">
- <div className="h-14 w-14 rounded-2xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 shadow-lg font-black">
- {type ==="ROOT" ? <Database size={28} /> : type ==="SATELLITE" ? <ExternalLink size={28} /> : <Mail size={28} />}
- </div>
- <div>
- <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
- {type ==="ROOT" ?"Chi tiáº¿t Mail Gá»‘c" : type ==="SATELLITE" ?"Chi tiáº¿t Mail Vá»‡ Tinh" :"Cáº¥u hÃ¬nh Kiáº¿m Tiá»n"}
- </h2>
- <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">{mail?.email}</p>
- </div>
- </div>
- <button onClick={onClose} className="h-10 w-10 bg-white/5 hover:bg-white/10 text-white rounded-full flex items-center justify-center border border-white/0 transition-all"><X size={20} /></button>
- </div>
-
- <div className="space-y-6 relative z-10 flex-1 overflow-y-auto pr-2 custom-scrollbar">
- {type ==="ROOT" && (
- <>
- <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">QuÃ©t láº¡i CCCD vÃ o ngÃ y</label>
- <input
- type="date"
- value={cccdDate}
- onChange={(e) => setCccdDate(e.target.value)}
- className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all cursor-pointer"
- />
- </div>
-
- <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">TÃ¬nh tráº¡ng xÃ¡c minh</label>
- <select
- value={verificationStatus}
- onChange={(e) => setVerificationStatus(e.target.value)}
- className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all cursor-pointer"
- >
- <option value="Mail Veri mail" className="bg-zinc-900 text-white hover:bg-zinc-700">Mail Veri mail</option>
- <option value="ÄÃ£ xanh" className="bg-zinc-900 text-white hover:bg-zinc-700">ÄÃ£ xanh</option>
- <option value="ChÆ°a xanh" className="bg-zinc-900 text-white hover:bg-zinc-700">ChÆ°a xanh</option>
- </select>
- </div>
- </>
- )}
-
- {type ==="SATELLITE" && (
- <>
- {[0, 1, 2].map(idx => (
- <div key={idx} className="space-y-2">
- <div className="flex items-center justify-between ml-1">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Link YouTube {idx + 1}</label>
- {names[idx] && (
- <span className={`text-[10px] font-black uppercase ${
- validationErrors[idx] ?"text-red-400" :"text-gold"
- }`}>
- {names[idx]}
- </span>
- )}
- </div>
- <div className="flex items-center gap-3">
- <input 
- value={links[idx] ||""} 
- onChange={(e) => handleLinkChange(idx, e.target.value)} 
- placeholder="DÃ¡n link channel YouTube..." 
- className={`flex-1 h-14 bg-white/5 border rounded-2xl px-6 text-white text-base outline-none transition-all ${
- validationErrors[idx]
- ?"border-red-500/50 focus:border-red-500 bg-red-500/5 shadow-[0_0_15px_rgba(239,68,68,0.1)]"
- :" border-white/0 focus:border-white/5"
- }`}
- />
- {isAdminOrManager && (
- <button
- onClick={() => {
- const newEligible = [...eligibleChannels];
- newEligible[idx] = !newEligible[idx];
- setEligibleChannels(newEligible);
- }}
- className={`h-14 px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border flex items-center gap-2 flex-shrink-0 ${
- eligibleChannels[idx]
- ?"bg-gold text-sidebar border-gold shadow-lg shadow-gold/20" 
- :" bg-white/5 text-gray-400 border-white/0 hover:border-white/0 hover:text-gold"
- }`}
- >
- <CheckCircle2 size={16} />
- {eligibleChannels[idx] ?"Äá»§ giá»" :"ÄÃ¡nh dáº¥u"}
- </button>
- )}
- </div>
- </div>
- ))}
- </>
- )}
-
- {type ==="MONETIZED" && (
- <>
- <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">NgÃ y báº¥m láº¡i</label>
- <input
- type="date"
- value={reClickDate}
- onChange={(e) => setReClickDate(e.target.value)}
- className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all cursor-pointer"
- />
- </div>
-
- <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chá» bÆ°á»›c 2</label>
- <input
- type="date"
- value={step2PendingDate}
- onChange={(e) => setStep2PendingDate(e.target.value)}
- className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all cursor-pointer"
- />
- </div>
-
- <div className="space-y-3">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Tráº¡ng thÃ¡i chi tiáº¿t</label>
- <div className="grid grid-cols-2 gap-3">
- {["Chá» bÆ°á»›c 3","Máº¥t kÃªnh","ChÆ°a SUB","DONE","Gáº¯n láº¡i gÃ ","Die Spam","ChÆ°a Done"].map((status) => (
- <button
- key={status}
- type="button"
- onClick={() => setChannelStatusDetail(status)}
- className={`h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest border transition-all ${
- channelStatusDetail === status 
- ?"bg-gold/20 text-gold border-gold/45 shadow-lg shadow-gold/5" 
- :" bg-white/5 text-gray-400 border-white/0 hover:bg-white/10"
- }`}
- >
- {status}
- </button>
- ))}
- </div>
- </div>
- </>
- )}
- </div>
-
- <div className="grid grid-cols-2 gap-4 mt-8 relative z-10 pt-4 border-t border-white/0">
- <button onClick={onClose} className="h-14 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-sm tracking-widest transition-all">ÄÃ³ng</button>
- <button 
- onClick={handleSave} 
- className="h-14 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
- >
- LÆ°u cáº­p nháº­t
- </button>
- </div>
- </motion.div>
- </motion.div>
- );
-};
+import MailDetailModal from "@/components/admin/MailDetailModal";
+import { Badge } from "@/components/ui/Badge";
 
 const TaskCard = React.memo(({ task, onClick }: { task: TaskAssignment, onClick: () => void }) => {
- const statusConfig: any = {
- PENDING: { icon: <Clock size={16} />, color:"text-yellow-500 bg-yellow-500/10 border-yellow-500/20", label:"Äang chá»" },
- IN_PROGRESS: { icon: <Loader2 size={16} className="animate-spin" />, color:"text-blue-400 bg-blue-500/10 border-blue-500/20", label:"Äang thá»±c hiá»‡n" },
- COMPLETED: { icon: <CheckCircle2 size={16} />, color:"text-green-500 bg-green-500/10 border-green-500/20", label:"HoÃ n thÃ nh" },
- OVERDUE: { icon: <AlertCircle size={16} />, color:"text-red-500 bg-red-500/10 border-red-500/20", label:"Trá»… háº¡n" },
+ const statusConfig: Record<string, { icon: React.ReactNode, variant: "default" | "success" | "warning" | "danger" | "info" | "gold", label: string }> = {
+ PENDING: { icon: <Clock size={16} />, variant: "warning", label: "Äang chá»" },
+ IN_PROGRESS: { icon: <Loader2 size={16} className="animate-spin" />, variant: "info", label: "Äang thá»±c hiá»‡n" },
+ COMPLETED: { icon: <CheckCircle2 size={16} />, variant: "success", label: "HoÃ n thÃ nh" },
+ OVERDUE: { icon: <AlertCircle size={16} />, variant: "danger", label: "Trá»… háº¡n" },
  };
 
  const typeLabel = task.type ==="MAIL_VE_TINH" ?"Vá»‡ tinh" : task.type ==="MAIL_MONETIZED" ?"Kiáº¿m tiá»n" :"Gá»‘c";
@@ -387,9 +53,9 @@ const TaskCard = React.memo(({ task, onClick }: { task: TaskAssignment, onClick:
  >
  <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[50px] -mr-16 -mt-16 group-hover:bg-gold/10 transition-colors" />
  <div className="flex items-center justify-between mb-6 relative z-10">
- <div className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border flex items-center gap-2 ${statusConfig[task.status].color}`}>
+ <Badge variant={statusConfig[task.status].variant}>
  {statusConfig[task.status].icon} {statusConfig[task.status].label}
- </div>
+ </Badge>
  <div className="h-10 w-10 rounded-full bg-white/5 border border-white/0 flex items-center justify-center text-gold opacity-0 group-hover:opacity-100 transition-all">
  <ArrowRight size={20} />
  </div>
@@ -421,6 +87,8 @@ const TaskCard = React.memo(({ task, onClick }: { task: TaskAssignment, onClick:
 });
 
 TaskCard.displayName ="TaskCard";
+
+import { MailSelectorModal } from "@/components/admin/modals/MailSelectorModal";
 
 export default function TaskManagementPage() {
  const router = useRouter();
@@ -1598,7 +1266,7 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
 
  <AnimatePresence>
  {selectedMailForConfig && (
- <UnifiedMailDetailModal 
+ <MailDetailModal 
  mail={selectedMailForConfig} 
  type={selectedMailForConfig.type}
  user={user}
@@ -1608,179 +1276,15 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  )}
  </AnimatePresence>
 
- <AnimatePresence>
- {isSelectMailModalOpen && (
- <motion.div
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- exit={{ opacity: 0 }}
- className="fixed inset-0 z-[400] bg-zinc-950/80 backdrop-blur-sm flex items-center justify-center p-4"
- >
- <motion.div
- initial={{ scale: 0.95, y: 20 }}
- animate={{ scale: 1, y: 0 }}
- exit={{ scale: 0.95, y: 20 }}
- className="bg-sidebar border border-white/0 w-full max-w-4xl rounded-[40px] p-8 md:p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col max-h-[90vh]"
- >
- <div className="absolute top-0 right-0 h-96 w-96 bg-gold/5 blur-[120px] -mr-48 -mt-48" />
-
- <div className="flex items-center justify-between mb-6 relative z-10">
- <div className="flex items-center gap-4">
- <div className="h-12 w-12 rounded-2xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 shadow-lg">
- <Mail size={24} />
- </div>
- <div>
- <h2 className="text-xl font-black text-white uppercase tracking-tighter">Chá»n Mail Gá»‘c</h2>
- <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">Chá»‰ hiá»ƒn thá»‹ mail"ÄÃ£ xanh" &"ChÆ°a lÃ m"</p>
- </div>
- </div>
- <button
- onClick={() => setIsSelectMailModalOpen(false)}
- className="h-10 w-10 bg-white/5 hover:bg-white/10 text-white rounded-full flex items-center justify-center border border-white/0 transition-all"
- >
- <X size={20} />
- </button>
- </div>
-
- {/* Search box inside modal */}
- <div className="mb-6 relative z-10">
- <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-2xl px-4 h-12 w-full focus-within:border-gold transition-all">
- <Search size={16} className="text-gray-500 shrink-0" />
- <input
- type="text"
- placeholder="TÃ¬m kiáº¿m Email hoáº·c Mail KP..."
- value={modalSearchQuery}
- onChange={(e) => setModalSearchQuery(e.target.value)}
- className="bg-transparent border-none outline-none text-sm text-white w-full"
+ <MailSelectorModal
+ isOpen={isSelectMailModalOpen}
+ onClose={() => setIsSelectMailModalOpen(false)}
+ mails={mails}
+ selectedMailIds={selectedMailIdsForTask}
+ setSelectedMailIds={setSelectedMailIdsForTask}
+ modalSearchQuery={modalSearchQuery}
+ setModalSearchQuery={setModalSearchQuery}
  />
- </div>
- </div>
-
- {/* Table wrapper */}
- <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-6 relative z-10 min-h-[250px]">
- {(() => {
- const availableMails = (mails || []).filter((m: any) => 
- m.type ==="ROOT" && 
- m.verificationStatus ==="ÄÃ£ xanh" && 
- (m.workStatus ==="ChÆ°a lÃ m" || !m.workStatus) &&
- (!modalSearchQuery || 
- m.email.toLowerCase().includes(modalSearchQuery.toLowerCase()) || 
- m.recovery.toLowerCase().includes(modalSearchQuery.toLowerCase()))
- );
-
- // Calculate master checkbox state
- const allSelected = (availableMails || []).length > 0 && availableMails.every((m: any) => selectedMailIdsForTask.includes(m.id));
- const someSelected = availableMails.some((m: any) => selectedMailIdsForTask.includes(m.id)) && !allSelected;
-
- const handleSelectAll = () => {
- if (allSelected) {
- // Remove all available from selection
- setSelectedMailIdsForTask(prev => (prev || []).filter(id => !availableMails.some((m: any) => m.id === id)));
- } else {
- // Add all available to selection
- const newIds = [...selectedMailIdsForTask];
- availableMails.forEach((m: any) => {
- if (!newIds.includes(m.id)) newIds.push(m.id);
- });
- setSelectedMailIdsForTask(newIds);
- }
- };
-
- const handleToggleRow = (id: number) => {
- setSelectedMailIdsForTask(prev => 
- prev.includes(id) ? (prev || []).filter(x => x !== id) : [...prev, id]
- );
- };
-
- return (
- <table className="w-full text-left text-base whitespace-nowrap">
- <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0 sticky top-0 z-20">
- <tr>
- <th className="py-4 px-6 text-center w-12">
- <input
- type="checkbox"
- checked={allSelected}
- ref={(el) => {
- if (el) el.indeterminate = someSelected;
- }}
- onChange={handleSelectAll}
- className="rounded border-white/0 bg-white/5 text-gold focus:ring-0 cursor-pointer h-4 w-4"
- />
- </th>
- <th className="py-4 px-6 font-black uppercase tracking-widest text-[9px]">STT</th>
- <th className="py-4 px-6 font-black uppercase tracking-widest text-[9px]">STT Gá»‘c</th>
- <th className="py-4 px-6 font-black uppercase tracking-widest text-[9px]">Email</th>
- <th className="py-4 px-6 font-black uppercase tracking-widest text-[9px]">Mail KP</th>
- <th className="py-4 px-6 font-black uppercase tracking-widest text-[9px] text-center">XÃ¡c Minh</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-white/5 text-gray-300">
- {(availableMails || []).length > 0 ? (
- (availableMails || []).map((mail: any, index: number) => (
- <tr key={mail.id} className="hover:bg-zinc-800/50 bg-zinc-900/[0.02] transition-colors group">
- <td className="py-3 px-6 text-center">
- <input
- type="checkbox"
- checked={selectedMailIdsForTask.includes(mail.id)}
- onChange={() => handleToggleRow(mail.id)}
- className="rounded border-white/0 bg-white/5 text-gold focus:ring-0 cursor-pointer h-4 w-4"
- />
- </td>
- <td className="py-3 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
- <td className="py-3 px-6 text-[10px] font-black text-gold/80">
- {mail.type ==="ROOT" ? mail.id 
- : mail.type ==="SATELLITE" ? mail.id - 1000 
- : mail.id - 2000}
- </td>
- <td className="py-3 px-6 font-bold text-white cursor-pointer" onClick={() => handleToggleRow(mail.id)}>{mail.email}</td>
- <td className="py-3 px-6 text-sm text-gray-400 font-mono">{mail.recovery}</td>
- <td className="py-3 px-6 text-center">
- <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-green-500/10 text-green-500 border border-green-500/20">
- {mail.verificationStatus}
- </span>
- </td>
- </tr>
- ))
- ) : (
- <tr>
- <td colSpan={6} className="py-12 text-center font-bold uppercase tracking-widest text-sm">
- KhÃ´ng tÃ¬m tháº¥y mail gá»‘c kháº£ dá»¥ng nÃ o
- </td>
- </tr>
- )}
- </tbody>
- </table>
- );
- })()}
- </div>
-
- {/* Bottom bar */}
- <div className="flex items-center justify-between pt-6 border-t border-white/0 relative z-10">
- <span className="text-base font-black text-gold uppercase tracking-wider">
- ÄÃ£ chá»n: {(selectedMailIdsForTask || []).length} mail
- </span>
- <div className="flex gap-4">
- <button
- onClick={() => {
- setSelectedMailIdsForTask([]);
- setIsSelectMailModalOpen(false);
- }}
- className="h-12 px-6 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-sm tracking-widest transition-all"
- >
- Há»§y
- </button>
- <button
- onClick={() => setIsSelectMailModalOpen(false)}
- className="h-12 px-6 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
- >
- XÃ¡c nháº­n giao viá»‡c
- </button>
- </div>
- </div>
- </motion.div>
- </motion.div>
- )}
- </AnimatePresence>
  </div>
  );
 }

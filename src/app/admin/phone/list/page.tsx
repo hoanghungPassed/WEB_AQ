@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from"react";
+import React, { useState, useEffect, useMemo, useCallback } from"react";
 import { 
  Phone, 
  Search,
@@ -12,57 +12,56 @@ import {
  Award,
  AlertOctagon,
  ShieldCheck,
- CheckSquare
+ CheckSquare,
+ Loader2
 } from"lucide-react";
 import { motion, AnimatePresence } from"framer-motion";
 import { useRouter } from"next/navigation";
-import type { PhoneItem, PhoneStatus } from"@/types/admin";
+import type { PhoneItem, PhoneStatus, StaffData } from"@/types/admin";
+import { useSWR } from "@/lib/useSWR";
+import { Badge } from "@/components/ui/Badge";
+import { LoadingOverlay } from "@/components/ui/Loading";
 
 export default function EmployeePhoneListPage() {
  const router = useRouter();
- const [user, setUser] = useState<any>(null);
- const [myPhones, setMyPhones] = useState<PhoneItem[]>([]);
+ const [user, setUser] = useState<StaffData | null>(null);
+ const [toastMsg, setToastMsg] = useState("");
  const [searchTerm, setSearchTerm] = useState("");
  const [statusFilter, setStatusFilter] = useState("ALL");
- const [toastMsg, setToastMsg] = useState("");
 
  useEffect(() => {
- // Authenticate
- const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
- if (storedUser) {
- setUser(JSON.parse(storedUser));
- } else {
- window.location.href ="/login";
- }
+  const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
+  if (storedUser) {
+    setUser(JSON.parse(storedUser));
+  } else {
+    router.push("/login");
+  }
+ }, [router]);
 
- const loadPhones = async () => {
- if (!storedUser) return;
- const currentUser = JSON.parse(storedUser);
- try {
- const res = await fetch("/api/admin/phones");
- if (res.ok) {
- const data = await res.json();
- const phonesList: PhoneItem[] = (data.data || []).map((p: any) => ({
- ...p,
- id: p._id?.toString() || p.id,
- }));
- const assignedToMe = phonesList.filter(p => 
- p.assigneeId &&
- currentUser?.username &&
- (p.assigneeId.toLowerCase() === currentUser?.username.toLowerCase() ||
- (currentUser.id && String(p.assigneeId) === String(currentUser.id)))
+ const fetchPhones = useCallback(async () => {
+    if (!user) return null;
+    const res = await fetch("/api/admin/phones");
+    if (!res.ok) throw new Error("Failed to fetch phones");
+    const data = await res.json();
+    
+    const phonesList: PhoneItem[] = (data.data || []).map((p: any) => ({
+      ...p,
+      id: p._id?.toString() || p.id,
+    }));
+    
+    return phonesList.filter(p => 
+      p.assigneeId &&
+      user?.username &&
+      (p.assigneeId.toLowerCase() === user?.username.toLowerCase() ||
+      (user.id && String(p.assigneeId) === String(user.id)))
+    );
+ }, [user]);
+
+ const { data: myPhones, mutate, isValidating: isLoading } = useSWR(
+    user ? `my-phones-${user.id}` : null,
+    fetchPhones,
+    { refreshInterval: 10000 }
  );
- setMyPhones(assignedToMe);
- }
- } catch(err) {
- console.error(err);
- }
- };
-
- loadPhones();
- const interval = setInterval(loadPhones, 5000);
- return () => clearInterval(interval);
- }, []);
 
  const triggerToast = (msg: string) => {
  setToastMsg(msg);
@@ -80,38 +79,35 @@ export default function EmployeePhoneListPage() {
  })
  });
  if (res.ok) {
- const targetNumber = myPhones.find(p => p.id === phoneId)?.number ||"";
+ const targetNumber = (myPhones || []).find(p => p.id === phoneId)?.number ||"";
  
- // System Log via API
  fetch("/api/admin/logs", {
  method:"POST",
  headers: {"Content-Type":"application/json" },
  body: JSON.stringify({
  user: user?.id || user?.name ||"Employee",
- role:"NHÂN VIÊN",
- action: `Cập nhật trạng thái SĐT ${targetNumber} thành"${newStatus}"`,
- type: newStatus ==="Lỗi" ?"WARNING" :"SUCCESS",
+ role:"NHÃ‚N VIÃŠN",
+ action: `Cáº­p nháº­t tráº¡ng thÃ¡i SÄT ${targetNumber} thÃ nh"${newStatus}"`,
+ type: newStatus ==="Lá»—i" ?"WARNING" :"SUCCESS",
  timestamp: new Date().toLocaleString("vi-VN")
  })
  }).catch(console.error);
 
- // Update local state without waiting for next poll
- setMyPhones(prev => prev.map(p => p.id === phoneId ? { ...p, status: newStatus } : p));
- triggerToast(`Đã lưu trạng thái"${newStatus}" cho số ${targetNumber}!`);
+ mutate(); 
+ triggerToast(`ÄÃ£ lÆ°u tráº¡ng thÃ¡i"${newStatus}" cho sá»‘ ${targetNumber}!`);
  }
  } catch(err) {
  console.error(err);
- triggerToast("Lỗi cập nhật!");
+ triggerToast("Lá»—i cáº­p nháº­t!");
  }
  };
 
- // Compute stats for current employee's assigned phones
  const stats = useMemo(() => {
  const total = (myPhones || []).length;
- const pending = (myPhones || []).filter(p => p.status ==="Chưa làm" || p.status === ("Chưa verify" as any)).length;
- const xm1 = (myPhones || []).filter(p => p.status ==="XM lần 1").length;
- const xm2 = (myPhones || []).filter(p => p.status ==="XM lần 2").length;
- const errorCount = (myPhones || []).filter(p => p.status ==="Lỗi").length;
+ const pending = (myPhones || []).filter(p => p.status ==="ChÆ°a lÃ m" || p.status === ("ChÆ°a verify" as any)).length;
+ const xm1 = (myPhones || []).filter(p => p.status ==="XM láº§n 1").length;
+ const xm2 = (myPhones || []).filter(p => p.status ==="XM láº§n 2").length;
+ const errorCount = (myPhones || []).filter(p => p.status ==="Lá»—i").length;
  const progress = total > 0 ? Math.round(((total - pending) / total) * 100) : 0;
  return { total, pending, xm1, xm2, errorCount, progress };
  }, [myPhones]);

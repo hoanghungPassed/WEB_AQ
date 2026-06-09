@@ -6,6 +6,7 @@ import { Attendance } from "@/models/Attendance";
 import { Notification } from "@/models/Notification";
 import { logAction } from "@/lib/logger";
 import { logAuditTrail } from "@/lib/permissions";
+import { pusherServer } from "@/lib/pusher";
 
 /**
  * Auto Checkout Job
@@ -163,6 +164,23 @@ async function runAutoCheckout(req: NextRequest, triggerSource: "CRON" | "MANUAL
         } catch (logErr) {
           console.error("Log action error:", logErr);
         }
+
+        // Trigger Real-time status update for auto-checkout
+        try {
+          await pusherServer.trigger("system-users", "status-changed", {
+            userId: staff._id.toString(),
+            username: staff.username,
+            isOnline: false,
+            lastActive: now,
+            autoCheckout: true
+          });
+          
+          // Private notification for the user to be kicked out or notified
+          await pusherServer.trigger(`user-${staff._id}`, "auto-checkout", {
+            message: `Hệ thống tự động check-out lúc ${offTime}`,
+            totalHours
+          });
+        } catch (pushErr) {}
 
         results.push({
           username: staff.username,

@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from "react";
  * Useful in Serverless runtimes like Vercel where WebSockets / Socket.io are not supported.
  */
 export function useSWR<T>(
-  key: string,
+  key: string | null,
   fetcher: () => Promise<T>,
   options?: { refreshInterval?: number }
 ) {
@@ -17,6 +17,7 @@ export function useSWR<T>(
   fetcherRef.current = fetcher;
 
   useEffect(() => {
+    if (!key) return;
     let active = true;
 
     const execute = async () => {

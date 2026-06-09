@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from"react";
+import React, { useState, useEffect, useMemo, useCallback } from"react";
 import { 
  ArrowLeft, 
  BarChart3, 
@@ -16,10 +16,15 @@ import {
  Calculator,
  Banknote,
  CalendarDays,
- Printer
+ Printer,
+ Loader2
 } from"lucide-react";
 import { motion, AnimatePresence } from"framer-motion";
 import { useRouter } from"next/navigation";
+import { useSWR } from "@/lib/useSWR";
+import { LoadingOverlay } from "@/components/ui/Loading";
+import { Badge } from "@/components/ui/Badge";
+import type { StaffData, MailData } from "@/types/admin";
 
 interface StaffPerformance {
  rank: number;
@@ -36,56 +41,49 @@ interface StaffPerformance {
 
 export default function ReportsPage() {
  const router = useRouter();
- const [user, setUser] = useState<any>(null);
- const [mails, setMails] = useState<any[]>([]);
- const [staffList, setStaffList] = useState<any[]>([]);
+ const [user, setUser] = useState<StaffData | null>(null);
  const [toastMsg, setToastMsg] = useState("");
- const [activeTab, setActiveTab] = useState<"STATS" |"PAYROLL">("STATS");
+ const [activeTab, setActiveTab] = useState<"STATS" | "PAYROLL">("STATS");
 
  // Payroll States
  const [selectedStaffId, setSelectedStaffId] = useState("");
  const [baseSalary, setBaseSalary] = useState("5000000");
  const [allowance, setAllowance] = useState("500000");
+
+ useEffect(() => {
+  const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
+  if (storedUser) {
+    const parsedUser = JSON.parse(storedUser) as StaffData;
+    const role = String(parsedUser.role || "").toUpperCase();
+    if (!["01", "02", "ADMIN", "QUáº¢N LÃ CÃ”NG VIá»†C", "QL CÃ”NG VIá»†C"].includes(role)) {
+      router.push("/admin");
+      return;
+    }
+    setUser(parsedUser);
+  } else {
+    router.push("/login");
+  }
+ }, [router]);
+
+ const fetchKpiData = useCallback(async () => {
+    const res = await fetch("/api/admin/kpis");
+    if (!res.ok) throw new Error("Failed to fetch KPIs");
+    return await res.json();
+ }, []);
+
+ const { data: kpiData, mutate, isValidating: isLoading } = useSWR('kpi-report-data', fetchKpiData, { refreshInterval: 60000 });
+
+ const [mails, setMails] = useState<MailData[]>([]);
+ const [staffList, setStaffList] = useState<StaffData[]>([]);
  const [payrollRecords, setPayrollRecords] = useState<any[]>([]);
 
  useEffect(() => {
- // Authenticate Roles
- // Authenticate Roles
- const storedUser = sessionStorage.getItem("user");
- if (storedUser) {
- const parsedUser = JSON.parse(storedUser);
- setUser(parsedUser);
- const role = String(parsedUser.role ||"").toUpperCase();
- if (role !=="01" && role !=="02" && role !=="ADMIN" && role !=="QUẢN LÝ CÔNG VIỆC" && role !=="QL CÔNG VIỆC") {
- router.push("/admin");
- }
- } else {
- router.push("/login");
- }
-
- const loadData = async () => {
- try {
- const res = await fetch("/api/admin/kpis");
- const data = res.ok ? await res.json() : null;
- if (data) {
- setMails(data.mails || []);
- setStaffList(data.staff || []);
- setPayrollRecords(data.payrollRecords || []);
- } else {
- setMails([]);
- setStaffList([]);
- setPayrollRecords([]);
- }
- } catch (error) {
- console.error("Failed to fetch kpis", error);
- setMails([]);
- setStaffList([]);
- setPayrollRecords([]);
- }
- };
-
- loadData();
- }, []);
+   if (kpiData) {
+     setMails(kpiData.mails || []);
+     setStaffList(kpiData.staff || []);
+     setPayrollRecords(kpiData.payrollRecords || []);
+   }
+ }, [kpiData]);
 
  const triggerToast = (msg: string) => {
  setToastMsg(msg);
@@ -107,23 +105,23 @@ export default function ReportsPage() {
 
     let csvContent = "STT,Nhân viên,Username,Chỉ tiêu ngày,Kênh đủ giờ (Tuần),Tổng tháng (Kênh đủ giờ),KPI Tuần (%),Xếp loại\n";
     
-    const eligibleStaffList = (staffList || []).filter((s: any) => s.role === "04" || s.role === "05" || s.role === "NHÂN VIÊN" || s.role === "NV THỬ VIỆC");
+    const eligibleStaffList = (staffList || []).filter((s: StaffData) => s.role === "04" || s.role === "05" || s.role === "NHÃ‚N VIÃŠN" || s.role === "NV THá»¬ VIá»†C");
     
     // Sort staff members by their monthly channel output
-    const calculatedStaff = (eligibleStaffList || []).map((staff: any) => {
-      const myMails = (mails || []).filter(m => String(m.assigneeId) === String(staff.id));
+    const calculatedStaff = (eligibleStaffList || []).map((staff: StaffData) => {
+      const myMails = (mails || []).filter((m: MailData) => String(m.assigneeId) === String(staff.id));
       
-      const weeklyMails = myMails.filter(m => !m.updatedAt || new Date(m.updatedAt) >= monday);
+      const weeklyMails = myMails.filter((m: MailData) => !m.updatedAt || new Date(m.updatedAt) >= monday);
       
-      const eligibleChannelsWeekly = weeklyMails.filter(m => m.type === "SATELLITE").reduce((sum, m) => {
+      const eligibleChannelsWeekly = weeklyMails.filter((m: MailData) => m.type === "SATELLITE").reduce((sum: number, m: MailData) => {
         return sum + ((Array.isArray(m.links) ? m.links.filter((l: string) => typeof l === 'string' && l.trim() !== "").length : 0) || (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0));
       }, 0);
 
-      const eligibleChannelsMonthly = myMails.filter(m => {
+      const eligibleChannelsMonthly = myMails.filter((m: MailData) => {
         if (m.type !== "SATELLITE" || !m.updatedAt) return false;
         const d = new Date(m.updatedAt);
         return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-      }).reduce((sum, m) => {
+      }).reduce((sum: number, m: MailData) => {
         return sum + ((Array.isArray(m.links) ? m.links.filter((l: string) => typeof l === 'string' && l.trim() !== "").length : 0) || (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0));
       }, 0);
 
@@ -143,9 +141,9 @@ export default function ReportsPage() {
         progress,
         efficiency
       };
-    }).sort((a, b) => b.monthly - a.monthly);
+    }).sort((a: StaffPerformance, b: StaffPerformance) => b.monthlyChannels - a.monthlyChannels);
 
-    calculatedStaff.forEach((staff, idx) => {
+    calculatedStaff.forEach((staff: any, idx: number) => {
       csvContent += `${idx + 1},"${staff.name}","${staff.username}","50 / ngày",${staff.weekly},${staff.monthly},"${staff.progress}%","${staff.efficiency}"\n`;
     });
 
@@ -428,6 +426,7 @@ export default function ReportsPage() {
 
  return (
  <div className="h-full flex flex-col space-y-6 pb-6 relative print-container">
+ {isLoading && <LoadingOverlay />}
  {/* Toast Notification */}
  <AnimatePresence>
  {toastMsg && (

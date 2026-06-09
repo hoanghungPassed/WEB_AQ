@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from"react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from"react";
 import {
  Phone,
  Upload,
@@ -21,15 +21,16 @@ import {
  X,
  Calendar,
  User as UserIcon,
- Download
+ Download,
+ Loader2
 } from"lucide-react";
 import { motion, AnimatePresence } from"framer-motion";
 import { useRouter } from"next/navigation";
-import type { PhoneItem, PhoneStatus } from"@/types/admin";
-
-// ─── Constants ──────────────────────────────────────────────
-const STANDARD_QUOTA = 25;
-const LS_KEY ="global_phones_data";
+import type { PhoneItem, PhoneStatus, StaffData } from"@/types/admin";
+import { useSWR } from "@/lib/useSWR";
+import { LoadingOverlay } from "@/components/ui/Loading";
+import { Badge } from "@/components/ui/Badge";
+import { ImportHistoryModal, type ImportHistoryItem } from "@/components/admin/modals/ImportHistoryModal";
 
 // ─── Helpers ────────────────────────────────────────────────
 async function fetchPhonesFromAPI(): Promise<PhoneItem[]> {
@@ -61,28 +62,14 @@ async function updatePhonesAPI(ids: string[], update: Record<string, any>) {
  }
 }
 
-function pushLog(user: any, action: string, type:"SUCCESS" |"WARNING" ="SUCCESS") {
- fetch("/api/admin/logs", {
- method:"POST",
- headers: {"Content-Type":"application/json" },
- body: JSON.stringify({
- user: user?.id || user?.name ||"Admin",
- role: user?.role ||"ADMIN",
- action,
- type,
- timestamp: new Date().toLocaleString("vi-VN"),
- }),
- }).catch(console.error);
-}
-
 // ─── Status Badge ───────────────────────────────────────────
 function StatusBadge({ status }: { status: PhoneStatus }) {
  const cls =
- status ==="XM lần 1"
+ status === "XM lần 1"
  ?"bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
- : status ==="XM lần 2"
+ : status === "XM lần 2"
  ?"bg-green-500/10 text-green-500 border-green-500/20"
- : status ==="Lỗi"
+ : status === "Lỗi"
  ?"bg-red-500/10 text-red-500 border-red-500/20"
  :"bg-gray-500/10 text-gray-400 border-white/0";
  return (
@@ -92,120 +79,96 @@ function StatusBadge({ status }: { status: PhoneStatus }) {
  );
 }
 
-// ═══════════════════════════════════════════════════════════════
-// MAIN PAGE COMPONENT
-// ═══════════════════════════════════════════════════════════════
+// ─── Constants ──────────────────────────────────────────────
+const STANDARD_QUOTA = 25;
+
+// ─── Main Component ─────────────────────────────────────────
 export default function PhoneBatchesPage() {
  const router = useRouter();
  const fileInputRef = useRef<HTMLInputElement>(null);
 
- const [showHistoryModal, setShowHistoryModal] = useState(false);
- const [importHistory, setImportHistory] = useState<any[]>([]);
- const [historyTab, setHistoryTab] = useState<"ALL" |"MAIL" |"SĐT">("ALL");
-
+ // ─── Auth State ───
+ const [user, setUser] = useState<StaffData | null>(null);
  useEffect(() => {
- const loadHistory = () => {
- const saved = localStorage.getItem("global_import_history");
- setImportHistory(saved ? JSON.parse(saved) : []);
- };
- loadHistory();
- window.addEventListener("storage", loadHistory);
- return () => window.removeEventListener("storage", loadHistory);
+  const raw = sessionStorage.getItem("user") || localStorage.getItem("user");
+  if (!raw) { router.push("/login"); return; }
+  const parsed = JSON.parse(raw) as StaffData;
+  const role = String(parsed.role || "").toUpperCase();
+  if (!["01", "02", "ADMIN", "QUáº¢N LÃ CÃ”NG VIá»†C", "QL CÃ”NG VIá»†C"].includes(role)) {
+    router.push("/admin");
+    return;
+  }
+  setUser(parsed);
+ }, [router]);
+
+ // ─── Data Fetching ───
+ const fetchPhones = useCallback(async () => {
+    return await fetchPhonesFromAPI();
  }, []);
 
- const filteredHistory = useMemo(() => {
- if (historyTab ==="ALL") return importHistory;
- return (importHistory || []).filter((item) => item.type === historyTab);
- }, [importHistory, historyTab]);
-
- const handleDeleteHistoryRow = (id: string) => {
- setHistoryRowToDelete(id);
- };
-
-
- const handleClearAllHistory = async () => {
- if (!confirm("Xác nhận xóa TOÀN BỘ lịch sử import? Hành động này không thể hoàn tác.")) return;
- setImportHistory([]);
- localStorage.setItem("global_import_history", JSON.stringify([]));
- window.dispatchEvent(new Event("storage"));
-
- try {
- await fetch("/api/sync", {
- method:"POST",
- headers: {"Content-Type":"application/json" },
- body: JSON.stringify({ global_import_history: JSON.stringify([]) })
- });
- } catch (err) {
- console.error("Sync history clear error:", err);
- }
- };
-
- // ─── Auth ─────────────────────────────────────────────────
- const [user, setUser] = useState<any>(null);
- useEffect(() => {
- const raw = sessionStorage.getItem("user") || localStorage.getItem("user");
- if (!raw) { window.location.href ="/login"; return; }
- const parsed = JSON.parse(raw);
- const role = String(parsed.role ||"").toUpperCase();
- if (!["01","02","ADMIN","QUẢN LÝ CÔNG VIỆC","QL CÔNG VIỆC"].includes(role)) {
- window.location.href ="/admin";
- return;
- }
- setUser(parsed);
+ const reloadPhones = useCallback(async () => {
+    mutatePhones();
  }, []);
 
- // ─── Data ─────────────────────────────────────────────────
- const [phones, setPhones] = useState<PhoneItem[]>([]);
- const [employees, setEmployees] = useState<any[]>([]);
+ const fetchEmployees = useCallback(async () => {
+    const res = await fetch("/api/admin/users");
+    if (!res.ok) throw new Error("Failed to fetch employees");
+    const data = await res.json();
+    const all = data.users || data || [];
+    return (all || []).filter((u: any) =>
+      u.role === "03" || u.role === "04" || u.role === "05"
+    ).map((u: any) => ({ ...u, id: u.id || u._id?.toString() }));
+ }, []);
+
+ const { data: phones = [], mutate: mutatePhones, isValidating: isPhonesLoading } = useSWR('phones-all', fetchPhones, { refreshInterval: 30000 });
+ const { data: employees = [], mutate: mutateEmployees, isValidating: isEmployeesLoading } = useSWR('employees-staff', fetchEmployees, { refreshInterval: 60000 });
+
+ const [importHistory, setImportHistory] = useState<ImportHistoryItem[]>([]);
+ useEffect(() => {
+   const loadHistory = () => {
+     const saved = localStorage.getItem("global_import_history");
+     setImportHistory(saved ? JSON.parse(saved) : []);
+   };
+   loadHistory();
+   window.addEventListener("storage", loadHistory);
+   return () => window.removeEventListener("storage", loadHistory);
+ }, []);
+
+ // ─── UI State ───
  const [toastMsg, setToastMsg] = useState("");
- const [activeTab, setActiveTab] = useState<"warehouse" |"batches" |"staff">("warehouse");
+ const [activeTab, setActiveTab] = useState<"warehouse" | "batches" | "staff">("warehouse");
  const [selectedEmpUsername, setSelectedEmpUsername] = useState<string | null>(null);
  const [searchTerm, setSearchTerm] = useState("");
  const [staffSearch, setStaffSearch] = useState("");
- const [batchName, setBatchName] = useState("");
+ const [showHistoryModal, setShowHistoryModal] = useState(false);
  const [expandedBatches, setExpandedBatches] = useState<string[]>([]);
  const [batchToDelete, setBatchToDelete] = useState<string | null>(null);
+
+ const isLoading = isPhonesLoading || isEmployeesLoading;
+
+ const triggerToast = (msg: string) => {
+   setToastMsg(msg);
+   setTimeout(() => setToastMsg(""), 4000);
+ };
+
+ const pushLog = useCallback((action: string, type: "SUCCESS" | "WARNING" = "SUCCESS") => {
+  if (!user) return;
+  fetch("/api/admin/logs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user: user.id || user.name || "Admin",
+      role: user.role || "ADMIN",
+      action,
+      type,
+      timestamp: new Date().toLocaleString("vi-VN"),
+    }),
+  }).catch(console.error);
+ }, [user]);
+ const [batchName, setBatchName] = useState("");
  const [historyRowToDelete, setHistoryRowToDelete] = useState<string | null>(null);
  const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
 
- const triggerToast = (msg: string) => {
- setToastMsg(msg);
- setTimeout(() => setToastMsg(""), 4000);
- };
-
- // Load data from API
- const reloadPhones = async () => {
- const data = await fetchPhonesFromAPI();
- setPhones(data);
- };
-
- const loadEmployees = async () => {
- try {
- const res = await fetch("/api/admin/users");
- if (res.ok) {
- const data = await res.json();
- const all = data.users || data || [];
- setEmployees(
- (all || []).filter((u: any) =>
- u.role ==="03" || u.role ==="04" || u.role ==="05"
- ).map((u: any) => ({ ...u, id: u.id || u._id?.toString() }))
- );
- }
- } catch (err) {
- console.error("Error loading employees:", err);
- }
- };
-
- useEffect(() => {
- reloadPhones();
- loadEmployees();
- const iv = setInterval(() => {
- reloadPhones();
- }, 5000);
- return () => clearInterval(iv);
- }, []);
-
- // ─── Stats ────────────────────────────────────────────────
  const globalStats = useMemo(() => {
  const total = (phones || []).length;
  const unassigned = (phones || []).filter((p) => !p.assigneeId).length;
@@ -224,8 +187,10 @@ export default function PhoneBatchesPage() {
  const filteredWarehouse = useMemo(() => {
  if (!searchTerm) return warehousePhones;
  const q = searchTerm.toLowerCase();
- return (warehousePhones || []).filter(
- (p) => p.number.includes(q) || p.otpLink.toLowerCase().includes(q)
+ return (warehousePhones || []).filter((p) => 
+ p.number.toLowerCase().includes(q) || 
+ (p.importBatch && p.importBatch.toLowerCase().includes(q)) ||
+ (p.otpLink && p.otpLink.toLowerCase().includes(q))
  );
  }, [warehousePhones, searchTerm]);
 
@@ -233,14 +198,14 @@ export default function PhoneBatchesPage() {
  const groupedWarehouse = useMemo(() => {
  const groups: Record<string, PhoneItem[]> = {};
  warehousePhones.forEach(p => {
- const b = (p as any).batch ||"Chưa phân lô";
+ const b = p.importBatch ||"ChÆ°a phÃ¢n lÃ´";
  if (!groups[b]) groups[b] = [];
  groups[b].push(p);
  });
  return groups;
  }, [warehousePhones]);
 
- const handleDeleteBatch = async (batch: string) => {
+ const handleDeleteBatch = (batch: string) => {
  setBatchToDelete(batch);
  };
 
@@ -252,16 +217,14 @@ export default function PhoneBatchesPage() {
  });
  const data = await res.json();
  if (res.ok) {
- triggerToast(`Đã xóa ${data.deletedCount} SĐT khỏi lô"${batchToDelete}"!`);
- window.dispatchEvent(new Event("storage"));
- // reload using api if necessary, but since we rely on localStorage let's reload
- window.location.reload();
+ triggerToast(`ÄÃ£ xÃ³a ${data.deletedCount} SÄT khá»i lÃ´"${batchToDelete}"!`);
+ mutatePhones();
  } else {
- triggerToast(`Lỗi: ${data.error}`);
+ triggerToast(`Lá»—i: ${data.error}`);
  }
  } catch (err) {
  console.error(err);
- triggerToast("Lỗi khi xóa lô SĐT");
+ triggerToast("Lá»—i khi xÃ³a lÃ´ SÄT");
  } finally {
  setBatchToDelete(null);
  }
@@ -385,7 +348,7 @@ export default function PhoneBatchesPage() {
  // ─── Employee detail view ─────────────────────────────────
  const selectedEmp = useMemo(() => {
  if (!selectedEmpUsername) return null;
- return employees.find((e) => e.username?.toLowerCase() === selectedEmpUsername.toLowerCase()) || null;
+ return employees.find((e: StaffData) => e.username?.toLowerCase() === selectedEmpUsername.toLowerCase()) || null;
  }, [employees, selectedEmpUsername]);
 
  const empPhones = useMemo(() => {
@@ -444,7 +407,7 @@ export default function PhoneBatchesPage() {
  body: JSON.stringify({ admin_notifications: JSON.stringify(notifs) })
  }).catch(() => {});
 
- pushLog(user, `Bàn giao ${STANDARD_QUOTA} SĐT cho ${selectedEmp.name} (@${selectedEmp.username})`);
+ pushLog(`BÃ n giao ${STANDARD_QUOTA} SÄT cho ${selectedEmp.name} (@${selectedEmp.username})`);
  triggerToast(`Đã bàn giao ${STANDARD_QUOTA} SĐT cho ${selectedEmp.name}!`);
  };
 
@@ -479,7 +442,7 @@ export default function PhoneBatchesPage() {
 
  if (deficit <= 0) {
  await reloadPhones();
- pushLog(user, `Quét và dọn dẹp ${toRemoveIds.length} SĐT (Lỗi/Done) của ${selectedEmp.name}. Không cần bơm thêm.`);
+ pushLog(`QuÃ©t vÃ  dá»n dáp ${toRemoveIds.length} SÄT (Lá»—i/Done) cá»§a ${selectedEmp.name}. KhÃ´ng cáº§n bÆ¡m thÃªm.`);
  triggerToast(`Đã dọn dẹp ${toRemoveIds.length} SĐT. Nhân viên đã đủ ${STANDARD_QUOTA} số.`);
  return;
  }
@@ -505,13 +468,13 @@ export default function PhoneBatchesPage() {
  await reloadPhones();
  const remainingDeficit = deficit - canFill;
  const suffix = remainingDeficit > 0 ? ` (còn thiếu ${remainingDeficit} SĐT do kho không đủ)` :"";
- pushLog(user, `Quét dọn dẹp ${toRemoveIds.length} SĐT → Bơm ${canFill} SĐT mới cho ${selectedEmp.name}${suffix}`);
+ pushLog(`QuÃ©t dá»n dáp ${toRemoveIds.length} SÄT â†’ BÆ¡m ${canFill} SÄT má»›i cho ${selectedEmp.name}${suffix}`);
  triggerToast(`Đã dọn dẹp ${toRemoveIds.length}, bơm lại ${canFill} SĐT mới cho ${selectedEmp.name}!${suffix}`);
  };
 
  // ─── Employee list stats ──────────────────────────────────
  const employeeBreakdown = useMemo(() => {
- return (employees || []).map((emp) => {
+ return (employees || []).map((emp: StaffData) => {
  const ep = (phones || []).filter((p) => 
  p.assigneeId && emp.username && (
  p.assigneeId.toLowerCase() === emp.username.toLowerCase() ||
@@ -840,7 +803,7 @@ export default function PhoneBatchesPage() {
  </div>
 
  <div className="space-y-2 max-h-[500px] overflow-y-auto custom-scrollbar">
- {(employeeBreakdown || []).filter((e) => {
+ {(employeeBreakdown || []).filter((e: any) => {
  if (!e.isOnline) return false;
  if (!staffSearch.trim()) return true;
  const q = staffSearch.toLowerCase();
@@ -851,13 +814,13 @@ export default function PhoneBatchesPage() {
  </p>
  )}
  {employeeBreakdown
- .filter((e) => {
+ .filter((e: any) => {
  if (!e.isOnline) return false;
  if (!staffSearch.trim()) return true;
  const q = staffSearch.toLowerCase();
  return (e.name ||"").toLowerCase().includes(q) || (e.username ||"").toLowerCase().includes(q);
  })
- .map((emp) => {
+ .map((emp: any) => {
  const isSelected = selectedEmpUsername === emp.username;
  return (
  <button
@@ -1045,133 +1008,38 @@ export default function PhoneBatchesPage() {
  </motion.div>
  )}
 
- {/* Import History Modal */}
- <AnimatePresence>
- {showHistoryModal && (
- <motion.div
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- exit={{ opacity: 0 }}
- className="fixed inset-0 z-[200] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 text-left"
- >
- <motion.div
- initial={{ scale: 0.9, opacity: 0 }}
- animate={{ scale: 1, opacity: 1 }}
- exit={{ scale: 0.9, opacity: 0 }}
- className="bg-sidebar border border-white/0 rounded-[32px] p-8 w-full max-w-3xl shadow-2xl flex flex-col max-h-[85vh]"
- >
- {/* Header */}
- <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/0">
- <div className="flex items-center gap-3">
- <div className="h-10 w-10 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/20">
- <FileText className="text-gold" size={20} />
- </div>
- <div>
- <h3 className="text-xl font-black text-white uppercase tracking-tight">LỊCH SỬ IMPORT HỆ THỐNG</h3>
- <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">Nhật ký danh sách nhập dữ liệu</p>
- </div>
- </div>
- <div className="flex items-center gap-3">
- {(importHistory || []).length > 0 && (
- <button
- onClick={handleClearAllHistory}
- className="h-9 px-3.5 bg-red-500/10 border border-red-500/25 hover:bg-red-500/25 rounded-xl text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all"
- >
- <Trash2 size={13} /> Xóa tất cả
- </button>
- )}
- <button
- onClick={() => setShowHistoryModal(false)}
- className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-gray-400 hover:text-white transition-colors"
- >
- <X size={20} />
- </button>
- </div>
- </div>
+ <ImportHistoryModal
+    isOpen={showHistoryModal}
+    onClose={() => setShowHistoryModal(false)}
+    importHistory={importHistory}
+    onDeleteRow={(id) => {
+      if (!confirm("Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a dÃ²ng lá»‹ch sá»­ nÃ y?")) return;
+      const updated = (importHistory || []).filter(h => h.id !== id);
+      setImportHistory(updated);
+      localStorage.setItem("global_import_history", JSON.stringify(updated));
+      fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ global_import_history: JSON.stringify(updated) })
+      }).catch(console.error);
+    }}
+    onClearAll={async () => {
+      if (!confirm("XÃ¡c nháº­n xÃ³a TOÃ€N Bá»˜ lá»‹ch sá»­ import?")) return;
+      setImportHistory([]);
+      localStorage.setItem("global_import_history", JSON.stringify([]));
+      try {
+        await fetch("/api/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ global_import_history: JSON.stringify([]) })
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }}
+  />
 
- {/* Filters */}
- <div className="flex items-center gap-2 mb-6 bg-white/5 p-1 rounded-xl w-fit">
- {["ALL","MAIL","SĐT"].map((tab) => (
- <button
- key={tab}
- onClick={() => setHistoryTab(tab as any)}
- className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
- historyTab === tab
- ?"bg-gold text-sidebar shadow-md"
- :" text-gray-400 hover:text-white"
- }`}
- >
- {tab ==="ALL" ?"Tất cả" : tab}
- </button>
- ))}
- </div>
-
- {/* List Content */}
- <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1 scrollbar-hide">
- {(filteredHistory || []).length === 0 ? (
- <div className="py-16 text-center">
- <div className="h-16 w-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/0">
- <FileText className="" size={28} />
- </div>
- <p className="text-sm text-gray-500 font-bold uppercase tracking-widest">Không có lịch sử nhập dữ liệu</p>
- <p className="text-[10px] mt-1">Các lượt import mới sẽ tự động được ghi nhận tại đây.</p>
- </div>
- ) : (
- (filteredHistory || []).map((item: any) => (
- <div
- key={item.id}
- className="bg-white/5 border border-white/0 rounded-2xl p-6 flex items-center justify-between hover:border-gray-300 hover:border-white/0 transition-all group"
- >
- <div className="flex items-center gap-4">
- {/* Icon / Badge */}
- <div
- className={`h-11 w-11 rounded-xl flex items-center justify-center border font-mono text-[10px] font-black tracking-widest ${
- item.type ==="MAIL"
- ?"bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
- :"bg-gold/10 text-gold border-gold/20"
- }`}
- >
- {item.type}
- </div>
- 
- {/* Details */}
- <div className="space-y-1">
- <div className="flex flex-wrap items-center gap-2">
- <span className="text-sm font-black text-white font-mono break-all">{item.fileName}</span>
- <span className="text-[10px] bg-green-500/15 text-green-400 border border-green-500/25 px-2 py-0.5 rounded-md font-black">
- +{item.quantity} {item.type ==="MAIL" ?"mail" :"số"}
- </span>
- </div>
- 
- <div className="flex items-center gap-4 text-[10px] text-gray-500 font-medium">
- <span className="flex items-center gap-1">
- <Calendar size={12} className="" />
- {item.importedAt}
- </span>
- <span className="flex items-center gap-1">
- <UserIcon size={12} className="" />
- Người nhập: <strong className="text-gray-400">{item.importedBy}</strong>
- </span>
- </div>
- </div>
- </div>
-
- {/* Delete Individual Row */}
- <button
- onClick={() => handleDeleteHistoryRow(item.id)}
- className="h-8 w-8 rounded-lg bg-red-500/5 hover:bg-red-500/10 text-red-500/60 hover:text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all border border-red-500/0 hover:border-red-500/20"
- title="Xóa dòng lịch sử này"
- >
- <Trash2 size={14} />
- </button>
- </div>
- ))
- )}
- </div>
- </motion.div>
- </motion.div>
- )}
- </AnimatePresence>
+ {isLoading && <LoadingOverlay />}
  </div>
  );
 }

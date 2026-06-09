@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import { Message } from "@/models/Message";
 import User from "@/models/User";
+import { pusherServer } from "@/lib/pusher";
 
 export async function GET(req: Request) {
   try {
@@ -94,6 +95,19 @@ export async function POST(req: Request) {
       isDelivered: true, // mark delivered automatically
       isRead: false
     });
+
+    // Trigger Real-time update via Pusher
+    try {
+      const channel = isCompanyChat ? "company-chat" : `private-chat-${receiverId}`;
+      const channel2 = isCompanyChat ? null : `private-chat-${senderId}`;
+      
+      await pusherServer.trigger(channel, "new-message", newMessage);
+      if (channel2) {
+        await pusherServer.trigger(channel2, "new-message", newMessage);
+      }
+    } catch (pushErr) {
+      console.error("Pusher trigger error:", pushErr);
+    }
 
     return NextResponse.json({ success: true, data: newMessage }, { status: 201 });
   } catch (error: unknown) {

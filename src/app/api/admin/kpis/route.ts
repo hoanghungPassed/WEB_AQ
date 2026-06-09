@@ -24,19 +24,19 @@ export async function GET(req: NextRequest) {
     
     // Fetch all required collections in parallel
     const [roots, sats, mons, staff, payrollRecords, syncKpi] = await Promise.all([
-      RootMail.find({}).sort({ createdAt: -1 }),
-      SatelliteMail.find({}).sort({ createdAt: -1 }),
-      MonetizedMail.find({}).sort({ createdAt: -1 }),
-      User.find({}).select("-password"),
-      Payroll.find({}).sort({ createdAt: -1 }),
-      SyncStore.findOne({ key: 'global_kpi_data' })
+      RootMail.find({}).sort({ createdAt: -1 }).lean(),
+      SatelliteMail.find({}).sort({ createdAt: -1 }).lean(),
+      MonetizedMail.find({}).sort({ createdAt: -1 }).lean(),
+      User.find({}).select("-password").lean(),
+      Payroll.find({}).sort({ createdAt: -1 }).lean(),
+      SyncStore.findOne({ key: 'global_kpi_data' }).lean()
     ]);
 
     const mails = [...roots, ...sats, ...mons];
-    const kpiData = syncKpi ? JSON.parse(syncKpi.value) : null;
+    const kpiData = syncKpi ? JSON.parse((syncKpi as any).value) : null;
 
-    const mappedStaff = staff.map(u => {
-      const obj = u.toObject() as any;
+    const mappedStaff = staff.map((u: any) => {
+      const obj = { ...u };
       delete obj.password;
       return obj;
     });

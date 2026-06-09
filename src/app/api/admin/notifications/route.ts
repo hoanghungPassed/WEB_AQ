@@ -4,6 +4,7 @@ import dbConnect from '@/lib/mongodb';
 import { Notification } from '@/models/Notification';
 import mongoose from 'mongoose';
 import { checkPermission, logAuditTrail } from "@/lib/permissions";
+import { pusherServer } from "@/lib/pusher";
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,6 +35,14 @@ export async function POST(req: NextRequest) {
 
  const newPost = await Notification.create(body);
  const populated = await newPost.populate('author', 'name username role avatar');
+
+ // Notify clients about new newsfeed post
+ try {
+   await pusherServer.trigger("newsfeed", "new-post", populated);
+ } catch (pushErr) {
+   console.error("Pusher trigger newsfeed error:", pushErr);
+ }
+
  return NextResponse.json({ success: true, data: populated }, { status: 201 });
  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
@@ -90,6 +99,11 @@ export async function PUT(req: NextRequest) {
  .populate('comments.userId', 'name username role avatar')
  .populate('comments.replies.userId', 'name username role avatar');
  
+ // Notify clients about post update
+ try {
+   await pusherServer.trigger("newsfeed", "update-post", populated);
+ } catch (pushErr) {}
+
  return NextResponse.json({ success: true, data: populated });
  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
@@ -114,6 +128,12 @@ export async function DELETE(req: NextRequest) {
   const hasPermission = await checkPermission(userRole || "", 4, ["all", "reports"]);
   if (String(post.author) === String(userId) || hasPermission) {
   await Notification.findByIdAndDelete(id);
+
+  // Notify clients about deleted post
+  try {
+    await pusherServer.trigger("newsfeed", "delete-post", { id });
+  } catch (pushErr) {}
+
   await logAuditTrail(userId || "system", "DELETE_NEWSFEED_POST_SUCCESS", "newsfeed", { id }, req);
   return NextResponse.json({ success: true });
   } else {

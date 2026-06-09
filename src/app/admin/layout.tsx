@@ -9,8 +9,51 @@ import { useRouter } from"next/navigation";
 import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle, Plus, FileText, Download, Paperclip, Phone, Minus, Copy, ExternalLink, ShieldAlert, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSWR } from "@/lib/useSWR";
+import Pusher from "pusher-js";
 
 const lastSyncedCache: Record<string, string | null> = {};
+
+const TypingBubble = ({ senderName }: { senderName?: string }) => {
+  return (
+  <div className="flex flex-col self-start items-start max-w-[80%] animate-pulse">
+  {senderName && (
+  <span className="text-[8px] font-bold uppercase tracking-wider text-gray-500 mb-0.5 ml-1">
+  {senderName}
+  </span>
+  )}
+  <div className="bg-white/5 border border-white/0 p-3 rounded-2xl rounded-tl-none flex items-center gap-1">
+  <span className="text-[10px] text-gray-400 font-bold mr-1">Đang soạn</span>
+  <span className="flex items-center gap-0.5 h-3">
+  <span className="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '0.8s' }} />
+  <span className="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" style={{ animationDelay: '200ms', animationDuration: '0.8s' }} />
+  <span className="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" style={{ animationDelay: '400ms', animationDuration: '0.8s' }} />
+  </span>
+  </div>
+  </div>
+  );
+};
+
+const getMessageStatus = (msg: any) => {
+  const msgTime = Number(msg.id?.split("_")[1]) || (msg.createdAt ? new Date(msg.createdAt).getTime() : 0);
+  if (msgTime === 0) return null;
+
+  const receiver = msg.receiver;
+  const sender = msg.sender;
+
+  const readTimeStr = typeof window !== "undefined" ? localStorage.getItem(`chat_last_read_time_${receiver}_${sender}`) : null;
+  const readTime = readTimeStr ? Number(readTimeStr) : 0;
+
+  const receivedTimeStr = typeof window !== "undefined" ? localStorage.getItem(`chat_last_received_time_${receiver}_${sender}`) : null;
+  const receivedTime = receivedTimeStr ? Number(receivedTimeStr) : 0;
+
+  if (readTime >= msgTime) {
+    return <span className="text-[9px] text-green-500 font-bold ml-1">✓✓ Đã xem</span>;
+  }
+  if (receivedTime >= msgTime) {
+    return <span className="text-[9px] text-gray-400 text-zinc-500 font-bold ml-1">✓✓ Đã nhận</span>;
+  }
+  return <span className="text-[9px] text-gray-400 text-zinc-500 font-bold ml-1">✓ Đã gửi</span>;
+};
 
 const getStableDateString = () => {
  const d = new Date();
@@ -86,6 +129,17 @@ export default function AdminLayout({
  const [activeChatUser, setActiveChatUser] = useState<any>(null);
  const [chatUsers, setChatUsers] = useState<any[]>([]);
  const [unreadCount, setUnreadCount] = useState(0);
+
+ const scrollToBottom = React.useCallback(() => {
+   setTimeout(() => {
+     if (chatTab === "COMPANY") {
+       companyMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+     } else {
+       privateMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+     }
+   }, 100);
+ }, [chatTab]);
+
   const [brandName, setBrandName] = useState("AQ MEDIA");
 
   const handleMessageClick = async (partner: any) => {
@@ -170,48 +224,6 @@ export default function AdminLayout({
  } catch (e) {
  console.error("Audio chime error:", e);
  }
- };
-
- const TypingBubble = ({ senderName }: { senderName?: string }) => {
- return (
- <div className="flex flex-col self-start items-start max-w-[80%] animate-pulse">
- {senderName && (
- <span className="text-[8px] font-bold uppercase tracking-wider text-gray-500 mb-0.5 ml-1">
- {senderName}
- </span>
- )}
- <div className="bg-white/5 border border-white/0 p-3 rounded-2xl rounded-tl-none flex items-center gap-1">
- <span className="text-[10px] text-gray-400 font-bold mr-1">Đang soạn</span>
- <span className="flex items-center gap-0.5 h-3">
- <span className="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '0.8s' }} />
- <span className="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" style={{ animationDelay: '200ms', animationDuration: '0.8s' }} />
- <span className="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" style={{ animationDelay: '400ms', animationDuration: '0.8s' }} />
- </span>
- </div>
- </div>
- );
- };
-
- const getMessageStatus = (msg: any) => {
- const msgTime = Number(msg.id.split("_")[1]) || 0;
- if (msgTime === 0) return null;
-
- const receiver = msg.receiver;
- const sender = msg.sender;
-
- const readTimeStr = localStorage.getItem(`chat_last_read_time_${receiver}_${sender}`);
- const readTime = readTimeStr ? Number(readTimeStr) : 0;
-
- const receivedTimeStr = localStorage.getItem(`chat_last_received_time_${receiver}_${sender}`);
- const receivedTime = receivedTimeStr ? Number(receivedTimeStr) : 0;
-
- if (readTime >= msgTime) {
- return <span className="text-[9px] text-green-500 font-bold ml-1">✓✓ Đã xem</span>;
- }
- if (receivedTime >= msgTime) {
- return <span className="text-[9px] text-gray-400 text-zinc-500 font-bold ml-1">✓✓ Đã nhận</span>;
- }
- return <span className="text-[9px] text-gray-400 text-zinc-500 font-bold ml-1">✓ Đã gửi</span>;
  };
 
  const handleInputChange = (val: string) => {
@@ -424,10 +436,13 @@ export default function AdminLayout({
  localStorage.setItem("global_phones_data", JSON.stringify(updated));
  window.dispatchEvent(new Event("storage"));
  
- fetch("/api/sync", {
- method:"POST",
- headers: {"Content-Type":"application/json" },
- body: JSON.stringify({ global_phones_data: JSON.stringify(updated) }),
+ fetch("/api/admin/phones", {
+   method: "PUT",
+   headers: { 
+     "Content-Type": "application/json",
+     "x-user-id": user?.id || user?._id || ""
+   },
+   body: JSON.stringify({ id: phoneId, status: newStatus }),
  }).catch(() => {});
  };
 
@@ -438,109 +453,6 @@ export default function AdminLayout({
  setTimeout(() => setCopiedPhoneToast(null), 2000);
  }
  };
-
- const syncDatabase = React.useCallback(async () => {
- try {
- const standardKeys = ["global_users","global_mails_data","global_tasks_data","global_kpi_data","admin_notifications","realtime_toast","pending_access_requests","global_company_chat","global_private_messages","global_newsfeed_posts","global_phones_data","global_import_history"
- ];
-
- // Quét các key truy cập ngoài giờ hiện có trong localStorage để đồng bộ
- const localAccessKeys: string[] = [];
- if (typeof window !=="undefined") {
- for (let i = 0; i < localStorage.length; i++) {
- const key = localStorage.key(i);
- if (key && (key.startsWith("access_") || key.startsWith("access_response_"))) {
- localAccessKeys.push(key);
- }
- }
- }
-
- let res;
- try {
- res = await fetch(`/api/sync?t=${Date.now()}`, { cache:"no-store", headers: { 'Cache-Control': 'no-cache' } });
- } catch (error) {
- return;
- }
- if (!res.ok) return;
- const serverStore = await res.json();
-
- // Thêm cả các key access hiện có trên server
- const serverAccessKeys = Object.keys(serverStore).filter(key =>
- key.startsWith("access_") || key.startsWith("access_response_")
- );
-
- const keys = Array.from(new Set([...standardKeys, ...localAccessKeys, ...serverAccessKeys]));
-
- const localUpdates: Record<string, string> = {};
- const pendingCacheUpdates: Record<string, string> = {};
- let hasLocalChanges = false;
- let hasRemoteChanges = false;
-
- keys.forEach(key => {
- const localVal = localStorage.getItem(key);
- const serverVal = serverStore[key];
- const prevSyncedVal = lastSyncedCache[key];
-
- if (localVal !== null && localVal !== prevSyncedVal && localVal !== serverVal) {
- // Local value has changed! Push to server
- if (localVal !== null) {
- localUpdates[key] = localVal;
- pendingCacheUpdates[key] = localVal; // Prepare for cache update
- hasLocalChanges = true;
- }
- } else if (serverVal !== prevSyncedVal && serverVal !== localVal) {
- // Server value has changed! Pull to local
- if (serverVal !== undefined && serverVal !== null) {
- try {
- localStorage.setItem(key, serverVal);
- } catch (err) {
- if (key ==="global_private_messages" || key ==="global_company_chat") {
- try {
- const parsed = JSON.parse(serverVal);
- if (Array.isArray(parsed)) {
- const truncated = parsed.slice(-15);
- localStorage.setItem(key, JSON.stringify(truncated));
- }
- } catch (e2) {
- console.error(`Failed to truncate chat key ${key}`, e2);
- }
- }
- }
- lastSyncedCache[key] = serverVal;
- hasRemoteChanges = true;
- }
- } else {
- // No changes, just sync our tracker cache
- if (serverVal) {
- lastSyncedCache[key] = serverVal;
- } else if (localVal) {
- pendingCacheUpdates[key] = localVal;
- localUpdates[key] = localVal;
- hasLocalChanges = true;
- }
- }
- });
-
- if (hasLocalChanges) {
- const postRes = await fetch("/api/sync", {
- method:"POST",
- headers: {"Content-Type":"application/json" },
- body: JSON.stringify(localUpdates)
- });
- if (postRes.ok) {
- // Only update cache if the push was successful to prevent overriding local changes if POST fails
- Object.keys(pendingCacheUpdates).forEach(k => {
- lastSyncedCache[k] = pendingCacheUpdates[k];
- });
- }
- }
-
- if (hasRemoteChanges) {
- window.dispatchEvent(new Event("storage"));
- }
- } catch (err) {
- }
- }, []);
 
  useEffect(() => {
  const getActiveUserStr = () => {
@@ -783,7 +695,7 @@ const totalWorkingMins = overlap1 + overlap2;
  }
  };
 
-    syncDatabase();
+    
     syncUserRole();
     checkNewNotifications();
     checkLateStatus();
@@ -791,8 +703,7 @@ const totalWorkingMins = overlap1 + overlap2;
 
     const interval = setInterval(async () => {
       // Sync trước, sau đó mới kiểm tra quyền để đảm bảo data đã được kéo từ server về
-      await syncDatabase();
-      syncUserRole();
+        syncUserRole();
       checkNewNotifications();
       checkLateStatus();
       checkAccess();
@@ -896,145 +807,122 @@ const totalWorkingMins = overlap1 + overlap2;
  }, [isLate, user]);
 
   const syncRealUsersFromDB = React.useCallback(async () => {
-    try {
-      const res = await fetch("/api/admin/users");
-      if (res.ok) {
-        const data = await res.json();
-        const realUsers = data.users || data.data || [];
-        if (realUsers.length > 0) {
-          const savedUsersStr = localStorage.getItem("global_users");
-          const existingUsers = savedUsersStr ? JSON.parse(savedUsersStr) : [];
-          const existingMap = new Map(existingUsers.map((u: any) => [u.username, u]));
+   try {
+     const res = await fetch("/api/admin/users");
+     if (res.ok) {
+       const data = await res.json();
+       const realUsers = data.users || data.data || [];
+       if (realUsers.length > 0) {
+         const formattedUsers = realUsers.map((u: any) => ({
+           id: u.id || u._id || String(u.username),
+           name: u.name,
+           username: u.username,
+           role: u.role,
+           isOnline: u.isOnline || false,
+           lastActive: u.lastActive,
+           avatar: u.avatar || "",
+           status: u.status || "ACTIVE"
+         }));
 
-          const formattedUsers = realUsers.map((u: any) => {
-            const existing = (existingMap.get(u.username) || {}) as any;
-            return {
-              id: u.id || u._id || String(u.username),
-              name: u.name,
-              username: u.username,
-              role: u.role,
-              isOnline: u.isOnline || false,
-              lastActive: u.lastActive,
-              avatar: u.avatar || "",
-              status: u.status || "ACTIVE",
-              isLateLocked: existing.isLateLocked,
-              finePaymentStatus: existing.finePaymentStatus,
-              lateExcuseStatus: existing.lateExcuseStatus
-            };
-          });
-          
-          localStorage.setItem("global_users", JSON.stringify(formattedUsers));
-          
-          // Push to SyncStore so all other tabs are synchronized in real-time
-          fetch("/api/sync", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ global_users: JSON.stringify(formattedUsers) })
-          }).catch(err => console.error("Sync post users error:", err));
-        }
-      }
-    } catch (err) {
-      console.error("Failed to sync real users from DB in layout:", err);
-    }
+         setChatUsers(formattedUsers.filter((u: any) => u.username !== user?.username));
+         localStorage.setItem("global_users", JSON.stringify(formattedUsers));
+       }
+     }
+   } catch (err) {
+     console.error("Failed to sync real users from DB in layout:", err);
+   }
   }, [user]);
 
-  const loadChatData = React.useCallback(() => {
-    const savedCompany = localStorage.getItem("global_company_chat");
-    let companyArr = [];
-    if (savedCompany) {
-      companyArr = JSON.parse(savedCompany);
-      if (companyArr.some((m: any) => m.id === "company_1715000000000")) {
-        companyArr = [];
-        localStorage.setItem("global_company_chat", "[]");
+  const loadChatData = React.useCallback(async () => {
+   if (!user) return;
+
+   try {
+     // Fetch Company Chat
+     const compRes = await fetch("/api/messages?isCompanyChat=true", {
+       headers: { "x-user-id": user.id || user._id }
+     });
+     if (compRes.ok) {
+       const compData = await compRes.json();
+       if (compData.success) setCompanyMessages(compData.data || []);
+     }
+
+     // Fetch Private Chat (this would require a more complex API to get all partners, 
+     // but for now let's just fetch if there's an active chat user)
+     if (activeChatUser) {
+       const privRes = await fetch(`/api/messages?partnerId=${activeChatUser.id || activeChatUser._id}`, {
+         headers: { "x-user-id": user.id || user._id }
+       });
+       if (privRes.ok) {
+         const privData = await privRes.json();
+         if (privData.success) setPrivateMessages(privData.data || []);
+       }
+     }
+   } catch (err) {
+     console.error("Load chat data error:", err);
+   }
+  }, [user, activeChatUser]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Initialize Pusher Client
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || "", {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "ap1",
+    });
+
+    // 1. Subscribe to Company Chat
+    const companyChannel = pusher.subscribe("company-chat");
+    companyChannel.bind("new-message", (msg: any) => {
+      setCompanyMessages(prev => {
+        // Prevent duplicates
+        if (prev.some(m => m.id === msg.id || m._id === msg._id)) return prev;
+        return [...prev, msg];
+      });
+      if (msg.senderUsername !== user.username) {
+        playChatChime();
+        setUnreadCount(prev => prev + 1);
       }
-      setCompanyMessages(companyArr);
-    } else {
-      localStorage.setItem("global_company_chat", "[]");
-      setCompanyMessages([]);
-      companyArr = [];
-    }
+      scrollToBottom();
+    });
 
-    const savedPrivate = localStorage.getItem("global_private_messages");
-    let privateArr = [];
-    if (savedPrivate) {
-      privateArr = JSON.parse(savedPrivate);
-      setPrivateMessages(privateArr);
-    } else {
-      localStorage.setItem("global_private_messages", "[]");
-      setPrivateMessages([]);
-    }
-
-    if (user && (privateArr || []).length > 0) {
-      const senders = new Set<string>();
-      privateArr.forEach((msg: any) => {
-        if (msg.receiver === user?.username) {
-          senders.add(msg.sender);
-        }
+    // 2. Subscribe to Private Chat
+    const privateChannel = pusher.subscribe(`private-chat-${user.id || user._id}`);
+    privateChannel.bind("new-message", (msg: any) => {
+      setPrivateMessages(prev => {
+        if (prev.some(m => m.id === msg.id || m._id === msg._id)) return prev;
+        return [...prev, msg];
       });
-      senders.forEach((sender) => {
-        const key = `chat_last_received_time_${user?.username}_${sender}`;
-        const currentVal = localStorage.getItem(key);
-        if (!currentVal || Number(currentVal) < Date.now() - 5000) {
-          localStorage.setItem(key, Date.now().toString());
-        }
-      });
-    }
+      if (msg.senderUsername !== user.username) {
+        playChatChime();
+        setUnreadCount(prev => prev + 1);
+      }
+      scrollToBottom();
+    });
 
-    const savedUsers = localStorage.getItem("global_users");
-    if (savedUsers) {
-      const allUsers = JSON.parse(savedUsers);
-      setChatUsers((allUsers || []).filter((u: any) => u.username !== user?.username));
-    }
+    // 3. Subscribe to Newsfeed (Notifications)
+    const newsfeedChannel = pusher.subscribe("newsfeed");
+    newsfeedChannel.bind("new-post", (post: any) => {
+      setRoleUpdateNotif({ title: "Thông báo mới", message: post.title });
+      setTimeout(() => setRoleUpdateNotif(null), 5000);
+      router.refresh(); // Refresh SWR or server data
+    });
 
-    let unread = 0;
-    if (user) {
-      const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}`);
-      const lastReadTime = lastReadTimeStr ? parseInt(lastReadTimeStr) : 0;
-      (companyArr || []).forEach((msg: any) => {
-        if (msg.sender !== user?.username) {
-          const msgTime = msg.timestamp ? parseInt(msg.timestamp) : Date.now();
-          if (msgTime > lastReadTime) {
-            unread++;
-          }
-        }
-      });
+    // 4. Subscribe to User Status Changes
+    const statusChannel = pusher.subscribe("system-users");
+    statusChannel.bind("status-changed", (data: any) => {
+      setChatUsers(prev => prev.map(u => 
+        (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline, lastActive: data.lastActive } : u
+      ));
+    });
 
-      const privateUnreadMap: Record<string, number> = {};
-      (privateArr || []).forEach((msg: any) => {
-        if (msg.receiver === user?.username) {
-          const senderReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}_${msg.sender}`);
-          const senderReadTime = senderReadTimeStr ? parseInt(senderReadTimeStr) : 0;
-          const msgTime = msg.timestamp ? parseInt(msg.timestamp) : Date.now();
-          if (msgTime > senderReadTime) {
-            unread++;
-            privateUnreadMap[msg.sender] = (privateUnreadMap[msg.sender] || 0) + 1;
-          }
-        }
-      });
-    }
-    setUnreadCount(unread);
+    return () => {
+      pusher.unsubscribe("company-chat");
+      pusher.unsubscribe(`private-chat-${user.id || user._id}`);
+      pusher.unsubscribe("newsfeed");
+      pusher.unsubscribe("system-users");
+      pusher.disconnect();
+    };
   }, [user]);
-
-  // Polling for access requests every 5 seconds (realtime notification for Admin/Managers)
-  useSWR("admin_pending_requests_polling", async () => {
-    if (!user || !(user.role === "01" || user.role === "02" || String(user.role).toUpperCase() === "ADMIN")) {
-      return Date.now();
-    }
-    try {
-      const res = await fetch(`/api/sync?t=${Date.now()}`);
-      if (res.ok) {
-        const store = await res.json();
-        if (store.pending_access_requests) {
-          const reqs = JSON.parse(store.pending_access_requests);
-          setPendingRequests(reqs);
-          localStorage.setItem("pending_access_requests", store.pending_access_requests);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to poll access requests:", err);
-    }
-    return Date.now();
-  }, { refreshInterval: 5000 });
 
   // Realtime useSWR Polling for systemSettings (30s interval)
   const { data: systemSettings } = useSWR("/api/admin/settings", async () => {
@@ -1280,40 +1168,18 @@ const typingTimer = setInterval(checkTyping, 1000);
 
         localStorage.setItem(`chat_last_read_time_${user?.username}_${activeChatUser.username}`, Date.now().toString());
         
-        // 2. Đồng thời cập nhật trạng thái isRead = true cho các tin nhắn trong localStorage và SyncStore
-        const savedPrivate = localStorage.getItem("global_private_messages");
-        if (savedPrivate) {
-          try {
-            const privateArr = JSON.parse(savedPrivate);
-            let hasUnread = false;
-            const updated = privateArr.map((msg: any) => {
-              if (msg.sender === activeChatUser.username && msg.receiver === user?.username && !msg.isRead) {
-                hasUnread = true;
-                return { ...msg, isRead: true };
-              }
-              return msg;
-            });
-            if (hasUnread) {
-              safeSetLocalStorage("global_private_messages", updated);
-              setPrivateMessages(updated);
-              fetch("/api/sync", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ global_private_messages: JSON.stringify(updated) })
-              }).catch(err => console.error("Sync read messages error:", err));
-              window.dispatchEvent(new Event("storage"));
-            }
-          } catch (e) {}
-        }
+        // 2. Đồng thời cập nhật trạng thái isRead = true cho các tin nhắn
+        setPrivateMessages(prev => prev.map((msg: any) => {
+          if (msg.sender === activeChatUser.username && msg.receiver === user?.username && !msg.isRead) {
+            return { ...msg, isRead: true };
+          }
+          return msg;
+        }));
       }
 
       // Trigger a local state recalculation to instantly clear badge
-      const savedCompany = localStorage.getItem("global_company_chat");
-      const savedPrivate = localStorage.getItem("global_private_messages");
       let unread = 0;
-
-      const companyArr = savedCompany ? JSON.parse(savedCompany) : [];
-      companyArr.forEach((msg: any) => {
+      companyMessages.forEach((msg: any) => {
         const isMe = msg.senderName === (user?.name || user?.username);
         const msgTime = Number(msg.id.split("_")[1]) || 0;
         if (!isMe && msgTime > 0 && msgTime > Date.now()) {
@@ -1337,16 +1203,6 @@ const typingTimer = setInterval(checkTyping, 1000);
       setUnreadCount(unread);
     }
   }, [isChatOpen, chatTab, activeChatUser, companyMessages, privateMessages, user]);
-
- const scrollToBottom = () => {
- setTimeout(() => {
- if (chatTab ==="COMPANY") {
- companyMessagesEndRef.current?.scrollIntoView({ behavior:"smooth" });
- } else {
- privateMessagesEndRef.current?.scrollIntoView({ behavior:"smooth" });
- }
- }, 100);
- };
 
  useEffect(() => {
  if (isChatOpen) {
@@ -1429,71 +1285,43 @@ const typingTimer = setInterval(checkTyping, 1000);
  e.preventDefault();
  if (!chatMessage.trim() && !selectedChatFile) return;
 
- const newMsg = {
- id: `company_${Date.now()}`,
- senderName: user?.name || user?.username,
- senderRole: user?.role,
- text: chatMessage,
- time: new Date().toLocaleTimeString("vi-VN", { hour:"2-digit", minute:"2-digit" }),
- fileName: selectedChatFile?.name,
- fileSize: selectedChatFile?.size,
- fileType: selectedChatFile?.type,
- fileData: selectedChatFile?.data
- };
-
- const updated = [...companyMessages, newMsg];
- safeSetLocalStorage("global_company_chat", updated);
- setCompanyMessages(updated);
+ const content = chatMessage || (selectedChatFile ? `[Tệp tin] ${selectedChatFile.name}` : "[Tệp tin]");
+ 
  setChatMessage("");
  setSelectedChatFile(null);
- window.dispatchEvent(new Event("storage"));
  scrollToBottom();
 
- fetch("/api/sync", {
- method:"POST",
- headers: {"Content-Type":"application/json" },
- body: JSON.stringify({ global_company_chat: JSON.stringify(updated) })
- }).catch(err => console.error("Chat sync error:", err));
+ fetch("/api/messages", {
+   method: "POST",
+   headers: {
+     "Content-Type": "application/json",
+     "x-user-id": user?.id || user?._id || ""
+   },
+   body: JSON.stringify({
+     content,
+     isCompanyChat: true
+   })
+ }).catch(err => console.error("POST company message error:", err));
  };
 
  const handleSendPrivateMessage = (e: React.FormEvent) => {
  e.preventDefault();
  if (!chatMessage.trim() && !selectedChatFile) return;
 
- const newMsg = {
- id: `private_${Date.now()}`,
- sender: user?.username,
- receiver: activeChatUser.username,
- text: chatMessage,
- time: new Date().toLocaleTimeString("vi-VN", { hour:"2-digit", minute:"2-digit" }),
- fileName: selectedChatFile?.name,
- fileSize: selectedChatFile?.size,
- fileType: selectedChatFile?.type,
- fileData: selectedChatFile?.data
- };
+ const content = chatMessage || (selectedChatFile ? `[Tệp tin] ${selectedChatFile.name}` : "[Tệp tin]");
 
- const updated = [...privateMessages, newMsg];
- safeSetLocalStorage("global_private_messages", updated);
- setPrivateMessages(updated);
  setChatMessage("");
  setSelectedChatFile(null);
- window.dispatchEvent(new Event("storage"));
  scrollToBottom();
-
- fetch("/api/sync", {
- method:"POST",
- headers: {"Content-Type":"application/json" },
- body: JSON.stringify({ global_private_messages: JSON.stringify(updated) })
- }).catch(err => console.error("Chat sync error:", err));
 
   fetch("/api/messages", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-user-id": user?.id || ""
+      "x-user-id": user?.id || user?._id || ""
     },
     body: JSON.stringify({
-      content: chatMessage || (selectedChatFile ? `[Tệp tin] ${selectedChatFile.name}` : "[Tệp tin]"),
+      content,
       receiverId: activeChatUser.id || activeChatUser._id,
       isCompanyChat: false
     })
@@ -1578,7 +1406,7 @@ const typingTimer = setInterval(checkTyping, 1000);
  localStorage.setItem("request_trigger", Date.now().toString());
 
  // Đồng bộ lên server ngay lập tức để Admin nhận được yêu cầu
- syncDatabase();
+ 
  };
 
   const handleApprove = async (request: any) => {
@@ -1675,7 +1503,6 @@ const typingTimer = setInterval(checkTyping, 1000);
       }
     }
 
-    await syncDatabase();
     setAccessSuccessMsg(`Đã duyệt yêu cầu cho ${request.staffName}`);
   };
 
@@ -1727,8 +1554,6 @@ const typingTimer = setInterval(checkTyping, 1000);
         localStorage.setItem("global_users", JSON.stringify(updatedUsers));
       }
     }
-
-    await syncDatabase();
   };
 
  // Thông tin mặc định nếu chưa load xong hoặc để modal hiển thị
@@ -1933,7 +1758,7 @@ const typingTimer = setInterval(checkTyping, 1000);
             localStorage.setItem("global_users", JSON.stringify(updated));
           }
           window.dispatchEvent(new Event("storage"));
-          syncDatabase();
+          
           setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
           setTimeout(() => setFineSuccessToast(null), 5000);
         }
@@ -1969,7 +1794,7 @@ const typingTimer = setInterval(checkTyping, 1000);
             localStorage.setItem("global_users", JSON.stringify(updated));
           }
           window.dispatchEvent(new Event("storage"));
-          syncDatabase();
+          
           setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
           setTimeout(() => setFineSuccessToast(null), 5000);
         }
