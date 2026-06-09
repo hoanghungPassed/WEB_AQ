@@ -1142,70 +1142,62 @@ const typingTimer = setInterval(checkTyping, 1000);
 
   // Update last read time when chat is open or when new message is loaded
   useEffect(() => {
-    if (isChatOpen && user) {
-      localStorage.setItem(`chat_last_read_time_${user?.username}`, Date.now().toString());
+    if (!isChatOpen || !user) return;
 
-      // If we are actively chatting with a private partner
-      if (chatTab === "PRIVATE" && activeChatUser) {
-        const partnerId = activeChatUser.id || activeChatUser._id;
-        
-        // 1. Gọi API POST mark-read để MongoDB cập nhật isRead = true cho tất cả tin nhắn từ partnerId
-        if (partnerId) {
-          fetch("/api/messages/mark-read", {
-            method: "POST",
-            headers: { 
-              "Content-Type": "application/json",
-              "x-user-id": user?.id || user?._id || ""
-            },
-            body: JSON.stringify({ partnerId })
-          }).then(() => {
-            if (typeof mutateChat === "function") {
-              mutateChat();
-            }
-            router.refresh();
-          }).catch(err => {});
-        }
+    localStorage.setItem(`chat_last_read_time_${user?.username}`, Date.now().toString());
 
-        localStorage.setItem(`chat_last_read_time_${user?.username}_${activeChatUser.username}`, Date.now().toString());
-        
-        // 2. Đồng thời cập nhật trạng thái isRead = true cho các tin nhắn
-        setPrivateMessages(prev => prev.map((msg: any) => {
-          if (msg.sender === activeChatUser.username && msg.receiver === user?.username && !msg.isRead) {
-            return { ...msg, isRead: true };
-          }
-          return msg;
-        }));
+    // If we are actively chatting with a private partner
+    if (chatTab === "PRIVATE" && activeChatUser) {
+      const partnerId = activeChatUser.id || activeChatUser._id;
+      
+      // 1. Gọi API POST mark-read để MongoDB cập nhật isRead = true cho tất cả tin nhắn từ partnerId
+      if (partnerId) {
+        fetch("/api/messages/mark-read", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "x-user-id": user?.id || user?._id || ""
+          },
+          body: JSON.stringify({ partnerId })
+        }).then(() => {
+          // If we had a global mutate function, we could call it here
+          router.refresh();
+        }).catch(() => {});
       }
 
-      // Trigger a local state recalculation to instantly clear badge
-      let unread = 0;
-      const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}`);
-      const lastReadTime = lastReadTimeStr ? parseInt(lastReadTimeStr) : 0;
+      localStorage.setItem(`chat_last_read_time_${user?.username}_${activeChatUser.username}`, Date.now().toString());
+    }
 
-      companyMessages.forEach((msg: any) => {
-        const isMe = msg.senderUsername === user?.username || msg.senderName === (user?.name || user?.username);
-        const msgTime = msg.createdAt ? new Date(msg.createdAt).getTime() : (Number(msg.id?.split("_")[1]) || 0);
-        if (!isMe && msgTime > lastReadTime) {
+    // Trigger a local state recalculation to instantly clear badge
+    let unread = 0;
+    const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}`);
+    const lastReadTime = lastReadTimeStr ? parseInt(lastReadTimeStr) : 0;
+
+    companyMessages.forEach((msg: any) => {
+      const isMe = msg.senderUsername === user?.username || msg.senderName === (user?.name || user?.username);
+      const msgTime = msg.createdAt ? new Date(msg.createdAt).getTime() : (Number(msg.id?.split("_")[1]) || 0);
+      if (!isMe && msgTime > lastReadTime) {
+        unread++;
+      }
+    });
+
+    privateMessages.forEach((msg: any) => {
+      const isMe = msg.senderUsername === user?.username || msg.sender === user?.username;
+      const isForMe = msg.receiverUsername === user?.username || msg.receiver === user?.username;
+      const msgTime = msg.createdAt ? new Date(msg.createdAt).getTime() : (Number(msg.id?.split("_")[1]) || 0);
+      
+      if (!isMe && isForMe) {
+        const senderReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}_${msg.senderUsername || msg.sender}`);
+        const senderReadTime = senderReadTimeStr ? Number(senderReadTimeStr) : 0;
+        if (msgTime > senderReadTime && !msg.isRead) {
           unread++;
         }
-      });
-
-      privateMessages.forEach((msg: any) => {
-        const isMe = msg.senderUsername === user?.username || msg.sender === user?.username;
-        const isForMe = msg.receiverUsername === user?.username || msg.receiver === user?.username;
-        const msgTime = msg.createdAt ? new Date(msg.createdAt).getTime() : (Number(msg.id?.split("_")[1]) || 0);
-        
-        if (!isMe && isForMe) {
-          const senderReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}_${msg.senderUsername || msg.sender}`);
-          const senderReadTime = senderReadTimeStr ? Number(senderReadTimeStr) : 0;
-          if (msgTime > senderReadTime && !msg.isRead) {
-            unread++;
-          }
-        }
-      });
-      setUnreadCount(unread);
-    }
-  }, [isChatOpen, chatTab, activeChatUser, companyMessages, privateMessages, user]);
+      }
+    });
+    
+    // Check if unread really changed to prevent loop
+    setUnreadCount(prev => prev !== unread ? unread : prev);
+  }, [isChatOpen, chatTab, activeChatUser?.username, companyMessages, privateMessages, user?.username]);
 
  useEffect(() => {
  if (isChatOpen) {
@@ -1356,7 +1348,9 @@ const typingTimer = setInterval(checkTyping, 1000);
 
   const shouldLock = !isAdminOrWorkManager && (accessStatus === 'CLOSED' || (isSunday && isRestrictedRole)) && !isAccessGranted;
   const isLateLocked = !isAdminOrWorkManager && accessStatus === 'LATE' && !isAccessGranted;
-  isCurrentlyLockedRef.current = isLateLocked;
+  useEffect(() => {
+    isCurrentlyLockedRef.current = isLateLocked;
+  }, [isLateLocked]);
 
  const getLockMessage = () => {
     if (isSunday) return "Hôm nay là Chủ Nhật. Hệ thống tạm khóa đối với nhân sự và quản lý nhân sự.";
