@@ -24,11 +24,11 @@ export async function GET(req: NextRequest) {
 
     // Ánh xạ trạng thái từ Database:
     // PENDING -> PENDING
-    // ACTIVE -> GRANTED
+    // ACTIVE -> ACTIVE
     // LOCKED -> REJECTED
-    let responseStatus: "PENDING" | "GRANTED" | "REJECTED" = "PENDING";
+    let responseStatus: "PENDING" | "ACTIVE" | "REJECTED" = "PENDING";
     if (user.status === "ACTIVE") {
-      responseStatus = "GRANTED";
+      responseStatus = "ACTIVE";
       user.isOnline = true;
     } else {
       user.isOnline = false;

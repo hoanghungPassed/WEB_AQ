@@ -5,6 +5,7 @@ import { Search, Bell, Menu, User, PanelLeftClose, PanelLeftOpen, LogOut, UserSe
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import useSWR, { mutate } from "swr";
+import Pusher from "pusher-js";
 
 interface HeaderProps {
   isCollapsed: boolean;
@@ -48,7 +49,56 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    
+    // Subscribe to Pusher notifications
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || "", {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "ap1",
+    });
+
+    const notifChannel = pusher.subscribe("system-notifications");
+    notifChannel.bind("new-notification", (notif: any) => {
+      // Only process registration notifications for admins
+      if (notif.type === "REGISTRATION") {
+        const roleUpper = String(user?.role || "").toUpperCase();
+        if (roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC") {
+          mutate('/api/admin/notifications');
+          // Add a local notification instantly
+          setNotifications(prev => {
+            if (prev.some(n => n.id === notif.id || n._id === notif._id)) return prev;
+            return [{ ...notif, read: false }, ...prev];
+          });
+          
+          // Custom toast or alert logic
+          const audio = new Audio('/notification.mp3');
+          audio.play().catch(e => {});
+
+          // Auto-open approval modal if it's a registration
+          fetch(`/api/admin/users/${notif.author}`, {
+            headers: {
+              'x-user-id': user?.id || user?._id || '',
+              'x-user-role': user?.role || ''
+            }
+          }).then(res => res.json()).then(resData => {
+            if (resData.success && resData.data) {
+              setPendingApproveUser(resData.data);
+              setSelectedRole("04");
+            }
+          }).catch(console.error);
+        }
+      } else if (!notif.targetUsername || notif.targetUsername?.toLowerCase() === user?.username?.toLowerCase()) {
+        mutate('/api/admin/notifications');
+        setNotifications(prev => {
+          if (prev.some(n => n.id === notif.id || n._id === notif._id)) return prev;
+          return [{ ...notif, read: false }, ...prev];
+        });
+      }
+    });
+
+    return () => {
+      pusher.unsubscribe("system-notifications");
+      pusher.disconnect();
+    };
+  }, [user]);
 
   // Real-time Date and Time Widget
   useEffect(() => {
@@ -591,7 +641,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
 
       {/* Quick Registration Approval Modal */}
       {pendingApproveUser && (
-        <div className="fixed inset-0 z-[600] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-[#18181b] border border-[#a07800]/25 w-full max-w-lg rounded-[32px] p-8 shadow-[0_0_50px_rgba(160,120,0,0.15)] relative overflow-hidden">
             <div className="absolute top-0 right-0 h-40 w-40 bg-[#a07800]/5 blur-[50px] -mr-20 -mt-20" />
             

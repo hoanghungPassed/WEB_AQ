@@ -55,7 +55,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
     return () => window.removeEventListener("storage", updateBrand);
   }, []);
   const pathname = usePathname();
-  const [openMenus, setOpenMenus] = useState<string[]>(["Kho mail", "Kho mail và SĐT", "Quản lý mail", "Quản lý lô Mail"]);
+  const [openMenus, setOpenMenus] = useState<string[]>([]);
 
   const roleUpper = String(user?.role || "").toUpperCase();
   const isAdminOrManager = roleUpper === "01" || 

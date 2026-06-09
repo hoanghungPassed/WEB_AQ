@@ -33,9 +33,6 @@ export async function POST(request: NextRequest) {
         col.name !== "users" && 
         col.name !== "system_settings" && 
         col.name !== "systemsettings" && 
-        col.name !== "satellite_mails" &&
-        col.name !== "monetized_mails" &&
-        col.name !== "root_mails" &&
         !col.name.startsWith("system.")
       ) {
         await db.dropCollection(col.name);
@@ -54,7 +51,9 @@ export async function POST(request: NextRequest) {
     const { Batch } = await import("@/models/Batch");
     const { Fine } = await import("@/models/Fine");
     const { Attendance } = await import("@/models/Attendance");
+    const { RootMail } = await import("@/models/RootMail");
     const { SatelliteMail } = await import("@/models/SatelliteMail");
+    const { MonetizedMail } = await import("@/models/MonetizedMail");
 
     await Message.deleteMany({});
     await AutoMessage.deleteMany({});
@@ -63,13 +62,15 @@ export async function POST(request: NextRequest) {
     await Batch.deleteMany({});
     await Fine.deleteMany({});
     await Attendance.deleteMany({});
-
-    // Cập nhật kho Mail: giải phóng mọi email vệ tinh
-    await SatelliteMail.updateMany({}, { $set: { isAssigned: false, assigneeId: null, assignedTo: null, batchId: null, batchName: null } });
+    
+    // Xóa hoàn toàn kho mail thay vì chỉ giải phóng
+    await RootMail.deleteMany({});
+    await SatelliteMail.deleteMany({});
+    await MonetizedMail.deleteMany({});
 
     try {
       const { logAction } = await import('@/lib/logger');
-      await logAction("system", "Reset Database", "Đã xóa toàn bộ dữ liệu (trừ Users và Kho Mail).");
+      await logAction("system", "Reset Database", "Đã xóa toàn bộ dữ liệu (bao gồm cả Users và Kho Mail).");
     } catch(e) {}
 
     // Log successful operation

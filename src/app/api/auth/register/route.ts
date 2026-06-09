@@ -3,6 +3,7 @@ import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import { Notification } from "@/models/Notification";
 import { hashPassword } from "@/lib/auth";
+import { pusherServer } from "@/lib/pusher";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     // Gửi thông báo phê duyệt đăng ký cho Admin
     try {
-      await Notification.create({
+      const newNotif = await Notification.create({
         type: 'REGISTRATION',
         title: 'Yêu cầu đăng ký mới',
         message: 'Tài khoản ' + username + ' đang chờ duyệt',
@@ -54,6 +55,11 @@ export async function POST(req: NextRequest) {
         author: newUser._id,
         isRead: false
       });
+
+      // Trigger realtime admin notification
+      try {
+        await pusherServer.trigger("system-notifications", "new-notification", newNotif);
+      } catch (pushErr) {}
     } catch (notifErr) {
       console.error("Lỗi tự động tạo thông báo đăng ký:", notifErr);
     }
