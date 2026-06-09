@@ -63,7 +63,7 @@ const getMailsForTask = (t: any, allMails: any[]) => {
  }
  
  let filtered = (allMails || []).filter((m: any) => m.type === mailType && String(m.assigneeId) === String(t.assigneeId));
- if (t.title ==="Check, xÃ³a, táº¡o" || t.title ==="KÃªnh báº­t kiáº¿m tiá»n") {
+ if (t.title ==="Check, xóa, táº¡o" || t.title ==="Kênh báº­t kiáº¿m tiá»n") {
  if (t.mailRange) {
  const parts = t.mailRange.split("-");
  if ((parts || []).length === 2) {
@@ -74,12 +74,12 @@ const getMailsForTask = (t: any, allMails: any[]) => {
  filtered = (filtered || []).filter((m: any) => idsInRange.includes(m.id));
  }
  }
- } else if (t.title ==="LÃ m kÃªnh") {
+ } else if (t.title ==="Làm kênh") {
  if (t.mailRange) {
  const cleanBatch = t.batch || t.mailRange.split(" (")[0];
  filtered = (filtered || []).filter((m: any) => m.batchName === cleanBatch);
  }
- } else if (t.title ==="Má»i kÃªnh" && t.mailRange) {
+ } else if (t.title ==="Má»i kênh" && t.mailRange) {
  const parts = t.mailRange.split("+");
  const loPart = parts.pop()?.trim();
  filtered = (allMails || []).filter((m: any) => 

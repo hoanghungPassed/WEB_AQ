@@ -86,19 +86,19 @@ export default function EmployeePhoneListPage() {
  headers: {"Content-Type":"application/json" },
  body: JSON.stringify({
  user: user?.id || user?.name ||"Employee",
- role:"NHÃ‚N VIÃŠN",
- action: `Cáº­p nháº­t tráº¡ng thÃ¡i SÄT ${targetNumber} thÃ nh"${newStatus}"`,
+ role:"NHÂN VIÊN",
+ action: `Cáº­p nháº­t trạng thái SÄT ${targetNumber} thÃ nh"${newStatus}"`,
  type: newStatus ==="Lỗi" ?"WARNING" :"SUCCESS",
  timestamp: new Date().toLocaleString("vi-VN")
  })
  }).catch(console.error);
 
  mutate(); 
- triggerToast(`ÄÃ£ lÆ°u tráº¡ng thÃ¡i"${newStatus}" cho sá»‘ ${targetNumber}!`);
+ triggerToast(`Đã lưu trạng thái"${newStatus}" cho sá»‘ ${targetNumber}!`);
  }
  } catch(err) {
  console.error(err);
- triggerToast("Lá»—i cáº­p nháº­t!");
+ triggerToast("Lỗi cập nhật!");
  }
  };
 

@@ -94,7 +94,7 @@ export default function PhoneBatchesPage() {
   if (!raw) { router.push("/login"); return; }
   const parsed = JSON.parse(raw) as StaffData;
   const role = String(parsed.role || "").toUpperCase();
-  if (!["01", "02", "ADMIN", "QUáº¢N LÃ CÃ”NG VIá»†C", "QL CÃ”NG VIá»†C"].includes(role)) {
+  if (!["01", "02", "ADMIN", "QUẢN LÝ CÔNG VIỆC", "QL CÔNG VIỆC"].includes(role)) {
     router.push("/admin");
     return;
   }
@@ -198,7 +198,7 @@ export default function PhoneBatchesPage() {
  const groupedWarehouse = useMemo(() => {
  const groups: Record<string, PhoneItem[]> = {};
  warehousePhones.forEach(p => {
- const b = p.importBatch ||"ChÆ°a phÃ¢n lÃ´";
+ const b = p.importBatch ||"Chưa phÃ¢n lô";
  if (!groups[b]) groups[b] = [];
  groups[b].push(p);
  });
@@ -217,14 +217,14 @@ export default function PhoneBatchesPage() {
  });
  const data = await res.json();
  if (res.ok) {
- triggerToast(`ÄÃ£ xÃ³a ${data.deletedCount} SÄT khá»i lÃ´"${batchToDelete}"!`);
+ triggerToast(`Đã xóa ${data.deletedCount} SÄT khá»i lô"${batchToDelete}"!`);
  mutatePhones();
  } else {
- triggerToast(`Lá»—i: ${data.error}`);
+ triggerToast(`Lỗi: ${data.error}`);
  }
  } catch (err) {
  console.error(err);
- triggerToast("Lá»—i khi xÃ³a lÃ´ SÄT");
+ triggerToast("Lỗi khi xóa lô SÄT");
  } finally {
  setBatchToDelete(null);
  }
@@ -442,7 +442,7 @@ export default function PhoneBatchesPage() {
 
  if (deficit <= 0) {
  await reloadPhones();
- pushLog(`QuÃ©t vÃ  dá»n dáp ${toRemoveIds.length} SÄT (Lá»—i/Done) cá»§a ${selectedEmp.name}. KhÃ´ng cáº§n bÆ¡m thÃªm.`);
+ pushLog(`QuÃ©t vÃ  dá»n dáp ${toRemoveIds.length} SÄT (Lỗi/Done) của ${selectedEmp.name}. KhÃ´ng cáº§n bÆ¡m thÃªm.`);
  triggerToast(`Đã dọn dẹp ${toRemoveIds.length} SĐT. Nhân viên đã đủ ${STANDARD_QUOTA} số.`);
  return;
  }
@@ -468,7 +468,7 @@ export default function PhoneBatchesPage() {
  await reloadPhones();
  const remainingDeficit = deficit - canFill;
  const suffix = remainingDeficit > 0 ? ` (còn thiếu ${remainingDeficit} SĐT do kho không đủ)` :"";
- pushLog(`QuÃ©t dá»n dáp ${toRemoveIds.length} SÄT â†’ BÆ¡m ${canFill} SÄT má»›i cho ${selectedEmp.name}${suffix}`);
+ pushLog(`QuÃ©t dá»n dáp ${toRemoveIds.length} SÄT â†’ BÆ¡m ${canFill} SÄT mới cho ${selectedEmp.name}${suffix}`);
  triggerToast(`Đã dọn dẹp ${toRemoveIds.length}, bơm lại ${canFill} SĐT mới cho ${selectedEmp.name}!${suffix}`);
  };
 
@@ -1013,7 +1013,7 @@ export default function PhoneBatchesPage() {
     onClose={() => setShowHistoryModal(false)}
     importHistory={importHistory}
     onDeleteRow={(id) => {
-      if (!confirm("Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a dÃ²ng lá»‹ch sá»­ nÃ y?")) return;
+      if (!confirm("Bạn có chắc chắn muốn xóa dòng lá»‹ch sá»­ nÃ y?")) return;
       const updated = (importHistory || []).filter(h => h.id !== id);
       setImportHistory(updated);
       localStorage.setItem("global_import_history", JSON.stringify(updated));
@@ -1024,7 +1024,7 @@ export default function PhoneBatchesPage() {
       }).catch(console.error);
     }}
     onClearAll={async () => {
-      if (!confirm("XÃ¡c nháº­n xÃ³a TOÃ€N Bá»˜ lá»‹ch sá»­ import?")) return;
+      if (!confirm("Xác nhận xóa TOÃ€N Bá»˜ lá»‹ch sá»­ import?")) return;
       setImportHistory([]);
       localStorage.setItem("global_import_history", JSON.stringify([]));
       try {

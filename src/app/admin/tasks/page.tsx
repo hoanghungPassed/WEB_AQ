@@ -38,13 +38,13 @@ import { Badge } from "@/components/ui/Badge";
 
 const TaskCard = React.memo(({ task, onClick }: { task: TaskAssignment, onClick: () => void }) => {
  const statusConfig: Record<string, { icon: React.ReactNode, variant: "default" | "success" | "warning" | "danger" | "info" | "gold", label: string }> = {
- PENDING: { icon: <Clock size={16} />, variant: "warning", label: "Äang chá»" },
- IN_PROGRESS: { icon: <Loader2 size={16} className="animate-spin" />, variant: "info", label: "Äang thá»±c hiá»‡n" },
+ PENDING: { icon: <Clock size={16} />, variant: "warning", label: "Đang chá»" },
+ IN_PROGRESS: { icon: <Loader2 size={16} className="animate-spin" />, variant: "info", label: "Đang thá»±c hiá»‡n" },
  COMPLETED: { icon: <CheckCircle2 size={16} />, variant: "success", label: "HoÃ n thÃ nh" },
  OVERDUE: { icon: <AlertCircle size={16} />, variant: "danger", label: "Trá»… háº¡n" },
  };
 
- const typeLabel = task.type ==="MAIL_VE_TINH" ?"Vá»‡ tinh" : task.type ==="MAIL_MONETIZED" ?"Kiáº¿m tiá»n" :"Gá»‘c";
+ const typeLabel = task.type ==="MAIL_VE_TINH" ?"Vá»‡ tinh" : task.type ==="MAIL_MONETIZED" ?"Kiáº¿m tiá»n" :"Gốc";
 
  return (
  <motion.div
@@ -74,7 +74,7 @@ const TaskCard = React.memo(({ task, onClick }: { task: TaskAssignment, onClick:
  </div>
  <div className="space-y-1.5">
  <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-gray-500">
- <span>Tiáº¿n Ä‘á»™ hoÃ n thÃ nh</span>
+ <span>Tiến độ hoàn thành</span>
  <span>{task.progress}%</span>
  </div>
  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
@@ -104,19 +104,19 @@ export default function TaskManagementPage() {
 
  // New states for template allocation flow
  const [adminTab, setAdminTab] = useState<"ASSIGN" |"TASKS">("ASSIGN");
- const [selectedTemplate, setSelectedTemplate] = useState<string>("Check, xÃ³a, táº¡o");
+ const [selectedTemplate, setSelectedTemplate] = useState<string>("Check, xóa, táº¡o");
  const [targetStaffId, setTargetStaffId] = useState<string>("");
  const [mailTypeSelection, setMailTypeSelection] = useState<"ROOT" |"SATELLITE" |"MONETIZED">("ROOT");
  const [mailRangeStart, setMailRangeStart] = useState<number>(1);
  const [mailRangeEnd, setMailRangeEnd] = useState<number>(10);
- const [assignmentNote, setAssignmentNote] = useState<string>("HÃ£y kiá»ƒm tra tÃ­nh há»£p lá»‡ cá»§a pass, 2FA, sÄ‘t vÃ  check xÃ³a táº¡o má»›i.");
+ const [assignmentNote, setAssignmentNote] = useState<string>("HÃ£y kiá»ƒm tra tÃ­nh há»£p lá»‡ của pass, 2FA, sÄ‘t vÃ  check xóa táº¡o mới.");
 
  const [selectedLo, setSelectedLo] = useState<string>("LÃ´ 1");
- const [monetizedOption, setMonetizedOption] = useState<string>("KhÃ¡ng kÃªnh");
+ const [monetizedOption, setMonetizedOption] = useState<string>("KhÃ¡ng kênh");
  const [selectedRootMailId, setSelectedRootMailId] = useState<string>("");
  const [selectedMoiKenhLo, setSelectedMoiKenhLo] = useState<string>("LÃ´ 1");
 
- // Custom selector state for"Check, xÃ³a, táº¡o"
+ // Custom selector state for"Check, xóa, táº¡o"
  const [isSelectMailModalOpen, setIsSelectMailModalOpen] = useState<boolean>(false);
  const [selectedMailIdsForTask, setSelectedMailIdsForTask] = useState<number[]>([]);
  const [modalSearchQuery, setModalSearchQuery] = useState<string>("");
@@ -160,7 +160,7 @@ export default function TaskManagementPage() {
   const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
   const currentUser = storedUser ? JSON.parse(storedUser) : null;
   const roleUpper = String(currentUser?.role || "").toUpperCase();
-  const isAuthorized = roleUpper === "01" || roleUpper === "ADMIN" || roleUpper === "02" || roleUpper === "QL CÃ”NG VIá»†C" || roleUpper === "QUáº¢N LÃ CÃ”NG VIá»†C";
+  const isAuthorized = roleUpper === "01" || roleUpper === "ADMIN" || roleUpper === "02" || roleUpper === "QL CÔNG VIỆC" || roleUpper === "QUẢN LÝ CÔNG VIỆC";
 
   if (isAuthorized) {
     const mailRes = await fetch("/api/admin/mails");
@@ -222,8 +222,8 @@ export default function TaskManagementPage() {
  const isAdminOrManager = roleUpper ==="01" || 
  roleUpper ==="ADMIN" || 
  roleUpper ==="02" || 
- roleUpper ==="QL CÃ”NG VIá»†C" || 
- roleUpper ==="QUáº¢N LÃ CÃ”NG VIá»†C";
+ roleUpper ==="QL CÔNG VIỆC" || 
+ roleUpper ==="QUẢN LÝ CÔNG VIỆC";
 
  const inventory = useMemo(() => {
  return {
@@ -239,22 +239,22 @@ export default function TaskManagementPage() {
 
  const selectTemplateAndPreset = (title: string) => {
  setSelectedTemplate(title);
- if (title ==="Check, xÃ³a, táº¡o") {
+ if (title ==="Check, xóa, táº¡o") {
  setMailTypeSelection("ROOT");
  setMailRangeStart(1);
  setMailRangeEnd(10);
- setAssignmentNote("HÃ£y kiá»ƒm tra tÃ­nh há»£p lá»‡ cá»§a pass, 2FA, sÄ‘t vÃ  check xÃ³a táº¡o má»›i.");
- } else if (title ==="LÃ m kÃªnh") {
+ setAssignmentNote("HÃ£y kiá»ƒm tra tÃ­nh há»£p lá»‡ của pass, 2FA, sÄ‘t vÃ  check xóa táº¡o mới.");
+ } else if (title ==="Làm kênh") {
  setMailTypeSelection("SATELLITE");
- setAssignmentNote("HÃ£y liÃªn káº¿t kÃªnh YouTube vá»‡ tinh vÃ  cáº­p nháº­t link/tÃªn kÃªnh.");
- } else if (title ==="KÃªnh báº­t kiáº¿m tiá»n") {
+ setAssignmentNote("HÃ£y liÃªn káº¿t kênh YouTube vệ tinh vÃ  cập nhật link/tÃªn kênh.");
+ } else if (title ==="Kênh báº­t kiáº¿m tiá»n") {
  setMailTypeSelection("MONETIZED");
  setMailRangeStart(1);
  setMailRangeEnd(10);
- setAssignmentNote("Kiá»ƒm tra vÃ  cáº¥u hÃ¬nh liÃªn káº¿t tÃ i khoáº£n mail báº­t kiáº¿m tiá»n.");
- } else if (title ==="Má»i kÃªnh") {
+ setAssignmentNote("Kiá»ƒm tra vÃ  cáº¥u hÃ¬nh liÃªn káº¿t tài khoản mail báº­t kiáº¿m tiá»n.");
+ } else if (title ==="Má»i kênh") {
  setMailTypeSelection("SATELLITE");
- setAssignmentNote("Má»i kÃªnh: GhÃ©p cáº·p mail gá»‘c vá»›i LÃ´ vá»‡ tinh.");
+ setAssignmentNote("Má»i kênh: GhÃ©p cáº·p mail gá»‘c vá»›i LÃ´ vệ tinh.");
  }
  };
 
@@ -279,7 +279,7 @@ export default function TaskManagementPage() {
       const batchMails = (unassignedSatellites || []).filter((m: any) => m.batchName === bName);
       if ((batchMails || []).length === 0) return null;
       
-      const hasChuaLam = batchMails.some((m: any) => m.workStatus === "ChÆ°a lÃ m");
+      const hasChuaLam = batchMails.some((m: any) => m.workStatus === "Chưa làm");
       if (!hasChuaLam) return null;
 
       const firstIdx = allSatellites.findIndex((m: any) => m.id === batchMails[0].id) + 1;
@@ -333,7 +333,7 @@ export default function TaskManagementPage() {
  const eligibleStaff = useMemo(() => {
  if (!user) return [];
  const is01 = user?.role ==="01" || user?.role ==="ADMIN";
- const is02 = user?.role ==="02" || user?.role ==="QUáº¢N LÃ CÃ”NG VIá»†C";
+ const is02 = user?.role ==="02" || user?.role ==="QUẢN LÝ CÔNG VIỆC";
 
  return (staffList || []).filter((s: StaffData) => {
  // 1. Online Filter
@@ -350,7 +350,7 @@ export default function TaskManagementPage() {
  }
 
  // 3. Templates restriction rules
- if (selectedTemplate ==="Check, xÃ³a, táº¡o" || selectedTemplate ==="KÃªnh báº­t kiáº¿m tiá»n") {
+ if (selectedTemplate ==="Check, xóa, táº¡o" || selectedTemplate ==="Kênh báº­t kiáº¿m tiá»n") {
  return s.role ==="02";
  }
 
@@ -434,7 +434,7 @@ export default function TaskManagementPage() {
 
  let filtered = (mails || []).filter(m => m.type === mailType && String(m.assigneeId) === String(selectedTask.assigneeId));
 
- if (selectedTask.title ==="Check, xÃ³a, táº¡o" || selectedTask.title ==="KÃªnh báº­t kiáº¿m tiá»n") {
+ if (selectedTask.title ==="Check, xóa, táº¡o" || selectedTask.title ==="Kênh báº­t kiáº¿m tiá»n") {
  if (selectedTask.mailRange) {
  const parts = selectedTask.mailRange.split("-");
  if ((parts || []).length === 2) {
@@ -445,12 +445,12 @@ export default function TaskManagementPage() {
  filtered = (filtered || []).filter(m => idsInRange.includes(m.id));
  }
  }
- } else if (selectedTask.title ==="LÃ m kÃªnh") {
+ } else if (selectedTask.title ==="Làm kênh") {
  if (selectedTask.mailRange) {
  const cleanBatch = (selectedTask as any).batch || selectedTask.mailRange.split(" (")[0];
  filtered = (filtered || []).filter(m => m.batchName === cleanBatch);
  }
- } else if (selectedTask.title ==="Má»i kÃªnh" && selectedTask.mailRange) {
+ } else if (selectedTask.title ==="Má»i kênh" && selectedTask.mailRange) {
  const parts = selectedTask.mailRange.split("+");
  const loPart = parts.pop()?.trim();
  filtered = (mails || []).filter(m => 
@@ -488,7 +488,7 @@ export default function TaskManagementPage() {
  let filtered = (allMails || []).filter((m: any) => m.type === mailType && String(m.assigneeId) === String(selectedTask.assigneeId));
  if (selectedTask.selectedMailIds && Array.isArray(selectedTask.selectedMailIds)) {
  filtered = (allMails || []).filter((m: any) => selectedTask.selectedMailIds?.includes(m.id));
- } else if (selectedTask.title ==="Check, xÃ³a, táº¡o" || selectedTask.title ==="KÃªnh báº­t kiáº¿m tiá»n") {
+ } else if (selectedTask.title ==="Check, xóa, táº¡o" || selectedTask.title ==="Kênh báº­t kiáº¿m tiá»n") {
  if (selectedTask.mailRange) {
  const parts = selectedTask.mailRange.split("-");
  if ((parts || []).length === 2) {
@@ -499,12 +499,12 @@ export default function TaskManagementPage() {
  filtered = (filtered || []).filter((m: any) => idsInRange.includes(m.id));
  }
  }
- } else if (selectedTask.title ==="LÃ m kÃªnh") {
+ } else if (selectedTask.title ==="Làm kênh") {
  if (selectedTask.mailRange) {
  const cleanBatch = (selectedTask as any).batch || selectedTask.mailRange.split(" (")[0];
  filtered = (filtered || []).filter((m: any) => m.batchName === cleanBatch);
  }
- } else if (selectedTask.title ==="Má»i kÃªnh" && selectedTask.mailRange) {
+ } else if (selectedTask.title ==="Má»i kênh" && selectedTask.mailRange) {
  const parts = selectedTask.mailRange.split("+");
  const loPart = parts.pop()?.trim();
  filtered = (allMails || []).filter((m: any) => 
@@ -515,7 +515,7 @@ export default function TaskManagementPage() {
 
  const totalTaskMails = (filtered || []).length;
  if (totalTaskMails > 0) {
- const completedCount = (filtered || []).filter((m: any) => m.workStatus ==="ÄÃ£ lÃ m" || m.workStatus ==="ÄÃ£ bÃ¡n").length;
+ const completedCount = (filtered || []).filter((m: any) => m.workStatus ==="Đã làm" || m.workStatus ==="Đã bán").length;
  const progressPercent = Math.round((completedCount / totalTaskMails) * 100);
 
  const savedTasks = null;
@@ -537,14 +537,14 @@ export default function TaskManagementPage() {
  }
  }
 
-setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng.");
+setNotification("Đã cập nhật chi tiết mail thành công.");
  setTimeout(() => setNotification(null), 3000);
  window.dispatchEvent(new Event("storage"));
  }, [selectedTask]);
 
   const handleCustomAssignmentSubmit = useCallback(() => {
     if (!targetStaffId) {
-      alert("Vui lÃ²ng chá»n nhÃ¢n viÃªn nháº­n viá»‡c.");
+      alert("Vui lÃ²ng chá»n nhân viên nháº­n viá»‡c.");
       return;
     }
 
@@ -560,7 +560,7 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
     let taskType: "MAIL_GOC" | "MAIL_VE_TINH" | "MAIL_MONETIZED" = "MAIL_GOC";
     let mailRangeStr = "";
 
-    if (selectedTemplate === "Check, xÃ³a, táº¡o") {
+    if (selectedTemplate === "Check, xóa, táº¡o") {
       typeLabel = "ROOT";
       taskType = "MAIL_GOC";
       if ((selectedMailIdsForTask || []).length === 0) {
@@ -578,14 +578,14 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
         mailRangeStr = `${mailCount} mail`;
       }
     } 
-    else if (selectedTemplate === "LÃ m kÃªnh") {
+    else if (selectedTemplate === "Làm kênh") {
       typeLabel = "SATELLITE";
       taskType = "MAIL_VE_TINH";
       
       const allSatellites = (allMails || []).filter((m: any) => m.type === "SATELLITE");
       const batchMails = allSatellites.filter((m: any) => m.batchName === selectedLo);
       if (batchMails.length === 0) {
-        alert(`LÃ´ ${selectedLo} khÃ´ng há»£p lá»‡ hoáº·c khÃ´ng tÃ¬m tháº¥y mail vá»‡ tinh nÃ o.`);
+        alert(`LÃ´ ${selectedLo} không há»£p lá»‡ hoáº·c không tÃ¬m tháº¥y mail vệ tinh nÃ o.`);
         return;
       }
       
@@ -596,9 +596,9 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
       assignedIds = batchMails.map((m: any) => m.id);
       mailCount = assignedIds.length;
       mailRangeStr = `${selectedLo} (STT ${batchRange})`;
-      note = `${note} - LÃ´ gÃ¡n: ${selectedLo} (STT ${batchRange})`;
+      note = `${note} - LÃ´ gán: ${selectedLo} (STT ${batchRange})`;
     } 
-    else if (selectedTemplate === "KÃªnh báº­t kiáº¿m tiá»n") {
+    else if (selectedTemplate === "Kênh báº­t kiáº¿m tiá»n") {
       typeLabel = "MONETIZED";
       taskType = "MAIL_MONETIZED";
       const mailsOfType = (allMails || []).filter((m: any) => m.type === "MONETIZED");
@@ -620,12 +620,12 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
         note = `${note} (PhÆ°Æ¡ng thá»©c: ${monetizedOption})`;
       }
     } 
-    else if (selectedTemplate === "Má»i kÃªnh") {
+    else if (selectedTemplate === "Má»i kênh") {
       typeLabel = "SATELLITE";
       taskType = "MAIL_VE_TINH";
       
       if (!selectedRootMailId) {
-        alert("Vui lÃ²ng chá»n Mail gá»‘c Ä‘á»ƒ ghÃ©p cáº·p.");
+        alert("Vui lÃ²ng chá»n Mail gá»‘c để ghÃ©p cáº·p.");
         return;
       }
 
@@ -639,14 +639,14 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
       );
 
       if ((targetMails || []).length === 0) {
-        alert(`KhÃ´ng tÃ¬m tháº¥y mail vá»‡ tinh thuá»™c ${selectedMoiKenhLo} cá»§a nhÃ¢n sá»± nÃ y.`);
+        alert(`KhÃ´ng tÃ¬m tháº¥y mail vệ tinh thuá»™c ${selectedMoiKenhLo} của nhÃ¢n sá»± nÃ y.`);
         return;
       }
 
       assignedIds = [rootMail.id, ...(targetMails || []).map((m: any) => m.id)];
       mailCount = (assignedIds || []).length;
       mailRangeStr = `GhÃ©p cáº·p: Mail gá»‘c (${rootMail.email}) + ${selectedMoiKenhLo}`;
-      note = `${note} (GhÃ©p cáº·p Mail Gá»‘c: ${rootMail.email} vá»›i ${selectedMoiKenhLo} vá»‡ tinh)`;
+      note = `${note} (GhÃ©p cáº·p Mail Gốc: ${rootMail.email} vá»›i ${selectedMoiKenhLo} vệ tinh)`;
     }
 
     allMails = (allMails || []).map((m: any) => {
@@ -657,7 +657,7 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
           assigneeName: selectedStaff.name,
           assignedAt: new Date().toISOString(),
           assignmentNote: note,
-          workStatus: m.type === "ROOT" ? "Äang xá»­ lÃ­" : (m.type === "MONETIZED" ? "ChÆ°a bÃ¡n" : "ChÆ°a lÃ m")
+          workStatus: m.type === "ROOT" ? "Đang xá»­ lÃ­" : (m.type === "MONETIZED" ? "Chưa bán" : "Chưa làm")
         };
       }
       return m;
@@ -667,7 +667,7 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
     let allTasks = savedTasks ? JSON.parse(savedTasks) : [];
 
     let rangeVal = mailRangeStr;
-    if (selectedTemplate === "LÃ m kÃªnh") {
+    if (selectedTemplate === "Làm kênh") {
       const allSatellites = (allMails || []).filter((m: any) => m.type === "SATELLITE");
       const batchMails = allSatellites.filter((m: any) => m.batchName === selectedLo);
       if (batchMails.length > 0) {
@@ -691,10 +691,10 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
       mailCount: mailCount,
       note: note,
       mailRange: mailRangeStr,
-      batch: selectedTemplate === "LÃ m kÃªnh" ? selectedLo : "",
+      batch: selectedTemplate === "Làm kênh" ? selectedLo : "",
       range: rangeVal,
       mailType: typeLabel as any,
-      selectedMailIds: selectedTemplate === "Check, xÃ³a, táº¡o" ? assignedIds : undefined
+      selectedMailIds: selectedTemplate === "Check, xóa, táº¡o" ? assignedIds : undefined
     };
 
     allTasks.push(newTask);
@@ -722,16 +722,16 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
                 assigneeId: selectedStaff.id,
                 assignedTo: selectedStaff.name,
                 assignmentNote: note,
-                workStatus: typeLabel === "ROOT" ? "Äang xá»­ lÃ­" : (typeLabel === "MONETIZED" ? "ChÆ°a bÃ¡n" : "ChÆ°a lÃ m"),
+                workStatus: typeLabel === "ROOT" ? "Đang xá»­ lÃ­" : (typeLabel === "MONETIZED" ? "Chưa bán" : "Chưa làm"),
                 updatedBy: user?.name || "Admin"
               }
             })
           });
         } catch (dbErr) {
-          console.error("Lá»—i Ä‘á»“ng bá»™ gÃ¡n mail xuá»‘ng DB:", dbErr);
+          console.error("Lỗi Ä‘á»“ng bá»™ gán mail xuá»‘ng DB:", dbErr);
         }
 
-        setNotification(`ÄÃ£ giao viá»‡c thÃ nh cÃ´ng cho ${selectedStaff.name}!`);
+        setNotification(`Đã giao viá»‡c thành công cho ${selectedStaff.name}!`);
         setTimeout(() => setNotification(null), 4000);
       } else {
         const errData = await res.json().catch(() => ({}));
@@ -740,7 +740,7 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
       }
     })
     .catch(err => {
-      console.error("Lá»—i giao viá»‡c:", err);
+      console.error("Lỗi giao viá»‡c:", err);
     });
     window.dispatchEvent(new Event('storage'));
   }, [targetStaffId, selectedTemplate, selectedLo, selectedMoiKenhLo, selectedRootMailId, monetizedOption, mailRangeStart, mailRangeEnd, assignmentNote, staffList, user, mails, dynamicStaffBatches]);
@@ -755,17 +755,17 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  const linksCount = (activeLinks || []).length;
  
  if (linksCount < 3) {
- errorMails.push(`- ${m.email} (thiáº¿u ${3 - linksCount} kÃªnh)`);
+ errorMails.push(`- ${m.email} (thiáº¿u ${3 - linksCount} kênh)`);
  } else {
  const hasInvalid = activeLinks.some((l: string) => !validateYouTubeUrl(l));
  if (hasInvalid) {
- errorMails.push(`- ${m.email} (cÃ³ link kÃªnh sai Ä‘á»‹nh dáº¡ng YouTube)`);
+ errorMails.push(`- ${m.email} (có link kênh sai Ä‘á»‹nh dáº¡ng YouTube)`);
  }
  }
  });
 
  if ((errorMails || []).length > 0) {
- alert("KHÃ”NG THá»‚ HOÃ€N THÃ€NH!\nCÃ¡c mail vá»‡ tinh sau chÆ°a Ä‘Ãºng yÃªu cáº§u:\n" + errorMails.join("\n"));
+ alert("KHÃ”NG THá»‚ HOÃ€N THÃ€NH!\nCÃ¡c mail vệ tinh sau chÆ°a Ä‘Ãºng yÃªu cáº§u:\n" + errorMails.join("\n"));
  return;
  }
  }
@@ -786,7 +786,7 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
 
  
  setTasks(allTasks);
- setNotification(`ÄÃ£ chuyá»ƒn tráº¡ng thÃ¡i nhiá»‡m vá»¥ sang: ${newStatus ==="COMPLETED" ?"HoÃ n thÃ nh" :"Äang xá»­ lÃ½"}`);
+ setNotification(`Đã chuyển trạng thái nhiá»‡m vá»¥ sang: ${newStatus ==="COMPLETED" ?"HoÃ n thÃ nh" :"Đang xử lý"}`);
  setTimeout(() => setNotification(null), 3000);
  window.dispatchEvent(new Event("storage"));
  }, [selectedTaskId, selectedTask, taskMails]);
@@ -812,11 +812,11 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  <div>
  <h1 className="text-4xl font-black text-white tracking-tighter uppercase flex items-center gap-4">
  <ClipboardList className="text-gold" size={36} />
- {isAdminOrManager && !selectedTaskId ?"Báº£ng chia viá»‡c AQ MEDIA" : selectedTaskId ?"Chi tiáº¿t thá»±c hiá»‡n" :"Nhiá»‡m vá»¥ cá»§a tÃ´i"}
+ {isAdminOrManager && !selectedTaskId ?"Bảng chia viá»‡c AQ MEDIA" : selectedTaskId ?"Chi tiáº¿t thá»±c hiá»‡n" :"Nhiá»‡m vá»¥ của tôi"}
  </h1>
  <p className="text-gray-500 font-medium mt-1 flex items-center gap-2">
  <ShieldCheck size={16} className="text-gold" />
- {isAdminOrManager && !selectedTaskId ?"Há»‡ thá»‘ng Ä‘iá»u phá»‘i cÃ´ng viá»‡c vÃ  chia lÃ´ mail tá»± Ä‘á»™ng cho nhÃ¢n sá»±." : selectedTaskId ? `Nhiá»‡m vá»¥: ${selectedTask?.title}` :"Danh sÃ¡ch nhiá»‡m vá»¥ Ä‘Æ°á»£c giao."}
+ {isAdminOrManager && !selectedTaskId ?"Hệ thá»‘ng Ä‘iá»u phá»‘i công việc vÃ  chia lô mail tự động cho nhÃ¢n sá»±." : selectedTaskId ? `Nhiá»‡m vá»¥: ${selectedTask?.title}` :"Danh sÃ¡ch nhiá»‡m vá»¥ được giao."}
  </p>
  </div>
  </div>
@@ -849,15 +849,15 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  <div className="lg:col-span-5 space-y-6">
  <div className="flex items-center gap-3 mb-2">
  <div className="h-2 w-2 rounded-full bg-gold animate-ping" />
- <h2 className="text-base font-black text-white uppercase tracking-widest">Chá»n máº«u cÃ´ng viá»‡c</h2>
+ <h2 className="text-base font-black text-white uppercase tracking-widest">Chọn máº«u công việc</h2>
  </div>
  
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
  {[
- { title:"Check, xÃ³a, táº¡o", desc:"Máº·c Ä‘á»‹nh Mail Gá»‘c. Kiá»ƒm tra pass, 2FA, sÄ‘t vÃ  check xÃ³a táº¡o má»›i.", type:"ROOT", icon: <ShieldCheck size={28} /> },
- { title:"LÃ m kÃªnh", desc:"Máº·c Ä‘á»‹nh Mail Vá»‡ Tinh. LiÃªn káº¿t kÃªnh vá»‡ tinh, scan thÃ´ng tin.", type:"SATELLITE", icon: <Zap size={28} /> },
- { title:"KÃªnh báº­t kiáº¿m tiá»n", desc:"Máº·c Ä‘á»‹nh Mail Báº­t Kiáº¿m Tiá»n. Kiá»ƒm tra vÃ  cáº¥u hÃ¬nh Ä‘á»‘i tÃ¡c.", type:"MONETIZED", icon: <Mail size={28} /> },
- { title:"Má»i kÃªnh", desc:"GhÃ©p cáº·p mail gá»‘c vá»›i LÃ´ vá»‡ tinh. Má»i kÃªnh vá»‡ tinh vÃ o quáº£n lÃ½.", type:"SATELLITE + ROOT", icon: <ExternalLink size={28} /> },
+ { title:"Check, xóa, táº¡o", desc:"Máº·c Ä‘á»‹nh Mail Gốc. Kiá»ƒm tra pass, 2FA, sÄ‘t vÃ  check xóa táº¡o mới.", type:"ROOT", icon: <ShieldCheck size={28} /> },
+ { title:"Làm kênh", desc:"Máº·c Ä‘á»‹nh Mail Vệ Tinh. LiÃªn káº¿t kênh vệ tinh, scan thÃ´ng tin.", type:"SATELLITE", icon: <Zap size={28} /> },
+ { title:"Kênh báº­t kiáº¿m tiá»n", desc:"Máº·c Ä‘á»‹nh Mail Bật Kiếm Tiền. Kiá»ƒm tra vÃ  cáº¥u hÃ¬nh Ä‘á»‘i tÃ¡c.", type:"MONETIZED", icon: <Mail size={28} /> },
+ { title:"Má»i kênh", desc:"GhÃ©p cáº·p mail gá»‘c vá»›i LÃ´ vệ tinh. Má»i kênh vệ tinh vào quáº£n lÃ½.", type:"SATELLITE + ROOT", icon: <ExternalLink size={28} /> },
  ].map(tmpl => (
  <div 
  key={tmpl.title}
@@ -898,12 +898,12 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
 
  <div className="grid grid-cols-5 gap-1 p-6 bg-white/0 border border-white/0 rounded-3xl items-center text-center">
  <div className="col-span-1">
- <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Mail Gá»‘c</p>
+ <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Mail Gốc</p>
  <p className="text-base font-black text-gold">{inventory.root} <span className="text-[8px] text-gray-500 font-bold block">Kháº£ dá»¥ng</span></p>
  </div>
  <div className="col-span-1 flex justify-center text-white/5 font-light">|</div>
  <div className="col-span-1">
- <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Vá»‡ Tinh</p>
+ <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Vệ Tinh</p>
  <p className="text-base font-black text-gold">{inventory.satellite} <span className="text-[8px] text-gray-500 font-bold block">Kháº£ dá»¥ng</span></p>
  </div>
  <div className="col-span-1 flex justify-center text-white/5 font-light">|</div>
@@ -941,29 +941,29 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
             </div>
           </div>
 <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chá»n nhÃ¢n viÃªn thá»±c hiá»‡n</label>
+ <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chọn nhân viên thá»±c hiá»‡n</label>
  <select 
  value={targetStaffId}
  onChange={(e) => setTargetStaffId(e.target.value)}
  className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all"
  >
- <option value="" className="bg-zinc-900 text-white hover:bg-zinc-700">-- Chá»n nhÃ¢n sá»± ONLINE thá»±c hiá»‡n --</option>
+ <option value="" className="bg-zinc-900 text-white hover:bg-zinc-700">-- Chọn nhÃ¢n sá»± ONLINE thá»±c hiá»‡n --</option>
  {(eligibleStaff || []).map((staff: any) => (
  <option key={staff.id} value={staff.id} className="bg-zinc-900 text-white hover:bg-zinc-700">
- ðŸŸ¢ {staff.name} ({staff.role ==="02" ?"Quáº£n lÃ½ cÃ´ng viá»‡c" : staff.role ==="03" ?"Quáº£n lÃ½ nhÃ¢n sá»±" :"NhÃ¢n viÃªn"})
+ ðŸŸ¢ {staff.name} ({staff.role ==="02" ?"Quản lÃ½ công việc" : staff.role ==="03" ?"Quản lÃ½ nhÃ¢n sá»±" :"Nhân viên"})
  </option>
  ))}
  </select>
  </div>
 
- {selectedTemplate ==="Check, xÃ³a, táº¡o" && (
+ {selectedTemplate ==="Check, xóa, táº¡o" && (
  <div className="space-y-4">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chá»n danh sÃ¡ch Mail Gá»‘c</label>
+ <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chọn danh sÃ¡ch Mail Gốc</label>
  <button
  type="button"
  onClick={() => {
  if (!targetStaffId) {
- alert("Vui lÃ²ng chá»n nhÃ¢n viÃªn nháº­n viá»‡c trÆ°á»›c!");
+ alert("Vui lÃ²ng chá»n nhân viên nháº­n viá»‡c trÆ°á»›c!");
  return;
  }
  setIsSelectMailModalOpen(true);
@@ -972,16 +972,16 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  >
  <Mail size={16} />
  {(selectedMailIdsForTask || []).length > 0 
- ? `ÄÃ£ chá»n: ${(selectedMailIdsForTask || []).length} mail gá»‘c (Nháº¥n Ä‘á»ƒ thay Ä‘á»•i)` 
- :"Chá»n mail"}
+ ? `Đã chá»n: ${(selectedMailIdsForTask || []).length} mail gá»‘c (Nháº¥n để thay Ä‘á»•i)` 
+ :"Chọn mail"}
  </button>
  </div>
  )}
 
- {selectedTemplate ==="LÃ m kÃªnh" && (
+ {selectedTemplate ==="Làm kênh" && (
  <div className="space-y-4">
  <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chá»n LÃ´ vá»‡ tinh giao</label>
+ <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chọn LÃ´ vệ tinh giao</label>
  <select 
   value={selectedLo}
   onChange={(e) => setSelectedLo(e.target.value)}
@@ -989,7 +989,7 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
   className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all ${!selectedUserId ? 'opacity-40 cursor-not-allowed' : ''}`}
   >
   <option value="" className="bg-zinc-900 text-white hover:bg-zinc-700">
-    {!selectedUserId ? '-- Vui lÃ²ng chá»n nhÃ¢n viÃªn trÆ°á»›c --' : '-- Chá»n LÃ´ --'}
+    {!selectedUserId ? '-- Vui lÃ²ng chá»n nhân viên trÆ°á»›c --' : '-- Chọn LÃ´ --'}
   </option>
   {(filteredBatches || []).map(batch => (
   <option key={batch.name} value={batch.name} className="bg-zinc-900 text-white hover:bg-zinc-700">
@@ -998,20 +998,20 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
   ))}
   </select>
  {targetStaffId && (dynamicStaffBatches || []).length === 0 && (
- <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">KhÃ´ng cÃ³ lÃ´ vá»‡ tinh chÆ°a gÃ¡n nÃ o kháº£ dá»¥ng trong há»‡ thá»‘ng!</p>
+ <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">Không có lô vệ tinh chÆ°a gán nÃ o kháº£ dá»¥ng trong hệ thống!</p>
  )}
  {!targetStaffId && (
- <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">âš  HÃ£y chá»n nhÃ¢n viÃªn phÃ­a trÃªn trÆ°á»›c khi chá»n LÃ´ vá»‡ tinh.</p>
+ <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">âš  HÃ£y chá»n nhân viên phÃ­a trÃªn trước khi chá»n LÃ´ vệ tinh.</p>
  )}
  </div>
  </div>
  )}
 
- {selectedTemplate ==="KÃªnh báº­t kiáº¿m tiá»n" && (
+ {selectedTemplate ==="Kênh báº­t kiáº¿m tiá»n" && (
  <div className="space-y-6">
  <div className="grid grid-cols-2 gap-4">
  <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Báº¯t Ä‘áº§u tá»« STT</label>
+ <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Bắt đầu tá»« STT</label>
  <input 
  type="number"
  value={mailRangeStart}
@@ -1020,7 +1020,7 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  />
  </div>
  <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Äáº¿n STT (Tá»•ng {inventory.monetized})</label>
+ <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Äáº¿n STT (Tổng {inventory.monetized})</label>
  <input 
  type="number"
  value={mailRangeEnd}
@@ -1037,13 +1037,13 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  if (is01 && is02Assignee) {
  return (
  <div className="space-y-2">
- <label className="text-[10px] font-black text-gold uppercase tracking-widest ml-1">PhÆ°Æ¡ng thá»©c xá»­ lÃ½</label>
+ <label className="text-[10px] font-black text-gold uppercase tracking-widest ml-1">PhÆ°Æ¡ng thá»©c xử lý</label>
  <select 
  value={monetizedOption}
  onChange={(e) => setMonetizedOption(e.target.value)}
  className="w-full h-14 bg-gold/10 border-2 border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-gold cursor-pointer transition-all"
  >
- <option value="KhÃ¡ng kÃªnh" className="bg-zinc-900 text-white hover:bg-zinc-700">KhÃ¡ng kÃªnh</option>
+ <option value="KhÃ¡ng kênh" className="bg-zinc-900 text-white hover:bg-zinc-700">KhÃ¡ng kênh</option>
  <option value="Ná»‘i GA" className="bg-zinc-900 text-white hover:bg-zinc-700">Ná»‘i GA</option>
  </select>
  </div>
@@ -1054,17 +1054,17 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  </div>
  )}
 
- {selectedTemplate ==="Má»i kÃªnh" && (
+ {selectedTemplate ==="Má»i kênh" && (
  <div className="space-y-6">
  <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chá»n Mail Gá»‘c</label>
+ <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chọn Mail Gốc</label>
  <select 
  value={selectedRootMailId}
  onChange={(e) => setSelectedRootMailId(e.target.value)}
  className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all"
  >
- <option value="" className="bg-zinc-900 text-white hover:bg-zinc-700">-- Chá»n Mail Gá»‘c trong DB --</option>
- {(mails || []).filter((m: any) => m.type ==="ROOT" && m.verificationStatus ==="ÄÃ£ xanh" && !m.assigneeId).map((m: any) => (
+ <option value="" className="bg-zinc-900 text-white hover:bg-zinc-700">-- Chọn Mail Gốc trong DB --</option>
+ {(mails || []).filter((m: any) => m.type ==="ROOT" && m.verificationStatus ==="Đã xanh" && !m.assigneeId).map((m: any) => (
  <option key={m.id} value={m.id} className="bg-zinc-900 text-white hover:bg-zinc-700">
  {m.email}
  </option>
@@ -1073,33 +1073,33 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  </div>
 
  <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chá»n LÃ´ vá»‡ tinh ghÃ©p cáº·p</label>
+ <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chọn LÃ´ vệ tinh ghÃ©p cáº·p</label>
  <select 
  value={selectedMoiKenhLo}
  onChange={(e) => setSelectedMoiKenhLo(e.target.value)}
  disabled={!targetStaffId}
  className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all ${!targetStaffId ? 'opacity-40 cursor-not-allowed' : ''}`}
  >
- <option value="" className="bg-zinc-900 text-white hover:bg-zinc-700">{!targetStaffId ? '-- Vui lÃ²ng chá»n nhÃ¢n viÃªn trÆ°á»›c --' : '-- Chá»n LÃ´ Vá»‡ Tinh --'}</option>
+ <option value="" className="bg-zinc-900 text-white hover:bg-zinc-700">{!targetStaffId ? '-- Vui lÃ²ng chá»n nhân viên trÆ°á»›c --' : '-- Chọn LÃ´ Vệ Tinh --'}</option>
  {(filteredBatches || []).length > 0 ? (filteredBatches || []).map(b => (
  <option key={b.name} value={b.name} className="bg-zinc-900 text-white hover:bg-zinc-700">{b.name}</option>
  )) : (
- <option disabled className="bg-zinc-900 text-white hover:bg-zinc-700">KhÃ´ng cÃ³ lÃ´ vá»‡ tinh kháº£ dá»¥ng</option>
+ <option disabled className="bg-zinc-900 text-white hover:bg-zinc-700">Không có lô vệ tinh kháº£ dá»¥ng</option>
  )}
  </select>
  {!targetStaffId && (
- <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">âš  HÃ£y chá»n nhÃ¢n viÃªn phÃ­a trÃªn trÆ°á»›c khi chá»n LÃ´ vá»‡ tinh.</p>
+ <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">âš  HÃ£y chá»n nhân viên phÃ­a trÃªn trước khi chá»n LÃ´ vệ tinh.</p>
  )}
  </div>
  </div>
  )}
 
  <div className="space-y-2">
- <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Ghi chÃº & YÃªu cáº§u cÃ´ng viá»‡c</label>
+ <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Ghi chÃº & Yêu cáº§u công việc</label>
  <textarea
  value={assignmentNote}
  onChange={(e) => setAssignmentNote(e.target.value)}
- placeholder="Nháº­p ghi chÃº hoáº·c yÃªu cáº§u chi tiáº¿t cho nhÃ¢n viÃªn..."
+ placeholder="Nháº­p ghi chÃº hoáº·c yÃªu cáº§u chi tiết cho nhân viên..."
  className="w-full h-24 bg-white/5 border border-white/0 rounded-2xl p-6 text-white text-base outline-none focus:border-white/5 transition-all resize-none"
  />
  </div>
@@ -1110,7 +1110,7 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  onClick={handleCustomAssignmentSubmit}
  className="w-full h-14 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl shadow-gold/20"
  >
- <Zap size={16} /> Giao cÃ´ng viá»‡c & KÃ­ch hoáº¡t real-time
+ <Zap size={16} /> Giao công việc & KÃ­ch hoáº¡t real-time
  </button>
  </div>
  </div>
@@ -1122,7 +1122,7 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  {(filteredTasks || []).length > 0 ? (
  (filteredTasks || []).map(task => <TaskCard key={task.id} task={task} onClick={() => setSelectedTaskId(task.id)} />)
  ) : (
- <div className="col-span-full py-20 text-center text-gray-500 font-bold uppercase tracking-widest">KhÃ´ng cÃ³ nhiá»‡m vá»¥ Ä‘Æ°á»£c giao</div>
+ <div className="col-span-full py-20 text-center text-gray-500 font-bold uppercase tracking-widest">Không có nhiá»‡m vá»¥ được giao</div>
  )}
  </div>
  </motion.div>
@@ -1138,18 +1138,18 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  </div>
  <div className="h-10 w-px bg-white/0 hidden md:block" />
  <div className="flex flex-col gap-1">
- <span className="text-[10px] font-black uppercase tracking-[0.2em]">Chi tiáº¿t cÃ´ng viá»‡c</span>
+ <span className="text-[10px] font-black uppercase tracking-[0.2em]">Chi tiáº¿t công việc</span>
  <span className="text-sm font-bold text-white max-w-md">{selectedTask?.note} ({selectedTask?.mailRange})</span>
  </div>
  <div className="h-10 w-px bg-white/0 hidden md:block" />
  <div className="flex flex-col gap-1">
- <span className="text-[10px] font-black uppercase tracking-[0.2em]">Sá»‘ lÆ°á»£ng</span>
+ <span className="text-[10px] font-black uppercase tracking-[0.2em]">Số lÆ°á»£ng</span>
  <span className="text-base font-black text-white">{selectedTask?.mailCount} Mail</span>
  </div>
  <div className="h-10 w-px bg-white/0 hidden md:block" />
  <div className="flex flex-col gap-1">
- <span className="text-[10px] font-black uppercase tracking-[0.2em]">Tiáº¿n Ä‘á»™ tá»•ng</span>
- <span className="text-base font-black text-white">{selectedTask?.progress}% ({selectedTask?.status ==="COMPLETED" ?"HoÃ n thÃ nh" : selectedTask?.status ==="IN_PROGRESS" ?"Äang xá»­ lÃ½" :"Äang chá»"})</span>
+ <span className="text-[10px] font-black uppercase tracking-[0.2em]">Tiến độ tá»•ng</span>
+ <span className="text-base font-black text-white">{selectedTask?.progress}% ({selectedTask?.status ==="COMPLETED" ?"HoÃ n thÃ nh" : selectedTask?.status ==="IN_PROGRESS" ?"Đang xử lý" :"Đang chá»"})</span>
  </div>
  </div>
  
@@ -1160,7 +1160,7 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  onClick={() => updateTaskStatus("IN_PROGRESS")}
  className={`h-14 px-6 rounded-2xl flex items-center justify-center font-black text-[10px] uppercase tracking-widest border transition-all ${selectedTask?.status ==="IN_PROGRESS" ?"bg-blue-500/20 text-blue-400 border-blue-500/30" :" bg-white/5 text-gray-400 border-white/0 hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20"}`}
  >
- Äang xá»­ lÃ­
+ Đang xá»­ lÃ­
  </button>
  <button 
  onClick={() => updateTaskStatus("COMPLETED")}
@@ -1175,7 +1175,7 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  onClick={() => { setSelectedTaskId(null); }} 
  className="h-14 px-6 bg-white/5 border border-white/0 rounded-2xl flex items-center justify-center text-white gap-2 font-black text-[10px] uppercase tracking-widest hover:bg-gold/10 hover:text-gold transition-all"
  >
- Quay láº¡i
+ Quay lại
  </button>
  </div>
  </div>
@@ -1187,9 +1187,9 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  <thead className="sticky top-0 bg-[#0d0d0d] z-30 shadow-xl">
  <tr className="border-b border-white/0 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
  <th className="px-10 py-3 whitespace-nowrap">STT</th>
- <th className="px-6 py-3 whitespace-nowrap">Email / ThÃ´ng tin</th>
- <th className="px-6 py-3 text-center whitespace-nowrap">NgÆ°á»i thá»±c hiá»‡n</th>
- <th className="px-6 py-3 text-center whitespace-nowrap">Tráº¡ng thÃ¡i</th>
+ <th className="px-6 py-3 whitespace-nowrap">Email / Thông tin</th>
+ <th className="px-6 py-3 text-center whitespace-nowrap">Người thá»±c hiá»‡n</th>
+ <th className="px-6 py-3 text-center whitespace-nowrap">Trạng thái</th>
  <th className="px-10 py-3 text-right whitespace-nowrap">HÃ nh Ä‘á»™ng</th>
  </tr>
  </thead>
@@ -1209,7 +1209,7 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  return (
  <div className="mb-1">
  <span className="text-[10px] font-black uppercase text-red-400 bg-red-500/10 border border-red-500/30 px-2 py-0.5 rounded-lg animate-pulse inline-flex items-center gap-1">
- âš ï¸ Thiáº¿u {missingCount} kÃªnh
+ âš ï¸ Thiáº¿u {missingCount} kênh
  </span>
  </div>
  );
@@ -1224,13 +1224,13 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  </td>
  <td className={`${rowPadding} text-center whitespace-nowrap`}>
  <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border whitespace-nowrap ${
- (mail.workStatus ||"ChÆ°a lÃ m").toLowerCase() ==="Ä‘Ã£ lÃ m" || (mail.workStatus ||"ChÆ°a lÃ m").toLowerCase() ==="Ä‘Ã£ bÃ¡n"
+ (mail.workStatus ||"Chưa làm").toLowerCase() ==="đã làm" || (mail.workStatus ||"Chưa làm").toLowerCase() ==="đã bán"
  ?"bg-green-500/10 text-green-500 border-green-500/20" 
- : (mail.workStatus ||"ChÆ°a lÃ m").toLowerCase() ==="lá»—i" 
+ : (mail.workStatus ||"Chưa làm").toLowerCase() ==="lá»—i" 
  ?"bg-red-500/10 text-red-500 border-red-500/20" 
  :"bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
  }`}>
- {mail.workStatus ||"ChÆ°a lÃ m"}
+ {mail.workStatus ||"Chưa làm"}
  </span>
  </td>
  <td className={`${rowPadding} text-right whitespace-nowrap`}>
@@ -1249,7 +1249,7 @@ setNotification("ÄÃ£ cáº­p nháº­t chi tiáº¿t mail thÃ nh cÃ´ng
  <td colSpan={5} className="px-10 py-20 text-center">
  <div className="flex flex-col items-center gap-4 opacity-20">
  <Mail size={60} className="text-gold" />
- <p className="text-xl font-black uppercase tracking-[0.2em] text-white">ChÆ°a cÃ³ dá»¯ liá»‡u</p>
+ <p className="text-xl font-black uppercase tracking-[0.2em] text-white">Chưa có dữ liệu</p>
  </div>
  </td>
  </tr>

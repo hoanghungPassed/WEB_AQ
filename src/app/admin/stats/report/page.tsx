@@ -55,7 +55,7 @@ export default function ReportsPage() {
   if (storedUser) {
     const parsedUser = JSON.parse(storedUser) as StaffData;
     const role = String(parsedUser.role || "").toUpperCase();
-    if (!["01", "02", "ADMIN", "QUáº¢N LÃ CÃ”NG VIá»†C", "QL CÃ”NG VIá»†C"].includes(role)) {
+    if (!["01", "02", "ADMIN", "QUẢN LÝ CÔNG VIỆC", "QL CÔNG VIỆC"].includes(role)) {
       router.push("/admin");
       return;
     }
