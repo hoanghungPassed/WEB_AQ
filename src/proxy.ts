@@ -84,6 +84,13 @@ export async function middleware(request: NextRequest) {
 
     const isStaff = role === "03" || role === "04" || role === "05";
 
+    // 0. BẮT BUỘC Admin (role 01) phải cài đặt 2FA nếu chưa có
+    if (role === "01" && !payload.twoFAEnabled && !pathname.startsWith("/admin/2fa") && !pathname.startsWith("/api/admin/2fa")) {
+      if (isAdminPage) {
+        return NextResponse.redirect(new URL("/admin/2fa/setup", request.url));
+      }
+    }
+
     // 1. KIỂM TRA PHÂN QUYỀN TRÊN GIAO DIỆN UI /admin/* (Sử dụng Blacklist & Whitelist đúng đắn)
     if (isAdminPage && isStaff) {
       // Blacklist các trang quản trị cấp cao
