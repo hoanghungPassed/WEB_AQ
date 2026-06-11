@@ -115,10 +115,12 @@ async function runAutoCheckout(req: NextRequest, triggerSource: "CRON" | "MANUAL
 
         // A. Update Attendance record
         record.checkOutTime = checkoutTime;
-        const diffInMs = checkoutTime.getTime() - new Date(record.checkInTime).getTime();
-        let totalHours = diffInMs / (1000 * 60 * 60);
-        totalHours = parseFloat((totalHours > 0 ? totalHours : 0).toFixed(2));
-        record.totalHours = totalHours;
+        if (record.checkInTime) {
+          const diffInMs = checkoutTime.getTime() - new Date(record.checkInTime).getTime();
+          let totalHours = diffInMs / (1000 * 60 * 60);
+          totalHours = parseFloat((totalHours > 0 ? totalHours : 0).toFixed(2));
+          record.totalHours = totalHours;
+        }
         await record.save();
 
         // B. Sync to User record
