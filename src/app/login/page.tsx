@@ -267,7 +267,7 @@ function LoginForm() {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="Username"
-                        className="w-full rounded-xl border border-gray-600 bg-gray-800 px-4 py-3 pl-12 text-lg text-white transition-all focus:border-blue-500 focus:outline-none shadow-inner"
+                        className="w-full rounded-xl border border-gray-600 bg-gray-800 py-3 pl-12 pr-4 text-lg text-white transition-all focus:border-blue-500 focus:outline-none shadow-inner"
                       />
                     </div>
                   </div>
@@ -287,7 +287,7 @@ function LoginForm() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Mật khẩu của bạn"
-                        className="w-full rounded-xl border border-gray-600 bg-gray-800 px-4 py-3 pl-12 pr-12 text-lg text-white transition-all focus:border-blue-500 focus:outline-none shadow-inner"
+                        className="w-full rounded-xl border border-gray-600 bg-gray-800 py-3 pl-12 pr-12 text-lg text-white transition-all focus:border-blue-500 focus:outline-none shadow-inner"
                       />
                       <button
                         type="button"
