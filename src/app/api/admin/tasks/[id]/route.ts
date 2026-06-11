@@ -111,7 +111,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         const { SatelliteMail } = await import('@/models/SatelliteMail');
         
         // Find batch associated with this task
-        const batchIdentifier = task.batch || task.batchName || task.batchId;
+        const batchIdentifier = task.batch || (task as any).batchName || (task as any).batchId;
         
         if (batchIdentifier) {
           // Update entire batch
