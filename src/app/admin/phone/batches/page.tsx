@@ -201,7 +201,7 @@ export default function PhoneBatchesPage() {
  const groupedWarehouse = useMemo(() => {
  const groups: Record<string, PhoneItem[]> = {};
  warehousePhones.forEach(p => {
- const b = p.importBatch ||"Chưa phÃ¢n lô";
+ const b = p.importBatch ||"Chưa phân lô";
  if (!groups[b]) groups[b] = [];
  groups[b].push(p);
  });
@@ -220,14 +220,14 @@ export default function PhoneBatchesPage() {
  });
  const data = await res.json();
  if (res.ok) {
- triggerToast(`Đã xóa ${data.deletedCount} SÄT khá»i lô"${batchToDelete}"!`);
+ triggerToast(`Đã xóa ${data.deletedCount} SĐT khỏi lô"${batchToDelete}"!`);
  mutatePhones();
  } else {
  triggerToast(`Lỗi: ${data.error}`);
  }
  } catch (err) {
  console.error(err);
- triggerToast("Lỗi khi xóa lô SÄT");
+ triggerToast("Lỗi khi xóa lô SĐT");
  } finally {
  setBatchToDelete(null);
  }
@@ -410,7 +410,7 @@ export default function PhoneBatchesPage() {
  body: JSON.stringify({ admin_notifications: JSON.stringify(notifs) })
  }).catch(() => {});
 
- pushLog(`BÃ n giao ${STANDARD_QUOTA} SÄT cho ${selectedEmp.name} (@${selectedEmp.username})`);
+ pushLog(`Bàn giao ${STANDARD_QUOTA} SĐT cho ${selectedEmp.name} (@${selectedEmp.username})`);
  triggerToast(`Đã bàn giao ${STANDARD_QUOTA} SĐT cho ${selectedEmp.name}!`);
  };
 
@@ -445,7 +445,7 @@ export default function PhoneBatchesPage() {
 
  if (deficit <= 0) {
  await reloadPhones();
- pushLog(`QuÃ©t vÃ  dá»n dáp ${toRemoveIds.length} SÄT (Lỗi/Done) của ${selectedEmp.name}. KhÃ´ng cáº§n bÆ¡m thÃªm.`);
+ pushLog(`Quét và dọn dẹp ${toRemoveIds.length} SĐT (Lỗi/Done) của ${selectedEmp.name}. Không cần bơm thêm.`);
  triggerToast(`Đã dọn dẹp ${toRemoveIds.length} SĐT. Nhân viên đã đủ ${STANDARD_QUOTA} số.`);
  return;
  }
@@ -471,7 +471,7 @@ export default function PhoneBatchesPage() {
  await reloadPhones();
  const remainingDeficit = deficit - canFill;
  const suffix = remainingDeficit > 0 ? ` (còn thiếu ${remainingDeficit} SĐT do kho không đủ)` :"";
- pushLog(`QuÃ©t dá»n dáp ${toRemoveIds.length} SÄT â†’ BÆ¡m ${canFill} SÄT mới cho ${selectedEmp.name}${suffix}`);
+ pushLog(`Quét dọn dẹp ${toRemoveIds.length} SĐT â†’ Bơm ${canFill} SĐT mới cho ${selectedEmp.name}${suffix}`);
  triggerToast(`Đã dọn dẹp ${toRemoveIds.length}, bơm lại ${canFill} SĐT mới cho ${selectedEmp.name}!${suffix}`);
  };
 
@@ -1016,7 +1016,7 @@ export default function PhoneBatchesPage() {
     onClose={() => setShowHistoryModal(false)}
     importHistory={importHistory}
     onDeleteRow={(id) => {
-      if (!confirm("Bạn có chắc chắn muốn xóa dòng lá»‹ch sá»­ nÃ y?")) return;
+      if (!confirm("Bạn có chắc chắn muốn xóa dòng lịch sử này?")) return;
       const updated = (importHistory || []).filter(h => h.id !== id);
       setImportHistory(updated);
       localStorage.setItem("global_import_history", JSON.stringify(updated));
@@ -1027,7 +1027,7 @@ export default function PhoneBatchesPage() {
       }).catch(console.error);
     }}
     onClearAll={async () => {
-      if (!confirm("Xác nhận xóa TOÃ€N Bá»˜ lá»‹ch sá»­ import?")) return;
+      if (!confirm("Xác nhận xóa TOÀN BỘ lịch sử import?")) return;
       setImportHistory([]);
       localStorage.setItem("global_import_history", JSON.stringify([]));
       try {

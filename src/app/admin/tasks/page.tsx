@@ -394,7 +394,7 @@ export default function TaskManagementPage() {
       typeLabel = "ROOT";
       taskType = "MAIL_GOC";
       if ((selectedMailIdsForTask || []).length === 0) {
-        alert("Vui lòng click chọn ít nhất 1 mail gốc khả dụng trong popup trước!");
+        alert("Vui lòng chọn nhân viên nhận việc trước!");
         return;
       }
       assignedIds = [...selectedMailIdsForTask];
@@ -776,6 +776,12 @@ export default function TaskManagementPage() {
                               </option>
                             ))}
                           </select>
+                          {targetStaffId && (filteredBatches || []).length === 0 && (
+                            <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">Không có lô vệ tinh chưa gán nào khả dụng cho nhân viên này!</p>
+                          )}
+                          {!targetStaffId && (
+                            <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">⚠️ Hãy chọn nhân viên phía trên trước khi chọn Lô vệ tinh.</p>
+                          )}
                         </div>
                       </div>
                     )}
@@ -850,6 +856,9 @@ export default function TaskManagementPage() {
                               <option key={b.name} value={b.name} className="bg-zinc-900 text-white">{b.name}</option>
                             ))}
                           </select>
+                          {!targetStaffId && (
+                            <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">⚠️ Hãy chọn nhân viên phía trên trước khi chọn Lô vệ tinh.</p>
+                          )}
                         </div>
                       </div>
                     )}

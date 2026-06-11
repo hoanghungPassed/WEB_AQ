@@ -87,14 +87,14 @@ export default function EmployeePhoneListPage() {
  body: JSON.stringify({
  user: user?.id || user?.name ||"Employee",
  role:"NHÂN VIÊN",
- action: `Cáº­p nháº­t trạng thái SÄT ${targetNumber} thÃ nh"${newStatus}"`,
+ action: `Cập nhật trạng thái SĐT ${targetNumber} thành "${newStatus}"`,
  type: newStatus ==="Lỗi" ?"WARNING" :"SUCCESS",
  timestamp: new Date().toLocaleString("vi-VN")
  })
  }).catch(console.error);
 
  mutate(); 
- triggerToast(`Đã lưu trạng thái"${newStatus}" cho sá»‘ ${targetNumber}!`);
+ triggerToast(`Đã lưu trạng thái "${newStatus}" cho số ${targetNumber}!`);
  }
  } catch(err) {
  console.error(err);

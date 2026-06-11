@@ -944,7 +944,7 @@ export default function SatelliteBatchesPage() {
  ) : (
  <div className="h-60 rounded-3xl border border-white/0 bg-sidebar/20 flex flex-col items-center justify-center text-center p-6">
  <FolderOpen size={48} className="mb-3" />
- <h4 className="text-white font-black uppercase tracking-tight">KhÃ´ng tÃ¬m tháº¥y lô mail vệ tinh nÃ o</h4>
+ <h4 className="text-white font-black uppercase tracking-tight">Không tìm thấy lô mail vệ tinh nào</h4>
  </div>
  )}
  </div>
@@ -1524,11 +1524,11 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
         onClose();
       } else {
         const errData = await res.json();
-        alert(errData.error || "GÃ¡n dáº£i mail tháº¥t báº¡i!");
+        alert(errData.error || "Gán dải mail thất bại!");
       }
     } catch (err) {
       console.error(err);
-      alert("Lỗi káº¿t ná»‘i mÃ¡y chá»§!");
+      alert("Lỗi kết nối máy chủ!");
     } finally {
       setIsAssigning(false);
     }
