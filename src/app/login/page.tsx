@@ -275,7 +275,7 @@ function LoginForm() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between ml-1">
                       <label className="text-lg font-medium text-gray-300">Mật khẩu</label>
-                      <Link href="/forgot-password" size={16} className="text-[10px] font-black text-gold hover:underline uppercase">Quên mật khẩu?</Link>
+                      <Link href="/forgot-password" className="text-[10px] font-black text-gold hover:underline uppercase">Quên mật khẩu?</Link>
                     </div>
                     <div className="group relative">
                       <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors">
