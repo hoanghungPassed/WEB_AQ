@@ -948,8 +948,10 @@ const totalWorkingMins = overlap1 + overlap2;
 
   // 4. Realtime useSWR Polling for chat and active users (30s interval)
 
-  const { data: statusData } = useSWR(user ? `/api/auth/check-status?username=${user?.username}` : null, async (url: string) => {
-    const res = await fetch(url);
+  const statusUrl = user ? `/api/auth/check-status?username=${user?.username}` : null;
+  const { data: statusData } = useSWR(statusUrl, async () => {
+    if (!statusUrl) return null;
+    const res = await fetch(statusUrl);
     return res.json();
   }, { refreshInterval: 3000 });
 
