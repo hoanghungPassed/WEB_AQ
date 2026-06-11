@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, User, Eye, EyeOff, Loader2, UserPlus, ShieldAlert, CheckCircle2, AlertCircle, Clock, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { StaffData } from "@/types/admin";
 import { useAuth } from "@/contexts/AuthContext";
 
 function RealTimeClock() {
@@ -40,6 +39,7 @@ function RealTimeClock() {
     </div>
   );
 }
+
 function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
@@ -52,27 +52,22 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
+  const [require2FA, setRequire2FA] = useState(false);
+  const [totpCode, setTotpCode] = useState("");
+  const [tempUserId, setTempUserId] = useState("");
+
+  const [overtimeBypassFlag, setOvertimeBypassFlag] = useState(false);
+  const [showOvertimePopup, setShowOvertimePopup] = useState(false);
+
+  const [isWaitingApproval, setIsWaitingApproval] = useState(false);
+  const [approvalStatus, setApprovalStatus] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
+
   useEffect(() => {
     setIsClient(true);
   }, []);
 
   useEffect(() => {
     if (!isClient) return;
-    const msg = searchParams.get("message");
-
-  const [require2FA, setRequire2FA] = useState(false);
-  const [totpCode, setTotpCode] = useState("");
-  const [tempUserId, setTempUserId] = useState("");
-
-  // Overtime Fine States
-  const [overtimeBypassFlag, setOvertimeBypassFlag] = useState(false);
-  const [showOvertimePopup, setShowOvertimePopup] = useState(false);
-
-  // Approval Polling States
-  const [isWaitingApproval, setIsWaitingApproval] = useState(false);
-  const [approvalStatus, setApprovalStatus] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
-
-  useEffect(() => {
     const msg = searchParams.get("message");
     if (msg === "pending") {
       setMessage("Đăng ký thành công! Vui lòng chờ Admin phê duyệt tài khoản.");
@@ -84,7 +79,7 @@ function LoginForm() {
     } else if (err === "2fa_required") {
       setError("Bạn cần hoàn tất xác thực 2FA để tiếp tục.");
     }
-  }, [searchParams]);
+  }, [isClient, searchParams]);
 
   const handleLogin = async (e: React.FormEvent, overtimeAgreedOption = false) => {
     if (e) e.preventDefault();
@@ -101,7 +96,6 @@ function LoginForm() {
 
     try {
       if (require2FA) {
-        // Step 2: Verify TOTP token / Backup code
         const res = await fetch("/api/admin/2fa/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -122,12 +116,11 @@ function LoginForm() {
           setError(data.error || "Mã xác thực 2FA/Backup không chính xác.");
         }
       } else {
-        // Step 1: Normal login
         const res = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
-            username, 
+            username: username.toLowerCase(), 
             password,
             overtimeAgreed: overtimeAgreedOption || overtimeBypassFlag
           }),
@@ -167,48 +160,38 @@ function LoginForm() {
   };
 
   useEffect(() => {
-    if (!isWaitingApproval || !username) return;
+    if (!isWaitingApproval || !username || !isClient) return;
 
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`/api/auth/check-status?username=${encodeURIComponent(username.toLowerCase())}`);
         if (!res.ok) {
-          if (res.status === 404) {
-            setApprovalStatus("REJECTED");
-          }
+          if (res.status === 404) setApprovalStatus("REJECTED");
           return;
         }
         const data = await res.json();
-        if (data.status === "GRANTED" || data.status === "APPROVED") {
+        if (data.status === "GRANTED" || data.status === "APPROVED" || data.status === "ACTIVE") {
           setApprovalStatus("APPROVED");
           clearInterval(interval);
-          
-          // Tự động đăng nhập
           try {
             const loginRes = await fetch("/api/auth/login", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                username: username.toLowerCase(),
-                password: password
-              })
+              body: JSON.stringify({ username: username.toLowerCase(), password })
             });
             if (loginRes.ok) {
               const loginData = await loginRes.json();
               login(loginData.user);
-              setTimeout(() => {
-                router.push("/admin");
-              }, 2000);
+              setTimeout(() => router.push("/admin"), 2000);
             } else {
               setIsWaitingApproval(false);
               setError("Tự động đăng nhập thất bại sau khi duyệt");
             }
           } catch (loginErr) {
-            console.error("Auto login error:", loginErr);
             setIsWaitingApproval(false);
             setError("Lỗi kết nối khi tự động đăng nhập");
           }
-        } else if (data.status === "REJECTED") {
+        } else if (data.status === "REJECTED" || data.status === "LOCKED") {
           setApprovalStatus("REJECTED");
           clearInterval(interval);
         }
@@ -218,14 +201,12 @@ function LoginForm() {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [isWaitingApproval, username, password, login, router]);
+  }, [isWaitingApproval, username, password, login, router, isClient]);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0a0a0a] font-sans">
-      {/* Real-time clock widget in the corner */}
       {isClient && <RealTimeClock />}
 
-      {/* Background Orbs */}
       <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-gold/10 blur-[120px]" />
       <div className="absolute -bottom-20 -right-20 h-96 w-96 rounded-full bg-gold/5 blur-[120px]" />
 
@@ -240,185 +221,133 @@ function LoginForm() {
           animate={{ opacity: 1, y: 0 }}
           className="z-10 w-full max-w-[550px] p-6"
         >
-        <div className="rounded-2xl border border-white/0 bg-white/5 p-12 md:p-16 backdrop-blur-3xl shadow-xl shadow-gray-900/50">
-          {/* Logo Section */}
-          <div className="mb-10 text-center">
-            <motion.div
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-[32px] bg-gold/5 border border-gold/10 overflow-hidden shadow-2xl"
-            >
-              <img src="/logo.png" alt="AQ MEDIA" className="h-full w-full object-contain p-2" onError={(e) => e.currentTarget.src = "https://via.placeholder.com/150/d4af37/000000?text=AQ"} />
-            </motion.div>
-            <h1 className="text-3xl font-bold mb-6 text-center text-white">
-              AQ <span className="text-gold uppercase tracking-widest text-2xl ml-1">Media</span>
-            </h1>
-            <p className="mt-3 text-xs font-bold text-gray-500 uppercase tracking-[0.4em]">
-              Hệ thống quản lý nội bộ
-            </p>
-          </div>
+          <div className="rounded-2xl border border-white/0 bg-white/5 p-12 md:p-16 backdrop-blur-3xl shadow-xl shadow-gray-900/50">
+            <div className="mb-10 text-center">
+              <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-[32px] bg-gold/5 border border-gold/10 overflow-hidden shadow-2xl"
+              >
+                <img src="/logo.png" alt="AQ MEDIA" className="h-full w-full object-contain p-2" onError={(e) => e.currentTarget.src = "https://via.placeholder.com/150/d4af37/000000?text=AQ"} />
+              </motion.div>
+              <h1 className="text-3xl font-bold mb-6 text-center text-white">
+                AQ <span className="text-gold uppercase tracking-widest text-2xl ml-1">Media</span>
+              </h1>
+              <p className="mt-3 text-xs font-bold text-gray-500 uppercase tracking-[0.4em]">
+                Hệ thống quản lý nội bộ
+              </p>
+            </div>
 
-          {/* Messages */}
-          {message && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-500 text-xs font-black uppercase tracking-widest text-center flex items-center gap-3">
-              <CheckCircle2 size={16} /> {message}
-            </motion.div>
-          )}
+            {message && (
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-500 text-xs font-black uppercase tracking-widest text-center flex items-center gap-3">
+                <CheckCircle2 size={16} /> {message}
+              </motion.div>
+            )}
 
-          {error && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-black uppercase tracking-widest text-left flex flex-col gap-3 leading-relaxed">
-              <div className="flex items-center gap-3">
-                <ShieldAlert size={16} className="shrink-0" /> {error}
-              </div>
-              {error.includes("yêu cầu duyệt") && (
-                <button 
-                  type="button"
-                  onClick={() => {
-                    const reqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
-                    reqs.push({
-                      id: Date.now(),
-                      username,
-                      staffName: username,
-                      time: new Date().toLocaleString("vi-VN"),
-                      status: "PENDING"
-                    });
-                    localStorage.setItem("pending_access_requests", JSON.stringify(reqs));
-                    setError("");
-                    setMessage("Đã gửi yêu cầu duyệt thành công. Vui lòng chờ Admin.");
-                  }}
-                  className="mt-2 h-10 rounded-xl bg-red-500/20 border border-red-500/30 hover:bg-red-500 text-white font-black uppercase tracking-widest transition-all text-[10px]"
-                >
-                  Gửi yêu cầu duyệt ngay
-                </button>
-              )}
-            </motion.div>
-          )}
-
-          {/* Form Section */}
-          <form onSubmit={handleLogin} className="space-y-6">
-            {!require2FA ? (
-              <>
-                <div className="space-y-3">
-                  <label className="text-lg font-medium text-gray-300 ml-1">
-                    Tài khoản
-                  </label>
-                  <div className="group relative">
-                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors">
-                      <User size={20} />
-                    </div>
-                    <input
-                      type="text"
-                      required
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Username"
-                      className="w-full rounded-xl border border-gray-600 bg-gray-800 px-4 py-3 pl-14 text-lg text-white transition-all focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500 shadow-inner placeholder-gray-400"
-                    />
-                  </div>
+            {error && (
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-black uppercase tracking-widest text-left flex flex-col gap-3 leading-relaxed">
+                <div className="flex items-center gap-3">
+                  <ShieldAlert size={16} className="shrink-0" /> {error}
                 </div>
+              </motion.div>
+            )}
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between ml-1">
-                    <label className="text-lg font-medium text-gray-300">
-                      Mật khẩu
-                    </label>
-                    <Link href="/forgot-password" className="text-[10px] font-black text-gold hover:underline uppercase tracking-tighter">
-                      Quên mật khẩu?
-                    </Link>
-                  </div>
-                  <div className="group relative">
-                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors">
-                      <Lock size={20} />
+            <form onSubmit={handleLogin} className="space-y-6">
+              {!require2FA ? (
+                <>
+                  <div className="space-y-3">
+                    <label className="text-lg font-medium text-gray-300 ml-1">Tài khoản</label>
+                    <div className="group relative">
+                      <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors">
+                        <User size={20} />
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="Username"
+                        className="w-full rounded-xl border border-gray-600 bg-gray-800 px-4 py-3 pl-14 text-lg text-white transition-all focus:border-blue-500 focus:outline-none shadow-inner"
+                      />
                     </div>
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Mật khẩu của bạn"
-                      className="w-full rounded-xl border border-gray-600 bg-gray-800 px-4 py-3 pl-14 pr-14 text-lg text-white transition-all focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500 shadow-inner placeholder-gray-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
-                    >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
                   </div>
-                </div>
-              </>
-            ) : (
-              <div className="space-y-3">
-                <label className="text-lg font-medium text-gray-300 ml-1">
-                  Mã xác thực 2FA hoặc Mã dự phòng
-                </label>
-                <div className="group relative">
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between ml-1">
+                      <label className="text-lg font-medium text-gray-300">Mật khẩu</label>
+                      <Link href="/forgot-password" size={16} className="text-[10px] font-black text-gold hover:underline uppercase">Quên mật khẩu?</Link>
+                    </div>
+                    <div className="group relative">
+                      <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors">
+                        <Lock size={20} />
+                      </div>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Mật khẩu của bạn"
+                        className="w-full rounded-xl border border-gray-600 bg-gray-800 px-4 py-3 pl-14 pr-14 text-lg text-white transition-all focus:border-blue-500 focus:outline-none shadow-inner"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                      >
+                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <label className="text-lg font-medium text-gray-300 ml-1">Mã xác thực 2FA</label>
                   <input
                     type="text"
                     required
                     maxLength={6}
                     value={totpCode}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^0-9a-zA-Z]/g, "");
-                      setTotpCode(val);
-                    }}
+                    onChange={(e) => setTotpCode(e.target.value.replace(/[^0-9a-zA-Z]/g, ""))}
                     placeholder="000000"
-                    className="w-full rounded-2xl border border-gold/30 bg-black/40 px-6 py-5 text-4xl font-black text-gold text-center tracking-[0.5em] focus:border-gold focus:outline-none focus:ring-4 focus:ring-gold/15 transition-all shadow-inner placeholder-gold/10 font-mono uppercase"
+                    className="w-full rounded-2xl border border-gold/30 bg-black/40 px-6 py-5 text-4xl font-black text-gold text-center tracking-[0.5em] focus:outline-none font-mono uppercase"
                   />
+                  <button type="button" onClick={() => {setRequire2FA(false); setTotpCode("");}} className="text-xs font-bold text-gray-400 hover:text-white uppercase mt-2 block">← Quay lại</button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRequire2FA(false);
-                    setTotpCode("");
-                    setError("");
-                    setMessage("");
-                  }}
-                  className="text-xs font-bold text-gray-400 hover:text-white transition-colors uppercase tracking-wider block mt-2 ml-1"
-                >
-                  ← Quay lại đăng nhập
-                </button>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="relative w-full overflow-hidden rounded-xl bg-gold font-bold text-white py-3 text-lg transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-70 shadow-xl shadow-gray-900/50 mt-8"
-            >
-              {isLoading ? (
-                <div className="flex items-center justify-center gap-3">
-                  <Loader2 className="animate-spin" size={20} />
-                  <span>Đang xác thực...</span>
-                </div>
-              ) : (
-                require2FA ? "Xác nhận OTP" : "Đăng nhập ngay"
               )}
-            </button>
-          </form>
 
-          {/* Register Link */}
-          <div className="mt-10 text-center">
-            <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">
-              Chưa có tài khoản?{" "}
-              <Link href="/register" className="text-gold hover:underline transition-all inline-flex items-center gap-2 ml-1">
-                Đăng ký ngay <UserPlus size={16} />
-              </Link>
-            </p>
-          </div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full rounded-xl bg-gold font-bold text-white py-3 text-lg transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-70 mt-8"
+              >
+                {isLoading ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <Loader2 className="animate-spin" size={20} />
+                    <span>Đang xác thực...</span>
+                  </div>
+                ) : (
+                  require2FA ? "Xác nhận OTP" : "Đăng nhập ngay"
+                )}
+              </button>
+            </form>
 
-          {/* Footer Info */}
-          <div className="mt-10 text-center">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em]">
-              Bản quyền AQ MEDIA &copy; 2026
-            </p>
+            <div className="mt-10 text-center">
+              <p className="text-xs text-gray-500 font-bold uppercase">
+                Chưa có tài khoản?{" "}
+                <Link href="/register" className="text-gold hover:underline inline-flex items-center gap-2 ml-1">
+                  Đăng ký ngay <UserPlus size={16} />
+                </Link>
+              </p>
+            </div>
+
+            <div className="mt-10 text-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600">
+                Bản quyền AQ MEDIA &copy; 2026
+              </p>
+            </div>
           </div>
-        </div>
         </motion.div>
-        )}
-
-        {/* Pending Approval Modal Overlay */}
+      )}
 
       <AnimatePresence>
         {isWaitingApproval && (
@@ -432,76 +361,51 @@ function LoginForm() {
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              transition={{ type: "spring", duration: 0.5 }}
-              className="relative w-full max-w-md overflow-hidden rounded-[32px] border border-white/10 bg-[#161616]/90 p-8 text-center shadow-2xl backdrop-blur-xl"
+              className="relative w-full max-w-md rounded-[32px] border border-white/10 bg-[#161616]/90 p-8 text-center shadow-2xl"
             >
-              {/* Ambient Background Glow */}
-              <div className="absolute -left-20 -top-20 h-40 w-40 rounded-full bg-gold/10 blur-2xl" />
-              <div className="absolute -bottom-20 -right-20 h-40 w-40 rounded-full bg-gold/10 blur-2xl" />
-
               <div className="relative z-10 flex flex-col items-center">
-                {/* Status Icons & Spinners */}
                 {approvalStatus === "PENDING" && (
-                  <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-[28px] bg-gold/5 border border-gold/10 shadow-lg">
+                  <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[28px] bg-gold/5 border border-gold/10">
                     <Loader2 className="h-10 w-10 text-gold animate-spin" />
-                    <span className="absolute inset-0 rounded-[28px] border border-gold/20 animate-pulse" />
                   </div>
                 )}
-
                 {approvalStatus === "APPROVED" && (
-                  <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-[28px] bg-green-500/10 border border-green-500/20 shadow-lg">
+                  <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[28px] bg-green-500/10 border border-green-500/20">
                     <CheckCircle2 className="h-10 w-10 text-green-400" />
-                    <span className="absolute inset-0 rounded-[28px] border border-green-500/20 animate-ping" />
                   </div>
                 )}
-
                 {approvalStatus === "REJECTED" && (
-                  <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-[28px] bg-red-500/10 border border-red-500/20 shadow-lg">
+                  <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[28px] bg-red-500/10 border border-red-500/20">
                     <AlertCircle className="h-10 w-10 text-red-400 animate-bounce" />
                   </div>
                 )}
 
-                {/* Status Text & Message */}
-                <h3 className="text-2xl font-black uppercase tracking-tight text-white mb-3">
+                <h3 className="text-2xl font-black uppercase text-white mb-3">
                   {approvalStatus === "PENDING" && "Chờ phê duyệt"}
                   {approvalStatus === "APPROVED" && "Tuyệt vời!"}
-                  {approvalStatus === "REJECTED" && "Từ chối phê duyệt"}
+                  {approvalStatus === "REJECTED" && "Bị từ chối"}
                 </h3>
 
-                <p className="text-gray-300 font-medium text-sm leading-relaxed mb-8 px-2">
+                <p className="text-gray-300 font-medium text-sm mb-8 px-2">
                   {approvalStatus === "PENDING" && "Tài khoản của bạn đang chờ phê duyệt. Vui lòng chờ..."}
                   {approvalStatus === "APPROVED" && "Chúc mừng, tài khoản của bạn đã được phê duyệt thành công!"}
                   {approvalStatus === "REJECTED" && "Yêu cầu đăng ký của bạn bị từ chối"}
                 </p>
 
-                {/* Additional Context or Actions */}
                 {approvalStatus === "PENDING" && (
-                  <div className="flex flex-col gap-2 items-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center gap-1.5">
-                      <Clock size={14} className="animate-pulse" />
-                      <span>Đang tự động kiểm tra mỗi 3s</span>
-                    </div>
-                  </div>
-                )}
-
-                {approvalStatus === "APPROVED" && (
-                  <div className="text-xs font-bold text-green-400 uppercase tracking-widest flex items-center gap-2">
-                    <Loader2 className="animate-spin" size={14} />
-                    <span>Đang chuyển vào hệ thống...</span>
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase">
+                    <Clock size={14} className="animate-pulse" />
+                    <span>Đang tự động kiểm tra...</span>
                   </div>
                 )}
 
                 {approvalStatus === "REJECTED" && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsWaitingApproval(false);
-                      setApprovalStatus("PENDING");
-                    }}
-                    className="h-12 w-full rounded-2xl bg-white/5 border border-white/10 hover:border-gold hover:bg-gold/5 font-black uppercase tracking-widest text-white text-xs transition-all active:scale-95 flex items-center justify-center gap-2 group shadow-inner"
+                    onClick={() => { setIsWaitingApproval(false); setApprovalStatus("PENDING"); }}
+                    className="h-12 w-full rounded-2xl bg-white/5 border border-white/10 hover:border-gold hover:bg-gold/5 font-black uppercase text-white text-xs flex items-center justify-center gap-2 transition-all"
                   >
-                    <ArrowLeft size={16} className="text-gray-400 group-hover:text-gold transition-colors" />
-                    <span>Quay lại</span>
+                    <ArrowLeft size={16} /> Quay lại
                   </button>
                 )}
               </div>

@@ -80,3 +80,5 @@ export const BatchNameModal = ({
     </AnimatePresence>
   );
 };
+
+export default BatchNameModal;
