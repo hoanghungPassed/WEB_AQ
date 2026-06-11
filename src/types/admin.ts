@@ -87,6 +87,7 @@ export interface MailData {
   batchId?: string;
   assignedTo?: string;
   assigneeId?: string;
+  assigneeName?: string;
   twoFA?: string;
   phone?: string;
   otpLink?: string;

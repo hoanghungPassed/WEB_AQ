@@ -117,12 +117,12 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
 
   // We can also extract info from importHistory if available
   const historyMap: Record<string, ImportHistoryItem> = {};
-  importHistory.forEach(item => {
+  importHistory.forEach((item: ImportHistoryItem) => {
     historyMap[item.fileName] = item;
   });
-
-  mails.forEach(m => {
+  mails.forEach((m: MailData) => {
     const bName = m.batchName || "Không rõ lô";
+
     if (!stats[bName]) {
       stats[bName] = { 
         count: 0, 
@@ -134,11 +134,12 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
   });
 
   // Also include empty batches from history if they match current tab type
-  importHistory.forEach(item => {
+  importHistory.forEach((item: ImportHistoryItem) => {
     if ((activeTab === "ALL" || item.type === activeTab) && !stats[item.fileName]) {
       stats[item.fileName] = { count: 0, importedAt: item.importedAt, type: item.type };
     }
   });
+
     return Object.entries(stats).map(([name, info]) => ({
       name,
       ...info
