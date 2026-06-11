@@ -179,42 +179,44 @@ export async function POST(req: NextRequest) {
 
  await dbConnect();
  const body = await req.json();
- 
- let payload;
- if (Array.isArray(body)) {
- payload = body.map((item: any) => ({
- email: item.email,
- password: item.password || item.pass ||"",
- recoveryMail: item.recoveryMail || item.recovery ||"",
- twoFA: item.twoFA ||"",
- phone: item.phone ||"",
- phoneLink: item.phoneLink || item.otpLink ||"",
- stt: item.stt || item.id || 0,
- type: item.type,
- status: item.status ||"LIVE",
- workStatus: item.workStatus,
- verificationStatus: item.verificationStatus,
- cccdDate: item.cccdDate,
- batch: item.batch,
- batchName: item.batchName,
- batchId: item.batchId,
- assignee: item.assignee,
- assigneeId: item.assigneeId,
- assignedTo: item.assignedTo,
- updatedBy: item.updatedBy,
- lastUpdated: item.lastUpdated,
- links: item.links || [],
- channelNames: item.channelNames || [],
- eligibleChannels: item.eligibleChannels || [],
- reClickDate: item.reClickDate,
- step2PendingDate: item.step2PendingDate,
- channelStatusDetail: item.channelStatusDetail,
- inviteStatus: item.inviteStatus,
- createdAt: item.createdAt || new Date()
- }));
- } else {
- payload = body;
- }
+  let payload;
+  // Handle 3 formats: 1) Array directly, 2) {mails: [...]} from Excel import, 3) single object
+  const rawItems = Array.isArray(body) ? body : (Array.isArray(body.mails) ? body.mails : null);
+  
+  if (rawItems) {
+  payload = rawItems.map((item: any) => ({
+  email: item.email,
+  password: item.password || item.pass ||"",
+  recoveryMail: item.recoveryMail || item.recovery ||"",
+  twoFA: item.twoFA ||"",
+  phone: item.phone ||"",
+  phoneLink: item.phoneLink || item.otpLink ||"",
+  stt: item.stt || item.id || 0,
+  type: item.type || body.type,
+  status: item.status ||"LIVE",
+  workStatus: item.workStatus,
+  verificationStatus: item.verificationStatus,
+  cccdDate: item.cccdDate,
+  batch: item.batch || item.batchName || body.batchName,
+  batchName: item.batchName || body.batchName,
+  batchId: item.batchId,
+  assignee: item.assignee,
+  assigneeId: item.assigneeId,
+  assignedTo: item.assignedTo,
+  updatedBy: item.updatedBy,
+  lastUpdated: item.lastUpdated,
+  links: item.links || [],
+  channelNames: item.channelNames || [],
+  eligibleChannels: item.eligibleChannels || [],
+  reClickDate: item.reClickDate,
+  step2PendingDate: item.step2PendingDate,
+  channelStatusDetail: item.channelStatusDetail,
+  inviteStatus: item.inviteStatus,
+  createdAt: item.createdAt || new Date()
+  }));
+  } else {
+  payload = body;
+  }
 
  const newMails = [];
  let items = Array.isArray(payload) ? payload : [payload];
@@ -251,7 +253,14 @@ export async function POST(req: NextRequest) {
  newMails.push(...res);
  }
 
- if (newMails.length === 0) throw new Error("Không thể tạo bản ghi hoặc sai type");
+  if (newMails.length === 0) {
+    return NextResponse.json({ 
+      success: true, 
+      data: [], 
+      message: "Không có mail mới được thêm (tất cả email đã tồn tại hoặc type không hợp lệ)",
+      duplicateCount: existingEmails.size
+    }, { status: 200 });
+  }
  
  try {
  const { logAction } = await import('@/lib/logger');

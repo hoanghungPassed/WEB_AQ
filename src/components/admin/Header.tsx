@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from "react";
 import { Search, Bell, Menu, User, PanelLeftClose, PanelLeftOpen, LogOut, UserSearch, UserPlus, CheckCircle2, X } from "lucide-react";
@@ -348,16 +348,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
             {isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
           </button>
 
-          <div className="hidden sm:flex w-full max-w-lg items-center gap-4">
-            <div className="relative w-full group">
-              <Search className="absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#a07800] transition-colors" />
-              <input
-                type="text"
-                placeholder="Tìm kiếm nội dung..."
-                className="h-11 w-full rounded-xl border border-white/0 bg-zinc-900/50 pl-11 pr-6 text-sm text-zinc-100 placeholder-zinc-500 transition-all focus:border-[#a07800] focus:outline-none focus:ring-2 focus:ring-[#a07800]/10"
-              />
-            </div>
-          </div>
+
         </div>
 
         <div className="flex items-center gap-6">

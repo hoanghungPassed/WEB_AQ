@@ -96,7 +96,7 @@ export default function ForgotPasswordPage() {
  <div className="space-y-4">
  <label className="text-sm font-black uppercase tracking-widest text-gray-500 ml-1">Số điện thoại</label>
  <div className="group relative">
- <Phone className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={24} />
+ <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
  <input
  type="tel"
  required
@@ -125,7 +125,7 @@ export default function ForgotPasswordPage() {
  <div className="space-y-4">
  <label className="text-sm font-black uppercase tracking-widest text-gray-500 ml-1">Mã xác thực OTP</label>
  <div className="group relative">
- <ShieldCheck className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={24} />
+ <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
  <input
  type="text"
  required
@@ -155,7 +155,7 @@ export default function ForgotPasswordPage() {
  <div className="space-y-4">
  <label className="text-sm font-black uppercase tracking-widest text-gray-500 ml-1">Mật khẩu mới</label>
  <div className="group relative">
- <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={24} />
+ <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
  <input
  type="password"
  required

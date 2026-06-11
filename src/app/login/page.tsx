@@ -258,8 +258,8 @@ function LoginForm() {
                   <div className="space-y-3">
                     <label className="text-lg font-medium text-gray-300 ml-1">Tài khoản</label>
                     <div className="group relative">
-                      <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors">
-                        <User size={20} />
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors">
+                        <User size={18} />
                       </div>
                       <input
                         type="text"
@@ -267,7 +267,7 @@ function LoginForm() {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="Username"
-                        className="w-full rounded-xl border border-gray-600 bg-gray-800 px-4 py-3 pl-14 text-lg text-white transition-all focus:border-blue-500 focus:outline-none shadow-inner"
+                        className="w-full rounded-xl border border-gray-600 bg-gray-800 px-4 py-3 pl-12 text-lg text-white transition-all focus:border-blue-500 focus:outline-none shadow-inner"
                       />
                     </div>
                   </div>
@@ -278,8 +278,8 @@ function LoginForm() {
                       <Link href="/forgot-password" className="text-[10px] font-black text-gold hover:underline uppercase">Quên mật khẩu?</Link>
                     </div>
                     <div className="group relative">
-                      <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors">
-                        <Lock size={20} />
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors">
+                        <Lock size={18} />
                       </div>
                       <input
                         type={showPassword ? "text" : "password"}
@@ -287,14 +287,14 @@ function LoginForm() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Mật khẩu của bạn"
-                        className="w-full rounded-xl border border-gray-600 bg-gray-800 px-4 py-3 pl-14 pr-14 text-lg text-white transition-all focus:border-blue-500 focus:outline-none shadow-inner"
+                        className="w-full rounded-xl border border-gray-600 bg-gray-800 px-4 py-3 pl-12 pr-12 text-lg text-white transition-all focus:border-blue-500 focus:outline-none shadow-inner"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
                       >
-                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
                   </div>
@@ -309,7 +309,7 @@ function LoginForm() {
                     value={totpCode}
                     onChange={(e) => setTotpCode(e.target.value.replace(/[^0-9a-zA-Z]/g, ""))}
                     placeholder="000000"
-                    className="w-full rounded-2xl border border-gold/30 bg-black/40 px-6 py-5 text-4xl font-black text-gold text-center tracking-[0.5em] focus:outline-none font-mono uppercase"
+                    className="w-full rounded-2xl border border-gold/30 bg-black/40 px-6 py-5 text-2xl font-black text-gold text-center tracking-[0.3em] focus:outline-none font-mono uppercase"
                   />
                   <button type="button" onClick={() => {setRequire2FA(false); setTotpCode("");}} className="text-xs font-bold text-gray-400 hover:text-white uppercase mt-2 block">← Quay lại</button>
                 </div>
