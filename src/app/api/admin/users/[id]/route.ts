@@ -7,6 +7,9 @@ import { Task } from "@/models/Task";
 import { SatelliteMail } from "@/models/SatelliteMail";
 import { RootMail } from "@/models/RootMail";
 import { MonetizedMail } from "@/models/MonetizedMail";
+import { Fine } from "@/models/Fine";
+import { Attendance } from "@/models/Attendance";
+import { Batch } from "@/models/Batch";
 import { checkPermission, logAuditTrail } from "@/lib/permissions";
 import { UpdateUserSchema, sanitizeXSS } from "@/lib/validation";
 import { sendPasswordResetEmail } from "@/lib/email";
@@ -256,6 +259,23 @@ export async function DELETE(req: NextRequest, { params: paramsPromise }: { para
     const oldUser = await User.findById(id);
     if (!oldUser) {
       return NextResponse.json({ error: "Không tìm thấy nhân viên" }, { status: 404 });
+    }
+
+    // CASCADE DELETE: Cleanup associated data before locking
+    try {
+      await Promise.all([
+        Task.deleteMany({ assigneeId: id }),
+        Fine.deleteMany({ userId: id }),
+        Attendance.deleteMany({ userId: id }),
+        Batch.deleteMany({ assignedTo: id }),
+        SatelliteMail.updateMany(
+          { assigneeId: id }, 
+          { $set: { isAssigned: false, assignedTo: null, assigneeId: null, batchId: null, batchName: null } }
+        )
+      ]);
+    } catch (cascadeErr) {
+      console.error("Cascade cleanup error:", cascadeErr);
+      // We continue with user lock even if cleanup fails partially
     }
 
     const newUsername = `${oldUser.username}_deleted_${Date.now()}`;

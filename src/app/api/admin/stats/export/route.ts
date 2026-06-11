@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic';
 import { NextResponse, NextRequest } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { RootMail } from '@/models/RootMail';
+import { SatelliteMail } from '@/models/SatelliteMail';
+import { MonetizedMail } from '@/models/MonetizedMail';
 import { User } from '@/models/User';
 import { checkPermission, logAuditTrail } from '@/lib/permissions';
 import ExcelJS from 'exceljs';
@@ -16,12 +18,20 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Không có quyền truy cập xuất báo cáo" }, { status: 403 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const monthParam = searchParams.get('month') || new Date().toISOString().slice(0, 7); // YYYY-MM
+    const [year, month] = monthParam.split("-").map(Number);
+
     await dbConnect();
-    // Load data similar to the front‑end calculations
-    const [mails, staffList] = await Promise.all([
+    // Load data from all mail collections
+    const [roots, sats, mons, staffList] = await Promise.all([
       RootMail.find().lean(),
-      User.find({ role: { $in: ["04", "05"] } }).lean(),
+      SatelliteMail.find().lean(),
+      MonetizedMail.find().lean(),
+      User.find({ role: { $in: ["04", "05", "NHÂN VIÊN", "NV THỬ VIỆC"] } }).lean(),
     ]);
+
+    const mails = [...roots, ...sats, ...mons];
 
     // Helper to count eligible channels
     const countChannels = (mail: any) => {
@@ -31,61 +41,53 @@ export async function GET(req: NextRequest) {
       return linkCount || eligibleCount;
     };
 
-    // Compute staff leaderboard (same logic as front end)
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-    const monday = new Date(now.setDate(diff));
-    monday.setHours(0, 0, 0, 0);
-
+    // Compute staff leaderboard for the selected month
     const leaderboard = staffList.map((staff: any) => {
-      const myMails = (mails as any[]).filter(m => String(m.assigneeId) === String(staff.id));
-      const weeklyMails = myMails.filter(m => !m.updatedAt || new Date(m.updatedAt) >= monday);
+      const myMails = (mails as any[]).filter(m => String(m.assigneeId) === String(staff.id) || String(m.assigneeId) === String(staff._id));
+      
       const monthlyMails = myMails.filter(m => {
         if (!m.updatedAt) return false;
         const d = new Date(m.updatedAt);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+        return d.getMonth() === month - 1 && d.getFullYear() === year;
       });
-      const weeklyChannels = weeklyMails.reduce((sum, m) => sum + countChannels(m), 0);
+
       const monthlyChannels = monthlyMails.reduce((sum, m) => sum + countChannels(m), 0);
-      const targetWeekly = 300; // 50 * 6 days
-      const progress = targetWeekly > 0 ? Math.round((weeklyChannels / targetWeekly) * 100) : 0;
+      const targetMonthly = 26 * 50; 
+      const progress = targetMonthly > 0 ? Math.round((monthlyChannels / targetMonthly) * 100) : 0;
+      
       let efficiency = "C";
-      if (progress >= 90) efficiency = "A+";
-      else if (progress >= 75) efficiency = "A";
-      else if (progress >= 50) efficiency = "B";
+      if (progress >= 100) efficiency = "A+";
+      else if (progress >= 85) efficiency = "A";
+      else if (progress >= 70) efficiency = "B";
+
       return {
         name: staff.name,
         username: staff.username,
-        weeklyChannels,
         monthlyChannels,
         progress,
         efficiency,
       };
-    }).sort((a, b) => b.progress - a.progress);
+    }).sort((a, b) => b.monthlyChannels - a.monthlyChannels);
 
     // Create Excel workbook
     const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('Report');
+    const sheet = workbook.addWorksheet('Báo cáo tháng ' + monthParam);
     sheet.columns = [
       { header: 'STT', key: 'index', width: 6 },
       { header: 'Tên nhân viên', key: 'name', width: 30 },
       { header: 'Username', key: 'username', width: 20 },
-      { header: 'Kênh đủ giờ (Tuần)', key: 'weekly', width: 20 },
-      { header: 'Tổng tháng (Kênh đủ giờ)', key: 'monthly', width: 25 },
-      { header: 'KPI Tuần (%)', key: 'progress', width: 15 },
+      { header: 'Sản lượng (Kênh đủ giờ)', key: 'monthly', width: 25 },
+      { header: 'KPI Tháng (%)', key: 'progress', width: 15 },
       { header: 'Xếp loại', key: 'efficiency', width: 12 },
     ];
+
     leaderboard.forEach((staff, idx) => {
       sheet.addRow({
         index: idx + 1,
         name: staff.name,
         username: staff.username,
-        weekly: staff.weeklyChannels,
         monthly: staff.monthlyChannels,
-        progress: staff.progress,
+        progress: staff.progress + '%',
         efficiency: staff.efficiency,
       });
     });
@@ -93,12 +95,24 @@ export async function GET(req: NextRequest) {
     // Set header style
     sheet.getRow(1).eachCell(cell => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB8860B' } }; // gold background
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB8860B' } }; 
+      cell.alignment = { horizontal: 'center' };
+    });
+
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        row.alignment = { horizontal: 'left' };
+        row.getCell('index').alignment = { horizontal: 'center' };
+        row.getCell('monthly').alignment = { horizontal: 'center' };
+        row.getCell('progress').alignment = { horizontal: 'center' };
+        row.getCell('efficiency').alignment = { horizontal: 'center' };
+      }
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
-    const fileName = `AQ_MEDIA_REPORT_MONTHLY_${currentMonth + 1}_${currentYear}.xlsx`;
-    await logAuditTrail(userId || "system", "EXPORT_EXCEL_STATS", "stats", { fileName }, req);
+    const fileName = `AQ_MEDIA_REPORT_MONTHLY_${monthParam}.xlsx`;
+    await logAuditTrail(userId || "system", "EXPORT_EXCEL_STATS", "stats", { fileName, month: monthParam }, req);
+    
     return new NextResponse(buffer, {
       status: 200,
       headers: {

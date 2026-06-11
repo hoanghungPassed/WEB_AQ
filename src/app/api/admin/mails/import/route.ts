@@ -297,25 +297,30 @@ export async function POST(req: NextRequest) {
     // Sort errors by row index for clear presentation
     importErrors.sort((a, b) => a.row - b.row);
 
-    // 3. Third pass: High performance batch insertions
+    // 3. Third pass: High performance batch insertions with unordered resilience
     let insertedCount = 0;
     const insertedRecords: any[] = [];
 
-    if (rootToInsert.length > 0) {
-      const res = await RootMail.insertMany(rootToInsert);
-      insertedCount += res.length;
-      insertedRecords.push(...res);
-    }
-    if (satelliteToInsert.length > 0) {
-      const res = await SatelliteMail.insertMany(satelliteToInsert);
-      insertedCount += res.length;
-      insertedRecords.push(...res);
-    }
-    if (monetizedToInsert.length > 0) {
-      const res = await MonetizedMail.insertMany(monetizedToInsert);
-      insertedCount += res.length;
-      insertedRecords.push(...res);
-    }
+    const insertWithResilience = async (model: any, docs: any[]) => {
+      if (docs.length === 0) return 0;
+      try {
+        // ordered: false allows continuing even if some documents fail (e.g. duplicate keys)
+        const res = await model.insertMany(docs, { ordered: false });
+        return res.length;
+      } catch (err: any) {
+        // Capture how many actually succeeded if there was a partial failure
+        if (err.result && err.result.nInserted) {
+          return err.result.nInserted;
+        }
+        // If it's a validation error before insert
+        console.error(`Partial insert failure for ${model.modelName}:`, err.message);
+        return 0;
+      }
+    };
+
+    insertedCount += await insertWithResilience(RootMail, rootToInsert);
+    insertedCount += await insertWithResilience(SatelliteMail, satelliteToInsert);
+    insertedCount += await insertWithResilience(MonetizedMail, monetizedToInsert);
 
     // 4. Logging & Auditing
     if (insertedCount > 0) {

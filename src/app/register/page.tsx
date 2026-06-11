@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export default function RegisterPage() {
  const router = useRouter();
  const { login } = useAuth();
+ const [isClient, setIsClient] = useState(false);
  const [formData, setFormData] = useState({
  name: "",
  birthYear: "",
@@ -25,6 +26,10 @@ export default function RegisterPage() {
  const [isWaitingApproval, setIsWaitingApproval] = useState(false);
  const [approvalStatus, setApprovalStatus] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
  const [isUsernameDuplicate, setIsUsernameDuplicate] = useState(false);
+
+ useEffect(() => {
+   setIsClient(true);
+ }, []);
 
  const years = Array.from({ length: 2010 - 1970 + 1 }, (_, i) => (2010 - i).toString());
 
@@ -223,6 +228,8 @@ export default function RegisterPage() {
 
  const inputClass = (name: string) => `h-14 w-full rounded-2xl border ${errors[name] ?"border-red-500 bg-red-50/50 bg-red-900/20" :" border-gray-600 bg-gray-800 text-white"} pl-14 pr-6 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder-gray-400 placeholder-gray-500 font-bold`;
  const labelClass ="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1 mb-1 block";
+
+ if (!isClient) return <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center"><Loader2 className="animate-spin text-gold" size={48} /></div>;
 
  return (
  <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0f0f0f] font-sans p-4 py-20 text-white">

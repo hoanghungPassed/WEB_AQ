@@ -23,12 +23,13 @@ export async function GET(req: NextRequest) {
     const sortOrder = (searchParams.get("sortOrder") || "desc") as "asc" | "desc";
 
     const userRole = req.headers.get("x-user-role");
-    const isStaff = userRole === "03" || userRole === "04";
+    // Strictly scope tasks for Staff (03, 04, 05)
+    const isStaff = userRole === "03" || userRole === "04" || userRole === "05";
 
     const filter: any = {};
     if (isStaff) {
       filter.assigneeId = userId;
-    } else if (assigneeId) {
+    } else if (assigneeId && assigneeId !== "ALL") {
       filter.assigneeId = assigneeId;
     }
     

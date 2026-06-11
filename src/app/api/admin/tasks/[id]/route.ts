@@ -64,9 +64,28 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (data.range) data.range = sanitizeXSS(data.range);
     if (data.assigneeName) data.assigneeName = sanitizeXSS(data.assigneeName);
 
-    const task = await Task.findByIdAndUpdate(id, data, { new: true, runValidators: true });
-    if (!task) {
-      return NextResponse.json({ success: false, error: "Task not found" }, { status: 404 });
+    // Strictly enforce ownership for Staff roles
+    const isStaff = userRole === "03" || userRole === "04" || userRole === "05";
+    
+    let task;
+    if (isStaff) {
+      // Find one that matches BOTH id and assigneeId
+      task = await Task.findOneAndUpdate(
+        { _id: id, assigneeId: userId },
+        data,
+        { new: true, runValidators: true }
+      );
+      if (!task) {
+        // Either task doesn't exist OR it's not assigned to them
+        await logAuditTrail(userId || "unknown", "UNAUTHORIZED_TASK_UPDATE_ATTEMPT", "tasks", { taskId: id }, req);
+        return NextResponse.json({ error: "Nhiệm vụ không tồn tại hoặc bạn không có quyền cập nhật" }, { status: 403 });
+      }
+    } else {
+      // Admin/Manager can update any task
+      task = await Task.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+      if (!task) {
+        return NextResponse.json({ success: false, error: "Task not found" }, { status: 404 });
+      }
     }
 
  // If assignee changed, notify new assignee via email
@@ -87,16 +106,38 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   // Auto-update KPI & Mail status if transitioning to COMPLETED
   if (body.status === 'COMPLETED' && oldTask.status !== 'COMPLETED') {
     try {
-      // 1. Cập nhật Mail vệ tinh thành ACTIVE
+      // 1. Cập nhật Mail vệ tinh thành USED và Đã làm cho toàn bộ lô
       try {
         const { SatelliteMail } = await import('@/models/SatelliteMail');
-        if (task.satelliteMailId) {
-          await SatelliteMail.findByIdAndUpdate(task.satelliteMailId, { status: 'ACTIVE' });
+        
+        // Find batch associated with this task
+        const batchIdentifier = task.batch || task.batchName || task.batchId;
+        
+        if (batchIdentifier) {
+          // Update entire batch
+          await SatelliteMail.updateMany(
+            { 
+              $or: [
+                { batchName: batchIdentifier },
+                { batchId: batchIdentifier },
+                { batch: batchIdentifier }
+              ]
+            },
+            { 
+              $set: { 
+                status: 'USED',
+                workStatus: 'Đã làm',
+                updatedBy: 'System (Task Completed)'
+              } 
+            }
+          );
         }
+
+        // Individual updates if mailIds were specified
         if (task.mailIds && task.mailIds.length > 0) {
           await SatelliteMail.updateMany(
             { _id: { $in: task.mailIds } },
-            { $set: { status: 'ACTIVE' } }
+            { $set: { status: 'USED', workStatus: 'Đã làm' } }
           );
         }
       } catch (mailErr) {
@@ -146,6 +187,31 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         );
       } catch (kpiErr) {
         console.error("Lỗi tự động cập nhật KPI:", kpiErr);
+      }
+
+      // 4. Thông báo cho Admin và Quản lý
+      try {
+        const { Notification } = await import('@/models/Notification');
+        const User = (await import('@/models/User')).default;
+        
+        // Find all admins and managers
+        const admins = await User.find({ role: { $in: ['01', '02'] } }).select('_id');
+        const staffName = task.assigneeName || "Nhân viên";
+        const batchName = task.batch || task.batchName || "Lô mail";
+
+        const adminNotifications = admins.map(admin => ({
+          title: "Hoàn thành nhiệm vụ",
+          message: `Nhân viên ${staffName} vừa hoàn thành ${batchName}.`,
+          type: "SUCCESS",
+          recipientId: admin._id,
+          isRead: false
+        }));
+
+        if (adminNotifications.length > 0) {
+          await Notification.insertMany(adminNotifications);
+        }
+      } catch (notifErr) {
+        console.error("Lỗi gửi thông báo cho Admin:", notifErr);
       }
     } catch (err) {
       console.error("Lỗi đồng bộ Task -> Mail -> KPI:", err);

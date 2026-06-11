@@ -948,6 +948,33 @@ const totalWorkingMins = overlap1 + overlap2;
 
   // 4. Realtime useSWR Polling for chat and active users (30s interval)
 
+  const { data: statusData } = useSWR(user ? `/api/auth/check-status?username=${user?.username}` : null, async (url: string) => {
+    const res = await fetch(url);
+    return res.json();
+  }, { refreshInterval: 3000 });
+
+  useEffect(() => {
+    if (statusData?.status === "ACTIVE" || statusData?.access === "GRANTED") {
+      // If approved, clear local lock flags and reload
+      const accessKey = `access_${getStableDateString()}_${user?.name}`;
+      const responseKey = `access_response_${user?.name}`;
+      localStorage.setItem(accessKey, "true");
+      localStorage.setItem(responseKey, "APPROVED");
+      
+      // Update global_users to reflect unlocked state immediately
+      const savedUsersStr = localStorage.getItem("global_users");
+      if (savedUsersStr) {
+        const allUsers = JSON.parse(savedUsersStr);
+        const updatedUsers = (allUsers || []).map((u: any) => 
+          u.username === user?.username ? { ...u, isLateLocked: false, status: "ACTIVE" } : u
+        );
+        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+      }
+      
+      window.location.reload();
+    }
+  }, [statusData, user]);
+
   useSWR("sync_users_rlt", async () => {
     if (user) await syncRealUsersFromDB();
     return Date.now();

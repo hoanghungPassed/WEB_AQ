@@ -16,8 +16,32 @@ export async function GET(req: NextRequest) {
     }
 
     await dbConnect();
-    const logs = await Log.find({}).populate('user', 'name username').sort({ createdAt: -1 });
-    return NextResponse.json(logs || []);
+    
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "50");
+    const skip = (page - 1) * limit;
+
+    const [logs, total] = await Promise.all([
+      Log.find({})
+        .populate('user', 'name username')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Log.countDocuments({})
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: logs,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit) || 1
+      }
+    });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("Error fetching system logs:", error);

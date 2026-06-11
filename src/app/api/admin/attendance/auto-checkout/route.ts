@@ -65,22 +65,27 @@ async function runAutoCheckout(req: NextRequest, triggerSource: "CRON" | "MANUAL
       );
     } catch (_) {}
 
-    const userId = req.headers.get("x-user-id");
-
-    // Get Vietnam time
+    // 1. Get Vietnam time (UTC+7)
     const now = new Date();
-    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-    const vnTime = new Date(utc + 3600000 * 7); // Vietnam GMT+7
-    const yyyy = vnTime.getFullYear();
-    const mm = String(vnTime.getMonth() + 1).padStart(2, "0");
-    const dd = String(vnTime.getDate()).padStart(2, "0");
+    // Use an explicit UTC offset to get VN time regardless of server TZ
+    const vnTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    const yyyy = vnTime.getUTCFullYear();
+    const mm = String(vnTime.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(vnTime.getUTCDate()).padStart(2, "0");
     const todayStr = `${yyyy}-${mm}-${dd}`;
-    const vnHours = vnTime.getHours();
-    const vnMinutes = vnTime.getMinutes();
+    const vnHours = vnTime.getUTCHours();
+    const vnMinutes = vnTime.getUTCMinutes();
     const vnTimeStr = `${String(vnHours).padStart(2, "0")}:${String(vnMinutes).padStart(2, "0")}`;
 
-    // Find staff who are still online (roles: 03=QL Nhân sự, 04=Nhân viên, 05=NV Thử việc)
-    const staffOnline = await User.find({
+    // 2. Find all Attendance records for today that have checkInTime but NO checkOutTime
+    const incompleteAttendance = await Attendance.find({
+      date: todayStr,
+      checkInTime: { $exists: true, $ne: null },
+      checkOutTime: { $exists: false }
+    }).populate("userId");
+
+    // Count currently online staff for logging (roles: 03, 04, 05)
+    const staffOnlineCount = await User.countDocuments({
       isOnline: true,
       role: { $in: ["03", "04", "05"] },
       status: "ACTIVE"
@@ -90,83 +95,58 @@ async function runAutoCheckout(req: NextRequest, triggerSource: "CRON" | "MANUAL
     let skippedCount = 0;
     const results: Array<{ username: string; name: string; totalHours: number }> = [];
 
-    for (const staff of staffOnline) {
+    for (const record of incompleteAttendance) {
       try {
-        // Check if this user has already checked out today
-        const hasCheckedOutToday = staff.checkOutTime && staff.checkOutTime.startsWith(todayStr);
-        if (hasCheckedOutToday) {
+        const staff = record.userId as any;
+        if (!staff || staff.deletedAt) continue;
+
+        // Skip Admin/Manager (roles 01, 02)
+        if (!["03", "04", "05"].includes(staff.role)) {
           skippedCount++;
           continue;
         }
 
-        // Check if they have a check-in today
-        const hasCheckedInToday = staff.checkInTime && staff.checkInTime.startsWith(todayStr);
-        if (!hasCheckedInToday) {
-          skippedCount++;
-          continue;
-        }
-
-        // Determine checkout time: use staff's offWorkTime or default 17:30
-        const offTime = staff.offWorkTime || "17:30";
+        // Determine checkout time: use staff's offWorkTime or default 18:00
+        const offTime = staff.offWorkTime || "18:00";
         const [offH, offM] = offTime.split(":").map(Number);
-        const checkoutTime = new Date(vnTime);
-        checkoutTime.setHours(offH, offM, 0, 0);
+        
+        // Build checkout date in VN time
+        const checkoutTime = new Date(Date.UTC(yyyy, vnTime.getUTCMonth(), vnTime.getUTCDate(), offH - 7, offM, 0, 0));
 
-        // Update User record
-        staff.checkOutTime = checkoutTime.toISOString();
-        staff.isOnline = false;
-        staff.lastActive = now;
-        await staff.save();
+        // A. Update Attendance record
+        record.checkOutTime = checkoutTime;
+        const diffInMs = checkoutTime.getTime() - new Date(record.checkInTime).getTime();
+        let totalHours = diffInMs / (1000 * 60 * 60);
+        totalHours = parseFloat((totalHours > 0 ? totalHours : 0).toFixed(2));
+        record.totalHours = totalHours;
+        await record.save();
 
-        // Update Attendance record
-        let totalHours = 0;
-        const attendance = await Attendance.findOne({
-          userId: staff._id,
-          date: todayStr,
+        // B. Sync to User record
+        await User.findByIdAndUpdate(staff._id, {
+          checkOutTime: checkoutTime.toISOString(),
+          isOnline: false,
+          lastActive: now
         });
 
-        if (attendance && attendance.checkInTime) {
-          if (!attendance.checkOutTime) {
-            attendance.checkOutTime = checkoutTime;
-            
-            const diffInMs = checkoutTime.getTime() - new Date(attendance.checkInTime).getTime();
-            totalHours = diffInMs / (1000 * 60 * 60);
-            totalHours = parseFloat((totalHours > 0 ? totalHours : 0).toFixed(2));
-            
-            attendance.totalHours = totalHours;
-            await attendance.save();
-          } else {
-            // Already has checkout time in attendance, compute hours
-            totalHours = attendance.totalHours || 0;
-          }
-        }
-
-        // Create notification for the staff member
+        // C. Create notification
         try {
           await Notification.create({
             title: "Tự động Checkout",
-            message: `Bạn đã được hệ thống tự động checkout lúc ${offTime}. Tổng giờ làm: ${totalHours.toFixed(1)}h. Nếu bạn cần điều chỉnh, vui lòng liên hệ quản lý.`,
+            message: `Bạn đã được hệ thống tự động checkout lúc ${offTime}. Tổng giờ làm: ${totalHours.toFixed(1)}h.`,
             type: "SYSTEM",
             recipientId: staff._id,
             isRead: false,
           });
-        } catch (notifErr) {
-          console.error(`Failed to create notification for ${staff.username}:`, notifErr);
-        }
+        } catch (_) {}
 
-        // Log the action
+        // D. Log & Pusher
         try {
           await logAction(
             staff._id.toString(),
             "ATTENDANCE_AUTO_CHECKOUT",
-            `Hệ thống tự động check-out lúc ${vnTimeStr} cho ${staff.name} (@${staff.username}). Tổng giờ: ${totalHours.toFixed(2)}h`
+            `Hệ thống tự động check-out cho ${staff.name} (@${staff.username}). Tổng giờ: ${totalHours.toFixed(2)}h`
           );
-        } catch (logErr) {
-          console.error("Log action error:", logErr);
-        }
-
-        // Trigger Real-time status update for auto-checkout
-        try {
+          
           await pusherServer.trigger("system-users", "status-changed", {
             userId: staff._id.toString(),
             username: staff.username,
@@ -174,13 +154,7 @@ async function runAutoCheckout(req: NextRequest, triggerSource: "CRON" | "MANUAL
             lastActive: now,
             autoCheckout: true
           });
-          
-          // Private notification for the user to be kicked out or notified
-          await pusherServer.trigger(`user-${staff._id}`, "auto-checkout", {
-            message: `Hệ thống tự động check-out lúc ${offTime}`,
-            totalHours
-          });
-        } catch (pushErr) {}
+        } catch (_) {}
 
         results.push({
           username: staff.username,
@@ -190,7 +164,7 @@ async function runAutoCheckout(req: NextRequest, triggerSource: "CRON" | "MANUAL
 
         checkedOutCount++;
       } catch (staffErr) {
-        console.error(`Auto-checkout failed for ${staff.username}:`, staffErr);
+        console.error(`Auto-checkout failed for attendance record ${record._id}:`, staffErr);
       }
     }
 
@@ -205,7 +179,7 @@ async function runAutoCheckout(req: NextRequest, triggerSource: "CRON" | "MANUAL
         time: vnTimeStr,
         checkedOutCount,
         skippedCount,
-        totalOnline: staffOnline.length,
+        totalOnline: staffOnlineCount,
       },
       req
     );
@@ -216,7 +190,7 @@ async function runAutoCheckout(req: NextRequest, triggerSource: "CRON" | "MANUAL
       await Log.create({
         user: "System",
         role: "SYSTEM",
-        action: `[Auto-Checkout] ${todayStr} lúc ${vnTimeStr}: Đã checkout ${checkedOutCount}/${staffOnline.length} nhân viên (${triggerSource})`,
+        action: `[Auto-Checkout] ${todayStr} lúc ${vnTimeStr}: Đã checkout ${checkedOutCount}/${staffOnlineCount} nhân viên (${triggerSource})`,
         type: "SUCCESS",
         timestamp: new Date().toLocaleString("vi-VN"),
       });

@@ -40,11 +40,11 @@ function RealTimeClock() {
     </div>
   );
 }
-
 function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isClient, setIsClient] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -52,7 +52,14 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  // 2FA States
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
+    const msg = searchParams.get("message");
+
   const [require2FA, setRequire2FA] = useState(false);
   const [totpCode, setTotpCode] = useState("");
   const [tempUserId, setTempUserId] = useState("");
@@ -81,6 +88,7 @@ function LoginForm() {
 
   const handleLogin = async (e: React.FormEvent, overtimeAgreedOption = false) => {
     if (e) e.preventDefault();
+    if (!isClient) return;
     setError("");
     setMessage("");
 
@@ -215,17 +223,23 @@ function LoginForm() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0a0a0a] font-sans">
       {/* Real-time clock widget in the corner */}
-      <RealTimeClock />
+      {isClient && <RealTimeClock />}
 
       {/* Background Orbs */}
       <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-gold/10 blur-[120px]" />
       <div className="absolute -bottom-20 -right-20 h-96 w-96 rounded-full bg-gold/5 blur-[120px]" />
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="z-10 w-full max-w-[550px] p-6"
-      >
+      {!isClient ? (
+        <div className="z-10 flex flex-col items-center gap-4">
+          <Loader2 className="animate-spin text-gold" size={48} />
+          <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Đang tải hệ thống...</p>
+        </div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="z-10 w-full max-w-[550px] p-6"
+        >
         <div className="rounded-2xl border border-white/0 bg-white/5 p-12 md:p-16 backdrop-blur-3xl shadow-xl shadow-gray-900/50">
           {/* Logo Section */}
           <div className="mb-10 text-center">
@@ -401,9 +415,11 @@ function LoginForm() {
             </p>
           </div>
         </div>
-      </motion.div>
+        </motion.div>
+        )}
 
-      {/* Pending Approval Modal Overlay */}
+        {/* Pending Approval Modal Overlay */}
+
       <AnimatePresence>
         {isWaitingApproval && (
           <motion.div

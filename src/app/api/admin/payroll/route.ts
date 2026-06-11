@@ -119,15 +119,18 @@ async function calculateMonthlyPayroll(body: any, requesterId: string | null, re
       status: { $in: ["Đúng giờ", "Đi muộn"] } // Both count as present
     });
 
-    // Sum total unpaid fines for this user in the month
+    // Sum total unpaid fines for this user in the month (Standardized to VN time UTC+7)
+    const monthStartUTC = new Date(Date.UTC(year, monthNum - 1, 1, -7, 0, 0, 0));
+    const monthEndUTC = new Date(Date.UTC(year, monthNum, 1, -7, 0, 0, 0));
+
     const finesAgg = await Fine.aggregate([
       {
         $match: {
           userId: user._id,
           status: { $ne: "CANCELLED" },
           createdAt: {
-            $gte: new Date(year, monthNum - 1, 1),
-            $lt: new Date(year, monthNum, 1)
+            $gte: monthStartUTC,
+            $lt: monthEndUTC
           }
         }
       },

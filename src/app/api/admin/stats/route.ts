@@ -19,9 +19,12 @@ export async function GET(req: NextRequest) {
 
     // Specific logic for staff roles (03 and 04)
     if (userRole === "03" || userRole === "04") {
-      const todayStr = new Date(new Date().getTime() + 7 * 3600000).toISOString().split('T')[0];
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
+      const now = new Date();
+      const vnNow = new Date(now.getTime() + 7 * 3600000);
+      const todayStr = vnNow.toISOString().split('T')[0];
+      
+      // VN 00:00 today is UTC yesterday 17:00
+      const startOfDay = new Date(Date.UTC(vnNow.getUTCFullYear(), vnNow.getUTCMonth(), vnNow.getUTCDate(), -7, 0, 0, 0));
 
       const attendance = await Attendance.findOne({ userId, date: todayStr });
       

@@ -59,6 +59,7 @@ export default function SatelliteBatchesPage() {
  const [newBatchName, setNewBatchName] = useState("");
  const [targetStaffId, setTargetStaffId] = useState("");
  const [isSubmitting, setIsSubmitting] = useState(false);
+ const [isAssigning, setIsAssigning] = useState(false);
  const [showRangeModal, setShowRangeModal] = useState(false);
 
  useEffect(() => {
@@ -166,9 +167,13 @@ export default function SatelliteBatchesPage() {
  setTimeout(() => setToastMsg(""), 3000);
  };
 
+  const roleUpper = String(user?.role || "").toUpperCase();
+  const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC";
+
   const handleCreateBatch = () => {
+    if (!isAdminOrManager) return;
     const nextNum = (batches || []).length + 1;
-    setNewBatchName(`LÃ´ ${nextNum}`);
+    setNewBatchName(`Lô ${nextNum}`);
     setTargetStaffId(selectedStaff?.id || "");
     setShowCreateModal(true);
   };
@@ -176,13 +181,13 @@ export default function SatelliteBatchesPage() {
   const handleSubmitNewBatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBatchName.trim()) {
-      triggerToast("Vui lÃ²ng điền tÃªn lô!");
+      triggerToast("Vui lòng điền tên lô!");
       return;
     }
-    // Æ¯u tiÃªn selectedStaff đã chá»n tá»« mÃ n hÃ¬nh ngoài, fallback sang dropdown
+    // Ưu tiên selectedStaff đã chọn từ màn hình ngoài, fallback sang dropdown
     const resolvedStaffId = targetStaffId || selectedStaff?.id || "";
     if (!resolvedStaffId) {
-      triggerToast("Vui lÃ²ng chá»n nhân viên nháº­n gán!");
+      triggerToast("Vui lòng chọn nhân viên nhận gán!");
       return;
     }
 
@@ -200,11 +205,11 @@ export default function SatelliteBatchesPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        triggerToast(`Đã táº¡o thành công ${newBatchName.trim()}!`);
+        triggerToast(`Đã tạo thành công ${newBatchName.trim()}!`);
         setShowCreateModal(false);
         setNewBatchName("");
 
-        // Cáº­p nháº­t láº¡i global_mails_data trong localStorage
+        // Cập nhật lại global_mails_data trong localStorage
         try {
           const mailRes = await fetch("/api/admin/mails?type=SATELLITE&all=true");
           if (mailRes.ok) {
@@ -219,11 +224,11 @@ export default function SatelliteBatchesPage() {
         // Note: loadData is defined inside useEffect, so we'd typically trigger a refresh logic here
         window.dispatchEvent(new Event("storage"));
       } else {
-        triggerToast(data.error || "KhÃ´ng thá»ƒ táº¡o lô mail!");
+        triggerToast(data.error || "Không thể tạo lô mail!");
       }
     } catch (err) {
-      console.error("Lỗi khi táº¡o lô mail vệ tinh:", err);
-      triggerToast("Lỗi káº¿t ná»‘i mÃ¡y chá»§!");
+      console.error("Lỗi khi tạo lô mail vệ tinh:", err);
+      triggerToast("Lỗi kết nối máy chủ!");
     } finally {
       setIsSubmitting(false);
     }
@@ -254,7 +259,7 @@ export default function SatelliteBatchesPage() {
 
  // Assign entire batch to a staff member
  const handleAssignBatchToStaff = async () => {
-   if (!selectedBatch) return;
+   if (!selectedBatch || isAssigning) return;
    if (!selectedStaffToAssign) {
      triggerToast("Vui lòng chọn một nhân viên để gán!");
      return;
@@ -266,6 +271,7 @@ export default function SatelliteBatchesPage() {
      return;
    }
 
+   setIsAssigning(true);
    try {
      const mailIds = (batchMails || []).map(m => m.id || m._id).filter(Boolean);
      
@@ -319,69 +325,76 @@ export default function SatelliteBatchesPage() {
    } catch (error) {
      console.error("Lỗi giao việc:", error);
      triggerToast("Lỗi hệ thống khi giao việc!");
+   } finally {
+     setIsAssigning(false);
    }
  };
 
  // Unassign/Release all mails inside a batch for the current staff member
- const handleUnassignBatch = () => {
- if (!selectedBatch || !selectedStaff) return;
+ const handleUnassignBatch = async () => {
+ if (!selectedBatch || !selectedStaff || isAssigning) return;
 
- const savedMails = localStorage.getItem("global_mails_data");
- const mails = savedMails ? JSON.parse(savedMails) : [];
- const now = new Date().toISOString();
+ setIsAssigning(true);
+ try {
+   const savedMails = localStorage.getItem("global_mails_data");
+   const mails = savedMails ? JSON.parse(savedMails) : [];
+   const now = new Date().toISOString();
 
- const updatedMails = (mails || []).map((m: any) => {
- if (
- m.type ==="SATELLITE" && 
- m.batchName === selectedBatch.name && 
- String(m.assigneeId) === String(selectedStaff.id)
- ) {
- return {
- ...m,
- assigneeId:"",
- assignedTo:"",
- batchName:"",
- batchId:"",
- lastUpdated: now,
- updatedAt: now,
- updatedBy: user?.name ||"Admin"
- };
+   const updatedMails = (mails || []).map((m: any) => {
+   if (
+   m.type ==="SATELLITE" && 
+   m.batchName === selectedBatch.name && 
+   String(m.assigneeId) === String(selectedStaff.id)
+   ) {
+   return {
+   ...m,
+   assigneeId:"",
+   assignedTo:"",
+   batchName:"",
+   batchId:"",
+   lastUpdated: now,
+   updatedAt: now,
+   updatedBy: user?.name ||"Admin"
+   };
+   }
+   return m;
+   });
+
+   localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
+   window.dispatchEvent(new Event("storage"));
+
+   setBatchMails([]);
+   setSelectedStaffToAssign("");
+
+   // Sync batches count
+   const savedBatches = localStorage.getItem("global_satellite_batches");
+   const list = savedBatches ? JSON.parse(savedBatches) : [];
+   const syncedList = (list || []).map((b: any) => {
+   if (b.name === selectedBatch.name) {
+   return { ...b, mailCount: 0 };
+   }
+   return b;
+   });
+   setBatches(syncedList);
+   localStorage.setItem("global_satellite_batches", JSON.stringify(syncedList));
+
+   // Log Activity
+   const existingLogs = localStorage.getItem("global_system_logs");
+   const logsList = existingLogs ? JSON.parse(existingLogs) : [];
+   const newLog = {
+   id: `log-${Date.now()}`,
+   user: user?.name ||"Admin",
+   role:"ADMIN",
+   action: `Hủy gán / Giải phóng toàn bộ mail vệ tinh thuộc"${selectedBatch.name}"`,
+   type:"WARNING",
+   timestamp: new Date().toLocaleString("vi-VN")
+   };
+   localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
+
+   triggerToast(`Đã hủy gán & giải phóng toàn bộ mail trong Lô"${selectedBatch.name}"!`);
+ } finally {
+   setIsAssigning(false);
  }
- return m;
- });
-
- localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
- window.dispatchEvent(new Event("storage"));
-
- setBatchMails([]);
- setSelectedStaffToAssign("");
-
- // Sync batches count
- const savedBatches = localStorage.getItem("global_satellite_batches");
- const list = savedBatches ? JSON.parse(savedBatches) : [];
- const syncedList = (list || []).map((b: any) => {
- if (b.name === selectedBatch.name) {
- return { ...b, mailCount: 0 };
- }
- return b;
- });
- setBatches(syncedList);
- localStorage.setItem("global_satellite_batches", JSON.stringify(syncedList));
-
- // Log Activity
- const existingLogs = localStorage.getItem("global_system_logs");
- const logsList = existingLogs ? JSON.parse(existingLogs) : [];
- const newLog = {
- id: `log-${Date.now()}`,
- user: user?.name ||"Admin",
- role:"ADMIN",
- action: `Há»§y gán / Giáº£i phÃ³ng toÃ n bá»™ mail vệ tinh thuá»™c"${selectedBatch.name}"`,
- type:"WARNING",
- timestamp: new Date().toLocaleString("vi-VN")
- };
- localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
-
- triggerToast(`Đã há»§y gán & giáº£i phÃ³ng toÃ n bá»™ mail trong LÃ´"${selectedBatch.name}"!`);
  };
 
  // Trigger delete modal
@@ -391,53 +404,65 @@ export default function SatelliteBatchesPage() {
  };
 
  // Perform the actual batch deletion after user confirmation
- const confirmDeleteBatch = () => {
+ const confirmDeleteBatch = async () => {
  if (!batchToDelete) return;
 
- // 1. Release mails
- const savedMails = localStorage.getItem("global_mails_data");
- const mails = savedMails ? JSON.parse(savedMails) : [];
- const now = new Date().toISOString();
- const updatedMails = (mails || []).map((m: any) => {
- if (m.type ==="SATELLITE" && m.batchName === batchToDelete.name) {
- return {
- ...m,
- assigneeId:"",
- assignedTo:"",
- batchName:"",
- batchId:"",
- lastUpdated: now,
- updatedAt: now,
- updatedBy: user?.name ||"Admin"
- };
+ try {
+   const batchId = batchToDelete._id || batchToDelete.id;
+   const res = await fetch(`/api/admin/mail/satellite-batches/${batchId}`, {
+     method: "DELETE",
+     headers: {
+       "x-user-id": user?.id || user?._id || "",
+       "x-user-role": user?.role || ""
+     }
+   });
+
+   if (res.ok) {
+     const data = await res.json();
+     if (data.success) {
+        // 1. Release mails in local storage for instant feedback
+        const savedMails = localStorage.getItem("global_mails_data");
+        const mails = savedMails ? JSON.parse(savedMails) : [];
+        const now = new Date().toISOString();
+        const updatedMails = (mails || []).map((m: any) => {
+        if (m.type ==="SATELLITE" && m.batchName === batchToDelete.name) {
+        return {
+        ...m,
+        assigneeId:"",
+        assignedTo:"",
+        batchName:"",
+        batchId:"",
+        lastUpdated: now,
+        updatedAt: now,
+        updatedBy: user?.name ||"Admin"
+        };
+        }
+        return m;
+        });
+        localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
+
+        // 2. Remove batch from list in state and local storage
+        const savedBatches = localStorage.getItem("global_satellite_batches");
+        const list = savedBatches ? JSON.parse(savedBatches) : [];
+        const updatedBatches = (list || []).filter((b: any) => (b._id || b.id) !== batchId);
+        localStorage.setItem("global_satellite_batches", JSON.stringify(updatedBatches));
+        setBatches(updatedBatches);
+
+        triggerToast(`Đã xóa thành công ${batchToDelete.name} và dọn dẹp dữ liệu liên quan!`);
+        window.dispatchEvent(new Event("storage"));
+     } else {
+        triggerToast(data.error || "Lỗi khi xóa lô mail!");
+     }
+   } else {
+     const errData = await res.json().catch(() => ({}));
+     triggerToast(errData.error || "Lỗi kết nối máy chủ khi xóa lô!");
+   }
+ } catch (err) {
+   console.error("Lỗi xóa lô mail:", err);
+   triggerToast("Lỗi hệ thống!");
+ } finally {
+   setBatchToDelete(null);
  }
- return m;
- });
- localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
-
- // 2. Remove batch from list
- const savedBatches = localStorage.getItem("global_satellite_batches");
- const list = savedBatches ? JSON.parse(savedBatches) : [];
- const updatedBatches = (list || []).filter((b: any) => b.id !== batchToDelete.id);
- localStorage.setItem("global_satellite_batches", JSON.stringify(updatedBatches));
- setBatches(updatedBatches);
-
- // 3. Log Activity
- const existingLogs = localStorage.getItem("global_system_logs");
- const logsList = existingLogs ? JSON.parse(existingLogs) : [];
- const newLog = {
- id: `log-${Date.now()}`,
- user: user?.name ||"Admin",
- role:"ADMIN",
- action: `XÃ³a LÃ´ vệ tinh"${batchToDelete.name}" vÃ  giáº£i phÃ³ng toÃ n bá»™ mail liÃªn quan`,
- type:"ERROR",
- timestamp: new Date().toLocaleString("vi-VN")
- };
- localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
-
- window.dispatchEvent(new Event("storage"));
- triggerToast(`Đã xóa thành công ${batchToDelete.name}!`);
- setBatchToDelete(null);
  };
 
  // Trigger reset modal
@@ -471,7 +496,7 @@ export default function SatelliteBatchesPage() {
  if (updated) {
  localStorage.setItem("global_mails_data", JSON.stringify(mails));
  window.dispatchEvent(new Event("storage"));
- triggerToast(`Đã reset toÃ n bá»™ link kênh trong lô"${batchToReset.name}"!`);
+ triggerToast(`Đã reset toàn bộ link kênh trong lô"${batchToReset.name}"!`);
  }
  setBatchToReset(null);
  };
@@ -531,8 +556,8 @@ export default function SatelliteBatchesPage() {
  const notifList = existingNotifs ? JSON.parse(existingNotifs) : [];
  const newNotif = {
  id: `notif-${Date.now()}`,
- title:"Giao thÃªm mail vệ tinh láº»",
- message: `Bạn đã được gán láº» thÃªm ${(selectedMailsToAdd || []).length} mail vệ tinh vào LÃ´"${selectedBatch.name}".`,
+ title:"Giao thêm mail vệ tinh lẻ",
+ message: `Bạn đã được gán lẻ thêm ${(selectedMailsToAdd || []).length} mail vệ tinh vào Lô"${selectedBatch.name}".`,
  time: new Date().toLocaleTimeString("vi-VN") +" -" + new Date().toLocaleDateString("vi-VN"),
  type:"ASSIGNMENT",
  read: false,
@@ -543,7 +568,7 @@ export default function SatelliteBatchesPage() {
 
  setSelectedMailsToAdd([]);
  setShowAddMailModal(false);
- triggerToast(`Đã thÃªm thành công ${(selectedMailsToAdd || []).length} mail vào LÃ´!`);
+ triggerToast(`Đã thêm thành công ${(selectedMailsToAdd || []).length} mail vào Lô!`);
  };
 
  // Sync mail counts dynamically for the selected staff
@@ -622,10 +647,10 @@ export default function SatelliteBatchesPage() {
  <div>
  <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
  <Layers className="text-gold" size={28} />
- LÃ´ Mail vệ tinh - Chọn Nhân Sự
+ Lô Mail vệ tinh - Chọn Nhân Sự
  </h2>
  <p className="text-sm text-gray-500 font-medium uppercase tracking-widest mt-1">
- PhÃ¢n phá»‘i lô mail vÃ  gán cho nhÃ¢n sá»± xử lý kênh vệ tinh
+ Phân phối lô mail và gán cho nhân sự xử lý kênh vệ tinh
  </p>
  </div>
  </div>
@@ -636,7 +661,7 @@ export default function SatelliteBatchesPage() {
  <div className="relative group flex-1">
    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
    <input 
-     placeholder="TÃ¬m kiáº¿m nhÃ¢n sá»±..."
+     placeholder="Tìm kiếm nhân sự..."
      className="w-full bg-black/40 border border-white/0 rounded-xl pl-12 pr-4 h-12 text-sm text-white outline-none focus:border-white/5 transition-all"
      type="text" 
      value={staffSearchTerm}
@@ -683,7 +708,7 @@ export default function SatelliteBatchesPage() {
  </div>
 
  <div className="flex items-center gap-3">
- <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">Lọc Tráº¡ng ThÃ¡i:</span>
+ <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">Lọc Trạng Thái:</span>
  <div className="flex bg-black/40 border border-white/0 rounded-xl p-1">
  <button
  onClick={() => setAssignmentFilter("ALL")}
@@ -723,9 +748,9 @@ export default function SatelliteBatchesPage() {
  {/* Staff List Table-like Structure */}
  <div className="flex-1 min-h-0 bg-sidebar border border-white/0 rounded-[24px] p-6 shadow-xl flex flex-col justify-between">
  <div className="flex items-center justify-between pb-4 border-b border-white/0 text-[10px] font-black text-gray-500 uppercase tracking-wider flex-shrink-0 px-4">
- <div className="w-1/3">Nhân sá»±</div>
- <div className="w-1/4 text-center">Trạng thái hoáº¡t Ä‘á»™ng</div>
- <div className="w-1/4 text-center">TÃ¬nh tráº¡ng gán lô</div>
+ <div className="w-1/3">Nhân sự</div>
+ <div className="w-1/4 text-center">Trạng thái hoạt động</div>
+ <div className="w-1/4 text-center">Tình trạng gán lô</div>
  <div className="w-1/6 text-right">Thao tác</div>
  </div>
 
@@ -766,7 +791,7 @@ export default function SatelliteBatchesPage() {
  ?"bg-green-500/10 text-green-500 border-green-500/20" 
  :"bg-gray-500/10 text-gray-400 border-gray-500/20"
  }`}>
- {isOnline ?"ðŸŸ¢ Online" :"ðŸ”´ Offline"}
+ {isOnline ?"🟢 Online" :"🔴 Offline"}
  </span>
  </div>
 
@@ -788,7 +813,7 @@ export default function SatelliteBatchesPage() {
  <button
  className="px-4 h-9 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-[10px] tracking-widest rounded-xl transition-all shadow-md group-hover:scale-105"
  >
- Giao viá»‡c
+ Giao việc
  </button>
  </div>
  </div>
@@ -797,7 +822,7 @@ export default function SatelliteBatchesPage() {
  {(filteredStaffList || []).length === 0 && (
  <div className="h-full flex flex-col items-center justify-center text-center py-20">
  <FolderOpen size={48} className="mb-3" />
- <h4 className="text-white font-black uppercase tracking-tight">KhÃ´ng tÃ¬m tháº¥y nhân viên nÃ o</h4>
+ <h4 className="text-white font-black uppercase tracking-tight">Không tìm thấy nhân viên nào</h4>
  </div>
  )}
  </div>
@@ -827,10 +852,10 @@ export default function SatelliteBatchesPage() {
  <div>
  <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
  <Layers className="text-gold" size={28} />
- LÃ´ Mail - {selectedStaff.name}
+ Lô Mail - {selectedStaff.name}
  </h2>
  <p className="text-sm text-gray-500 font-medium uppercase tracking-widest mt-1">
- Nhân sá»±: <span className="text-white font-black">{selectedStaff.name} ({selectedStaff.username})</span> | Trạng thái: <span className={isOnline ?"text-green-500 font-bold" :"text-gray-500 font-bold"}>{isOnline ?"ðŸŸ¢ Online" :"ðŸ”´ Offline"}</span>
+ Nhân sự: <span className="text-white font-black">{selectedStaff.name} ({selectedStaff.username})</span> | Trạng thái: <span className={isOnline ?"text-green-500 font-bold" :"text-gray-500 font-bold"}>{isOnline ?"🟢 Online" :"🔴 Offline"}</span>
  </p>
  </div>
  </div>
@@ -839,7 +864,7 @@ export default function SatelliteBatchesPage() {
  <div className="relative group">
  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={16} />
  <input 
- placeholder="TÃ¬m kiáº¿m LÃ´..."
+ placeholder="Tìm kiếm Lô..."
  className="bg-black/20 border border-white/0 rounded-xl pl-10 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-48"
  type="text" 
  value={searchTerm}
@@ -847,13 +872,15 @@ export default function SatelliteBatchesPage() {
  />
  </div>
 
+ {isAdminOrManager && (
  <button
  onClick={handleCreateBatch}
  className="bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest px-5 h-10 rounded-xl transition-all shadow-lg shadow-gold/25 flex items-center gap-2 shrink-0"
  >
  <PlusCircle size={16} />
- Táº¡o LÃ´ Má»›i Cho Nhân ViÃªn NÃ y
+ Tạo Lô Mới Cho Nhân Viên Này
  </button>
+ )}
  </div>
  </div>
 
@@ -876,14 +903,14 @@ export default function SatelliteBatchesPage() {
  <button
  onClick={(e) => handleResetBatchLinks(e, batch)}
  className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-white transition-all opacity-0 group-hover:opacity-100 border border-blue-500/20"
- title="Reset toÃ n bá»™ link kênh"
+ title="Reset toàn bộ link kênh"
  >
  <RefreshCcw size={12} />
  </button>
  <button
  onClick={(e) => handleDeleteBatch(e, batch)}
  className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white transition-all opacity-0 group-hover:opacity-100 border border-red-500/20"
- title="XÃ³a lô nÃ y"
+ title="Xóa lô này"
  >
  <Trash2 size={12} />
  </button>
@@ -899,13 +926,13 @@ export default function SatelliteBatchesPage() {
 
  <div className="flex items-baseline gap-1.5 my-3 bg-black/10 rounded-xl p-3 border border-white/0">
  <span className="text-3xl font-black text-gold tracking-tighter leading-none">{batch.mailCount}</span>
- <span className="text-[10px] text-gray-500 uppercase tracking-widest font-black">TÃ i khoáº£n đã gán</span>
+ <span className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Tài khoản đã gán</span>
  </div>
  </div>
 
  <div className="mt-4 pt-3 border-t border-white/0 flex items-center justify-between text-[11px] text-gray-400 font-bold">
  <span className="inline-flex items-center gap-1">
- <User size={12} className="text-gray-500" /> Nhân sá»± gán:
+ <User size={12} className="text-gray-500" /> Nhân sự gán:
  </span>
  <span className="text-gold font-black uppercase">
  {selectedStaff.name}
@@ -989,9 +1016,9 @@ export default function SatelliteBatchesPage() {
         <div className="h-20 w-20 bg-gold/10 text-gold border border-gold/20 rounded-full flex items-center justify-center mb-6 animate-pulse">
           <Mail size={40} />
         </div>
-        <h4 className="text-xl font-black text-white uppercase tracking-tight mb-2">LÃ´ Mail Đang Trá»‘ng</h4>
+        <h4 className="text-xl font-black text-white uppercase tracking-tight mb-2">Lô Mail Đang Trống</h4>
         <p className="text-sm text-gray-500 uppercase font-bold tracking-widest max-w-md">
-          Hệ thá»‘ng chÆ°a gán dáº£i mail nÃ o cho lô nÃ y. Vui lÃ²ng chá»n dáº£i mail từ kho unassigned (tối đa 17 mail/dải).
+          Hệ thống chưa gán dải mail nào cho lô này. Vui lòng chọn dải mail từ kho unassigned (tối đa 17 mail/dải).
         </p>
       </div>
       
@@ -1003,10 +1030,10 @@ export default function SatelliteBatchesPage() {
           <div className="h-6 w-6 bg-sidebar/20 rounded-lg flex items-center justify-center">
             <Plus size={16} />
           </div>
-          ðŸ“¥ Chọn Dáº£i Mail Tá»« Kho
+          📥 Chọn Dải Mail Từ Kho
         </button>
         <p className="text-[10px] text-gray-600 font-bold uppercase tracking-[0.2em]">
-          Tá»± Ä‘á»™ng cháº» dữ liệu tá»« kho mail ráº£nh
+          Tự động chẻ dữ liệu từ kho mail rảnh
         </p>
       </div>
     </div>
@@ -1017,11 +1044,11 @@ export default function SatelliteBatchesPage() {
         <div className="space-y-6">
           <div>
             <h4 className="text-base font-black text-gold uppercase tracking-widest mb-1">Thông Tin Giao Việc</h4>
-            <p className="text-[10px] text-gray-500 font-medium italic">LÃ´ mail đã được kÃ­ch hoáº¡t vÃ  gán cho nhÃ¢n sá»±</p>
+            <p className="text-[10px] text-gray-500 font-medium italic">Lô mail đã được kích hoạt và gán cho nhân sự</p>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">Nhân sá»± đang xử lý</label>
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">Nhân sự đang xử lý</label>
             <div className="flex items-center gap-3 bg-black/40 border border-white/0 rounded-2xl h-16 px-4 border border-white/5">
               <div className="h-9 w-9 bg-gold/15 text-gold border border-gold/20 rounded-xl flex items-center justify-center font-black text-base uppercase shrink-0">
                 {selectedStaff.name.charAt(0)}
@@ -1036,10 +1063,10 @@ export default function SatelliteBatchesPage() {
           <div className="p-5 rounded-2xl bg-gold/5 border border-gold/10 space-y-3">
              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider">
                 <span className="text-gray-500">Trạng thái:</span>
-                <span className="text-green-500">Đang hoáº¡t Ä‘á»™ng</span>
+                <span className="text-green-500">Đang hoạt động</span>
              </div>
              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider">
-                <span className="text-gray-500">Số lÆ°á»£ng mail:</span>
+                <span className="text-gray-500">Số lượng mail:</span>
                 <span className="text-white">{(batchMails || []).length} / 17</span>
              </div>
           </div>
@@ -1051,7 +1078,7 @@ export default function SatelliteBatchesPage() {
             className="w-full h-14 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 font-black uppercase text-xs tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2"
           >
             <Trash2 size={16} />
-            Há»§y gán & giáº£i phÃ³ng lô
+            Hủy gán & giải phóng lô
           </button>
         </div>
       </div>
@@ -1060,13 +1087,13 @@ export default function SatelliteBatchesPage() {
       <div className="lg:col-span-8 flex flex-col justify-between bg-black/20 border border-white/0 rounded-3xl p-6 min-h-0">
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
           <span className="text-sm font-black text-gray-400 uppercase tracking-widest">
-            Danh sÃ¡ch tài khoản ({(batchMails || []).length} mail)
+            Danh sách tài khoản ({(batchMails || []).length} mail)
           </span>
           <button
             onClick={() => setShowAddMailModal(true)}
             className="text-xs font-black text-gold hover:underline flex items-center gap-1.5 uppercase tracking-widest"
           >
-            + GÃ¡n láº» thá»§ cÃ´ng
+            + Gán lẻ thủ công
           </button>
         </div>
 
@@ -1122,11 +1149,12 @@ export default function SatelliteBatchesPage() {
       batchId={selectedBatch._id || selectedBatch.id}
       onClose={() => setShowRangeModal(false)}
       onSelectSuccess={async () => {
-        triggerToast("GÃ¡n dáº£i mail thành công!");
+        triggerToast("Gán dải mail thành công!");
         try {
           const mailRes = await fetch("/api/admin/mails?type=SATELLITE&all=true");
           if (mailRes.ok) {
-            const mailData = await mailRes.json();
+
+            const mailData = await mailRes.ok ? await mailRes.json() : { success: false, data: [] };
             if (mailData.success && mailData.data) {
               localStorage.setItem("global_mails_data", JSON.stringify(mailData.data));
               window.dispatchEvent(new Event("storage"));
@@ -1161,8 +1189,8 @@ export default function SatelliteBatchesPage() {
  className="bg-[#121212] border border-white/0 rounded-[32px] p-8 w-full max-w-lg max-h-[70vh] shadow-2xl flex flex-col justify-between"
  >
  <div>
- <h3 className="text-lg font-black text-white uppercase tracking-tight mb-2">Thêm Mail Tá»« Kho vệ tinh</h3>
- <p className="text-sm text-gray-500 mb-6">Chọn các mail chÆ°a được gán vào lô nÃ o dÆ°á»›i Ä‘Ã¢y:</p>
+ <h3 className="text-lg font-black text-white uppercase tracking-tight mb-2">Thêm Mail Từ Kho vệ tinh</h3>
+ <p className="text-sm text-gray-500 mb-6">Chọn các mail chưa được gán vào lô nào dưới đây:</p>
 
  <div className="space-y-2 overflow-y-auto max-h-[40vh] pr-2 custom-scrollbar">
  {(unassignedSats || []).map((m, idx) => {
@@ -1198,7 +1226,7 @@ export default function SatelliteBatchesPage() {
  );
  })}
  {(unassignedSats || []).length === 0 && (
- <p className="text-center py-10 text-sm uppercase font-black tracking-widest">KhÃ´ng cÃ²n mail trá»‘ng nÃ o trong kho</p>
+ <p className="text-center py-10 text-sm uppercase font-black tracking-widest">Không còn mail trống nào trong kho</p>
  )}
  </div>
  </div>
@@ -1211,14 +1239,14 @@ export default function SatelliteBatchesPage() {
  }}
  className="flex-1 h-12 bg-white/5 border border-white/0 text-white font-bold uppercase text-sm tracking-widest rounded-xl hover:bg-white/10 transition-all"
  >
- Há»§y
+ Hủy
  </button>
  <button
  onClick={handleAddMailsToBatch}
  disabled={(selectedMailsToAdd || []).length === 0}
  className="flex-1 h-12 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest rounded-xl transition-all shadow-xl shadow-gold/20 disabled:opacity-40 disabled:cursor-not-allowed"
  >
- Xác nhận thÃªm
+ Xác nhận thêm
  </button>
  </div>
  </motion.div>
@@ -1248,17 +1276,17 @@ export default function SatelliteBatchesPage() {
  <Trash2 size={24} />
  </div>
  <div>
- <h3 className="text-lg font-black text-white uppercase tracking-tight">XÃ³a LÃ´ Mail vệ tinh</h3>
- <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">HÃ nh Ä‘á»™ng không thá»ƒ hoÃ n tÃ¡c</p>
+ <h3 className="text-lg font-black text-white uppercase tracking-tight">Xóa Lô Mail vệ tinh</h3>
+ <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Hành động không thể hoàn tác</p>
  </div>
  </div>
 
  <div className="space-y-4 mb-8 text-base text-gray-300 font-medium relative z-10 leading-relaxed">
  <p>
- Bạn có chắc chắn muốn xóa LÃ´ <span className="text-gold font-black uppercase">"{(batchToDelete?.name || "").replace(/\s*\(.*\)$/, "")}"</span>?
+ Bạn có chắc chắn muốn xóa Lô <span className="text-gold font-black uppercase">"{(batchToDelete?.name || "").replace(/\s*\(.*\)$/, "")}"</span>?
  </p>
  <p className="text-sm text-red-400 bg-red-500/5 border border-red-500/10 rounded-xl p-3">
- âš ï¸ Tất cả các tài khoản mail trong Lô này sáº½ ngay láº­p tá»©c được giáº£i phÃ³ng vÃ  tráº£ vá» kho vệ tinh unassigned.
+ ⚠️ Tất cả các tài khoản mail trong Lô này sẽ ngay lập tức được giải phóng và trả về kho vệ tinh unassigned.
  </p>
  </div>
 
@@ -1267,7 +1295,7 @@ export default function SatelliteBatchesPage() {
  onClick={() => setBatchToDelete(null)}
  className="flex-1 h-12 bg-white/5 border border-white/0 text-white font-bold uppercase text-sm tracking-widest rounded-xl hover:bg-white/10 transition-all"
  >
- Há»§y bá»
+ Hủy bỏ
  </button>
  <button
  onClick={confirmDeleteBatch}
@@ -1303,17 +1331,17 @@ export default function SatelliteBatchesPage() {
  <RefreshCcw size={24} />
  </div>
  <div>
- <h3 className="text-lg font-black text-white uppercase tracking-tight">Làm Má»›i Link Kênh</h3>
- <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">HÃ nh Ä‘á»™ng không thá»ƒ hoÃ n tÃ¡c</p>
+ <h3 className="text-lg font-black text-white uppercase tracking-tight">Làm Mới Link Kênh</h3>
+ <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Hành động không thể hoàn tác</p>
  </div>
  </div>
 
  <div className="space-y-4 mb-8 text-base text-gray-300 font-medium relative z-10 leading-relaxed">
  <p>
- Bạn có cháº¯c muốn xóa toÃ n bá»™ link kênh của các mail vệ tinh trong LÃ´ <span className="text-gold font-black uppercase">"{(batchToReset?.name || "").replace(/\s*\(.*\)$/, "")}"</span> không?
+ Bạn có chắc muốn xóa toàn bộ link kênh của các mail vệ tinh trong Lô <span className="text-gold font-black uppercase">"{(batchToReset?.name || "").replace(/\s*\(.*\)$/, "")}"</span> không?
  </p>
  <p className="text-sm text-blue-400 bg-blue-500/5 border border-blue-500/10 rounded-xl p-3">
- â„¹ï¸ Tất cả link kênh, tÃªn kênh, trạng thái đủ giờ của mail trong Lô này sáº½ bá»‹ xóa tráº¯ng vÃ  đưa vá» trạng thái"Chưa làm".
+ ℹ️ Tất cả link kênh, tên kênh, trạng thái đủ giờ của mail trong Lô này sẽ bị xóa trắng và đưa về trạng thái"Chưa làm".
  </p>
  </div>
 
@@ -1322,7 +1350,7 @@ export default function SatelliteBatchesPage() {
  onClick={() => setBatchToReset(null)}
  className="flex-1 h-12 bg-white/5 border border-white/0 text-white font-bold uppercase text-sm tracking-widest rounded-xl hover:bg-white/10 transition-all"
  >
- Há»§y bá»
+ Hủy bỏ
  </button>
  <button
  onClick={confirmResetBatchLinks}
@@ -1359,15 +1387,15 @@ export default function SatelliteBatchesPage() {
  <PlusCircle size={24} />
  </div>
  <div>
- <h3 className="text-xl font-black text-white uppercase tracking-tight">Táº¡o LÃ´ Mail Má»›i</h3>
- <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Tá»± Ä‘á»™ng phÃ¡t 17 mail ráº£nh</p>
+ <h3 className="text-xl font-black text-white uppercase tracking-tight">Tạo Lô Mail Mới</h3>
+ <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Tự động phát 17 mail rảnh</p>
  </div>
  </div>
 
  <form onSubmit={handleSubmitNewBatch} className="space-y-6 relative z-10">
  <div className="space-y-2">
  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">
- Tên LÃ´ Mail
+ Tên Lô Mail
  </label>
  <input
  type="text"
@@ -1375,16 +1403,16 @@ export default function SatelliteBatchesPage() {
  disabled={isSubmitting}
  value={newBatchName}
  onChange={(e) => setNewBatchName(e.target.value)}
- placeholder="VÃ­ dá»¥: LÃ´ 7"
+ placeholder="Ví dụ: Lô 7"
  className="w-full bg-black/40 border border-white/10 rounded-2xl h-14 px-5 text-sm font-black text-white outline-none focus:border-gold disabled:opacity-50 transition-all"
  />
  </div>
 
- {/* Chá»‰ hiá»ƒn thá»‹ dropdown chá»n nhân viên náº¿u chÆ°a có selectedStaff tá»« mÃ n hÃ¬nh ngoài */}
+ {/* Chỉ hiển thị dropdown chọn nhân viên nếu chưa có selectedStaff từ màn hình ngoài */}
  {!selectedStaff ? (
  <div className="space-y-2">
  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">
- Nhân viên nháº­n gán
+ Nhân viên nhận gán
  </label>
  <select
  required
@@ -1396,7 +1424,7 @@ export default function SatelliteBatchesPage() {
  <option value="" className="bg-zinc-900 text-white">--- Chọn nhân viên ---</option>
  {(staffList || []).map((staff) => (
  <option key={staff.id} value={staff.id} className="bg-zinc-900 text-white">
- {staff.name} (@{staff.username}) {staff.isOnline ? "ðŸŸ¢" : "ðŸ”´"}
+ {staff.name} (@{staff.username}) {staff.isOnline ? "🟢" : "🔴"}
  </option>
  ))}
  </select>
@@ -1423,7 +1451,7 @@ export default function SatelliteBatchesPage() {
  }}
  className="flex-1 h-14 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold uppercase text-xs tracking-widest rounded-2xl transition-all disabled:opacity-50"
  >
- Há»§y bá»
+ Hủy bỏ
  </button>
  <button
  type="submit"
@@ -1436,7 +1464,7 @@ export default function SatelliteBatchesPage() {
  <span>Đang lưu...</span>
  </>
  ) : (
- <span>Lưu LÃ´ Mail</span>
+ <span>Lưu Lô Mail</span>
  )}
  </button>
  </div>
@@ -1518,9 +1546,9 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
                 <Layers size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-black text-white uppercase tracking-tight">Chọn Dáº£i Mail Tá»« Kho</h3>
+                <h3 className="text-lg font-black text-white uppercase tracking-tight">Chọn Dải Mail Từ Kho</h3>
                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">
-                  PhÃ¢n chia tự động tá»‘i Ä‘a 17 mail má»—i dáº£i
+                  Phân chia tự động tối đa 17 mail mỗi dải
                 </p>
               </div>
             </div>
@@ -1536,14 +1564,14 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
             {isLoading && (
               <div className="h-40 flex flex-col items-center justify-center text-center text-gray-400 gap-2">
                 <Loader2 className="animate-spin text-gold" size={28} />
-                <span className="text-xs font-bold uppercase tracking-widest">Đang táº£i dáº£i mail...</span>
+                <span className="text-xs font-bold uppercase tracking-widest">Đang tải dải mail...</span>
               </div>
             )}
 
             {!isLoading && ranges.length === 0 && (
               <div className="h-40 flex flex-col items-center justify-center text-center text-gray-500">
                 <Mail size={32} className="mb-2 opacity-50" />
-                <p className="text-sm font-black uppercase tracking-widest">Kho mail trá»‘ng hoáº·c đã được gán háº¿t!</p>
+                <p className="text-sm font-black uppercase tracking-widest">Kho mail trống hoặc đã được gán hết!</p>
               </div>
             )}
 
@@ -1557,11 +1585,11 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
               >
                 <div>
                   <h4 className="text-sm font-black text-white group-hover:text-gold transition-colors">
-                    Dáº£i {range.rangeIndex} ( {range.count} mail {range.startIndex} - {range.endIndex} )
+                    Dải {range.rangeIndex} ( {range.count} mail {range.startIndex} - {range.endIndex} )
                   </h4>
                 </div>
                 <div className="h-8 px-4 rounded-xl bg-gold/10 text-gold border border-gold/10 group-hover:bg-gold group-hover:text-sidebar text-xs font-black uppercase tracking-wider flex items-center justify-center transition-all">
-                  Chọn dáº£i nÃ y
+                  Chọn dải này
                 </div>
               </div>
             ))}
@@ -1573,7 +1601,7 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
             onClick={onClose}
             className="flex-1 h-12 bg-white/5 border border-white/0 text-white font-bold uppercase text-sm tracking-widest rounded-xl hover:bg-white/10 transition-all"
           >
-            Há»§y
+            Hủy
           </button>
         </div>
       </div>

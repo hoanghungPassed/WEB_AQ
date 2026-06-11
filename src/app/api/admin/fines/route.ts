@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   const requestorId = req.headers.get("x-user-id");
   const requestorRole = req.headers.get("x-user-role");
 
-  const hasPermission = await checkPermission(requestorRole || "", 3, ["all", "attendance"]);
+  const hasPermission = await checkPermission(requestorRole || "", 4, ["all", "attendance"]);
   if (!hasPermission) {
     await logAuditTrail(requestorId || "unknown", "UNAUTHORIZED_CREATE_FINE", "fines", {}, req);
     return NextResponse.json({ error: "Không có quyền tạo báo cáo phạt" }, { status: 403 });
@@ -125,11 +125,13 @@ export async function PUT(req: NextRequest) {
   const userId = req.headers.get("x-user-id");
   const userRole = req.headers.get("x-user-role");
 
-  const hasPermission = await checkPermission(userRole || "", 3, ["all", "attendance"]);
+  const hasPermission = await checkPermission(userRole || "", 4, ["all", "attendance"]);
   if (!hasPermission) {
     await logAuditTrail(userId || "unknown", "UNAUTHORIZED_UPDATE_FINE", "fines", {}, req);
     return NextResponse.json({ error: "Không có quyền cập nhật báo cáo phạt" }, { status: 403 });
   }
+
+  const isStaff = userRole === "03" || userRole === "04" || userRole === "05";
 
    await dbConnect();
    const body = await req.json();
@@ -139,25 +141,16 @@ export async function PUT(req: NextRequest) {
      return NextResponse.json({ success: false, error: "ID is required" }, { status: 400 });
    }
 
-   // Validate using Zod UpdateFineSchema
-   const parsed = UpdateFineSchema.safeParse({ status: body.status, amount: body.amount });
-   if (!parsed.success) {
-     return NextResponse.json(
-       { 
-         error: "Validation failed",
-         details: parsed.error.issues.map(e => ({
-           field: e.path.join("."),
-           message: e.message
-         }))
-       },
-       { status: 400 }
-     );
-   }
-
-   const data = parsed.data;
-
    const existingFine = await Fine.findById(id);
    if (!existingFine) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+
+   // IDOR Protection: Staff can only update their own fines
+   if (isStaff && existingFine.userId?.toString() !== userId) {
+     await logAuditTrail(userId || "unknown", "UNAUTHORIZED_FINE_UPDATE_ATTEMPT", "fines", { fineId: id }, req);
+     return NextResponse.json({ error: "Không có quyền cập nhật báo cáo phạt của người khác" }, { status: 403 });
+   }
+
+   // Validate using Zod UpdateFineSchema
 
    const updateData: any = {
      status: data.status,
@@ -194,7 +187,7 @@ export async function DELETE(req: NextRequest) {
   const userId = req.headers.get("x-user-id");
   const userRole = req.headers.get("x-user-role");
 
-  const hasPermission = await checkPermission(userRole || "", 3, ["all", "attendance"]);
+  const hasPermission = await checkPermission(userRole || "", 4, ["all", "attendance"]);
   if (!hasPermission) {
     await logAuditTrail(userId || "unknown", "UNAUTHORIZED_DELETE_FINE", "fines", {}, req);
     return NextResponse.json({ error: "Không có quyền xóa báo cáo phạt" }, { status: 403 });
@@ -205,6 +198,16 @@ export async function DELETE(req: NextRequest) {
   const id = searchParams.get('id');
   
   if (!id) return NextResponse.json({ success: false, error:"ID is required" }, { status: 400 });
+
+  const existingFine = await Fine.findById(id);
+  if (!existingFine) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+
+  // Strictly enforce Manager+ permission for deletion
+  const hasManagerPermission = await checkPermission(userRole || "", 4, ["all", "attendance"]);
+  if (!hasManagerPermission) {
+    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_DELETE_FINE", "fines", { fineId: id }, req);
+    return NextResponse.json({ error: "Không có quyền xóa báo cáo phạt" }, { status: 403 });
+  }
 
   const fine = await Fine.findByIdAndDelete(id).populate('userId', 'name');
   

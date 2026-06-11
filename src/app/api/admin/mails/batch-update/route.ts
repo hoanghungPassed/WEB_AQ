@@ -19,7 +19,7 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    const hasPermission = await checkPermission(userRole || "", 3, ["all", "tasks", "staff"]);
+    const hasPermission = await checkPermission(userRole || "", 4, ["all", "tasks", "staff"]);
     if (!hasPermission) {
       await logAuditTrail(userId || "unknown", "UNAUTHORIZED_BATCH_UPDATE_MAILS", "mails", {}, req);
       return NextResponse.json({ error: "Không có quyền thực hiện thao tác này" }, { status: 403 });

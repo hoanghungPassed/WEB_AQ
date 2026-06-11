@@ -19,7 +19,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
   }
 
-  const hasPermission = await checkPermission(userRole || "", 3, ["all", "tasks", "staff"]);
+  const hasPermission = await checkPermission(userRole || "", 4, ["all", "tasks", "staff"]);
   if (!hasPermission) {
     await logAuditTrail(userId || "unknown", "UNAUTHORIZED_UPDATE_MAIL", "mails", {}, req);
     return NextResponse.json({ error: "Không có quyền cập nhật mail" }, { status: 403 });
@@ -74,7 +74,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
   }
 
-  const hasPermission = await checkPermission(userRole || "", 3, ["all", "tasks", "staff"]);
+  const hasPermission = await checkPermission(userRole || "", 4, ["all", "tasks", "staff"]);
   if (!hasPermission) {
     await logAuditTrail(userId || "unknown", "UNAUTHORIZED_DELETE_MAIL", "mails", {}, req);
     return NextResponse.json({ error: "Không có quyền xóa mail" }, { status: 403 });

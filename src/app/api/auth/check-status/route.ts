@@ -24,18 +24,22 @@ export async function GET(req: NextRequest) {
 
     // Ánh xạ trạng thái từ Database:
     // PENDING -> PENDING
-    // ACTIVE -> ACTIVE
+    // ACTIVE -> ACTIVE (only if not late-locked)
     // LOCKED -> REJECTED
     let responseStatus: "PENDING" | "ACTIVE" | "REJECTED" = "PENDING";
-    if (user.status === "ACTIVE") {
+    
+    const isAccessGranted = user.status === "ACTIVE" && !user.isLateLocked;
+
+    if (isAccessGranted) {
       responseStatus = "ACTIVE";
       user.isOnline = true;
     } else {
       user.isOnline = false;
-      if (user.status === "LOCKED") {
+      if (user.status === "LOCKED" || user.isLateLocked) {
         responseStatus = "REJECTED";
       }
     }
+    user.lastActive = new Date();
     await user.save();
 
     return NextResponse.json({ status: responseStatus });
