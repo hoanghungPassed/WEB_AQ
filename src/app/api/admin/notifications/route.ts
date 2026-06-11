@@ -12,7 +12,18 @@ export async function GET(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
  await dbConnect();
- const notifications = await Notification.find({})
+ 
+ const url = new URL(req.url);
+ const type = url.searchParams.get("type");
+ const filter: any = {};
+ 
+ if (type === "INFO") {
+   filter.type = "INFO";
+ } else if (type === "SYSTEM") {
+   filter.type = { $ne: "INFO" };
+ }
+
+ const notifications = await Notification.find(filter)
  .populate('author', 'name username role avatar')
  .populate('comments.userId', 'name username role avatar')
  .populate('comments.replies.userId', 'name username role avatar')

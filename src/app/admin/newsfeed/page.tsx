@@ -137,7 +137,7 @@ export default function NewsfeedPage() {
 
   const loadPosts = async (isSilent = false) => {
     try {
-      const response = await fetch("/api/admin/notifications");
+      const response = await fetch("/api/admin/notifications?type=INFO");
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data)) {

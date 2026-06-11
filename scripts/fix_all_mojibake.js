@@ -8,7 +8,8 @@ const filesToFix = [
   'src/app/admin/staff/page.tsx',
   'src/app/admin/stats/report/page.tsx',
   'src/app/admin/tasks/page.tsx',
-  'src/components/admin/MailManagement.tsx'
+  'src/components/admin/MailManagement.tsx',
+  'src/app/admin/mail/satellite-batches/page.tsx'
 ];
 
 // Từ điển sửa lỗi font (Mojibake -> UTF-8 chuẩn)

@@ -33,41 +33,6 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  const [isSaving, setIsSaving] = useState(false);
  const [currentPassword, setCurrentPassword] = useState("");
 
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
-
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formDataUpload = new FormData();
-    formDataUpload.append("file", file);
-
-    setIsUploading(true);
-    try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formDataUpload,
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setFormData((prev) => ({ ...prev, avatar: data.url }));
-      } else {
-        const errData = await res.json();
-        alert(errData.error || "Lỗi tải ảnh lên");
-      }
-    } catch (err) {
-      console.error("Lỗi upload file:", err);
-      alert("Đã xảy ra lỗi hệ thống khi tải ảnh.");
-    } finally {
-      setIsUploading(false);
-    }
-  };
  const [newPassword, setNewPassword] = useState("");
  const [confirmPassword, setConfirmPassword] = useState("");
  const [passwordError, setPasswordError] = useState("");
@@ -79,6 +44,8 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  setErrors({});
  }
  }, [isOpen, userData]);
+
+ const isManagement = formData.role === "01" || formData.role === "02";
 
  const validate = () => {
  const newErrors: Record<string, string> = {};
@@ -201,29 +168,14 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  {/* Body */}
  <div className="space-y-8 p-8 overflow-y-auto max-h-[70vh] custom-scrollbar">
  <div className="flex flex-col items-center">
- <div className="relative w-24 h-24 mb-4 group cursor-pointer" onClick={handleAvatarClick}>
- <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-4xl font-bold rounded-full shadow-lg overflow-hidden border-2 border-gold/20 relative">
+ <div className="relative w-24 h-24 mb-4">
+ <div className="w-full h-full bg-gradient-to-br from-[#a07800]/20 to-[#a07800]/40 text-[#a07800] flex items-center justify-center text-4xl font-bold rounded-full shadow-lg overflow-hidden border-2 border-gold/20 relative">
  {formData.avatar ? (
  <img src={formData.avatar} alt="Avatar" className="w-full h-full object-cover" />
  ) : (
  formData.name.charAt(0).toUpperCase()
  )}
- {isUploading && (
-   <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-[10px] text-white font-bold">
-     Uploading...
-   </div>
- )}
  </div>
- <div className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-gold hover:bg-gold/90 border border-gray-900 flex items-center justify-center text-sidebar transition-all shadow-md group-hover:scale-110">
-   <Camera size={14} />
- </div>
- <input 
-   type="file" 
-   ref={fileInputRef} 
-   onChange={handleFileChange} 
-   accept="image/*" 
-   className="hidden" 
- />
  </div>
  <div className="mt-4 text-center">
  <p className="text-lg font-black text-white uppercase tracking-tighter">{formData.name}</p>
@@ -235,9 +187,11 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  </label>
  <input
  type="time" value={formData.offWorkTime ||"17:30"}
+ disabled={!isManagement}
  onChange={(e) => setFormData({...formData, offWorkTime: e.target.value})}
- className="h-12 w-full rounded-2xl border bg-gray-800 text-white border-gray-600 px-4 text-base focus:outline-none focus:border-white/5 transition-all shadow-inner"
+ className="h-12 w-full rounded-2xl border bg-gray-800 text-white border-gray-600 px-4 text-base focus:outline-none focus:border-white/5 transition-all shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
  />
+ { !isManagement && <p className="text-[9px] text-gray-600 italic mt-1 ml-1">* Chỉ quản lý mới có quyền thay đổi giờ tan làm</p> }
  </div>
  </div>
 

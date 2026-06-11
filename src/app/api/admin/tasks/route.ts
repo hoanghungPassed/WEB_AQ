@@ -6,6 +6,7 @@ import { checkPermission, logAuditTrail } from "@/lib/permissions";
 import { paginate } from "@/lib/pagination";
 import { CreateTaskSchema, sanitizeXSS } from "@/lib/validation";
 import { sendTaskEmail } from "@/lib/email";
+import { pusherServer } from "@/lib/pusher";
 
 export async function GET(req: NextRequest) {
   try {
@@ -92,6 +93,29 @@ export async function POST(req: NextRequest) {
       ...data,
       createdBy: userId || "system"
     } as any);
+
+    // Create Notification and Trigger Pusher
+    try {
+      const { Notification } = await import("@/models/Notification");
+      const User = (await import("@/models/User")).default;
+      const assignee = await User.findById(data.assigneeId);
+      
+      const newNotif: any = await Notification.create({
+        type: "TASK",
+        title: "Nhiệm vụ mới",
+        message: `Bạn được giao một công việc mới: ${task.title}`,
+        recipientId: assignee?._id,
+        author: userId || undefined,
+        isRead: false
+      });
+
+      await pusherServer.trigger("system-notifications", "new-notification", {
+        ...newNotif.toObject(),
+        time: new Date().toLocaleTimeString("vi-VN") + " - " + new Date().toLocaleDateString("vi-VN")
+      });
+    } catch (notifErr) {
+      console.error("Task Notification error:", notifErr);
+    }
 
     // Send task assignment email (fire-and-forget)
     try {

@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from"react";
+import React, { useState, useEffect, useMemo } from"react";
 import Sidebar from"@/components/admin/Sidebar";
 import Header from"@/components/admin/Header";
 import ProfileModal from"@/components/admin/ProfileModal";
 import AccessLock from"@/components/admin/modals/AccessLock";
 import { useRouter } from"next/navigation";
-import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle, Plus, FileText, Download, Paperclip, Phone, Minus, Copy, ExternalLink, ShieldAlert, Loader2 } from "lucide-react";
+import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle, Plus, FileText, Download, Paperclip, Phone, Minus, Copy, ExternalLink, ShieldAlert, Loader2, Search, UserSearch } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSWR } from "@/lib/useSWR";
 import Pusher from "pusher-js";
@@ -1352,7 +1352,24 @@ const typingTimer = setInterval(checkTyping, 1000);
     isCurrentlyLockedRef.current = isLateLocked;
   }, [isLateLocked]);
 
- const getLockMessage = () => {
+ const [chatSearchTerm, setChatSearchTerm] = useState("");
+
+ const filteredChatUsers = useMemo(() => {
+   return (chatUsers || []).filter((u: any) => {
+     // 1. Chỉ hiện nhân sự online
+     if (!u.isOnline) return false;
+
+     // 2. Lọc theo search term (tên hoặc username)
+     if (chatSearchTerm.trim() === "") return true;
+     const term = chatSearchTerm.toLowerCase();
+     return (
+       u.name?.toLowerCase().includes(term) ||
+       u.username?.toLowerCase().includes(term)
+     );
+   });
+ }, [chatUsers, chatSearchTerm]);
+
+  const getLockMessage = () => {
     if (isSunday) return "Hôm nay là Chủ Nhật. Hệ thống tạm khóa đối với nhân sự và quản lý nhân sự.";
     
     // Retrieve dynamic config
@@ -2068,31 +2085,51 @@ const typingTimer = setInterval(checkTyping, 1000);
  <div className="flex-1 flex overflow-hidden">
  {/* Left: User Select sidebar */}
  {!activeChatUser ? (
- <div className="flex-1 flex flex-col overflow-y-auto p-2 divide-y divide-gray-200 divide-white/5 custom-scrollbar">
- <div className="text-[9px] font-bold text-gray-500 uppercase tracking-wider p-2">Chọn nhân sự</div>
- {(chatUsers || []).map((u: any) => (
- <button
- key={u.id}
- onClick={() => handleMessageClick(u)}
- className="w-full p-3 flex items-center gap-3 rounded-xl hover:bg-white/[0.08] bg-white/5 transition-all text-left group"
- >
- <div className="relative">
- <div className="h-8 w-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-sm text-gold font-black group-hover:scale-105 transition-all">
- {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover rounded-lg" onError={(e) => e.currentTarget.src ="https://ui-avatars.com/api/?name=" + (u.name ||"U") +"&background=d4af37&color=000"} /> : u.name.charAt(0)}
+ <div className="flex-1 flex flex-col overflow-y-auto p-2 divide-y divide-white/5 custom-scrollbar">
+ <div className="text-[9px] font-bold text-gray-500 uppercase tracking-wider p-2">Chọn nhân sự (Online)</div>
+ 
+ {/* Chat Search Input */}
+ <div className="p-2 mb-2 relative">
+    <Search size={14} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500" />
+    <input 
+      type="text" 
+      placeholder="Tìm tên hoặc username..."
+      value={chatSearchTerm}
+      onChange={(e) => setChatSearchTerm(e.target.value)}
+      className="w-full h-10 bg-white/5 border border-white/0 rounded-xl pl-10 pr-4 text-xs text-white outline-none focus:border-gold/30 transition-all"
+    />
  </div>
- <div className={`absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-white border-[#161616] ${u.isOnline ?"bg-green-500" :"bg-red-500"}`} />
- </div>
- <div className="flex-1 min-w-0">
- <p className="text-sm font-bold text-white truncate">{u.name}</p>
- <p className="text-[8px] font-bold text-gray-500 uppercase mt-0.5">@{u.username}</p>
- </div>
- {getUnreadCountForUser(u.username) > 0 && (
- <span className="bg-red-500 text-white font-mono text-[9px] font-black h-5 w-5 rounded-full flex items-center justify-center shadow-lg shrink-0 animate-pulse">
- {getUnreadCountForUser(u.username)}
- </span>
+
+ {(filteredChatUsers || []).length > 0 ? (
+   filteredChatUsers.map((u: any) => (
+   <button
+   key={u.id}
+   onClick={() => handleMessageClick(u)}
+   className="w-full p-3 flex items-center gap-3 rounded-xl hover:bg-white/[0.08] bg-white/5 transition-all text-left group"
+   >
+   <div className="relative">
+   <div className="h-8 w-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-sm text-gold font-black group-hover:scale-105 transition-all">
+   {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover rounded-lg" onError={(e) => e.currentTarget.src ="https://ui-avatars.com/api/?name=" + (u.name ||"U") +"&background=d4af37&color=000"} /> : u.name.charAt(0)}
+   </div>
+   <div className={`absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-[#161616] ${u.isOnline ?"bg-green-500" :"bg-red-500"}`} />
+   </div>
+   <div className="flex-1 min-w-0">
+   <p className="text-sm font-bold text-white truncate">{u.name}</p>
+   <p className="text-[8px] font-bold text-gray-500 uppercase mt-0.5">@{u.username}</p>
+   </div>
+   {getUnreadCountForUser(u.username) > 0 && (
+   <span className="bg-red-500 text-white font-mono text-[9px] font-black h-5 w-5 rounded-full flex items-center justify-center shadow-lg shrink-0 animate-pulse">
+   {getUnreadCountForUser(u.username)}
+   </span>
+   )}
+   </button>
+   ))
+ ) : (
+   <div className="py-20 text-center flex flex-col items-center gap-3">
+     <UserSearch size={32} className="text-gray-700" />
+     <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest italic">Không có ai online</p>
+   </div>
  )}
- </button>
- ))}
  </div>
  ) : (
  <div className="flex-1 flex flex-col overflow-hidden">

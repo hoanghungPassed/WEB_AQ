@@ -61,7 +61,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
       if (notif.type === "REGISTRATION") {
         const roleUpper = String(user?.role || "").toUpperCase();
         if (roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC") {
-          mutate('/api/admin/notifications');
+          mutate('/api/admin/notifications?type=SYSTEM');
           // Add a local notification instantly
           setNotifications(prev => {
             if (prev.some(n => n.id === notif.id || n._id === notif._id)) return prev;
@@ -86,7 +86,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           }).catch(console.error);
         }
       } else if (!notif.targetUsername || notif.targetUsername?.toLowerCase() === user?.username?.toLowerCase()) {
-        mutate('/api/admin/notifications');
+        mutate('/api/admin/notifications?type=SYSTEM');
         setNotifications(prev => {
           if (prev.some(n => n.id === notif.id || n._id === notif._id)) return prev;
           return [{ ...notif, read: false }, ...prev];
@@ -123,7 +123,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
   }, []);
 
   // Use SWR for notifications to optimize performance
-  const { data: dbNotifs } = useSWR('/api/admin/notifications', fetcher, {
+  const { data: dbNotifs } = useSWR('/api/admin/notifications?type=SYSTEM', fetcher, {
     refreshInterval: 30000,
     dedupingInterval: 10000
   });
@@ -190,7 +190,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
               },
               body: JSON.stringify({ isRead: true })
             });
-            mutate('/api/admin/notifications');
+            mutate('/api/admin/notifications?type=SYSTEM');
             router.refresh();
           } catch (err) {
             console.error("Error setting notification read in DB:", err);
@@ -235,7 +235,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           },
           body: JSON.stringify({ isRead: true })
         });
-        mutate('/api/admin/notifications');
+        mutate('/api/admin/notifications?type=SYSTEM');
         router.refresh();
       } catch (err) {
         console.error("Error setting notification read in DB:", err);

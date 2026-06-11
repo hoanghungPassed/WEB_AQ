@@ -73,10 +73,21 @@ export async function GET(req: NextRequest) {
     const satCount = await SatelliteMail.countDocuments();
     const monCount = await MonetizedMail.countDocuments();
     const totalMails = rootCount + satCount + monCount;
+
+    const rootDie = await RootMail.countDocuments({ status: "DIE" });
+    const satDie = await SatelliteMail.countDocuments({ status: "DIE" });
+    const monDie = await MonetizedMail.countDocuments({ status: "DIE" });
+    const totalDie = rootDie + satDie + monDie;
     
     const activeStaff = await User.countDocuments({
-      role: { $in: ["03","04","05"] }
+      role: { $in: ["03","04","05"] },
+      status: "ACTIVE"
     });
+
+    const onlineUsers = await User.countDocuments({ isOnline: true });
+
+    const taskPending = await Task.countDocuments({ status: "PENDING" });
+    const taskCompleted = await Task.countDocuments({ status: "COMPLETED" });
 
     const priceAggregation = await Fine.aggregate([
       { $group: { _id: null, total: { $sum: { $ifNull: ["$amount", 0] } } } }
@@ -85,7 +96,24 @@ export async function GET(req: NextRequest) {
 
     await logAuditTrail(userId || "system", "REPORT_GENERATED", "stats", { totalMails, activeStaff, totalFines }, req);
 
-    return NextResponse.json({ totalMails, activeStaff, totalFines });
+    return NextResponse.json({ 
+      success: true,
+      data: {
+        totalMails,
+        rootCount,
+        satCount,
+        monCount,
+        totalDie,
+        activeStaff,
+        onlineUsers,
+        totalFines,
+        tasks: {
+          pending: taskPending,
+          completed: taskCompleted,
+          total: taskPending + taskCompleted
+        }
+      }
+    });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("Error fetching admin stats:", error);

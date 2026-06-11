@@ -10,6 +10,7 @@ import { MonetizedMail } from "@/models/MonetizedMail";
 import { checkPermission, logAuditTrail } from "@/lib/permissions";
 import { UpdateUserSchema, sanitizeXSS } from "@/lib/validation";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { pusherServer } from "@/lib/pusher";
 
 // Lấy chi tiết thông tin nhân sự
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -118,6 +119,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       await logAuditTrail(reqUserId || "system", "PASSWORD_CHANGED", "users", { targetUserId: id, username: updatedUser.username }, req);
     }
 
+    try {
+      await pusherServer.trigger(`user-${updatedUser.username.toLowerCase()}`, "status-update", {
+        status: updatedUser.status
+      });
+    } catch (pushErr) {}
+
     return NextResponse.json({ 
       message: "Cập nhật thành công", 
       user: updatedUser 
@@ -207,6 +214,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       await logAuditTrail(reqUserId || "system", "PASSWORD_CHANGED", "users", { targetUserId: id, username: updatedUser.username }, req);
     }
 
+    try {
+      await pusherServer.trigger(`user-${updatedUser.username.toLowerCase()}`, "status-update", {
+        status: updatedUser.status
+      });
+    } catch (pushErr) {}
+
     return NextResponse.json({ 
       success: true,
       message: "Cập nhật thành công", 
@@ -240,9 +253,16 @@ export async function DELETE(req: NextRequest, { params: paramsPromise }: { para
       return NextResponse.json({ error: "Không thể tự lưu trữ tài khoản của chính mình" }, { status: 400 });
     }
 
+    const oldUser = await User.findById(id);
+    if (!oldUser) {
+      return NextResponse.json({ error: "Không tìm thấy nhân viên" }, { status: 404 });
+    }
+
+    const newUsername = `${oldUser.username}_deleted_${Date.now()}`;
+
     const archivedUser = await User.findByIdAndUpdate(
       id,
-      { $set: { status: "LOCKED", deletedAt: new Date() } },
+      { $set: { status: "LOCKED", deletedAt: new Date(), username: newUsername } },
       { new: true }
     ).select("-password");
 
@@ -264,6 +284,12 @@ export async function DELETE(req: NextRequest, { params: paramsPromise }: { para
     }
 
     await logAuditTrail(reqUserId || "system", "DELETE_USER_SUCCESS", "users", { targetUserId: id, username: archivedUser.username }, req);
+
+    try {
+      await pusherServer.trigger(`user-${archivedUser.username.toLowerCase()}`, "status-update", {
+        status: "LOCKED"
+      });
+    } catch (pushErr) {}
 
     return NextResponse.json({ 
       success: true,

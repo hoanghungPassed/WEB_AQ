@@ -38,13 +38,13 @@ import { Badge } from "@/components/ui/Badge";
 
 const TaskCard = React.memo(({ task, onClick }: { task: TaskAssignment, onClick: () => void }) => {
  const statusConfig: Record<string, { icon: React.ReactNode, variant: "default" | "success" | "warning" | "danger" | "info" | "gold", label: string }> = {
- PENDING: { icon: <Clock size={16} />, variant: "warning", label: "Đang chá»" },
- IN_PROGRESS: { icon: <Loader2 size={16} className="animate-spin" />, variant: "info", label: "Đang thá»±c hiá»‡n" },
- COMPLETED: { icon: <CheckCircle2 size={16} />, variant: "success", label: "HoÃ n thÃ nh" },
- OVERDUE: { icon: <AlertCircle size={16} />, variant: "danger", label: "Trá»… háº¡n" },
+ PENDING: { icon: <Clock size={16} />, variant: "warning", label: "Đang chờ" },
+ IN_PROGRESS: { icon: <Loader2 size={16} className="animate-spin" />, variant: "info", label: "Đang thực hiện" },
+ COMPLETED: { icon: <CheckCircle2 size={16} />, variant: "success", label: "Hoàn thành" },
+ OVERDUE: { icon: <AlertCircle size={16} />, variant: "danger", label: "Trễ hạn" },
  };
 
- const typeLabel = task.type ==="MAIL_VE_TINH" ?"Vá»‡ tinh" : task.type ==="MAIL_MONETIZED" ?"Kiáº¿m tiá»n" :"Gốc";
+ const typeLabel = task.type ==="MAIL_VE_TINH" ?"Vệ tinh" : task.type ==="MAIL_MONETIZED" ?"Kiếm tiền" :"Gốc";
 
  return (
  <motion.div
