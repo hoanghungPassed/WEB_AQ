@@ -173,7 +173,7 @@ async function runAutoCheckout(req: NextRequest, triggerSource: "CRON" | "MANUAL
 
     // Audit trail
     await logAuditTrail(
-      userId || "system",
+      "system",
       "RUN_AUTO_CHECKOUT_SUCCESS",
       "attendance",
       {
