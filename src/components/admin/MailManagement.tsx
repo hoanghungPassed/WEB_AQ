@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Download,
@@ -38,9 +39,23 @@ import BatchNameModal from "@/components/admin/modals/BatchNameModal";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-export default function MailManagement() {
-  const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<"ROOT" | "SATELLITE" | "MONETIZED">("ROOT");
+interface MailManagementProps {
+  type?: string;
+  user?: any;
+}
+
+export default function MailManagement({ type, user: initialUser }: MailManagementProps) {
+  const [user, setUser] = useState<any>(initialUser || null);
+  const [activeTab, setActiveTab] = useState<"ROOT" | "SATELLITE" | "MONETIZED" | "ALL">(
+    (type === "ROOT" || type === "SATELLITE" || type === "MONETIZED" || type === "ALL") ? (type as any) : "ROOT"
+  );
+
+  useEffect(() => {
+    if (type && (type === "ROOT" || type === "SATELLITE" || type === "MONETIZED" || type === "ALL")) {
+      setActiveTab(type as any);
+    }
+  }, [type]);
+
   const [selectedBatch, setSelectedBatch] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -69,12 +84,16 @@ export default function MailManagement() {
   const [pendingMails, setPendingMails] = useState<any[] | null>(null);
 
   useEffect(() => {
-    const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
-    if (storedUser) setUser(JSON.parse(storedUser));
+    if (initialUser) {
+      setUser(initialUser);
+    } else {
+      const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
+      if (storedUser) setUser(JSON.parse(storedUser));
+    }
 
     const savedHistory = localStorage.getItem("mail_import_history");
     if (savedHistory) setImportHistory(JSON.parse(savedHistory));
-  }, []);
+  }, [initialUser]);
 
   const triggerToast = (msg: string) => {
     setNotification(msg);
@@ -94,33 +113,32 @@ export default function MailManagement() {
 
   // Aggregate Batch Statistics
   const batchStats = useMemo(() => {
-    const stats: Record<string, { count: number, importedAt: string, type: string }> = {};
-    
-    // We can also extract info from importHistory if available
-    const historyMap: Record<string, ImportHistoryItem> = {};
-    importHistory.forEach(item => {
-      historyMap[item.batchName] = item;
-    });
+  const stats: Record<string, { count: number, importedAt: string, type: string }> = {};
 
-    mails.forEach(m => {
-      const bName = m.batchName || "Không rõ lô";
-      if (!stats[bName]) {
-        stats[bName] = { 
-          count: 0, 
-          importedAt: historyMap[bName]?.date || m.createdAt?.split("T")[0] || "---", 
-          type: m.type 
-        };
-      }
-      stats[bName].count++;
-    });
+  // We can also extract info from importHistory if available
+  const historyMap: Record<string, ImportHistoryItem> = {};
+  importHistory.forEach(item => {
+    historyMap[item.fileName] = item;
+  });
 
-    // Also include empty batches from history if they match current tab type
-    importHistory.forEach(item => {
-      if (item.type === activeTab && !stats[item.batchName]) {
-        stats[item.batchName] = { count: 0, importedAt: item.date, type: item.type };
-      }
-    });
+  mails.forEach(m => {
+    const bName = m.batchName || "Không rõ lô";
+    if (!stats[bName]) {
+      stats[bName] = { 
+        count: 0, 
+        importedAt: historyMap[bName]?.importedAt || m.createdAt?.split("T")[0] || "---", 
+        type: m.type 
+      };
+    }
+    stats[bName].count++;
+  });
 
+  // Also include empty batches from history if they match current tab type
+  importHistory.forEach(item => {
+    if ((activeTab === "ALL" || item.type === activeTab) && !stats[item.fileName]) {
+      stats[item.fileName] = { count: 0, importedAt: item.importedAt, type: item.type };
+    }
+  });
     return Object.entries(stats).map(([name, info]) => ({
       name,
       ...info
@@ -198,9 +216,9 @@ export default function MailManagement() {
         // Save to history
         const newHistoryItem: ImportHistoryItem = {
           id: `imp-${Date.now()}`,
-          batchName: finalBatchName,
-          count: pendingMails.length,
-          date: new Date().toISOString().split("T")[0],
+          fileName: finalBatchName,
+          quantity: pendingMails.length,
+          importedAt: new Date().toISOString().split("T")[0],
           type: activeTab,
           importedBy: user?.name || "Admin"
         };
@@ -234,7 +252,7 @@ export default function MailManagement() {
       if (res.ok) {
         triggerToast(`Đã xóa thành công lô "${batchName}"`);
         // Remove from history
-        const updatedHistory = importHistory.filter(h => h.batchName !== batchName);
+        const updatedHistory = importHistory.filter(h => h.fileName !== batchName);
         setImportHistory(updatedHistory);
         localStorage.setItem("mail_import_history", JSON.stringify(updatedHistory));
         mutate();
@@ -295,7 +313,7 @@ export default function MailManagement() {
       {/* Tabs & Search */}
       <div className="flex flex-col lg:flex-row gap-4 flex-shrink-0">
         <div className="flex bg-white/5 p-1 rounded-2xl border border-white/0">
-          {(["ROOT", "SATELLITE", "MONETIZED"] as const).map((tab) => (
+          {(["ALL", "ROOT", "SATELLITE", "MONETIZED"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => { setActiveTab(tab); setViewMode("BATCHES"); setSelectedBatch(null); }}
@@ -303,7 +321,7 @@ export default function MailManagement() {
                 activeTab === tab ? "bg-gold text-sidebar shadow-lg" : "text-gray-500 hover:text-white"
               }`}
             >
-              {tab === "ROOT" ? "Mail Gốc" : tab === "SATELLITE" ? "Vệ Tinh" : "Kiếm Tiền"}
+              {tab === "ALL" ? "Tất cả" : tab === "ROOT" ? "Mail Gốc" : tab === "SATELLITE" ? "Vệ Tinh" : "Kiếm Tiền"}
             </button>
           ))}
         </div>
@@ -477,7 +495,8 @@ export default function MailManagement() {
         {selectedMail && (
           <MailDetailModal 
             mail={selectedMail} 
-            type={activeTab}
+            type={activeTab === "ALL" ? selectedMail.type : activeTab}
+            user={user}
             onClose={() => setSelectedMail(null)} 
             onSave={(updated) => { triggerToast("Đã cập nhật thành công!"); mutate(); }}
           />
@@ -487,11 +506,17 @@ export default function MailManagement() {
           <ImportHistoryModal
             isOpen={showHistory}
             onClose={() => setShowHistory(false)}
-            history={importHistory}
-            onDelete={(id) => {
+            importHistory={importHistory}
+            onDeleteRow={(id) => {
               const updated = importHistory.filter(h => h.id !== id);
               setImportHistory(updated);
               localStorage.setItem("mail_import_history", JSON.stringify(updated));
+            }}
+            onClearAll={() => {
+              if (confirm("Bạn có chắc chắn muốn xóa TOÀN BỘ lịch sử import?")) {
+                setImportHistory([]);
+                localStorage.setItem("mail_import_history", JSON.stringify([]));
+              }
             }}
           />
         )}

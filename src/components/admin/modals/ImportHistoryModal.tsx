@@ -4,7 +4,7 @@ import { X, FileText, Trash2, Calendar, User as UserIcon } from 'lucide-react';
 
 export type ImportHistoryItem = {
   id: string;
-  type: "ALL" | "MAIL" | "SĐT";
+  type: string;
   fileName: string;
   quantity: number;
   importedAt: string;
@@ -26,7 +26,7 @@ export const ImportHistoryModal = ({
   onDeleteRow,
   onClearAll,
 }: ImportHistoryModalProps) => {
-  const [historyTab, setHistoryTab] = useState<"ALL" | "MAIL" | "SĐT">("ALL");
+  const [historyTab, setHistoryTab] = useState<string>("ALL");
 
   const filteredHistory = useMemo(() => {
     if (historyTab === "ALL") return importHistory;
