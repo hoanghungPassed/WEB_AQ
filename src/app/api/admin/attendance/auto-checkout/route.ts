@@ -210,7 +210,7 @@ async function runAutoCheckout(req: NextRequest, triggerSource: "CRON" | "MANUAL
         triggerSource,
         checkedOutCount,
         skippedCount,
-        totalOnline: staffOnline.length,
+        totalOnline: staffOnlineCount,
         details: results,
       },
     });
