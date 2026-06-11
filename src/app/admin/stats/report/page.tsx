@@ -80,7 +80,7 @@ export default function ReportsPage() {
  const { data: kpiData, mutate, isValidating } = useSWR('kpi-report-data', fetchKpiData, { refreshInterval: 60000 });
  const isLoading = !kpiData && isValidating;
 
- const mails = useMemo(() => kpiData?.mails || [], [kpiData]);
+ const mails: MailData[] = useMemo(() => kpiData?.mails || [], [kpiData]);
  const staffList = useMemo(() => kpiData?.staff || [], [kpiData]);
  const payrollRecords = useMemo(() => kpiData?.payrollRecords || [], [kpiData]);
 
@@ -170,29 +170,29 @@ export default function ReportsPage() {
  const stats = useMemo(() => {
    const [year, month] = selectedMonth.split("-").map(Number);
    
-   const monthlyMails = (mails || []).filter(m => {
+   const monthlyMails = (mails || []).filter((m: MailData) => {
      if (!m.updatedAt) return false;
      const d = new Date(m.updatedAt);
      return d.getMonth() === month - 1 && d.getFullYear() === year;
    });
 
    const total = monthlyMails.length;
-   const roots = monthlyMails.filter(m => m.type === "ROOT");
-   const satellites = monthlyMails.filter(m => m.type === "SATELLITE");
-   const monetized = monthlyMails.filter(m => m.type === "MONETIZED");
+   const roots = monthlyMails.filter((m: MailData) => m.type === "ROOT");
+   const satellites = monthlyMails.filter((m: MailData) => m.type === "SATELLITE");
+   const monetized = monthlyMails.filter((m: MailData) => m.type === "MONETIZED");
 
-   const rootDone = roots.filter(m => m.verificationStatus === "Quét CCCD").length;
-   const satelliteDone = satellites.filter(m => m.workStatus === "Đã làm").length;
-   const monetizedDone = monetized.filter(m => m.workStatus === "Đã bán").length;
+   const rootDone = roots.filter((m: MailData) => m.verificationStatus === "Quét CCCD").length;
+   const satelliteDone = satellites.filter((m: MailData) => m.workStatus === "Đã làm").length;
+   const monetizedDone = monetized.filter((m: MailData) => m.workStatus === "Đã bán").length;
 
    const totalDone = rootDone + satelliteDone + monetizedDone;
    const completionRate = total > 0 ? ((totalDone / total) * 100).toFixed(1) : "0.0";
    
-   const liveMails = monthlyMails.filter(m => m.status === "LIVE").length;
-   const dieMails = monthlyMails.filter(m => m.status === "DIE").length;
+   const liveMails = monthlyMails.filter((m: MailData) => m.status === "LIVE").length;
+   const dieMails = monthlyMails.filter((m: MailData) => m.status === "DIE").length;
    const liveRatio = total > 0 ? ((liveMails / total) * 100).toFixed(1) : "0.0";
 
-   const totalEligibleChannels = satellites.reduce((sum, m) => {
+   const totalEligibleChannels = satellites.reduce((sum: number, m: MailData) => {
      const count = (Array.isArray(m.links) ? m.links.filter((l: string) => typeof l === 'string' && l.trim() !== "").length : 0) || (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0);
      return sum + count;
    }, 0);
@@ -315,35 +315,35 @@ export default function ReportsPage() {
    monday.setHours(0, 0, 0, 0);
 
    const calculated = list.map((staff: any) => {
-     const myMails = (mails || []).filter(m => String(m.assigneeId) === String(staff.id));
+     const myMails = (mails || []).filter((m: MailData) => String(m.assigneeId) === String(staff.id));
      
-     const monthlyMails = myMails.filter(m => {
+     const monthlyMails = myMails.filter((m: MailData) => {
        if (!m.updatedAt) return false;
        const d = new Date(m.updatedAt);
        return d.getMonth() === month - 1 && d.getFullYear() === year;
      });
 
-     const weeklyMails = myMails.filter(m => {
+     const weeklyMails = myMails.filter((m: MailData) => {
        if (!m.updatedAt) return false;
        return new Date(m.updatedAt) >= monday;
      });
 
-     const todayMails = myMails.filter(m => {
+     const todayMails = myMails.filter((m: MailData) => {
        if (!m.updatedAt) return false;
        return new Date(m.updatedAt) >= todayStart;
      });
 
-     const eligibleChannelsMonthly = monthlyMails.filter(m => m.type === "SATELLITE").reduce((sum, m) => {
+     const eligibleChannelsMonthly = monthlyMails.filter((m: MailData) => m.type === "SATELLITE").reduce((sum: number, m: MailData) => {
        const count = (Array.isArray(m.links) ? m.links.filter((l: string) => typeof l === 'string' && l.trim() !== "").length : 0) || (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0);
        return sum + count;
      }, 0);
 
-     const eligibleChannelsWeekly = weeklyMails.filter(m => m.type === "SATELLITE").reduce((sum, m) => {
+     const eligibleChannelsWeekly = weeklyMails.filter((m: MailData) => m.type === "SATELLITE").reduce((sum: number, m: MailData) => {
        const count = (Array.isArray(m.links) ? m.links.filter((l: string) => typeof l === 'string' && l.trim() !== "").length : 0) || (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0);
        return sum + count;
      }, 0);
 
-     const eligibleChannelsToday = todayMails.filter(m => m.type === "SATELLITE").reduce((sum, m) => {
+     const eligibleChannelsToday = todayMails.filter((m: MailData) => m.type === "SATELLITE").reduce((sum: number, m: MailData) => {
        const count = (Array.isArray(m.links) ? m.links.filter((l: string) => typeof l === 'string' && l.trim() !== "").length : 0) || (Array.isArray(m.eligibleChannels) ? m.eligibleChannels.filter(Boolean).length : 0);
        return sum + count;
      }, 0);
@@ -351,8 +351,8 @@ export default function ReportsPage() {
      const targetWeekly = 300; 
      const progress = targetWeekly > 0 ? Math.round((eligibleChannelsWeekly / targetWeekly) * 100) : 0;
      
-     const completed = monthlyMails.filter(m => m.workStatus === "Đã làm" || m.workStatus === "Đã bán" || m.verificationStatus === "Quét CCCD").length;
-     const failed = monthlyMails.filter(m => m.workStatus === "Lỗi").length;
+     const completed = monthlyMails.filter((m: MailData) => m.workStatus === "Đã làm" || m.workStatus === "Đã bán" || m.verificationStatus === "Quét CCCD").length;
+     const failed = monthlyMails.filter((m: MailData) => m.workStatus === "Lỗi").length;
      
      const errorPercent = monthlyMails.length > 0 ? Math.round((failed / monthlyMails.length) * 100) : 0;
      

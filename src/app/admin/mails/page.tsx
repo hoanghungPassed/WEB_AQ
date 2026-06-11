@@ -13,6 +13,7 @@ import {
  ChevronRight,
  Mail
 } from"lucide-react";
+import { MailData } from "@/types/admin";
 function MailTableContent() {
  const searchParams = useSearchParams();
  const router = useRouter();
@@ -24,7 +25,7 @@ function MailTableContent() {
  const [copiedText, setCopiedText] = useState("");
  const itemsPerPage = 100;
 
- const [mails, setMails] = useState<any[]>([]);
+ const [mails, setMails] = useState<MailData[]>([]);
  const [loading, setLoading] = useState(true);
 
  useEffect(() => {
@@ -54,7 +55,7 @@ function MailTableContent() {
  ];
 
  // Lọc dữ liệu dựa trên type (LIVE, DIE, MONETIZED, ALL) và search và channelStatus
- const filteredMails = (mails || []).filter(mail => {
+ const filteredMails = (mails || []).filter((mail: MailData) => {
  let matchesType = true;
  if (type ==="live") matchesType = mail.status ==="LIVE";
  else if (type ==="die") matchesType = mail.status ==="DIE";

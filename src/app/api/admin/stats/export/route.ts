@@ -43,9 +43,9 @@ export async function GET(req: NextRequest) {
 
     // Compute staff leaderboard for the selected month
     const leaderboard = staffList.map((staff: any) => {
-      const myMails = (mails as any[]).filter(m => String(m.assigneeId) === String(staff.id) || String(m.assigneeId) === String(staff._id));
+      const myMails = (mails as any[]).filter((m: any) => String(m.assigneeId) === String(staff.id) || String(m.assigneeId) === String(staff._id));
       
-      const monthlyMails = myMails.filter(m => {
+      const monthlyMails = myMails.filter((m: any) => {
         if (!m.updatedAt) return false;
         const d = new Date(m.updatedAt);
         return d.getMonth() === month - 1 && d.getFullYear() === year;

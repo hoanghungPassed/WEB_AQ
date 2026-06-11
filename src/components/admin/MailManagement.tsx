@@ -174,7 +174,7 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
           verificationStatus: "Chưa check",
           workStatus: activeTab === "ROOT" ? "Đang xử lý" : (activeTab === "MONETIZED" ? "Chưa bán" : "Chưa làm"),
           stt: idx + 1
-        })).filter(m => m.email);
+        })).filter((m: any) => m.email);
 
         if (importedMails.length === 0) {
           triggerToast("File Excel không hợp lệ hoặc trống!");

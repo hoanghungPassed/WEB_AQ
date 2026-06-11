@@ -265,7 +265,7 @@ export default function AdminDashboard() {
  const isStaff = user?.role === "04" || user?.role === "05";
 
  const filteredMails = useMemo(() => {
-   return (mails || []).filter(m => {
+   return (mails || []).filter((m: MailData) => {
      const matchesSearch = m.email.toLowerCase().includes(searchQuery.toLowerCase());
      const matchesView = selectedViewType === "LIVE" ? m.status === "LIVE" : selectedViewType === "DIE" ? m.status === "DIE" : true;
      return matchesSearch && matchesView;
@@ -277,7 +277,7 @@ export default function AdminDashboard() {
  const totalPages = Math.ceil(filteredMails.length / itemsPerPage);
 
  const myTasks = useMemo(() => {
-   return tasksList.filter(t => String(t.assigneeId) === String(user?.id || (user as any)?._id));
+   return tasksList.filter((t: TaskAssignment) => String(t.assigneeId) === String(user?.id || (user as any)?._id));
  }, [tasksList, user]);
 
  if (selectedViewType) {

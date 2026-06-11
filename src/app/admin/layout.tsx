@@ -1453,7 +1453,7 @@ const typingTimer = setInterval(checkTyping, 1000);
  };
 
   const handleApprove = async (request: any) => {
-    const updated = (pendingRequests || []).filter(r => r.id !== request.id);
+    const updated = (pendingRequests || []).filter((r: any) => r.id !== request.id);
     setPendingRequests(updated);
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     localStorage.setItem(`access_response_${request.staffName}`, "APPROVED");
@@ -1550,7 +1550,7 @@ const typingTimer = setInterval(checkTyping, 1000);
   };
 
   const handleDeny = async (request: any) => {
-    const updated = (pendingRequests || []).filter(r => r.id !== request.id);
+    const updated = (pendingRequests || []).filter((r: any) => r.id !== request.id);
     setPendingRequests(updated);
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     localStorage.setItem(`access_response_${request.staffName}`, "DENIED");

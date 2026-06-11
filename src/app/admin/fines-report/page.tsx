@@ -72,13 +72,13 @@ export default function FinesReportPage() {
 
  // Filter by status
  if (filterStatus !=="ALL") {
- result = (result || []).filter(r => r.status === filterStatus);
+ result = (result || []).filter((r: FineReport) => r.status === filterStatus);
  }
 
  // Search by staff name or reason
  if (searchQuery) {
  const query = searchQuery.toLowerCase();
- result = (result || []).filter(r => 
+ result = (result || []).filter((r: FineReport) => 
  r.staffName.toLowerCase().includes(query) || 
  r.reason.toLowerCase().includes(query)
  );
@@ -93,16 +93,16 @@ export default function FinesReportPage() {
  // Statistics
  const stats = useMemo(() => {
  const totalFines = (fineReports || []).length;
- const totalAmount = fineReports.reduce((sum, r) => sum + r.amount, 0);
+ const totalAmount = fineReports.reduce((sum: number, r: FineReport) => sum + r.amount, 0);
  const paidAmount = fineReports
- .filter(r => r.status ==="PAID")
- .reduce((sum, r) => sum + r.amount, 0);
+ .filter((r: FineReport) => r.status ==="PAID")
+ .reduce((sum: number, r: FineReport) => sum + r.amount, 0);
  const pendingAmount = fineReports
- .filter(r => r.status ==="PENDING" || r.status ==="OVERDUE")
- .reduce((sum, r) => sum + r.amount, 0);
- const paidCount = (fineReports || []).filter(r => r.status ==="PAID").length;
- const pendingCount = (fineReports || []).filter(r => r.status ==="PENDING").length;
- const overdueCount = (fineReports || []).filter(r => r.status ==="OVERDUE").length;
+ .filter((r: FineReport) => r.status ==="PENDING" || r.status ==="OVERDUE")
+ .reduce((sum: number, r: FineReport) => sum + r.amount, 0);
+ const paidCount = (fineReports || []).filter((r: FineReport) => r.status ==="PAID").length;
+ const pendingCount = (fineReports || []).filter((r: FineReport) => r.status ==="PENDING").length;
+ const overdueCount = (fineReports || []).filter((r: FineReport) => r.status ==="OVERDUE").length;
 
  return { totalFines, totalAmount, paidAmount, pendingAmount, paidCount, pendingCount, overdueCount };
  }, [fineReports]);

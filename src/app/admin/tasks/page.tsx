@@ -97,8 +97,8 @@ export default function TaskManagementPage() {
   const [taskFilter, setTaskFilter] = useState("ALL");
   const [notification, setNotification] = useState<string | null>(null);
 
-  const [mails, setMails] = useState<any[]>([]);
-  const [selectedMailForConfig, setSelectedMailForConfig] = useState<any>(null);
+  const [mails, setMails] = useState<MailData[]>([]);
+  const [selectedMailForConfig, setSelectedMailForConfig] = useState<MailData | null>(null);
 
   // States for template allocation flow
   const [adminTab, setAdminTab] = useState<"ASSIGN" | "TASKS">("ASSIGN");
@@ -330,10 +330,10 @@ export default function TaskManagementPage() {
     if (selectedTask.type === "MAIL_MONETIZED") mailType = "MONETIZED";
 
     if (selectedTask.selectedMailIds && Array.isArray(selectedTask.selectedMailIds)) {
-      return (mails || []).filter(m => selectedTask.selectedMailIds?.includes(m.id));
+      return (mails || []).filter((m: MailData) => selectedTask.selectedMailIds?.includes(m.id));
     }
 
-    let filtered = (mails || []).filter(m => m.type === mailType && String(m.assigneeId) === String(selectedTask.assigneeId));
+    let filtered = (mails || []).filter((m: MailData) => m.type === mailType && String(m.assigneeId) === String(selectedTask.assigneeId));
 
     if (selectedTask.title === "Check, xóa, tạo" || selectedTask.title === "Kênh bật kiếm tiền") {
       if (selectedTask.mailRange) {
@@ -341,27 +341,27 @@ export default function TaskManagementPage() {
         if ((parts || []).length === 2) {
           const start = parseInt(parts[0].trim());
           const end = parseInt(parts[1].trim());
-          const withSTT = (mails || []).filter(m => m.type === mailType).map((m, idx) => ({ ...m, currentSTT: idx + 1 }));
-          const idsInRange = (withSTT || []).filter(m => m.currentSTT >= start && m.currentSTT <= end).map(m => m.id);
-          filtered = (filtered || []).filter(m => idsInRange.includes(m.id));
+          const withSTT = (mails || []).filter((m: MailData) => m.type === mailType).map((m: MailData, idx: number) => ({ ...m, currentSTT: idx + 1 }));
+          const idsInRange = (withSTT || []).filter((m: any) => m.currentSTT >= start && m.currentSTT <= end).map((m: any) => m.id);
+          filtered = (filtered || []).filter((m: MailData) => idsInRange.includes(m.id));
         }
       }
     } else if (selectedTask.title === "Làm kênh") {
       if (selectedTask.mailRange) {
         const cleanBatch = (selectedTask as any).batch || selectedTask.mailRange.split(" (")[0];
-        filtered = (filtered || []).filter(m => m.batchName === cleanBatch);
+        filtered = (filtered || []).filter((m: MailData) => m.batchName === cleanBatch);
       }
     } else if (selectedTask.title === "Mời kênh" && selectedTask.mailRange) {
       const parts = selectedTask.mailRange.split("+");
       const loPart = parts.pop()?.trim();
-      filtered = (mails || []).filter(m => 
+      filtered = (mails || []).filter((m: MailData) => 
         (m.type === "SATELLITE" && m.batchName === loPart && String(m.assigneeId) === String(selectedTask.assigneeId)) ||
         (m.type === "ROOT" && selectedTask.note && selectedTask.note.includes(m.email))
       );
     }
 
     if (user?.role === "04" || user?.role === "05") {
-      filtered = (filtered || []).filter(m => String(m.assigneeId) === String(user.id));
+      filtered = (filtered || []).filter((m: MailData) => String(m.assigneeId) === String(user.id));
     }
 
     return filtered;
