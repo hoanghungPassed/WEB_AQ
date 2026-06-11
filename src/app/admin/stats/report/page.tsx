@@ -218,7 +218,7 @@ export default function ReportsPage() {
     // Initialize daily eligible channels counts
     const dailyCounts = Array(daysInMonth).fill(0);
     
-    (mails || []).forEach(m => {
+    (mails || []).forEach((m: MailData) => {
       if (m.type === "SATELLITE" && m.updatedAt) {
         const date = new Date(m.updatedAt);
         if (date.getMonth() === month - 1 && date.getFullYear() === year) {
@@ -231,7 +231,7 @@ export default function ReportsPage() {
     
     // Calculate cumulative counts
     let cumulativeSum = 0;
-    const cumulative = dailyCounts.map(count => {
+    const cumulative = dailyCounts.map((count: number) => {
       cumulativeSum += count;
       return cumulativeSum;
     });
@@ -386,7 +386,7 @@ export default function ReportsPage() {
      return;
    }
    
-   const staff = staffList.find(s => s.id === selectedStaffId);
+   const staff = staffList.find((s: StaffData) => s.id === selectedStaffId);
    if (!staff) return;
 
    const days = 26; // Default or fetch from attendance if possible
@@ -754,7 +754,7 @@ export default function ReportsPage() {
  onChange={(e) => {
    const id = e.target.value;
    setSelectedStaffId(id);
-   const staff = staffList.find(s => s.id === id);
+   const staff = staffList.find((s: StaffData) => s.id === id);
    if (staff) {
      setBaseSalary(String(staff.baseSalary || 5000000));
      setAllowance(String(staff.allowance || 500000));
@@ -762,7 +762,7 @@ export default function ReportsPage() {
  }}
  >
  <option value="" className="bg-zinc-900 text-white">-- Nhấp để chọn --</option>
- {(staffList || []).map(s => (
+ {(staffList || []).map((s: StaffData) => (
  <option key={s.id} value={s.id} className="bg-zinc-900 text-white">{s.name} (@{s.username})</option>
  ))}
  </select>
@@ -771,9 +771,9 @@ export default function ReportsPage() {
  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Chức vụ</label>
  <div className="h-12 px-4 rounded-xl bg-white/5 text-gray-400 border border-white/5 flex items-center font-bold text-sm uppercase tracking-widest">
    {selectedStaffId 
-     ? (staffList.find(s => s.id === selectedStaffId)?.role === "01" ? "ADMIN" : 
-        staffList.find(s => s.id === selectedStaffId)?.role === "02" ? "QL CÔNG VIỆC" : 
-        staffList.find(s => s.id === selectedStaffId)?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN")
+     ? (staffList.find((s: StaffData) => s.id === selectedStaffId)?.role === "01" ? "ADMIN" : 
+        staffList.find((s: StaffData) => s.id === selectedStaffId)?.role === "02" ? "QL CÔNG VIỆC" : 
+        staffList.find((s: StaffData) => s.id === selectedStaffId)?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN")
      : "Chưa chọn"}
  </div>
  </div>
@@ -809,7 +809,7 @@ export default function ReportsPage() {
      <div className="flex flex-col">
        <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest">Hiệu suất KPI Tháng</span>
        <span className="text-xl font-black text-blue-400">
-         {staffLeaderboard.find(s => s.username === staffList.find(u => u.id === selectedStaffId)?.username)?.monthlyChannels || 0} Kênh
+         {staffLeaderboard.find((s: StaffPerformance) => s.username === staffList.find((u: StaffData) => u.id === selectedStaffId)?.username)?.monthlyChannels || 0} Kênh
        </span>
      </div>
    </div>
