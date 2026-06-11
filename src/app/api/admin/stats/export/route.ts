@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       RootMail.find().lean(),
       SatelliteMail.find().lean(),
       MonetizedMail.find().lean(),
-      User.find({ role: { $in: ["04", "05", "NHÂN VIÊN", "NV THỬ VIỆC"] } }).lean(),
+      User.find({ role: { $in: ["04", "05", "NHÂN VIÊN", "NV THỬ VIỆC"] } } as any).lean(),
     ]);
 
     const mails = [...roots, ...sats, ...mons];
