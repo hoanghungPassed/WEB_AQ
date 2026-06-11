@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 
-const inter = Inter({ subsets: ["latin", "vietnamese"] });
+const geistSans = Geist({ subsets: ["latin", "vietnamese"] });
+const geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
 	title: "AQ Media Quản lý nội bộ",
@@ -16,8 +17,8 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" className="h-full antialiased dark">
-			<body className={`${inter.className} min-h-full flex flex-col`}>
+		<html lang="vi" className="h-full antialiased dark">
+			<body className={`${geistSans.className} min-h-full flex flex-col bg-background text-foreground`}>
 				<AuthProvider>{children}</AuthProvider>
 			</body>
 		</html>

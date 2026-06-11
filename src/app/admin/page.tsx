@@ -536,29 +536,29 @@ export default function AdminDashboard() {
 
 function StatCard({ title, value, icon, color, subtitle, onClick }: any) {
  const colors: any = {
- blue:"text-blue-400 bg-blue-500/10 border-blue-500/20 group-hover:border-blue-500/50",
- green:"text-green-400 bg-green-500/10 border-green-500/20 group-hover:border-green-500/50",
- red:"text-red-400 bg-red-500/10 border-red-500/20 group-hover:border-red-500/50",
- gold:"text-amber-500 bg-amber-500/10 border-amber-500/20 group-hover:border-amber-500/50",
- purple:"text-purple-400 bg-purple-500/10 border-purple-500/20 group-hover:border-purple-500/50",
- indigo:"text-indigo-400 bg-indigo-500/10 border-indigo-500/20 group-hover:border-indigo-500/50",
+ blue:"text-blue-400 bg-blue-500/15 border-blue-500/30 group-hover:border-blue-500/60 group-hover:shadow-blue-500/20",
+ green:"text-emerald-400 bg-emerald-500/15 border-emerald-500/30 group-hover:border-emerald-500/60 group-hover:shadow-emerald-500/20",
+ red:"text-red-400 bg-red-500/15 border-red-500/30 group-hover:border-red-500/60 group-hover:shadow-red-500/20",
+ gold:"text-amber-400 bg-amber-500/15 border-amber-500/30 group-hover:border-amber-500/60 group-hover:shadow-amber-500/20",
+ purple:"text-purple-400 bg-purple-500/15 border-purple-500/30 group-hover:border-purple-500/60 group-hover:shadow-purple-500/20",
+ indigo:"text-indigo-400 bg-indigo-500/15 border-indigo-500/30 group-hover:border-indigo-500/60 group-hover:shadow-indigo-500/20",
  };
  return (
  <motion.div 
  whileHover={{ y: -8, scale: 1.02 }} 
  onClick={onClick} 
- className={`group rounded-[36px] border border-white/0 bg-sidebar/80 backdrop-blur-md p-8 transition-all hover:shadow-2xl hover:border-white/10 ${onClick ? 'cursor-pointer' : ''}`}
+ className={`group rounded-3xl border border-gray-700/50 bg-gradient-to-br from-gray-900/40 to-gray-800/20 backdrop-blur-lg p-8 transition-all duration-300 hover:shadow-2xl hover:border-gray-600/80 ${onClick ? 'cursor-pointer' : ''}`}
  >
  <div className="flex items-center justify-between mb-6">
- <div className={`h-16 w-16 rounded-2xl border flex items-center justify-center transition-all ${colors[color] || colors.blue}`}>{icon}</div>
+ <div className={`h-16 w-16 rounded-2xl border-2 flex items-center justify-center transition-all duration-300 ${colors[color] || colors.blue}`}>{icon}</div>
  <div className="text-right min-w-0 flex-1 ml-4">
- <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1 truncate" title={title}>{title}</p>
- <h3 className="text-3xl xl:text-4xl font-black text-zinc-50 tracking-tighter truncate" title={String(value)}>{typeof value ==="number" ? value.toLocaleString() : value}</h3>
+ <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 truncate" title={title}>{title}</p>
+ <h3 className="text-3xl xl:text-4xl font-bold text-white tracking-tight truncate" title={String(value)}>{typeof value ==="number" ? value.toLocaleString() : value}</h3>
  </div>
  </div>
- <div className="flex items-center justify-between pt-6 border-t border-white/5 mt-2">
- <span className="text-xs font-bold text-zinc-500 group-hover:text-zinc-300 transition-colors uppercase tracking-widest">{subtitle}</span>
- <div className="h-2.5 w-2.5 rounded-full bg-gold shadow-[0_0_12px_rgba(212,175,55,0.6)] animate-pulse" />
+ <div className="flex items-center justify-between pt-6 border-t border-gray-700/30 mt-2">
+ <span className="text-xs font-semibold text-gray-500 group-hover:text-gray-400 transition-colors uppercase tracking-wider">{subtitle}</span>
+ <div className="h-2.5 w-2.5 rounded-full bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.5)] animate-pulse" />
  </div>
  </motion.div>
  );
