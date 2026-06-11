@@ -226,7 +226,7 @@ export default function RegisterPage() {
     return () => clearInterval(interval);
   }, [isWaitingApproval, formData.username, formData.password, login, router]);
 
-  const inputClass = (name: string) => `h-14 w-full rounded-2xl border ${errors[name] ?"border-red-500 bg-red-50/50 bg-red-900/20" :" border-gray-600 bg-gray-800 text-white"} pl-12 pr-6 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder-gray-400 placeholder-gray-500 font-bold`;
+ const inputClass = (name: string) => `h-14 w-full rounded-2xl border ${errors[name] ?"border-red-500 bg-red-50/50 bg-red-900/20" :" border-gray-600 bg-gray-800 text-white"} pl-14 pr-6 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder-gray-400 placeholder-gray-500 font-bold`;
  const labelClass ="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1 mb-1 block";
 
  if (!isClient) return <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center"><Loader2 className="animate-spin text-gold" size={48} /></div>;
@@ -263,7 +263,7 @@ export default function RegisterPage() {
  <div className="space-y-1">
  <label className={labelClass}>Họ và tên</label>
  <div className="relative group">
- <User className={`absolute left-4 top-1/2 -translate-y-1/2 ${errors.name ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+ <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.name ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
  <input type="text" name="name" required value={formData.name} onChange={handleInputChange} placeholder="Nguyễn Văn A" className={inputClass("name")} />
  </div>
  {errors.name && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.name}</p>}
@@ -272,7 +272,7 @@ export default function RegisterPage() {
  <div className="space-y-1">
  <label className={labelClass}>Năm sinh</label>
  <div className="relative group">
- <Calendar className={`absolute left-4 top-1/2 -translate-y-1/2 ${errors.birthYear ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+ <Calendar className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.birthYear ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
  <select name="birthYear" required value={formData.birthYear} onChange={handleInputChange} className={`${inputClass("birthYear")} appearance-none cursor-pointer`}>
  <option value="" disabled>Chọn năm</option>
  {(years || []).map(y => <option key={y} value={y}>{y}</option>)}
@@ -283,7 +283,7 @@ export default function RegisterPage() {
  <div className="space-y-1">
  <label className={labelClass}>Username</label>
  <div className="relative group">
- <User className={`absolute left-4 top-1/2 -translate-y-1/2 ${errors.username ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+ <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.username ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
  <input type="text" name="username" required value={formData.username} onChange={handleInputChange} onBlur={handleUsernameBlur} placeholder="username_01" className={inputClass("username")} />
  </div>
  {errors.username && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.username}</p>}
@@ -292,7 +292,7 @@ export default function RegisterPage() {
  <div className="space-y-1">
  <label className={labelClass}>Số điện thoại</label>
  <div className="relative group">
- <Phone className={`absolute left-4 top-1/2 -translate-y-1/2 ${errors.phone ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+ <Phone className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.phone ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
  <input type="tel" name="phone" required value={formData.phone} onChange={handleInputChange} placeholder="09xxxxxxxx" className={inputClass("phone")} />
  </div>
  {errors.phone && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.phone}</p>}
@@ -301,7 +301,7 @@ export default function RegisterPage() {
  <div className="md:col-span-2 space-y-1">
  <label className={labelClass}>Địa chỉ liên hệ</label>
  <div className="relative group">
- <MapPin className={`absolute left-4 top-1/2 -translate-y-1/2 ${errors.address ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+ <MapPin className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.address ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
  <input type="text" name="address" required value={formData.address} onChange={handleInputChange} placeholder="Hà Nội, Việt Nam" className={inputClass("address")} />
  </div>
  </div>
@@ -309,7 +309,7 @@ export default function RegisterPage() {
  <div className="space-y-1">
  <label className={labelClass}>Mật khẩu</label>
  <div className="relative group">
- <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 ${errors.password ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={20} />
+ <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.password ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
  <input type="password" name="password" required value={formData.password} onChange={handleInputChange} className={inputClass("password")} />
  </div>
  {formData.password && (
@@ -329,8 +329,8 @@ export default function RegisterPage() {
  <div className="space-y-1">
  <label className={labelClass}>Xác nhận mật khẩu</label>
  <div className="relative group">
- <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 ${formData.confirmPassword && formData.confirmPassword !== formData.password ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
- <input type="password" name="confirmPassword" required value={formData.confirmPassword} onChange={handleInputChange} className={`h-14 w-full rounded-2xl border ${formData.confirmPassword && formData.confirmPassword !== formData.password ?"border-red-500 bg-red-50/50 bg-red-900/20 text-white" : formData.confirmPassword && formData.confirmPassword === formData.password ?"border-green-500 bg-green-50/50 bg-green-900/20 text-white" :" border-gray-600 bg-gray-800 text-white"} pl-12 pr-6 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder-gray-400 placeholder-gray-500 font-bold`} />
+ <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${formData.confirmPassword && formData.confirmPassword !== formData.password ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+ <input type="password" name="confirmPassword" required value={formData.confirmPassword} onChange={handleInputChange} className={`h-14 w-full rounded-2xl border ${formData.confirmPassword && formData.confirmPassword !== formData.password ?"border-red-500 bg-red-50/50 bg-red-900/20 text-white" : formData.confirmPassword && formData.confirmPassword === formData.password ?"border-green-500 bg-green-50/50 bg-green-900/20 text-white" :" border-gray-600 bg-gray-800 text-white"} pl-14 pr-6 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder-gray-400 placeholder-gray-500 font-bold`} />
  </div>
  {formData.confirmPassword && formData.confirmPassword !== formData.password && (
  <p className="text-sm text-red-500 font-medium flex items-center gap-1 mt-1 ml-1"><AlertCircle size={14} /> Mật khẩu không khớp!</p>

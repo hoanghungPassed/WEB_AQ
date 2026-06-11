@@ -258,7 +258,7 @@ function LoginForm() {
                   <div className="space-y-3">
                     <label className="text-lg font-medium text-gray-300 ml-1">Tài khoản</label>
                     <div className="group relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors">
+                      <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors">
                         <User size={18} />
                       </div>
                       <input
@@ -267,7 +267,7 @@ function LoginForm() {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="Username"
-                        className="w-full rounded-xl border border-gray-600 bg-gray-800 py-3 pl-12 pr-4 text-lg text-white transition-all focus:border-blue-500 focus:outline-none shadow-inner"
+                        className="w-full rounded-xl border border-gray-600 bg-gray-800 py-3 pl-14 pr-4 text-lg text-white transition-all focus:border-blue-500 focus:outline-none shadow-inner"
                       />
                     </div>
                   </div>
@@ -278,7 +278,7 @@ function LoginForm() {
                       <Link href="/forgot-password" className="text-[10px] font-black text-gold hover:underline uppercase">Quên mật khẩu?</Link>
                     </div>
                     <div className="group relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors">
+                      <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors">
                         <Lock size={18} />
                       </div>
                       <input
@@ -287,7 +287,7 @@ function LoginForm() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Mật khẩu của bạn"
-                        className="w-full rounded-xl border border-gray-600 bg-gray-800 py-3 pl-12 pr-12 text-lg text-white transition-all focus:border-blue-500 focus:outline-none shadow-inner"
+                        className="w-full rounded-xl border border-gray-600 bg-gray-800 py-3 pl-14 pr-12 text-lg text-white transition-all focus:border-blue-500 focus:outline-none shadow-inner"
                       />
                       <button
                         type="button"
