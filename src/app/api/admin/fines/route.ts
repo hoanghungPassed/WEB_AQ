@@ -153,27 +153,27 @@ export async function PUT(req: NextRequest) {
    // Validate using Zod UpdateFineSchema
 
    const updateData: any = {
-     status: data.status,
-     amount: data.amount !== undefined ? data.amount : existingFine.amount
+     status: body.status,
+     amount: body.amount !== undefined ? body.amount : existingFine.amount
    };
 
    const fine = await Fine.findByIdAndUpdate(id, { $set: updateData }, { new: true }).populate('userId', 'name');
    if (!fine) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
 
-  // Create log
-  try {
-  await Log.create({
-  user: (userId || undefined) as any,
-  role: userRole === "01" ? "ADMIN" : userRole === "02" ? "QL CÔNG VIỆC" : "QL NHÂN SỰ",
-  action: `Cập nhật trạng thái thanh toán phạt của ${(fine.userId as any)?.name} thành ${data.status}`,
-  type:"SUCCESS",
-  timestamp: new Date().toLocaleString("vi-VN")
-  });
-  } catch (logErr) {
-  console.error("Failed to create log for fine update:", logErr);
-  }
+   // Create log
+   try {
+   await Log.create({
+   user: (userId || undefined) as any,
+   role: userRole === "01" ? "ADMIN" : userRole === "02" ? "QL CÔNG VIỆC" : "QL NHÂN SỰ",
+   action: `Cập nhật trạng thái thanh toán phạt của ${(fine.userId as any)?.name} thành ${body.status}`,
+   type:"SUCCESS",
+   timestamp: new Date().toLocaleString("vi-VN")
+   });
+   } catch (logErr) {
+   console.error("Failed to create log for fine update:", logErr);
+   }
 
-  await logAuditTrail(userId || "system", "UPDATE_FINE_SUCCESS", "fines", { id, ...data }, req);
+   await logAuditTrail(userId || "system", "UPDATE_FINE_SUCCESS", "fines", { id, ...body }, req);
 
   return NextResponse.json({ success: true, data: fine });
  } catch (error: unknown) {
