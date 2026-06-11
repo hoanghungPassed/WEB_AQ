@@ -741,18 +741,19 @@ const totalWorkingMins = overlap1 + overlap2;
  }
 
  if ((!e.key || e.key ==="global_users" || e.key ==="request_trigger") && user) {
- try {
- const savedUsersStr = localStorage.getItem("global_users");
- if (savedUsersStr) {
- const allUsers = JSON.parse(savedUsersStr);
- const userProfile = allUsers.find((u: any) => u.username === user?.username);
- if (userProfile && userProfile.isLateLocked === false && isCurrentlyLockedRef.current) {
- window.location.reload();
- }
- }
- } catch (err) {
- console.error("Storage reload trigger error:", err);
- }
+  try {
+  const savedUsersStr = localStorage.getItem("global_users");
+  if (savedUsersStr) {
+  const allUsers = JSON.parse(savedUsersStr);
+  const userProfile = allUsers.find((u: any) => u.username === user?.username);
+  if (userProfile && userProfile.isLateLocked === false && isCurrentlyLockedRef.current) {
+  isCurrentlyLockedRef.current = false;
+  window.location.reload();
+  }
+  }
+  } catch (err) {
+  console.error("Storage reload trigger error:", err);
+  }
  }
 
  if (e.key ==="pending_access_requests") {
@@ -790,21 +791,23 @@ const totalWorkingMins = overlap1 + overlap2;
  };
  }, [user?.role]); // Re-run if role changes locally to keep listeners fresh
 
- // 2s auto-reload polling for locked tab
- useEffect(() => {
- if (!isLate) return;
- const checkUnlockInterval = setInterval(() => {
- const savedUsersStr = localStorage.getItem("global_users");
- if (savedUsersStr && user) {
- const allUsers = JSON.parse(savedUsersStr);
- const userProfile = allUsers.find((u: any) => u.username === user?.username);
- if (userProfile && userProfile.isLateLocked === false) {
- window.location.reload();
- }
- }
- }, 2000);
- return () => clearInterval(checkUnlockInterval);
- }, [isLate, user]);
+  // 2s auto-reload polling for locked tab — only reload on actual unlock transition
+  useEffect(() => {
+  if (!isLate) return;
+  isCurrentlyLockedRef.current = true;
+  const checkUnlockInterval = setInterval(() => {
+  const savedUsersStr = localStorage.getItem("global_users");
+  if (savedUsersStr && user) {
+  const allUsers = JSON.parse(savedUsersStr);
+  const userProfile = allUsers.find((u: any) => u.username === user?.username);
+  if (userProfile && userProfile.isLateLocked === false && isCurrentlyLockedRef.current) {
+  isCurrentlyLockedRef.current = false;
+  window.location.reload();
+  }
+  }
+  }, 2000);
+  return () => clearInterval(checkUnlockInterval);
+  }, [isLate, user]);
 
   const syncRealUsersFromDB = React.useCallback(async () => {
    try {
@@ -948,22 +951,31 @@ const totalWorkingMins = overlap1 + overlap2;
 
   // 4. Realtime useSWR Polling for chat and active users (30s interval)
 
-  const statusUrl = user ? `/api/auth/check-status?username=${user?.username}` : null;
+  // Only poll check-status when user is actually in a pending/locked state, not for normal active users
+  const needsStatusPolling = accessStatus === 'CLOSED' || accessStatus === 'LATE' || isPendingApproval;
+  const statusUrl = (user && needsStatusPolling) ? `/api/auth/check-status?username=${user?.username}` : null;
   const { data: statusData } = useSWR(statusUrl, async () => {
     if (!statusUrl) return null;
     const res = await fetch(statusUrl);
     return res.json();
-  }, { refreshInterval: 3000 });
+  }, { refreshInterval: 5000 });
 
+  const prevStatusRef = React.useRef<string | null>(null);
   useEffect(() => {
-    if (statusData?.status === "ACTIVE" || statusData?.access === "GRANTED") {
-      // If approved, clear local lock flags and reload
+    if (!statusData || !user) return;
+    const currentStatus = statusData?.status || statusData?.access;
+    const isNowActive = currentStatus === "ACTIVE" || currentStatus === "GRANTED";
+    const wasNotActive = prevStatusRef.current !== null && prevStatusRef.current !== "ACTIVE" && prevStatusRef.current !== "GRANTED";
+    
+    prevStatusRef.current = currentStatus;
+
+    // Only reload when transitioning from a non-active state to active (e.g. approval granted)
+    if (isNowActive && wasNotActive) {
       const accessKey = `access_${getStableDateString()}_${user?.name}`;
       const responseKey = `access_response_${user?.name}`;
       localStorage.setItem(accessKey, "true");
       localStorage.setItem(responseKey, "APPROVED");
       
-      // Update global_users to reflect unlocked state immediately
       const savedUsersStr = localStorage.getItem("global_users");
       if (savedUsersStr) {
         const allUsers = JSON.parse(savedUsersStr);
