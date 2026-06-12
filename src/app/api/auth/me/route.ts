@@ -28,8 +28,8 @@ export async function GET() {
     );
   }
 
-  // Cập nhật lastActive khi người dùng tương tác/gọi API
-  await User.findByIdAndUpdate(user._id, { lastActive: new Date() });
+  // Cập nhật lastActive và isOnline khi người dùng tương tác/gọi API
+  await User.findByIdAndUpdate(user._id, { lastActive: new Date(), isOnline: true });
 
  const userObj = user.toObject() as any;
  delete userObj.password;

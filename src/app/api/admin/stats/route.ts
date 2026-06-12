@@ -87,6 +87,13 @@ export async function GET(req: NextRequest) {
       status: "ACTIVE"
     });
 
+    // Auto cleanup online users inactive for > 15 minutes before counting
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    await User.updateMany(
+      { isOnline: true, lastActive: { $lt: fifteenMinutesAgo } },
+      { $set: { isOnline: false } }
+    );
+
     const onlineUsers = await User.countDocuments({ isOnline: true });
 
     const taskPending = await Task.countDocuments({ status: "PENDING" });

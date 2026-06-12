@@ -114,6 +114,9 @@ export default function TaskManagementPage() {
   const [selectedRootMailId, setSelectedRootMailId] = useState<string>("");
   const [selectedMoiKenhLo, setSelectedMoiKenhLo] = useState<string>("Lô 1");
 
+  // State to store batches from database
+  const [dbBatches, setDbBatches] = useState<any[]>([]);
+
   // Custom selector state for "Check, xóa, tạo"
   const [isSelectMailModalOpen, setIsSelectMailModalOpen] = useState<boolean>(false);
   const [selectedMailIdsForTask, setSelectedMailIdsForTask] = useState<number[]>([]);
@@ -153,6 +156,14 @@ export default function TaskManagementPage() {
         const userData = await userRes.json();
         if (userData.success) {
           setStaffList(userData.data.filter((u: StaffData) => u.status === "ACTIVE" && u.role !== "01"));
+        }
+      }
+
+      const batchesRes = await fetch("/api/admin/mail/satellite-batches");
+      if (batchesRes.ok) {
+        const batchesData = await batchesRes.json();
+        if (batchesData.success) {
+          setDbBatches(batchesData.batches || []);
         }
       }
 
@@ -261,8 +272,8 @@ export default function TaskManagementPage() {
 
   const selectedUserId = targetStaffId;
   const filteredBatches = useMemo(() => {
-    return (satelliteBatches || []).filter((batch: any) => batch && batch.assignedTo === selectedUserId);
-  }, [satelliteBatches, selectedUserId]);
+    return (dbBatches || []).filter((batch: any) => batch && String(batch.assignedTo) === String(selectedUserId));
+  }, [dbBatches, selectedUserId]);
 
   useEffect(() => {
     if ((filteredBatches || []).length > 0) {
@@ -272,14 +283,35 @@ export default function TaskManagementPage() {
     }
   }, [filteredBatches]);
 
+  useEffect(() => {
+    if (!targetStaffId) return;
+    const fetchUserBatches = async () => {
+      try {
+        const res = await fetch(`/api/admin/mail/satellite-batches?assignedTo=${targetStaffId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.batches) {
+            setDbBatches(prev => {
+              const other = prev.filter(b => String(b.assignedTo) !== String(targetStaffId));
+              return [...other, ...data.batches];
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi fetch user batches:", err);
+      }
+    };
+    fetchUserBatches();
+  }, [targetStaffId]);
+
   const eligibleStaff = useMemo(() => {
     if (!user) return [];
     const is01 = user?.role === "01" || user?.role === "ADMIN";
     const is02 = user?.role === "02" || user?.role === "QUẢN LÝ CÔNG VIỆC";
 
     return (staffList || []).filter((s: StaffData) => {
-      if (staffOnlineFilter === "ONLINE" && !s.isOnline) return false;
-      if (staffOnlineFilter === "OFFLINE" && s.isOnline) return false;
+      // Chỉ chọn nhân viên có trạng thái đang online
+      if (!s.isOnline) return false;
 
       if (staffSearch) {
         const q = staffSearch.toLowerCase();
@@ -301,7 +333,7 @@ export default function TaskManagementPage() {
       }
       return false;
     });
-  }, [staffList, user, selectedTemplate, staffSearch, staffOnlineFilter]);
+  }, [staffList, user, selectedTemplate, staffSearch]);
 
   const userTasks = useMemo(() => {
     if (isAdminOrManager) {
@@ -408,16 +440,23 @@ export default function TaskManagementPage() {
       typeLabel = "SATELLITE";
       taskType = "MAIL_VE_TINH";
       
-      const allSatellites = (mails || []).filter((m: MailData) => m.type === "SATELLITE");
+      const allSatellites = [...(mails || []).filter((m: MailData) => m.type === "SATELLITE")]
+        .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
       const batchMails = allSatellites.filter((m: MailData) => m.batchName === selectedLo);
       if (batchMails.length === 0) {
         alert(`Lô ${selectedLo} không hợp lệ hoặc không tìm thấy mail vệ tinh nào.`);
         return;
       }
       
-      const firstIdx = allSatellites.findIndex((m: MailData) => m.id === batchMails[0].id) + 1;
-      const lastIdx = allSatellites.findIndex((m: MailData) => m.id === batchMails[batchMails.length - 1].id) + 1;
-      const batchRange = `${firstIdx}-${lastIdx}`;
+      const currentBatch = dbBatches.find((b: any) => b.name === selectedLo);
+      let batchRange = "";
+      if (currentBatch && currentBatch.startIndex !== undefined && currentBatch.endIndex !== undefined) {
+        batchRange = `${currentBatch.startIndex}-${currentBatch.endIndex}`;
+      } else {
+        const firstIdx = allSatellites.findIndex((m: MailData) => m.id === batchMails[0].id) + 1;
+        const lastIdx = allSatellites.findIndex((m: MailData) => m.id === batchMails[batchMails.length - 1].id) + 1;
+        batchRange = `${firstIdx}-${lastIdx}`;
+      }
       
       assignedIds = batchMails.map((m: MailData) => m.id);
       mailCount = assignedIds.length;
@@ -691,48 +730,36 @@ export default function TaskManagementPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="space-y-4 mb-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Tìm nhân viên</label>
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Tìm kiếm nhân viên đang onl</label>
                         <div className="relative">
                           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
                           <input
                             type="text"
-                            placeholder="Tên nhân viên..."
+                            placeholder="Nhập tên nhân viên đang online..."
                             value={staffSearch}
                             onChange={(e) => setStaffSearch(e.target.value)}
                             className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl pl-12 pr-6 text-white text-base outline-none focus:border-white/5 transition-all"
                           />
                         </div>
                       </div>
+
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Lọc trạng thái</label>
-                        <select
-                          value={staffOnlineFilter}
-                          onChange={(e) => setStaffOnlineFilter(e.target.value)}
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chọn nhân viên thực hiện (Chỉ hiển thị người online)</label>
+                        <select 
+                          value={targetStaffId}
+                          onChange={(e) => setTargetStaffId(e.target.value)}
                           className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all"
                         >
-                          <option value="ALL" className="bg-zinc-900">Tất cả</option>
-                          <option value="ONLINE" className="bg-zinc-900">Đang Online</option>
-                          <option value="OFFLINE" className="bg-zinc-900">Ngoại tuyến</option>
+                          <option value="" className="bg-zinc-900 text-white">-- Chọn nhân sự thực hiện --</option>
+                          {(eligibleStaff || []).map((staff: StaffData) => (
+                            <option key={staff.id} value={staff.id} className="bg-zinc-900 text-white">
+                              🟢 {staff.name} (@{staff.username}) ({staff.role === "02" ? "Quản lý công việc" : staff.role === "03" ? "Quản lý nhân sự" : "Nhân viên"})
+                            </option>
+                          ))}
                         </select>
                       </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chọn nhân viên thực hiện</label>
-                      <select 
-                        value={targetStaffId}
-                        onChange={(e) => setTargetStaffId(e.target.value)}
-                        className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all"
-                      >
-                        <option value="" className="bg-zinc-900 text-white">-- Chọn nhân sự thực hiện --</option>
-                        {(eligibleStaff || []).map((staff: StaffData) => (
-                          <option key={staff.id} value={staff.id} className="bg-zinc-900 text-white">
-                            {staff.isOnline ? "🟢" : "🔴"} {staff.name} ({staff.role === "02" ? "Quản lý công việc" : staff.role === "03" ? "Quản lý nhân sự" : "Nhân viên"})
-                          </option>
-                        ))}
-                      </select>
                     </div>
 
                     {selectedTemplate === "Check, xóa, tạo" && (
@@ -770,11 +797,14 @@ export default function TaskManagementPage() {
                             <option value="" className="bg-zinc-900 text-white">
                               {!selectedUserId ? '-- Vui lòng chọn nhân viên trước --' : '-- Chọn Lô --'}
                             </option>
-                            {(filteredBatches || []).map(batch => (
-                              <option key={batch.name} value={batch.name} className="bg-zinc-900 text-white">
-                                {batch.name} (STT {batch.startIndex} - {batch.endIndex})
-                              </option>
-                            ))}
+                            {(filteredBatches || []).map(batch => {
+                              const bNameClean = (batch.name || "").replace(/\s*\(.*\)$/, "");
+                              return (
+                                <option key={batch.name} value={batch.name} className="bg-zinc-900 text-white">
+                                  {bNameClean} ({batch.mailCount || 0} mail ({batch.startIndex || 0} - {batch.endIndex || 0}))
+                                </option>
+                              );
+                            })}
                           </select>
                           {targetStaffId && (filteredBatches || []).length === 0 && (
                             <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">Không có lô vệ tinh chưa gán nào khả dụng cho nhân viên này!</p>
