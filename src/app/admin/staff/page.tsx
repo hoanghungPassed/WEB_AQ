@@ -7,7 +7,7 @@ import {
  Users, UserPlus, Search, Filter, MoreHorizontal, 
  CheckCircle2, XCircle, Shield, Activity, 
  ClipboardList, AlertCircle, Trash2, UserCheck, User, Save, X, CalendarDays, CheckSquare, Clock,
- Mail, Phone, Calendar, MapPin, Plus, MessageSquare, Minus
+ Mail, Phone, Calendar, MapPin, Plus, MessageSquare, Minus, Loader2
 } from"lucide-react";
 import { useRouter, useSearchParams } from"next/navigation";
 import { StaffData } from"@/types/admin";
@@ -22,6 +22,19 @@ const getStableDateString = () => {
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function StaffManagementPage() {
+  return (
+    <React.Suspense fallback={
+      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-4 py-20 text-center">
+        <Loader2 className="animate-spin text-gold" size={36} />
+        <span className="text-sm font-black uppercase tracking-widest text-zinc-500 animate-pulse">Đang tải thông tin nhân sự...</span>
+      </div>
+    }>
+      <StaffManagementContent />
+    </React.Suspense>
+  );
+}
+
+function StaffManagementContent() {
  const router = useRouter();
  const searchParams = useSearchParams();
  const [staffList, setStaffList] = useState<StaffData[]>([]);

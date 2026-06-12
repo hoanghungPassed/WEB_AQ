@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, User, Mail, Loader2, ArrowLeft, Phone, Calendar, MapPin, UserCheck, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import Pusher from "pusher-js";
 
 export default function RegisterPage() {
  const router = useRouter();
@@ -170,6 +171,43 @@ export default function RegisterPage() {
     setApprovalStatus("PENDING");
   };
 
+  // Ref to prevent double auto-login
+  const isAutoLoginRunning = useRef(false);
+
+  // Extracted auto-login logic (reused by both polling and Pusher)
+  const performAutoLogin = useCallback(async () => {
+    if (isAutoLoginRunning.current) return;
+    isAutoLoginRunning.current = true;
+    setApprovalStatus("APPROVED");
+    try {
+      const loginRes = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: formData.username.toLowerCase(),
+          password: formData.password
+        })
+      });
+      if (loginRes.ok) {
+        const loginData = await loginRes.json();
+        login(loginData.user);
+        setTimeout(() => {
+          router.push("/admin");
+        }, 2000);
+      } else {
+        setTimeout(() => {
+          router.push("/login?message=approved");
+        }, 2000);
+      }
+    } catch (loginErr) {
+      console.error("Lỗi tự động đăng nhập:", loginErr);
+      setTimeout(() => {
+        router.push("/login?message=approved");
+      }, 2000);
+    }
+  }, [formData.username, formData.password, login, router]);
+
+  // Polling: Kiểm tra trạng thái phê duyệt mỗi 3s
   useEffect(() => {
     if (!isWaitingApproval || !formData.username) return;
 
@@ -183,37 +221,9 @@ export default function RegisterPage() {
           return;
         }
         const data = await res.json();
-        if (data.status === "GRANTED" || data.status === "APPROVED") {
-          setApprovalStatus("APPROVED");
+        if (data.status === "GRANTED" || data.status === "APPROVED" || data.status === "ACTIVE") {
           clearInterval(interval);
-          
-          // Tự động đăng nhập sau khi được phê duyệt
-          try {
-            const loginRes = await fetch("/api/auth/login", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                username: formData.username.toLowerCase(),
-                password: formData.password
-              })
-            });
-            if (loginRes.ok) {
-              const loginData = await loginRes.json();
-              login(loginData.user);
-              setTimeout(() => {
-                router.push("/admin");
-              }, 2000);
-            } else {
-              setTimeout(() => {
-                router.push("/login?message=approved");
-              }, 2000);
-            }
-          } catch (loginErr) {
-            console.error("Lỗi tự động đăng nhập:", loginErr);
-            setTimeout(() => {
-              router.push("/login?message=approved");
-            }, 2000);
-          }
+          performAutoLogin();
         } else if (data.status === "REJECTED") {
           setApprovalStatus("REJECTED");
           clearInterval(interval);
@@ -224,7 +234,30 @@ export default function RegisterPage() {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [isWaitingApproval, formData.username, formData.password, login, router]);
+  }, [isWaitingApproval, formData.username, performAutoLogin]);
+
+  // Pusher: Nhận realtime phê duyệt từ admin (không phải chờ polling)
+  useEffect(() => {
+    if (!isWaitingApproval || !formData.username) return;
+
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || "", {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "ap1",
+    });
+
+    const channel = pusher.subscribe(`user-${formData.username.toLowerCase()}`);
+    channel.bind("status-update", (data: any) => {
+      if (data.status === "ACTIVE" || data.status === "APPROVED") {
+        performAutoLogin();
+      } else if (data.status === "LOCKED" || data.status === "REJECTED") {
+        setApprovalStatus("REJECTED");
+      }
+    });
+
+    return () => {
+      pusher.unsubscribe(`user-${formData.username.toLowerCase()}`);
+      pusher.disconnect();
+    };
+  }, [isWaitingApproval, formData.username, performAutoLogin]);
 
  const inputClass = (name: string) => `h-14 w-full rounded-2xl border ${errors[name] ?"border-red-500 bg-red-50/50 bg-red-900/20" :" border-gray-600 bg-gray-800 text-white"} pl-14 pr-6 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder-gray-400 placeholder-gray-500 font-bold`;
  const labelClass ="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1 mb-1 block";

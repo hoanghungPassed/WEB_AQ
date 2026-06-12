@@ -82,8 +82,34 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
             if (resData.success && resData.data) {
               setPendingApproveUser(resData.data);
               setSelectedRole("04");
+            } else {
+              // Fallback: hiển thị popup với thông tin cơ bản từ notification
+              const usernameMatch = (notif.message || "").match(/Tài khoản (.+?) đang/);
+              setPendingApproveUser({
+                _id: notif.author,
+                name: usernameMatch ? usernameMatch[1] : "Nhân viên mới",
+                username: usernameMatch ? usernameMatch[1] : "unknown",
+                phone: "---",
+                birthYear: "---",
+                address: "---",
+                status: "PENDING"
+              });
+              setSelectedRole("04");
             }
-          }).catch(console.error);
+          }).catch(() => {
+            // Fallback khi lỗi mạng: vẫn hiển thị popup
+            const usernameMatch = (notif.message || "").match(/Tài khoản (.+?) đang/);
+            setPendingApproveUser({
+              _id: notif.author,
+              name: usernameMatch ? usernameMatch[1] : "Nhân viên mới",
+              username: usernameMatch ? usernameMatch[1] : "unknown",
+              phone: "---",
+              birthYear: "---",
+              address: "---",
+              status: "PENDING"
+            });
+            setSelectedRole("04");
+          });
         }
       } else if (!notif.targetUsername || notif.targetUsername?.toLowerCase() === user?.username?.toLowerCase()) {
         mutate('/api/admin/notifications?type=SYSTEM');
@@ -738,7 +764,9 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                     });
                     if (res.ok) {
                       mutate('/api/admin/users?page=1&limit=10&search=&status=ACTIVE_OR_LOCKED&role=ALL');
+                      mutate('/api/admin/users?page=1&limit=10&search=&status=PENDING&role=ALL');
                       mutate('/api/admin/users?all=true');
+                      mutate('/api/admin/notifications?type=SYSTEM');
                       setPendingApproveUser(null);
                       window.dispatchEvent(new Event("storage"));
                     }
