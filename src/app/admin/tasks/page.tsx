@@ -496,11 +496,47 @@ export default function TaskManagementPage() {
     return filtered;
   }, [mails, selectedTask, user, taskMailsList, isStaff]);
 
-  const handleSaveUnifiedDetails = useCallback((mailId: number, updatedFields: any) => {
-    setMails((prevMails: MailData[]) => prevMails.map((m: MailData) => m.id === mailId ? { ...m, ...updatedFields } : m));
-    setNotification("Đã cập nhật chi tiết mail thành công.");
-    setTimeout(() => setNotification(null), 3000);
-    window.dispatchEvent(new Event("storage"));
+  const handleSaveUnifiedDetails = useCallback(async (mailId: string | number, updatedFields: any) => {
+    try {
+      const additionalFields: any = {};
+      if (updatedFields.links && Array.isArray(updatedFields.links) && updatedFields.links.filter(Boolean).length === 3) {
+        additionalFields.status = "USED";
+        additionalFields.workStatus = "Đã làm";
+      }
+
+      const res = await fetch(`/api/admin/mails/${mailId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...updatedFields, ...additionalFields })
+      });
+
+      if (res.ok) {
+        setNotification("Đã cập nhật chi tiết mail thành công.");
+        setTimeout(() => setNotification(null), 3000);
+        
+        // Refresh local task mails list
+        setTaskMailsList(prev => prev.map((m: any) => {
+          const mId = m._id || m.id;
+          if (String(mId) === String(mailId)) {
+            return { ...m, ...updatedFields, ...additionalFields };
+          }
+          return m;
+        }));
+
+        setMails((prevMails: MailData[]) => prevMails.map((m: MailData) => {
+          const mId = m._id || m.id;
+          return String(mId) === String(mailId) ? { ...m, ...updatedFields, ...additionalFields } : m;
+        }));
+
+        window.dispatchEvent(new Event("storage"));
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.error || "Cập nhật chi tiết mail thất bại.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi kết nối máy chủ khi lưu chi tiết mail!");
+    }
   }, []);
 
   const handleLinkChange = (mailId: string, index: number, value: string) => {
@@ -1259,9 +1295,6 @@ export default function TaskManagementPage() {
                             <th className="px-6 py-3 whitespace-nowrap">Số điện thoại</th>
                             <th className="px-6 py-3 whitespace-nowrap">Link OTP</th>
                             <th className="px-6 py-3 text-center whitespace-nowrap">Trạng thái Mail</th>
-                            <th className="px-6 py-3 whitespace-nowrap">Link Kênh 1</th>
-                            <th className="px-6 py-3 whitespace-nowrap">Link Kênh 2</th>
-                            <th className="px-6 py-3 whitespace-nowrap">Link Kênh 3</th>
                             <th className="px-10 py-3 text-right whitespace-nowrap">Hành động</th>
                           </tr>
                         ) : (
@@ -1357,33 +1390,13 @@ export default function TaskManagementPage() {
                                     )}
                                   </td>
                                   <td className="py-3 px-6 whitespace-nowrap">
-                                    <div className="flex flex-col gap-1">
-                                      {twoFAVal ? (
-                                        <>
-                                          <div className="w-max">
-                                            <TOTPDisplay secret={twoFAVal} compact={true} onCopy={handleCopy} />
-                                          </div>
-                                          <div className="flex items-center gap-1.5 group/copy mt-0.5">
-                                            <span 
-                                              onClick={() => handleCopy(twoFAVal)}
-                                              className="cursor-pointer border-b border-dashed border-zinc-800/50 hover:border-gold hover:text-gold transition-all font-mono text-[10px] text-gray-600 max-w-[100px] truncate"
-                                              title="Bấm để sao chép mã secret 2FA"
-                                            >
-                                              {twoFAVal}
-                                            </span>
-                                            <button
-                                              onClick={() => handleCopy(twoFAVal)}
-                                              className="p-1 text-gray-500 hover:text-gold hover:bg-white/5 rounded-md transition-all shrink-0"
-                                              title="Sao chép mã secret 2FA"
-                                            >
-                                              <Copy size={10} />
-                                            </button>
-                                          </div>
-                                        </>
-                                      ) : (
-                                        <span className="text-[10px] text-zinc-600 italic">---</span>
-                                      )}
-                                    </div>
+                                    {twoFAVal ? (
+                                      <div className="w-max">
+                                        <TOTPDisplay secret={twoFAVal} compact={true} onCopy={handleCopy} />
+                                      </div>
+                                    ) : (
+                                      <span className="text-[10px] text-zinc-600 italic">---</span>
+                                    )}
                                   </td>
                                   <td className="py-3 px-6 whitespace-nowrap">
                                     {phoneVal ? (
@@ -1409,32 +1422,16 @@ export default function TaskManagementPage() {
                                   </td>
                                   <td className="py-3 px-6 whitespace-nowrap">
                                     {phoneLinkVal ? (
-                                      <div className="flex items-center gap-1.5 group/copy">
-                                        <span 
-                                          onClick={() => handleCopy(phoneLinkVal)}
-                                          className="cursor-pointer border-b border-dashed border-zinc-700/50 hover:border-gold hover:text-gold transition-all text-xs text-zinc-300 truncate max-w-[120px]"
-                                          title="Bấm để sao chép link OTP"
-                                        >
-                                          {phoneLinkVal}
-                                        </span>
-                                        <button
-                                          onClick={() => handleCopy(phoneLinkVal)}
-                                          className="p-1 text-gray-500 hover:text-gold hover:bg-white/5 rounded-md transition-all shrink-0"
-                                          title="Sao chép link OTP"
-                                        >
-                                          <Copy size={12} />
-                                        </button>
-                                        <a 
-                                          href={phoneLinkVal} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer" 
-                                          onClick={(e) => e.stopPropagation()}
-                                          className="text-zinc-500 hover:text-gold p-1 bg-white/5 rounded-md hover:bg-white/10 transition-all flex items-center justify-center shrink-0"
-                                          title="Mở link OTP trong tab mới"
-                                        >
-                                          <ExternalLink size={12} />
-                                        </a>
-                                      </div>
+                                      <a 
+                                        href={phoneLinkVal} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="text-blue-400 hover:text-gold hover:underline transition-all flex items-center gap-1 font-bold text-xs w-max"
+                                        title="Mở link OTP trong tab mới"
+                                      >
+                                        Link OTP <ExternalLink size={12} className="inline-block" />
+                                      </a>
                                     ) : (
                                       <span className="text-[10px] text-zinc-600 italic">---</span>
                                     )}
@@ -1448,40 +1445,12 @@ export default function TaskManagementPage() {
                                       {isMailCompleted ? "Đã làm" : "Chưa làm"}
                                     </span>
                                   </td>
-                                  <td className="py-3 px-6 whitespace-nowrap">
-                                    <input
-                                      type="text"
-                                      placeholder="Nhập Link Kênh 1"
-                                      value={links[0] || ""}
-                                      onChange={(e) => handleLinkChange(mailId, 0, e.target.value)}
-                                      className="h-10 bg-white/5 border border-white/5 rounded-xl px-4 text-xs text-white outline-none focus:border-gold/50 transition-all w-48"
-                                    />
-                                  </td>
-                                  <td className="py-3 px-6 whitespace-nowrap">
-                                    <input
-                                      type="text"
-                                      placeholder="Nhập Link Kênh 2"
-                                      value={links[1] || ""}
-                                      onChange={(e) => handleLinkChange(mailId, 1, e.target.value)}
-                                      className="h-10 bg-white/5 border border-white/5 rounded-xl px-4 text-xs text-white outline-none focus:border-gold/50 transition-all w-48"
-                                    />
-                                  </td>
-                                  <td className="py-3 px-6 whitespace-nowrap">
-                                    <input
-                                      type="text"
-                                      placeholder="Nhập Link Kênh 3"
-                                      value={links[2] || ""}
-                                      onChange={(e) => handleLinkChange(mailId, 2, e.target.value)}
-                                      className="h-10 bg-white/5 border border-white/5 rounded-xl px-4 text-xs text-white outline-none focus:border-gold/50 transition-all w-48"
-                                    />
-                                  </td>
                                   <td className="py-3 px-10 text-right whitespace-nowrap">
                                     <button 
-                                      onClick={() => handleSaveMailLinks(mail)} 
-                                      disabled={savingMailId === mailId}
-                                      className="h-9 px-4 bg-gold/10 text-gold hover:bg-gold hover:text-sidebar rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/0 transition-all flex items-center gap-1.5 float-right whitespace-nowrap disabled:opacity-50"
+                                      onClick={() => setSelectedMailForConfig(mail)} 
+                                      className="h-9 px-3.5 bg-gold/15 text-gold hover:bg-gold hover:text-sidebar rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/0 transition-all inline-flex items-center gap-1.5 float-right whitespace-nowrap"
                                     >
-                                      {savingMailId === mailId ? <Loader2 className="animate-spin" size={12} /> : "💾"} Lưu
+                                      <Play size={12} /> Nhập Link
                                     </button>
                                   </td>
                                 </tr>
