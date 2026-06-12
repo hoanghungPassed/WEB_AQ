@@ -35,6 +35,22 @@ export async function GET(req: NextRequest) {
     
     if (status && status !== "ALL") filter.status = status;
 
+    const today = searchParams.get("today");
+    if (today === "true") {
+      const todayStart = new Date();
+      todayStart.setUTCHours(0, 0, 0, 0);
+      todayStart.setUTCHours(todayStart.getUTCHours() + 7);
+
+      const todayEnd = new Date();
+      todayEnd.setUTCHours(23, 59, 59, 999);
+      todayEnd.setUTCHours(todayEnd.getUTCHours() + 7);
+
+      filter.createdAt = {
+        $gte: todayStart,
+        $lte: todayEnd
+      };
+    }
+
     // Fallback: If no pagination params are provided, return the whole dataset (backward compatibility)
     if (!searchParams.has("page") && !searchParams.has("limit") && searchParams.get("all") !== "true") {
       const tasks = await Task.find(filter).populate("assigneeId").sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 });

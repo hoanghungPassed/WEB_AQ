@@ -54,6 +54,11 @@ export async function GET(req: NextRequest) {
       query.$or = [{ batchId: batch }, { batchName: batch }];
     }
 
+    const batchId = searchParams.get("batchId");
+    if (batchId && batchId !== "ALL") {
+      query.$or = [{ batchId: batchId }, { batchName: batchId }];
+    }
+
     // Assignee filter
     if (assigneeId) {
       query.assigneeId = assigneeId;

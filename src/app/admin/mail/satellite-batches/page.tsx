@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useMemo } from"react";
 import { 
@@ -235,27 +235,34 @@ export default function SatelliteBatchesPage() {
   };
 
  // When a batch is selected, load its mails and unassigned satellite mails
- useEffect(() => {
- if (!selectedBatch || !selectedStaff) return;
- const loadMailsData = () => {
- const savedMails = localStorage.getItem("global_mails_data");
- const mails = savedMails ? JSON.parse(savedMails) : [];
- 
- const inBatch = (mails || []).filter((m: any) => 
- m.type ==="SATELLITE" && 
- m.batchName === selectedBatch.name && 
- String(m.assigneeId) === String(selectedStaff.id)
- );
- setBatchMails(inBatch);
+  useEffect(() => {
+    if (!selectedBatch || !selectedStaff) return;
+    const loadMailsData = async () => {
+      try {
+        const batchId = selectedBatch._id || selectedBatch.id;
+        const res = await fetch(`/api/admin/mails?batchId=${batchId}&all=true`);
+        if (res.ok) {
+          const resData = await res.json();
+          if (resData.success && resData.data) {
+            setBatchMails(resData.data);
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi fetch mails in batch:", err);
+      }
 
- const unassigned = (mails || []).filter((m: any) => m.type ==="SATELLITE" && (!m.batchName || m.batchName ===""));
- setUnassignedSats(unassigned);
+      try {
+        const savedMails = localStorage.getItem("global_mails_data");
+        const mails = savedMails ? JSON.parse(savedMails) : [];
+        const unassigned = (mails || []).filter((m: any) => m.type === "SATELLITE" && (!m.batchName || m.batchName === ""));
+        setUnassignedSats(unassigned);
+      } catch (_) {}
 
- // Pre-focus the assignee list on the selected staff member
- setSelectedStaffToAssign(selectedStaff.id);
- };
- loadMailsData();
- }, [selectedBatch, selectedStaff]);
+      // Pre-focus the assignee list on the selected staff member
+      setSelectedStaffToAssign(selectedStaff.id);
+    };
+    loadMailsData();
+  }, [selectedBatch, selectedStaff]);
 
  // Assign entire batch to a staff member
  const handleAssignBatchToStaff = async () => {
@@ -1151,23 +1158,17 @@ export default function SatelliteBatchesPage() {
       onSelectSuccess={async () => {
         triggerToast("Gán dải mail thành công!");
         try {
-          const mailRes = await fetch("/api/admin/mails?type=SATELLITE&all=true");
-          if (mailRes.ok) {
-
-            const mailData = await mailRes.ok ? await mailRes.json() : { success: false, data: [] };
-            if (mailData.success && mailData.data) {
-              localStorage.setItem("global_mails_data", JSON.stringify(mailData.data));
-              window.dispatchEvent(new Event("storage"));
-              
-              const inBatch = mailData.data.filter((m: any) => 
-                m.type === "SATELLITE" && 
-                m.batchName === selectedBatch.name && 
-                String(m.assigneeId) === String(selectedStaff.id)
-              );
-              setBatchMails(inBatch);
+          const batchId = selectedBatch._id || selectedBatch.id;
+          const res = await fetch(`/api/admin/mails?batchId=${batchId}&all=true`);
+          if (res.ok) {
+            const resData = await res.json();
+            if (resData.success && resData.data) {
+              setBatchMails(resData.data);
             }
           }
-        } catch (_) {}
+        } catch (err) {
+          console.error("Lỗi fetch mails in batch:", err);
+        }
       }}
     />
   )}

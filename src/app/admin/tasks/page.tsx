@@ -21,7 +21,8 @@ import {
   ArrowRight,
   Database,
   RefreshCcw,
-  Search
+  Search,
+  Copy
 } from "lucide-react";
 
 import { MailData, StaffData, TaskAssignment } from "@/types/admin";
@@ -130,6 +131,14 @@ export default function TaskManagementPage() {
   const [savingMailId, setSavingMailId] = useState<string | null>(null);
   const [completingTask, setCompletingTask] = useState<boolean>(false);
 
+  const handleCopy = (emailText: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(emailText);
+      setNotification("Đã sao chép email!");
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
@@ -144,49 +153,40 @@ export default function TaskManagementPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const taskRes = await fetch("/api/admin/tasks");
-      if (taskRes.ok) {
-        const taskData = await taskRes.json();
-        if (taskData.success) {
-          const apiTasks = taskData.data.map((t: any): TaskAssignment => ({
-            ...t,
-            id: t._id,
-            assigneeId: t.assigneeId?._id || t.assigneeId,
-            assigneeName: t.assigneeId?.name || t.assigneeName
-          }));
-          setTasks(apiTasks);
-        }
-      }
-      
-      const userRes = await fetch("/api/admin/users");
-      if (userRes.ok) {
-        const userData = await userRes.json();
-        if (userData.success) {
-          setStaffList(userData.data.filter((u: StaffData) => u.status === "ACTIVE" && u.role !== "01"));
-        }
-      }
-
-      const batchesRes = await fetch("/api/admin/mail/satellite-batches");
-      if (batchesRes.ok) {
-        const batchesData = await batchesRes.json();
-        if (batchesData.success) {
-          setDbBatches(batchesData.batches || []);
-        }
-      }
-
       const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
       const currentUser = storedUser ? JSON.parse(storedUser) : null;
       const roleUpper = String(currentUser?.role || "").toUpperCase();
       const isAuthorized = roleUpper === "01" || roleUpper === "ADMIN" || roleUpper === "02" || roleUpper === "QL CÔNG VIỆC" || roleUpper === "QUẢN LÝ CÔNG VIỆC";
 
-      if (isAuthorized) {
-        const mailRes = await fetch("/api/admin/mails");
-        if (mailRes.ok) {
-          const mailData = await mailRes.json();
-          if (mailData.success) {
-            setMails(mailData.data);
-          }
-        }
+      const fetches = [
+        fetch("/api/admin/tasks").then(r => r.ok ? r.json() : null),
+        fetch("/api/admin/users").then(r => r.ok ? r.json() : null),
+        fetch("/api/admin/mail/satellite-batches").then(r => r.ok ? r.json() : null),
+        isAuthorized ? fetch("/api/admin/mails").then(r => r.ok ? r.json() : null) : Promise.resolve(null)
+      ];
+
+      const [taskData, userData, batchesData, mailData] = await Promise.all(fetches);
+
+      if (taskData && taskData.success) {
+        const apiTasks = taskData.data.map((t: any): TaskAssignment => ({
+          ...t,
+          id: t._id,
+          assigneeId: t.assigneeId?._id || t.assigneeId,
+          assigneeName: t.assigneeId?.name || t.assigneeName
+        }));
+        setTasks(apiTasks);
+      }
+      
+      if (userData && userData.success) {
+        setStaffList(userData.data.filter((u: StaffData) => u.status === "ACTIVE" && u.role !== "01"));
+      }
+
+      if (batchesData && batchesData.success) {
+        setDbBatches(batchesData.batches || []);
+      }
+
+      if (mailData && mailData.success) {
+        setMails(mailData.data);
       }
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -284,10 +284,14 @@ export default function TaskManagementPage() {
 
   useEffect(() => {
     if ((filteredBatches || []).length > 0) {
-      setSelectedLo(filteredBatches[0].name);
+      const hasCurrent = filteredBatches.some(b => b.name === selectedLo);
+      if (!hasCurrent) {
+        setSelectedLo(filteredBatches[0].name);
+      }
     } else {
       setSelectedLo("");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredBatches]);
 
   useEffect(() => {
@@ -345,13 +349,28 @@ export default function TaskManagementPage() {
   const userTasks = useMemo(() => {
     if (isAdminOrManager) {
       if (adminTab === "TASKS") {
-        const todayStr = new Date().toISOString().slice(0, 10);
-        return (tasks || []).filter((t: TaskAssignment) => t.assignedAt && t.assignedAt.startsWith(todayStr));
+        const vnDateStr = new Date(new Date().getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        return (tasks || []).filter((t: TaskAssignment) => {
+          const taskDate = (t as any).createdAt || (t as any).assignedAt;
+          if (!taskDate) return false;
+          const taskDateStr = new Date(new Date(taskDate).getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+          return taskDateStr === vnDateStr;
+        });
       }
       return tasks;
     }
     return (tasks || []).filter((t: TaskAssignment) => String(t.assigneeId) === String(user?.id));
   }, [tasks, user, isAdminOrManager, adminTab]);
+
+  const todayTasksCount = useMemo(() => {
+    const vnDateStr = new Date(new Date().getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    return (tasks || []).filter((t: any) => {
+      const taskDate = t.createdAt || t.assignedAt;
+      if (!taskDate) return false;
+      const taskDateStr = new Date(new Date(taskDate).getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      return taskDateStr === vnDateStr;
+    }).length;
+  }, [tasks]);
 
   const filteredTasks = useMemo(() => {
     let result = userTasks;
@@ -363,7 +382,7 @@ export default function TaskManagementPage() {
 
   // Load task mails dynamically for selected task
   useEffect(() => {
-    if (!selectedTaskId || !selectedTask) {
+    if (!selectedTaskId) {
       setTaskMailsList([]);
       return;
     }
@@ -371,7 +390,8 @@ export default function TaskManagementPage() {
     const fetchTaskMails = async () => {
       setLoadingTaskMails(true);
       try {
-        const batchVal = (selectedTask as any).batch || (selectedTask as any).batchName || "";
+        const currentTask = tasks.find(t => t.id === selectedTaskId);
+        const batchVal = (currentTask as any)?.batch || (currentTask as any)?.batchName || "";
         const url = `/api/admin/mails?batch=${encodeURIComponent(batchVal)}&all=true`;
         const res = await fetch(url);
         if (res.ok) {
@@ -388,7 +408,8 @@ export default function TaskManagementPage() {
     };
 
     fetchTaskMails();
-  }, [selectedTaskId, selectedTask]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTaskId]);
 
   // Map link states when task mails load
   useEffect(() => {
@@ -793,7 +814,7 @@ export default function TaskManagementPage() {
               onClick={() => setAdminTab("TASKS")}
               className={`px-4 py-2 rounded-xl text-sm font-black uppercase transition-all ${adminTab === "TASKS" ? "bg-gold text-sidebar shadow-lg" : " text-gray-400 hover:text-white"}`}
             >
-              Task hôm nay
+              Task hôm nay ({todayTasksCount})
             </button>
           </div>
         )}
@@ -1240,7 +1261,16 @@ export default function TaskManagementPage() {
                                 <tr key={`mail-${mailId}`} className="group hover:bg-zinc-800/50 bg-zinc-900/[0.02] transition-all">
                                   <td className="py-3 px-10 text-[10px] font-black whitespace-nowrap">{i + 1}</td>
                                   <td className="py-3 px-6 whitespace-nowrap">
-                                    <p className="text-sm font-bold text-white transition-colors whitespace-nowrap">{mail.email}</p>
+                                    <div className="flex items-center gap-2 group/copy">
+                                      <p className="text-sm font-bold text-white transition-colors whitespace-nowrap">{mail.email}</p>
+                                      <button
+                                        onClick={() => handleCopy(mail.email)}
+                                        className="text-gray-500 hover:text-gold transition-colors p-1"
+                                        title="Sao chép email"
+                                      >
+                                        <Copy size={14} />
+                                      </button>
+                                    </div>
                                   </td>
                                   <td className="py-3 px-6 text-center whitespace-nowrap">
                                     <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border whitespace-nowrap ${
@@ -1329,7 +1359,16 @@ export default function TaskManagementPage() {
                                     }
                                     return null;
                                   })()}
-                                  <p className={`${textSize} font-bold text-white transition-colors whitespace-nowrap`}>{mail.email}</p>
+                                  <div className="flex items-center gap-2 group/copy">
+                                    <p className={`${textSize} font-bold text-white transition-colors whitespace-nowrap`}>{mail.email}</p>
+                                    <button
+                                      onClick={() => handleCopy(mail.email)}
+                                      className="text-gray-500 hover:text-gold transition-colors p-1"
+                                      title="Sao chép email"
+                                    >
+                                      <Copy size={14} />
+                                    </button>
+                                  </div>
                                   <p className="text-[10px] font-bold uppercase whitespace-nowrap">{mail.recovery}</p>
                                 </td>
                                 <td className={`${rowPadding} text-center whitespace-nowrap`}>
