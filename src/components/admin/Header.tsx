@@ -217,7 +217,6 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
               body: JSON.stringify({ isRead: true })
             });
             mutate('/api/admin/notifications?type=SYSTEM');
-            router.refresh();
           } catch (err) {
             console.error("Error setting notification read in DB:", err);
           }
@@ -262,7 +261,6 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           body: JSON.stringify({ isRead: true })
         });
         mutate('/api/admin/notifications?type=SYSTEM');
-        router.refresh();
       } catch (err) {
         console.error("Error setting notification read in DB:", err);
       }

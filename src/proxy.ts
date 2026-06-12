@@ -19,6 +19,8 @@ export async function middleware(request: NextRequest) {
   const isPublicApi = 
     pathname.startsWith("/api/auth/login") ||
     pathname.startsWith("/api/auth/register") ||
+    pathname.startsWith("/api/auth/check-status") ||
+    pathname.startsWith("/api/auth/check-username") ||
     pathname.startsWith("/api/admin/2fa/login") ||
     pathname.startsWith("/api/auth/reset-password");
 
