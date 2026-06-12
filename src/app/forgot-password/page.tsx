@@ -103,6 +103,7 @@ export default function ForgotPasswordPage() {
  value={phone}
  onChange={(e) => setPhone(e.target.value)}
  placeholder="09xx xxx xxx"
+ style={{ paddingLeft: "3.5rem" }}
  className="h-16 w-full rounded-2xl border border-white/0 bg-white/5 pl-14 pr-6 text-lg text-white focus:border-white/5 focus:outline-none focus:ring-4 focus:ring-gold/5 transition-all"
  />
  </div>
@@ -132,6 +133,7 @@ export default function ForgotPasswordPage() {
  value={otp}
  onChange={(e) => setOtp(e.target.value)}
  placeholder="Thử 123456"
+ style={{ paddingLeft: "3.5rem" }}
  className="h-16 w-full rounded-2xl border border-white/0 bg-white/5 pl-14 pr-6 text-center text-2xl tracking-[0.5em] text-white focus:border-white/5 focus:outline-none transition-all"
  />
  </div>
@@ -162,6 +164,7 @@ export default function ForgotPasswordPage() {
  value={newPassword}
  onChange={(e) => setNewPassword(e.target.value)}
  placeholder="••••••••"
+ style={{ paddingLeft: "3.5rem" }}
  className="h-16 w-full rounded-2xl border border-white/0 bg-white/5 pl-14 pr-6 text-lg text-white focus:border-white/5 focus:outline-none transition-all"
  />
  </div>

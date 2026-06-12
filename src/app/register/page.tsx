@@ -264,7 +264,7 @@ export default function RegisterPage() {
  <label className={labelClass}>Họ và tên</label>
  <div className="relative group">
  <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.name ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
- <input type="text" name="name" required value={formData.name} onChange={handleInputChange} placeholder="Nguyễn Văn A" className={inputClass("name")} />
+ <input type="text" name="name" required value={formData.name} onChange={handleInputChange} placeholder="Nguyễn Văn A" style={{ paddingLeft: "3.5rem" }} className={inputClass("name")} />
  </div>
  {errors.name && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.name}</p>}
  </div>
@@ -273,7 +273,7 @@ export default function RegisterPage() {
  <label className={labelClass}>Năm sinh</label>
  <div className="relative group">
  <Calendar className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.birthYear ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
- <select name="birthYear" required value={formData.birthYear} onChange={handleInputChange} className={`${inputClass("birthYear")} appearance-none cursor-pointer`}>
+ <select name="birthYear" required value={formData.birthYear} onChange={handleInputChange} style={{ paddingLeft: "3.5rem" }} className={`${inputClass("birthYear")} appearance-none cursor-pointer`}>
  <option value="" disabled>Chọn năm</option>
  {(years || []).map(y => <option key={y} value={y}>{y}</option>)}
  </select>
@@ -284,7 +284,7 @@ export default function RegisterPage() {
  <label className={labelClass}>Username</label>
  <div className="relative group">
  <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.username ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
- <input type="text" name="username" required value={formData.username} onChange={handleInputChange} onBlur={handleUsernameBlur} placeholder="username_01" className={inputClass("username")} />
+ <input type="text" name="username" required value={formData.username} onChange={handleInputChange} onBlur={handleUsernameBlur} placeholder="username_01" style={{ paddingLeft: "3.5rem" }} className={inputClass("username")} />
  </div>
  {errors.username && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.username}</p>}
  </div>
@@ -293,7 +293,7 @@ export default function RegisterPage() {
  <label className={labelClass}>Số điện thoại</label>
  <div className="relative group">
  <Phone className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.phone ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
- <input type="tel" name="phone" required value={formData.phone} onChange={handleInputChange} placeholder="09xxxxxxxx" className={inputClass("phone")} />
+ <input type="tel" name="phone" required value={formData.phone} onChange={handleInputChange} placeholder="09xxxxxxxx" style={{ paddingLeft: "3.5rem" }} className={inputClass("phone")} />
  </div>
  {errors.phone && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.phone}</p>}
  </div>
@@ -302,7 +302,7 @@ export default function RegisterPage() {
  <label className={labelClass}>Địa chỉ liên hệ</label>
  <div className="relative group">
  <MapPin className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.address ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
- <input type="text" name="address" required value={formData.address} onChange={handleInputChange} placeholder="Hà Nội, Việt Nam" className={inputClass("address")} />
+ <input type="text" name="address" required value={formData.address} onChange={handleInputChange} placeholder="Hà Nội, Việt Nam" style={{ paddingLeft: "3.5rem" }} className={inputClass("address")} />
  </div>
  </div>
 
@@ -310,7 +310,7 @@ export default function RegisterPage() {
  <label className={labelClass}>Mật khẩu</label>
  <div className="relative group">
  <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.password ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
- <input type="password" name="password" required value={formData.password} onChange={handleInputChange} className={inputClass("password")} />
+ <input type="password" name="password" required value={formData.password} onChange={handleInputChange} style={{ paddingLeft: "3.5rem" }} className={inputClass("password")} />
  </div>
  {formData.password && (
  <div className="px-1 pt-2 space-y-1.5">
@@ -330,7 +330,7 @@ export default function RegisterPage() {
  <label className={labelClass}>Xác nhận mật khẩu</label>
  <div className="relative group">
  <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${formData.confirmPassword && formData.confirmPassword !== formData.password ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
- <input type="password" name="confirmPassword" required value={formData.confirmPassword} onChange={handleInputChange} className={`h-14 w-full rounded-2xl border ${formData.confirmPassword && formData.confirmPassword !== formData.password ?"border-red-500 bg-red-50/50 bg-red-900/20 text-white" : formData.confirmPassword && formData.confirmPassword === formData.password ?"border-green-500 bg-green-50/50 bg-green-900/20 text-white" :" border-gray-600 bg-gray-800 text-white"} pl-14 pr-6 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder-gray-400 placeholder-gray-500 font-bold`} />
+ <input type="password" name="confirmPassword" required value={formData.confirmPassword} onChange={handleInputChange} style={{ paddingLeft: "3.5rem" }} className={`h-14 w-full rounded-2xl border ${formData.confirmPassword && formData.confirmPassword !== formData.password ?"border-red-500 bg-red-50/50 bg-red-900/20 text-white" : formData.confirmPassword && formData.confirmPassword === formData.password ?"border-green-500 bg-green-50/50 bg-green-900/20 text-white" :" border-gray-600 bg-gray-800 text-white"} pl-14 pr-6 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder-gray-400 placeholder-gray-500 font-bold`} />
  </div>
  {formData.confirmPassword && formData.confirmPassword !== formData.password && (
  <p className="text-sm text-red-500 font-medium flex items-center gap-1 mt-1 ml-1"><AlertCircle size={14} /> Mật khẩu không khớp!</p>
