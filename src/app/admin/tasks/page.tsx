@@ -36,6 +36,7 @@ import {
 import MailDetailModal from "@/components/admin/MailDetailModal";
 import { Badge } from "@/components/ui/Badge";
 import { MailSelectorModal } from "@/components/admin/modals/MailSelectorModal";
+import TOTPDisplay from "@/components/admin/TOTPDisplay";
 
 const TaskCard = React.memo(({ task, onClick }: { task: TaskAssignment, onClick: () => void }) => {
   const statusConfig: Record<string, { icon: React.ReactNode, variant: "default" | "success" | "warning" | "danger" | "info" | "gold", label: string }> = {
@@ -131,11 +132,26 @@ export default function TaskManagementPage() {
   const [savingMailId, setSavingMailId] = useState<string | null>(null);
   const [completingTask, setCompletingTask] = useState<boolean>(false);
 
-  const handleCopy = (emailText: string) => {
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(emailText);
-      setNotification("Đã sao chép email!");
+  const toast = useMemo(() => ({
+    success: (msg: string) => {
+      setNotification(msg);
       setTimeout(() => setNotification(null), 3000);
+    }
+  }), []);
+
+  const handleCopy = (text: string) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text);
+      toast.success("Đã sao chép!");
+    } else {
+      // Fallback
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      textArea.remove();
+      toast.success("Đã sao chép!");
     }
   };
 
@@ -211,7 +227,8 @@ export default function TaskManagementPage() {
       clearInterval(interval);
       window.removeEventListener("storage", handleStorage);
     };
-  }, [loadData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const roleUpper = String(user?.role || "").toUpperCase();
   const isAdminOrManager = roleUpper === "01" || 
@@ -282,6 +299,10 @@ export default function TaskManagementPage() {
     return (dbBatches || []).filter((batch: any) => batch && String(batch.assignedTo) === String(selectedUserId));
   }, [dbBatches, selectedUserId]);
 
+  const filteredBatchesKey = useMemo(() => {
+    return (filteredBatches || []).map((b: any) => b.name).join(",");
+  }, [filteredBatches]);
+
   useEffect(() => {
     if ((filteredBatches || []).length > 0) {
       const hasCurrent = filteredBatches.some(b => b.name === selectedLo);
@@ -292,7 +313,7 @@ export default function TaskManagementPage() {
       setSelectedLo("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredBatches]);
+  }, [filteredBatchesKey]);
 
   useEffect(() => {
     if (!targetStaffId) return;
@@ -381,8 +402,9 @@ export default function TaskManagementPage() {
   const selectedTask = useMemo(() => tasks.find((t: TaskAssignment) => t.id === selectedTaskId), [selectedTaskId, tasks]);
 
   // Load task mails dynamically for selected task
+  const selectedTaskBatch = selectedTask?.batch || (selectedTask as any)?.batchName || "";
   useEffect(() => {
-    if (!selectedTaskId) {
+    if (!selectedTaskId || !selectedTaskBatch) {
       setTaskMailsList([]);
       return;
     }
@@ -390,9 +412,7 @@ export default function TaskManagementPage() {
     const fetchTaskMails = async () => {
       setLoadingTaskMails(true);
       try {
-        const currentTask = tasks.find(t => t.id === selectedTaskId);
-        const batchVal = (currentTask as any)?.batch || (currentTask as any)?.batchName || "";
-        const url = `/api/admin/mails?batch=${encodeURIComponent(batchVal)}&all=true`;
+        const url = `/api/admin/mails?batch=${encodeURIComponent(selectedTaskBatch)}&all=true`;
         const res = await fetch(url);
         if (res.ok) {
           const resData = await res.json();
@@ -408,8 +428,11 @@ export default function TaskManagementPage() {
     };
 
     fetchTaskMails();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTaskId]);
+  }, [selectedTaskId, selectedTaskBatch]);
+
+  const taskMailsListKey = useMemo(() => {
+    return (taskMailsList || []).map((m: any) => `${m._id || m.id}-${(m.links || []).join(",")}`).join("|");
+  }, [taskMailsList]);
 
   // Map link states when task mails load
   useEffect(() => {
@@ -423,7 +446,7 @@ export default function TaskManagementPage() {
       ];
     });
     setMailLinksState(initialState);
-  }, [taskMailsList]);
+  }, [taskMailsListKey]);
 
   const taskMails: MailData[] = useMemo(() => {
     if (!selectedTask) return [];
@@ -471,7 +494,7 @@ export default function TaskManagementPage() {
     }
 
     return filtered;
-  }, [mails, selectedTask, user]);
+  }, [mails, selectedTask, user, taskMailsList, isStaff]);
 
   const handleSaveUnifiedDetails = useCallback((mailId: number, updatedFields: any) => {
     setMails((prevMails: MailData[]) => prevMails.map((m: MailData) => m.id === mailId ? { ...m, ...updatedFields } : m));
@@ -1230,6 +1253,11 @@ export default function TaskManagementPage() {
                           <tr className="border-b border-white/5 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
                             <th className="px-10 py-3 whitespace-nowrap">STT</th>
                             <th className="px-6 py-3 whitespace-nowrap">Email Vệ Tinh</th>
+                            <th className="px-6 py-3 whitespace-nowrap">Mật khẩu</th>
+                            <th className="px-6 py-3 whitespace-nowrap">Mail KP</th>
+                            <th className="px-6 py-3 whitespace-nowrap">Mã 2FA</th>
+                            <th className="px-6 py-3 whitespace-nowrap">Số điện thoại</th>
+                            <th className="px-6 py-3 whitespace-nowrap">Link OTP</th>
                             <th className="px-6 py-3 text-center whitespace-nowrap">Trạng thái Mail</th>
                             <th className="px-6 py-3 whitespace-nowrap">Link Kênh 1</th>
                             <th className="px-6 py-3 whitespace-nowrap">Link Kênh 2</th>
@@ -1257,20 +1285,159 @@ export default function TaskManagementPage() {
                                 links[1]?.trim() !== "" && 
                                 links[2]?.trim() !== "";
 
+                              const passwordVal = mail.password || mail.pass || "";
+                              const recoveryVal = mail.recoveryMail || mail.recovery || "";
+                              const twoFAVal = mail.twoFA || "";
+                              const phoneVal = mail.phone || "";
+                              const phoneLinkVal = mail.phoneLink || mail.otpLink || "";
+
                               return (
                                 <tr key={`mail-${mailId}`} className="group hover:bg-zinc-800/50 bg-zinc-900/[0.02] transition-all">
                                   <td className="py-3 px-10 text-[10px] font-black whitespace-nowrap">{i + 1}</td>
                                   <td className="py-3 px-6 whitespace-nowrap">
-                                    <div className="flex items-center gap-2 group/copy">
-                                      <p className="text-sm font-bold text-white transition-colors whitespace-nowrap">{mail.email}</p>
+                                    <div className="flex items-center gap-1.5 group/copy">
+                                      <span 
+                                        onClick={() => handleCopy(mail.email)}
+                                        className="cursor-pointer border-b border-dashed border-zinc-700/50 hover:border-gold hover:text-gold transition-all text-sm font-bold text-white max-w-[180px] truncate"
+                                        title="Bấm để sao chép Email"
+                                      >
+                                        {mail.email}
+                                      </span>
                                       <button
                                         onClick={() => handleCopy(mail.email)}
-                                        className="text-gray-500 hover:text-gold transition-colors p-1"
-                                        title="Sao chép email"
+                                        className="p-1 text-gray-500 hover:text-gold hover:bg-white/5 rounded-md transition-all shrink-0"
+                                        title="Sao chép Email"
                                       >
-                                        <Copy size={14} />
+                                        <Copy size={12} />
                                       </button>
                                     </div>
+                                  </td>
+                                  <td className="py-3 px-6 whitespace-nowrap">
+                                    {passwordVal ? (
+                                      <div className="flex items-center gap-1.5 group/copy">
+                                        <span 
+                                          onClick={() => handleCopy(passwordVal)}
+                                          className="cursor-pointer border-b border-dashed border-zinc-700/50 hover:border-gold hover:text-gold transition-all font-mono text-xs text-zinc-300 max-w-[150px] truncate"
+                                          title="Bấm để sao chép mật khẩu"
+                                        >
+                                          {passwordVal}
+                                        </span>
+                                        <button
+                                          onClick={() => handleCopy(passwordVal)}
+                                          className="p-1 text-gray-500 hover:text-gold hover:bg-white/5 rounded-md transition-all shrink-0"
+                                          title="Sao chép mật khẩu"
+                                        >
+                                          <Copy size={12} />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <span className="text-[10px] text-zinc-600 italic">---</span>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-6 whitespace-nowrap">
+                                    {recoveryVal ? (
+                                      <div className="flex items-center gap-1.5 group/copy">
+                                        <span 
+                                          onClick={() => handleCopy(recoveryVal)}
+                                          className="cursor-pointer border-b border-dashed border-zinc-700/50 hover:border-gold hover:text-gold transition-all text-xs text-zinc-300 max-w-[150px] truncate"
+                                          title="Bấm để sao chép mail khôi phục"
+                                        >
+                                          {recoveryVal}
+                                        </span>
+                                        <button
+                                          onClick={() => handleCopy(recoveryVal)}
+                                          className="p-1 text-gray-500 hover:text-gold hover:bg-white/5 rounded-md transition-all shrink-0"
+                                          title="Sao chép mail khôi phục"
+                                        >
+                                          <Copy size={12} />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <span className="text-[10px] text-zinc-600 italic">---</span>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-6 whitespace-nowrap">
+                                    <div className="flex flex-col gap-1">
+                                      {twoFAVal ? (
+                                        <>
+                                          <div className="w-max">
+                                            <TOTPDisplay secret={twoFAVal} compact={true} onCopy={handleCopy} />
+                                          </div>
+                                          <div className="flex items-center gap-1.5 group/copy mt-0.5">
+                                            <span 
+                                              onClick={() => handleCopy(twoFAVal)}
+                                              className="cursor-pointer border-b border-dashed border-zinc-800/50 hover:border-gold hover:text-gold transition-all font-mono text-[10px] text-gray-600 max-w-[100px] truncate"
+                                              title="Bấm để sao chép mã secret 2FA"
+                                            >
+                                              {twoFAVal}
+                                            </span>
+                                            <button
+                                              onClick={() => handleCopy(twoFAVal)}
+                                              className="p-1 text-gray-500 hover:text-gold hover:bg-white/5 rounded-md transition-all shrink-0"
+                                              title="Sao chép mã secret 2FA"
+                                            >
+                                              <Copy size={10} />
+                                            </button>
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <span className="text-[10px] text-zinc-600 italic">---</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-6 whitespace-nowrap">
+                                    {phoneVal ? (
+                                      <div className="flex items-center gap-1.5 group/copy">
+                                        <span 
+                                          onClick={() => handleCopy(phoneVal)}
+                                          className="cursor-pointer border-b border-dashed border-zinc-700/50 hover:border-gold hover:text-gold transition-all font-mono text-xs text-zinc-300 max-w-[120px] truncate"
+                                          title="Bấm để sao chép SĐT"
+                                        >
+                                          {phoneVal}
+                                        </span>
+                                        <button
+                                          onClick={() => handleCopy(phoneVal)}
+                                          className="p-1 text-gray-500 hover:text-gold hover:bg-white/5 rounded-md transition-all shrink-0"
+                                          title="Sao chép SĐT"
+                                        >
+                                          <Copy size={12} />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <span className="text-[10px] text-zinc-600 italic">---</span>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-6 whitespace-nowrap">
+                                    {phoneLinkVal ? (
+                                      <div className="flex items-center gap-1.5 group/copy">
+                                        <span 
+                                          onClick={() => handleCopy(phoneLinkVal)}
+                                          className="cursor-pointer border-b border-dashed border-zinc-700/50 hover:border-gold hover:text-gold transition-all text-xs text-zinc-300 truncate max-w-[120px]"
+                                          title="Bấm để sao chép link OTP"
+                                        >
+                                          {phoneLinkVal}
+                                        </span>
+                                        <button
+                                          onClick={() => handleCopy(phoneLinkVal)}
+                                          className="p-1 text-gray-500 hover:text-gold hover:bg-white/5 rounded-md transition-all shrink-0"
+                                          title="Sao chép link OTP"
+                                        >
+                                          <Copy size={12} />
+                                        </button>
+                                        <a 
+                                          href={phoneLinkVal} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer" 
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="text-zinc-500 hover:text-gold p-1 bg-white/5 rounded-md hover:bg-white/10 transition-all flex items-center justify-center shrink-0"
+                                          title="Mở link OTP trong tab mới"
+                                        >
+                                          <ExternalLink size={12} />
+                                        </a>
+                                      </div>
+                                    ) : (
+                                      <span className="text-[10px] text-zinc-600 italic">---</span>
+                                    )}
                                   </td>
                                   <td className="py-3 px-6 text-center whitespace-nowrap">
                                     <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border whitespace-nowrap ${
