@@ -106,7 +106,7 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
     });
   }
 
-  if (isMinimalRole && !isStaffOnly) {
+  if (isMinimalRole) {
     dynamicMenuItems.push({
       title: "Quản lý mail",
       icon: <Mail size={20} />,

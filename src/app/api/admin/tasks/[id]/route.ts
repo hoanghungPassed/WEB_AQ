@@ -66,6 +66,61 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Strictly enforce ownership for Staff roles
     const isStaff = userRole === "03" || userRole === "04" || userRole === "05";
+
+    // --- BẮT ĐẦU KIỂM TRA ĐIỀU KIỆN HOÀN THÀNH (SERVER-SIDE VALIDATION) ---
+    if (body.status === 'COMPLETED' && oldTask.status !== 'COMPLETED') {
+      // Race Condition Protection: Only allow completing if it's currently PENDING or IN_PROGRESS
+      if (oldTask.status === 'FAILED' || oldTask.status === 'CANCELLED') {
+        return NextResponse.json({ error: "Task này đã bị hủy hoặc thu hồi trước đó." }, { status: 400 });
+      }
+
+      const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
+      
+      if (oldTask.type === 'MAIL_VE_TINH' || oldTask.type === 'SATELLITE') {
+        let MailModel: any;
+        try {
+          MailModel = (await import('@/models/SatelliteMail')).SatelliteMail;
+        } catch (_) {
+          const { SatelliteMail } = await import('@/models/SatelliteMail');
+          MailModel = SatelliteMail;
+        }
+
+        const batchIdentifier = oldTask.batch || (oldTask as any).batchName || (oldTask as any).batchId;
+        let mailsToCheck = [];
+
+        if (batchIdentifier) {
+          mailsToCheck = await MailModel.find({ 
+            $or: [{ batchName: batchIdentifier }, { batchId: batchIdentifier }, { batch: batchIdentifier }] 
+          });
+        } else if (oldTask.mailIds && oldTask.mailIds.length > 0) {
+          mailsToCheck = await MailModel.find({ _id: { $in: oldTask.mailIds } });
+        }
+
+        if (mailsToCheck.length > 0) {
+          const incompleteMails = mailsToCheck.filter(m => {
+            const links = m.links || [];
+            const validLinks = links.filter(l => typeof l === 'string' && l.trim() !== "");
+            return validLinks.length < 3;
+          });
+
+          if (incompleteMails.length > 0) {
+            return NextResponse.json({ 
+              error: `KHÔNG THỂ HOÀN THÀNH: Còn ${incompleteMails.length} mail chưa đủ 3 link kênh. Vui lòng kiểm tra lại.` 
+            }, { status: 400 });
+          }
+
+          const hasInvalidLinks = mailsToCheck.some(m => 
+            (m.links || []).some(l => l && l.trim() !== "" && !youtubeRegex.test(l))
+          );
+          if (hasInvalidLinks) {
+            return NextResponse.json({ 
+              error: "KHÔNG THỂ HOÀN THÀNH: Có link kênh không đúng định dạng YouTube." 
+            }, { status: 400 });
+          }
+        }
+      }
+    }
+    // --- KẾT THÚC KIỂM TRA ĐIỀU KIỆN HOÀN THÀNH ---
     
     let task;
     if (isStaff) {
@@ -187,9 +242,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           });
         }
 
+        const channelsCount = task.mailCount || (task.mailIds ? task.mailIds.length : 0) || 1;
         await Kpi.findOneAndUpdate(
           { userId: task.assigneeId, date: today },
-          { $inc: { eligibleChannels: 1, completedChannels: 1 } },
+          { $inc: { eligibleChannels: channelsCount, completedChannels: channelsCount } },
           { new: true }
         );
       } catch (kpiErr) {

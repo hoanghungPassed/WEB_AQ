@@ -191,6 +191,32 @@ export async function middleware(request: NextRequest) {
           { status: 403 }
         );
       }
+
+      // Check if user is locked (LOCKED, isLateLocked, or PENDING) via internal API fetch
+      const isBypassLockEndpoint = 
+        pathname.startsWith("/api/auth/check-status") ||
+        pathname.startsWith("/api/admin/fines") ||
+        pathname.startsWith("/api/admin/settings") ||
+        pathname.startsWith("/api/auth/logout") ||
+        pathname.startsWith("/api/auth/me");
+
+      if (!isBypassLockEndpoint) {
+        const checkStatusUrl = new URL(`/api/auth/check-status?username=${encodeURIComponent(username)}`, request.url);
+        try {
+          const statusRes = await fetch(checkStatusUrl);
+          if (statusRes.ok) {
+            const statusData = await statusRes.json();
+            if (statusData.status !== "ACTIVE") {
+              return NextResponse.json(
+                { error: "Tài khoản chưa được phê duyệt điểm danh hoặc đang bị khóa." },
+                { status: 403 }
+              );
+            }
+          }
+        } catch (err) {
+          console.error("Middleware check-status validation error:", err);
+        }
+      }
     }
 
     // Inject thông tin người dùng vào headers cho các API routes

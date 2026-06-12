@@ -311,19 +311,17 @@ export default function AdminLayout({
     }
 
     try {
-      // Parallel fetch settings and fines
-      const [settingsRes, finesRes] = await Promise.all([
-        fetch('/api/admin/settings').then(r => r.json()),
-        fetch('/api/admin/fines', {
-          headers: {
-            'x-user-id': currentUser?.id || currentUser?._id || '',
-            'x-user-role': currentUser?.role || ''
-          }
-        }).then(r => r.json())
+      // Parallel fetch settings and check-status to verify locks securely on server
+      const [settingsRes, statusRes] = await Promise.all([
+        fetch('/api/admin/settings').then(r => r.json()).catch(() => null),
+        fetch(`/api/auth/check-status?username=${encodeURIComponent(currentUser.username)}`).then(r => r.json()).catch(() => ({ status: "REJECTED" }))
       ]);
 
-      const settings = settingsRes.success ? settingsRes.data : null;
-      const fines = Array.isArray(finesRes) ? finesRes : (finesRes?.data || []);
+      const settings = settingsRes?.success ? settingsRes.data : null;
+      const isApproved = statusRes && statusRes.status === "ACTIVE";
+
+      // Set isAccessGranted strictly based on server status to close client bypasses
+      setIsAccessGranted(isApproved);
 
       const nowTime = new Date();
       const utcTime = nowTime.getTime() + nowTime.getTimezoneOffset() * 60000;
@@ -348,40 +346,49 @@ export default function AdminLayout({
                                roleStr.includes("03") || roleStr.includes("04") || roleStr.includes("05") ||
                                ["QL NHÂN SỰ", "NHÂN VIÊN", "NV THỬ VIỆC"].includes(roleStr.toUpperCase());
 
-      // Phase 2 logic integration here for better flow
-      const accessResponse = localStorage.getItem(`access_response_${currentUser?.name}`);
-      const isApprovedAccess = accessResponse === "APPROVED";
-
-      if (isSunday && isRestrictedRole && !isApprovedAccess) {
+      if (isSunday && isRestrictedRole && !isApproved) {
         setAccessStatus('CLOSED');
         setIsChecking(false);
         return;
       }
 
-      if (!isWithinWorkingHours && !isApprovedAccess) {
+      if (!isWithinWorkingHours && !isApproved) {
         setAccessStatus('CLOSED');
         setIsChecking(false);
         return;
       }
 
-      // Check fines if within hours or approved
-      const unpaidLateFine = (fines || []).find((f: any) => {
-        const isLateType = f.type === 'LATE' || (f.reason && (f.reason.includes("Đi muộn") || f.reason.includes("đăng nhập ngoài giờ")));
-        const isUnpaidOrPending = f.status === 'UNPAID' || f.status === 'PENDING_APPROVAL';
-        return isLateType && isUnpaidOrPending;
-      });
-
-      if (unpaidLateFine) {
+      // Check locks and fines securely based on server statusRes
+      if (statusRes?.isLateLocked || statusRes?.userStatus === "LOCKED" || statusRes?.status === "REJECTED") {
         setAccessStatus('LATE');
-        setFineAmount(unpaidLateFine.amount || 50000);
-        if (unpaidLateFine.lateMinutes) setLateMins(unpaidLateFine.lateMinutes);
-        setActiveFine(unpaidLateFine);
+        try {
+          const finesRes = await fetch('/api/admin/fines', {
+            headers: {
+              'x-user-id': currentUser?.id || currentUser?._id || '',
+              'x-user-role': currentUser?.role || ''
+            }
+          }).then(r => r.json());
+          const fines = Array.isArray(finesRes) ? finesRes : (finesRes?.data || []);
+          const unpaidLateFine = (fines || []).find((f: any) => {
+            const isLateType = f.type === 'LATE' || (f.reason && (f.reason.includes("Đi muộn") || f.reason.includes("đăng nhập ngoài giờ")));
+            const isUnpaidOrPending = f.status === 'UNPAID' || f.status === 'PENDING_APPROVAL';
+            return isLateType && isUnpaidOrPending;
+          });
+          if (unpaidLateFine) {
+            setFineAmount(unpaidLateFine.amount || 50000);
+            if (unpaidLateFine.lateMinutes) setLateMins(unpaidLateFine.lateMinutes);
+            setActiveFine(unpaidLateFine);
+          }
+        } catch (fErr) {
+          console.error("Fetch fines error:", fErr);
+        }
       } else {
         setAccessStatus('GRANTED');
         setActiveFine(null);
       }
     } catch (err) {
       console.error("checkAccess error:", err);
+      setAccessStatus('CLOSED');
     }
     setIsChecking(false);
   };
@@ -473,9 +480,10 @@ export default function AdminLayout({
  } else {
  // Khởi tạo thông tin user & kiểm tra quyền truy cập ban đầu khi load trang
  const currentUser = JSON.parse(storedUserStr);
+ setIsAccessGranted(false);
  const emergencyAccess = localStorage.getItem(`access_${getStableDateString()}_${currentUser?.name}`);
  const accessResponse = localStorage.getItem(`access_response_${currentUser?.name}`);
- if (emergencyAccess ==="true" || accessResponse ==="APPROVED") {
+ if (false) {
  setIsAccessGranted(true);
  }
  }
@@ -703,24 +711,14 @@ const totalWorkingMins = overlap1 + overlap2;
 
     const interval = setInterval(async () => {
       // Sync trước, sau đó mới kiểm tra quyền để đảm bảo data đã được kéo từ server về
-        syncUserRole();
+      syncUserRole();
       checkNewNotifications();
       checkLateStatus();
       checkAccess();
 
-      // Kiểm tra định kỳ và cập nhật isAccessGranted từ localStorage đã được đồng bộ
       const activeUserStr = getActiveUserStr();
       if (activeUserStr) {
         const currentUser = JSON.parse(activeUserStr);
-        const emergencyAccess = localStorage.getItem(`access_${getStableDateString()}_${currentUser?.name}`);
-        const accessResponse = localStorage.getItem(`access_response_${currentUser?.name}`);
-        
-        if (emergencyAccess === "true" || accessResponse === "APPROVED") {
-          setIsAccessGranted(true);
-        } else {
-          setIsAccessGranted(false);
-        }
-
         // Cập nhật trạng thái chờ duyệt cho yêu cầu truy cập ngoài giờ/Chủ Nhật
         const savedRequests = localStorage.getItem("pending_access_requests");
         const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
@@ -770,17 +768,7 @@ const totalWorkingMins = overlap1 + overlap2;
  }
 
  if (e.key?.startsWith("access_response_") || e.key?.startsWith("access_")) {
- const activeUserStr = getActiveUserStr();
- if (activeUserStr) {
- const currentUser = JSON.parse(activeUserStr);
- const emergencyAccess = localStorage.getItem(`access_${getStableDateString()}_${currentUser?.name}`);
- const accessResponse = localStorage.getItem(`access_response_${currentUser?.name}`);
- if (emergencyAccess ==="true" || accessResponse ==="APPROVED") {
- setIsAccessGranted(true);
- } else {
- setIsAccessGranted(false);
- }
- }
+   checkAccess();
  }
  };
 
@@ -1766,6 +1754,8 @@ const typingTimer = setInterval(checkTyping, 1000);
  onSendRequest={handleRequestAccess}
  onLogout={handleLogout}
  isPendingApproval={isPendingApproval}
+ isDeniedApproval={statusData?.status === "REJECTED"}
+ username={user?.username}
  />
  )}
 

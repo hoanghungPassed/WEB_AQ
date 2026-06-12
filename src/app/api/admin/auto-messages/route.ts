@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Không có quyền truy cập" }, { status: 403 });
     }
 
-    const messages = await AutoMessage.find().sort({ createdAt: -1 });
+    const messages = await AutoMessage.find().sort({ createdAt: -1 }).lean();
     return NextResponse.json({ success: true, messages });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";

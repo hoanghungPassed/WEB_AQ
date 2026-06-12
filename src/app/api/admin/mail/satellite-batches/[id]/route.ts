@@ -22,6 +22,18 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     await dbConnect();
     
+    // Phase 2: Protect against deleting batches with active tasks
+    const activeTask = await Task.findOne({ 
+      $or: [{ batchId: id }, { batch: id }], 
+      status: 'PENDING' 
+    });
+    
+    if (activeTask) {
+      return NextResponse.json({ 
+        error: "Không thể xóa Lô Mail này vì đang có Nhân viên đang thực hiện Task (PENDING). Vui lòng hoàn thành hoặc hủy Task trước." 
+      }, { status: 400 });
+    }
+
     // Find the batch first to get its name for cleanup
     const batch = await Batch.findById(id);
     if (!batch) {

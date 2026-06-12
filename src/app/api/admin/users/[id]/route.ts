@@ -271,6 +271,14 @@ export async function DELETE(req: NextRequest, { params: paramsPromise }: { para
         SatelliteMail.updateMany(
           { assigneeId: id }, 
           { $set: { isAssigned: false, assignedTo: null, assigneeId: null, batchId: null, batchName: null } }
+        ),
+        RootMail.updateMany(
+          { assigneeId: id },
+          { $set: { assignedTo: null, assigneeId: null, assignee: null, batchId: null, batchName: null } }
+        ),
+        MonetizedMail.updateMany(
+          { assigneeId: id },
+          { $set: { assignedTo: null, assigneeId: null, assignee: null, batchId: null, batchName: null } }
         )
       ]);
     } catch (cascadeErr) {

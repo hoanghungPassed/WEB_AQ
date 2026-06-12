@@ -124,8 +124,12 @@ export async function POST(req: NextRequest) {
           minute: "2-digit",
         });
       
-      const todayStart = new Date(vnTime.getFullYear(), vnTime.getMonth(), vnTime.getDate(), 0, 0, 0);
-      const todayEnd = new Date(vnTime.getFullYear(), vnTime.getMonth(), vnTime.getDate(), 23, 59, 59);
+      const nowForFine = new Date();
+      const vnTimeForFine = new Date(nowForFine.getTime() + (7 * 60 * 60 * 1000));
+      vnTimeForFine.setUTCHours(0, 0, 0, 0);
+      const todayStart = new Date(vnTimeForFine.getTime() - (7 * 60 * 60 * 1000));
+      vnTimeForFine.setUTCHours(23, 59, 59, 999);
+      const todayEnd = new Date(vnTimeForFine.getTime() - (7 * 60 * 60 * 1000));
       
       const existingFine = await Fine.findOne({
         userId: user._id,

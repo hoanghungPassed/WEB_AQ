@@ -114,23 +114,34 @@ export async function GET(req: NextRequest) {
     // Fallback: If no pagination requested OR all=true is specified, return full data
     if ((!searchParams.has("page") && !searchParams.has("limit")) || searchParams.get("all") === "true") {
       let mails: any[] = [];
+      const fallbackLimit = 500; // Safety limit for "ALL" without pagination
+
       if (!type || type === "ALL" || type === "ROOT") {
-        const rootMails = await RootMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 });
+        const rootMails = await RootMail.find(query)
+          .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
+          .limit(fallbackLimit)
+          .lean();
         mails = [...mails, ...rootMails];
       }
       if (!type || type === "ALL" || type === "SATELLITE") {
-        const satelliteMails = await SatelliteMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 });
+        const satelliteMails = await SatelliteMail.find(query)
+          .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
+          .limit(fallbackLimit)
+          .lean();
         mails = [...mails, ...satelliteMails];
       }
       if (!type || type === "ALL" || type === "MONETIZED") {
-        const monetizedMails = await MonetizedMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 });
+        const monetizedMails = await MonetizedMail.find(query)
+          .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
+          .limit(fallbackLimit)
+          .lean();
         mails = [...mails, ...monetizedMails];
       }
       // Only sort combined array if type was "ALL" or not specified
       if (!type || type === "ALL") {
         mails.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       }
-      return NextResponse.json({ success: true, data: mails, batches: uniqueBatches });
+      return NextResponse.json({ success: true, data: mails.slice(0, 1000), batches: uniqueBatches });
     }
 
     // Paged Query for specific type
@@ -145,9 +156,14 @@ export async function GET(req: NextRequest) {
     }
 
     // Paged Query for combined (ALL) collection
-    const rootMails = await RootMail.find(query).lean();
-    const satelliteMails = await SatelliteMail.find(query).lean();
-    const monetizedMails = await MonetizedMail.find(query).lean();
+    // To handle cross-collection pagination safely without a bomb, 
+    // we fetch a reasonable slice from each and combine.
+    const fetchLimit = skip + limit;
+    const [rootMails, satelliteMails, monetizedMails] = await Promise.all([
+      RootMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).limit(fetchLimit).lean(),
+      SatelliteMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).limit(fetchLimit).lean(),
+      MonetizedMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).limit(fetchLimit).lean()
+    ]);
     const mails: any[] = [...rootMails, ...satelliteMails, ...monetizedMails];
     
     // In-memory sort combined array
@@ -262,15 +278,15 @@ export async function POST(req: NextRequest) {
  const monetizedItems = items.filter(i => i.type ==="MONETIZED");
 
  if (rootItems.length > 0) {
- const res = await RootMail.insertMany(rootItems);
+ const res = await RootMail.insertMany(rootItems, { ordered: false });
  newMails.push(...res);
  }
  if (satelliteItems.length > 0) {
- const res = await SatelliteMail.insertMany(satelliteItems);
+ const res = await SatelliteMail.insertMany(satelliteItems, { ordered: false });
  newMails.push(...res);
  }
  if (monetizedItems.length > 0) {
- const res = await MonetizedMail.insertMany(monetizedItems);
+ const res = await MonetizedMail.insertMany(monetizedItems, { ordered: false });
  newMails.push(...res);
  }
 
@@ -332,9 +348,28 @@ export async function DELETE(req: NextRequest) {
   if (batchId) query.batchId = batchId;
   else if (batchName) query.batchName = batchName;
 
-  const resRoot = await RootMail.deleteMany(query);
-  const resSat = await SatelliteMail.deleteMany(query);
-  const resMon = await MonetizedMail.deleteMany(query);
+  // Phase 2: Integrity Check - Prevent deletion if tasks are pending
+  const activeTask = await (await import("@/models/Task")).Task.findOne({
+    $or: [
+      { batch: batchId || batchName },
+      { batchName: batchId || batchName },
+      { batchId: batchId || batchName }
+    ],
+    status: 'PENDING'
+  });
+
+  if (activeTask) {
+    return NextResponse.json({ 
+      error: "Không thể xóa Lô Mail này vì đang có Task PENDING. Vui lòng xử lý Task trước." 
+    }, { status: 400 });
+  }
+
+  // Atomic-like parallel deletion
+  const [resRoot, resSat, resMon] = await Promise.all([
+    RootMail.deleteMany(query),
+    SatelliteMail.deleteMany(query),
+    MonetizedMail.deleteMany(query)
+  ]);
   
   const deletedCount = resRoot.deletedCount + resSat.deletedCount + resMon.deletedCount;
 

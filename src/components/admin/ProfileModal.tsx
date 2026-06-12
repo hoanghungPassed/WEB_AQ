@@ -266,11 +266,22 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  {/* Footer */}
  <div className="flex items-center justify-end gap-4 border-t border-white/0 bg-zinc-950/20 px-8 py-6">
  <button onClick={onClose} className="px-8 py-3 text-sm font-black text-gray-500 uppercase tracking-widest hover:text-white transition-colors rounded-xl border border-gray-600">Hủy bỏ</button>
- <button 
- onClick={handleSave} disabled={isSaving}
- className="flex items-center gap-2 rounded-xl bg-gold px-8 py-3 text-sm font-black text-sidebar transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-50 shadow-lg shadow-gold/20 uppercase tracking-widest"
+ <button
+   onClick={handleSave}
+   disabled={isSaving}
+   className="flex items-center gap-2 rounded-xl bg-gold px-8 py-3 text-sm font-black text-sidebar transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-50 shadow-lg shadow-gold/20 uppercase tracking-widest"
  >
- {isSaving ?"Đang lưu..." : <><Save size={18} /> Lưu thay đổi</>}
+   {isSaving ? (
+     <>
+       <div className="w-4 h-4 border-2 border-sidebar/30 border-t-sidebar rounded-full animate-spin" />
+       Đang lưu...
+     </>
+   ) : (
+     <>
+       <Save size={18} />
+       Lưu thay đổi
+     </>
+   )}
  </button>
  </div>
  </motion.div>

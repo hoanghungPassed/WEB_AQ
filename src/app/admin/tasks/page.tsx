@@ -55,8 +55,8 @@ const TaskCard = React.memo(({ task, onClick }: { task: TaskAssignment, onClick:
     >
       <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[50px] -mr-16 -mt-16 group-hover:bg-gold/10 transition-colors" />
       <div className="flex items-center justify-between mb-6 relative z-10">
-        <Badge variant={statusConfig[task.status].variant}>
-          {statusConfig[task.status].icon} {statusConfig[task.status].label}
+        <Badge variant={statusConfig[task.status]?.variant || "default"}>
+          {statusConfig[task.status]?.icon || <Clock size={16} />} {statusConfig[task.status]?.label || "Đang chờ"}
         </Badge>
         <div className="h-10 w-10 rounded-full bg-white/5 border border-white/0 flex items-center justify-center text-gold opacity-0 group-hover:opacity-100 transition-all">
           <ArrowRight size={20} />
@@ -448,7 +448,7 @@ export default function TaskManagementPage() {
     };
 
     fetchTaskMails();
-  }, [selectedTaskId, selectedTaskBatch, selectedTask]);
+  }, [selectedTaskId, selectedTaskBatch]); // REMOVED selectedTask to prevent redundant re-fetching on interval updates
 
   const taskMailsListKey = useMemo(() => {
     return (taskMailsList || []).map((m: any) => `${m._id || m.id}-${(m.links || []).join(",")}`).join("|");
@@ -457,14 +457,16 @@ export default function TaskManagementPage() {
   // Map link states when task mails load
   useEffect(() => {
     const initialState: Record<string, string[]> = {};
-    taskMailsList.forEach((mail: any) => {
-      const mailId = mail._id || mail.id;
-      initialState[mailId] = [
-        mail.links?.[0] || "",
-        mail.links?.[1] || "",
-        mail.links?.[2] || ""
-      ];
-    });
+    if (taskMailsList && Array.isArray(taskMailsList)) {
+      taskMailsList.forEach((mail: any) => {
+        const mailId = mail._id || mail.id;
+        initialState[mailId] = [
+          mail.links?.[0] || "",
+          mail.links?.[1] || "",
+          mail.links?.[2] || ""
+        ];
+      });
+    }
     setMailLinksState(initialState);
   }, [taskMailsListKey]);
 

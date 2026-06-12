@@ -1,8 +1,15 @@
 export const dynamic = 'force-dynamic';
 
-import { NextResponse } from"next/server";
+import { NextRequest, NextResponse } from"next/server";
+import { getAuthUser } from "@/lib/auth";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+ const userId = request.headers.get("x-user-id");
+ if (!userId) {
+   const authUser = await getAuthUser();
+   if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ }
+
  const { searchParams } = new URL(request.url);
  const url = searchParams.get("url");
  if (!url) {
@@ -11,6 +18,13 @@ export async function GET(request: Request) {
 
  try {
  const targetUrl = url.trim();
+ 
+ // SSRF Protection: Only allow YouTube domains
+ const isYoutube = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/i.test(targetUrl);
+ if (!isYoutube) {
+   return NextResponse.json({ error: "Chỉ được phép kiểm tra link YouTube" }, { status: 400 });
+ }
+
  // Validate protocol
  let finalUrl = targetUrl;
  if (!/^https?:\/\//i.test(finalUrl)) {

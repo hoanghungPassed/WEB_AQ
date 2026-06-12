@@ -38,9 +38,15 @@ export async function GET(req: NextRequest) {
     const today = searchParams.get("today");
     if (today === "true") {
       const now = new Date();
-      const vnTime = new Date(now.getTime() + 7 * 3600000);
-      const todayStart = new Date(Date.UTC(vnTime.getUTCFullYear(), vnTime.getUTCMonth(), vnTime.getUTCDate(), -7, 0, 0, 0));
-      const todayEnd = new Date(Date.UTC(vnTime.getUTCFullYear(), vnTime.getUTCMonth(), vnTime.getUTCDate(), 16, 59, 59, 999));
+      const vnTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+      
+      // Get Start of Day VN (00:00:00) in UTC
+      vnTime.setUTCHours(0, 0, 0, 0);
+      const todayStart = new Date(vnTime.getTime() - (7 * 60 * 60 * 1000));
+      
+      // Get End of Day VN (23:59:59) in UTC
+      vnTime.setUTCHours(23, 59, 59, 999);
+      const todayEnd = new Date(vnTime.getTime() - (7 * 60 * 60 * 1000));
 
       filter.createdAt = {
         $gte: todayStart,
@@ -107,6 +113,40 @@ export async function POST(req: NextRequest) {
       ...data,
       createdBy: userId || "system"
     } as any);
+
+    // Automatically update the assigned mails in the DB based on the task type
+    if (data.mailIds && data.mailIds.length > 0) {
+      try {
+        let MailModel: any;
+        if (data.type === 'MAIL_GOC') {
+          MailModel = (await import('@/models/RootMail')).RootMail;
+        } else if (data.type === 'MAIL_MONETIZED') {
+          MailModel = (await import('@/models/MonetizedMail')).MonetizedMail;
+        } else {
+          MailModel = (await import('@/models/SatelliteMail')).SatelliteMail;
+        }
+
+        const User = (await import("@/models/User")).default;
+        const assigneeUser = await User.findById(data.assigneeId);
+        const staffName = assigneeUser ? assigneeUser.name : "Nhân viên";
+
+        await MailModel.updateMany(
+          { _id: { $in: data.mailIds } },
+          {
+            $set: {
+              isAssigned: true,
+              assignedTo: staffName,
+              assigneeId: data.assigneeId,
+              assignee: data.assigneeId,
+              batchId: data.batch || undefined,
+              batchName: data.batch || undefined
+            }
+          }
+        );
+      } catch (mailUpdateErr) {
+        console.error("Failed to automatically update mails on task creation:", mailUpdateErr);
+      }
+    }
 
     // Create Notification and Trigger Pusher
     try {

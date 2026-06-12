@@ -144,10 +144,14 @@ export async function PUT(req: NextRequest) {
        await logAuditTrail(userId || "unknown", "UNAUTHORIZED_FINE_UPDATE_ATTEMPT", "fines", { fineId: id }, req);
        return NextResponse.json({ error: "Không có quyền cập nhật báo cáo phạt của người khác" }, { status: 403 });
      }
-     // Staff cannot alter the fine amount
+     // Staff cannot alter the fine amount or status
      if (body.amount !== undefined && Number(body.amount) !== existingFine.amount) {
        await logAuditTrail(userId || "unknown", "UNAUTHORIZED_FINE_AMOUNT_UPDATE", "fines", { fineId: id }, req);
        return NextResponse.json({ error: "Nhân viên không được phép sửa đổi số tiền phạt" }, { status: 403 });
+     }
+     if (body.status !== undefined && body.status !== existingFine.status) {
+       await logAuditTrail(userId || "unknown", "UNAUTHORIZED_FINE_STATUS_UPDATE", "fines", { fineId: id }, req);
+       return NextResponse.json({ error: "Nhân viên không được phép cập nhật trạng thái thanh toán" }, { status: 403 });
      }
    } else {
      // Non-staff requires manager/admin permissions (level 4)

@@ -41,12 +41,34 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const body = await req.json();
   
-  mail = await RootMail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
-  if (!mail) {
-    mail = await SatelliteMail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
-  }
-  if (!mail) {
-    mail = await MonetizedMail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
+  // Mass Assignment Protection: Staff can only update specific fields
+  if (!hasPermission) {
+    const allowedFields = ['links', 'note', 'status', 'isDone', 'processStatus'];
+    const filteredBody: any = {};
+    allowedFields.forEach(field => {
+      if (body[field] !== undefined) filteredBody[field] = body[field];
+    });
+    
+    // Check if staff is trying to update restricted fields
+    const restrictedFields = ['assigneeId', 'batchId', 'email', 'type'];
+    const attemptingRestricted = restrictedFields.some(f => body[f] !== undefined);
+    
+    if (attemptingRestricted) {
+      return NextResponse.json({ error: "Bạn không có quyền thay đổi các thông tin quản trị của mail" }, { status: 403 });
+    }
+
+    mail = await RootMail.findByIdAndUpdate(id, { $set: filteredBody }, { new: true });
+    if (!mail) mail = await SatelliteMail.findByIdAndUpdate(id, { $set: filteredBody }, { new: true });
+    if (!mail) mail = await MonetizedMail.findByIdAndUpdate(id, { $set: filteredBody }, { new: true });
+  } else {
+    // Admin/Manager can update everything
+    mail = await RootMail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
+    if (!mail) {
+      mail = await SatelliteMail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
+    }
+    if (!mail) {
+      mail = await MonetizedMail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
+    }
   }
 
  if (!mail) {

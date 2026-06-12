@@ -47,41 +47,10 @@ export default function AccessLock({
 }: AccessLockProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [excuseReason, setExcuseReason] = useState("");
-  const [localDenied, setLocalDenied] = useState(isDeniedApproval);
-
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-
-  // Real-time Polling for Approval Status
-  useEffect(() => {
-    if (!isPendingApproval || !username) return;
-
-    const pollInterval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/auth/check-status?username=${encodeURIComponent(username)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.status === "ACTIVE" || data.access === "GRANTED" || data.status === "APPROVED") {
-            // Approval granted! Automatically reload to enter system
-            window.location.reload();
-          } else if (data.status === "REJECTED" || data.access === "DENIED") {
-            setLocalDenied(true);
-            clearInterval(pollInterval);
-          }
-        }
-      } catch (err) {
-        console.error("Polling status error:", err);
-      }
-    }, 3000);
-
-    return () => clearInterval(pollInterval);
-  }, [isPendingApproval, username]);
-
-  useEffect(() => {
-    setLocalDenied(isDeniedApproval);
-  }, [isDeniedApproval]);
 
   const formatLateMins = (mins: number) => {
     if (mins < 60) return `${mins} phút`;
@@ -112,7 +81,7 @@ export default function AccessLock({
       >
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-gold to-transparent opacity-50" />
 
-        {isPendingApproval && !localDenied ? (
+        {isPendingApproval && !isDeniedApproval ? (
           <div className="py-10 px-4 space-y-8 flex flex-col items-center justify-center animate-fade-in">
             <div className="relative flex items-center justify-center mb-2">
               <div className="absolute inset-0 rounded-full bg-amber-500/10 blur-xl animate-pulse" />
@@ -152,7 +121,7 @@ export default function AccessLock({
               </button>
             </div>
           </div>
-        ) : localDenied ? (
+        ) : isDeniedApproval ? (
           <div className="py-12 space-y-6">
             <div className="h-20 w-20 bg-red-500/10 border border-red-500/30 text-red-500 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-red-500/5">
               <ShieldAlert size={40} className="animate-pulse" />

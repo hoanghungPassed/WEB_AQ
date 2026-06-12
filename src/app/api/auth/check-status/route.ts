@@ -33,16 +33,24 @@ export async function GET(req: NextRequest) {
     if (isAccessGranted) {
       responseStatus = "ACTIVE";
       user.isOnline = true;
+      user.lastActive = new Date();
+      await user.save();
     } else {
-      user.isOnline = false;
+      // Only save to DB if we need to transition isOnline to false, avoiding duplicate writes on polling
+      if (user.isOnline) {
+        user.isOnline = false;
+        await user.save();
+      }
       if (user.status === "LOCKED" || user.isLateLocked) {
         responseStatus = "REJECTED";
       }
     }
-    user.lastActive = new Date();
-    await user.save();
 
-    return NextResponse.json({ status: responseStatus });
+    return NextResponse.json({ 
+      status: responseStatus,
+      isLateLocked: user.isLateLocked || false,
+      userStatus: user.status || "PENDING"
+    });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("Lỗi API check-status:", error);

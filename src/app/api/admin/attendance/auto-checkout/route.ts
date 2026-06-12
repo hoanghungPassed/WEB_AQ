@@ -45,8 +45,16 @@ export async function POST(req: NextRequest) {
   const isCronCall = cronSecret && authHeader === `Bearer ${cronSecret}`;
 
   if (!isCronCall) {
-    // Existing permission check: any logged-in user can trigger (level 5 = lowest)
-    // The frontend already calls this for all users at 17:30
+    const userRole = req.headers.get("x-user-role");
+    const userId = req.headers.get("x-user-id");
+    
+    // Strictly only allow Admin/Manager (Level 4+) to trigger manually
+    const { checkPermission } = await import("@/lib/permissions");
+    const hasPermission = await checkPermission(userRole || "", 4, ["all", "attendance"]);
+    
+    if (!hasPermission) {
+      return NextResponse.json({ error: "Không có quyền kích hoạt lệnh này" }, { status: 403 });
+    }
   }
 
   return runAutoCheckout(req, isCronCall ? "CRON" : "MANUAL");
@@ -77,11 +85,14 @@ async function runAutoCheckout(req: NextRequest, triggerSource: "CRON" | "MANUAL
     const vnMinutes = vnTime.getUTCMinutes();
     const vnTimeStr = `${String(vnHours).padStart(2, "0")}:${String(vnMinutes).padStart(2, "0")}`;
 
-    // 2. Find all Attendance records for today that have checkInTime but NO checkOutTime
+    // 2. Find all Attendance records for today and prior days that have checkInTime but NO checkOutTime
     const incompleteAttendance = await Attendance.find({
-      date: todayStr,
+      date: { $lte: todayStr },
       checkInTime: { $exists: true, $ne: null },
-      checkOutTime: { $exists: false }
+      $or: [
+        { checkOutTime: { $exists: false } },
+        { checkOutTime: null }
+      ]
     }).populate("userId");
 
     // Count currently online staff for logging (roles: 03, 04, 05)
@@ -94,6 +105,8 @@ async function runAutoCheckout(req: NextRequest, triggerSource: "CRON" | "MANUAL
     let checkedOutCount = 0;
     let skippedCount = 0;
     const results: Array<{ username: string; name: string; totalHours: number }> = [];
+    const userBulkOps = [];
+    const attendanceBulkOps = [];
 
     for (const record of incompleteAttendance) {
       try {
@@ -108,30 +121,49 @@ async function runAutoCheckout(req: NextRequest, triggerSource: "CRON" | "MANUAL
 
         // Determine checkout time: use staff's offWorkTime or default 18:00
         const offTime = staff.offWorkTime || "18:00";
-        const [offH, offM] = offTime.split(":").map(Number);
+        let [offH, offM] = offTime.split(":").map(Number);
+        if (isNaN(offH) || isNaN(offM)) {
+          offH = 18;
+          offM = 0;
+        }
         
-        // Build checkout date in VN time
-        const checkoutTime = new Date(Date.UTC(yyyy, vnTime.getUTCMonth(), vnTime.getUTCDate(), offH - 7, offM, 0, 0));
+        // Build checkout date in UTC
+        const [recY, recM, recD] = record.date.split("-").map(Number);
+        let checkoutTime = new Date(Date.UTC(recY, recM - 1, recD, offH - 7, offM, 0, 0));
 
-        // A. Update Attendance record
-        record.checkOutTime = checkoutTime;
+        if (record.checkInTime && checkoutTime.getTime() <= new Date(record.checkInTime).getTime()) {
+          checkoutTime = new Date(new Date(record.checkInTime).getTime() + 60 * 1000);
+        }
+
+        // Calculate total hours
         let totalHours = 0;
         if (record.checkInTime) {
           const diffInMs = checkoutTime.getTime() - new Date(record.checkInTime).getTime();
           totalHours = diffInMs / (1000 * 60 * 60);
           totalHours = parseFloat((totalHours > 0 ? totalHours : 0).toFixed(2));
-          record.totalHours = totalHours;
         }
-        await record.save();
 
-        // B. Sync to User record
-        await User.findByIdAndUpdate(staff._id, {
-          checkOutTime: checkoutTime.toISOString(),
-          isOnline: false,
-          lastActive: now
+        // A. Queue Attendance update
+        attendanceBulkOps.push({
+          updateOne: {
+            filter: { _id: record._id },
+            update: { $set: { checkOutTime: checkoutTime, totalHours: totalHours } }
+          }
         });
 
-        // C. Create notification
+        // B. Queue User update
+        userBulkOps.push({
+          updateOne: {
+            filter: { _id: staff._id },
+            update: { $set: { 
+              checkOutTime: checkoutTime.toISOString(),
+              isOnline: false,
+              lastActive: now 
+            } }
+          }
+        });
+
+        // C. Create notification (separate as they are new documents)
         try {
           await Notification.create({
             title: "Tự động Checkout",
@@ -142,21 +174,15 @@ async function runAutoCheckout(req: NextRequest, triggerSource: "CRON" | "MANUAL
           });
         } catch (_) {}
 
-        // D. Log & Pusher
+        // D. Log & Pusher (fire and forget)
         try {
-          await logAction(
-            staff._id.toString(),
-            "ATTENDANCE_AUTO_CHECKOUT",
-            `Hệ thống tự động check-out cho ${staff.name} (@${staff.username}). Tổng giờ: ${totalHours.toFixed(2)}h`
-          );
-          
-          await pusherServer.trigger("system-users", "status-changed", {
+          pusherServer.trigger("system-users", "status-changed", {
             userId: staff._id.toString(),
             username: staff.username,
             isOnline: false,
             lastActive: now,
             autoCheckout: true
-          });
+          }).catch(() => {});
         } catch (_) {}
 
         results.push({
@@ -167,9 +193,13 @@ async function runAutoCheckout(req: NextRequest, triggerSource: "CRON" | "MANUAL
 
         checkedOutCount++;
       } catch (staffErr) {
-        console.error(`Auto-checkout failed for attendance record ${record._id}:`, staffErr);
+        console.error(`Auto-checkout calculation failed for attendance record ${record._id}:`, staffErr);
       }
     }
+
+    // Execute Bulk Updates
+    if (attendanceBulkOps.length > 0) await Attendance.bulkWrite(attendanceBulkOps);
+    if (userBulkOps.length > 0) await User.bulkWrite(userBulkOps);
 
     // Audit trail
     await logAuditTrail(

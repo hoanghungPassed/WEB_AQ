@@ -67,6 +67,13 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
   // New state for View Mode: BATCHES vs MAILS
   const [viewMode, setViewMode] = useState<"BATCHES" | "MAILS">("BATCHES");
 
+  const roleUpper = String(user?.role || "").toUpperCase();
+  const isAdminOrManager = roleUpper === "01" || 
+    roleUpper === "ADMIN" || 
+    roleUpper === "02" || 
+    roleUpper === "QL CÔNG VIỆC" || 
+    roleUpper === "QUẢN LÝ CÔNG VIỆC";
+
   const { data: apiData, mutate, isLoading } = useSWR(
     `/api/admin/mails?type=${activeTab}&all=true`,
     fetcher,
@@ -94,7 +101,16 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
     }
 
     const savedHistory = localStorage.getItem("mail_import_history");
-    if (savedHistory) setImportHistory(JSON.parse(savedHistory));
+    if (savedHistory) {
+      try {
+        const parsed = JSON.parse(savedHistory);
+        if (Array.isArray(parsed)) {
+          setImportHistory(parsed);
+        }
+      } catch (err) {
+        console.error("Error parsing mail_import_history from localStorage:", err);
+      }
+    }
   }, [initialUser]);
 
   const triggerToast = (msg: string) => {
@@ -137,7 +153,7 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
     if (!stats[bName]) {
       stats[bName] = { 
         count: 0, 
-        importedAt: historyMap[bName]?.importedAt || m.createdAt?.split("T")[0] || "---", 
+        importedAt: historyMap[bName]?.importedAt || (m.createdAt ? new Date(m.createdAt).toISOString().split("T")[0] : "---"), 
         type: m.type 
       };
     }
@@ -440,20 +456,22 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setShowHistory(true)}
-            className="h-12 px-5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all flex items-center gap-2 border border-white/0"
-          >
-            <RotateCcw size={16} /> Lịch sử nạp
-          </button>
-          
-          <label className={`h-12 px-6 bg-gold hover:bg-gold-hover text-sidebar rounded-xl font-black uppercase text-xs tracking-widest transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-gold/20 ${isImporting ? "opacity-50 cursor-not-allowed" : ""}`}>
-            {isImporting ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
-            {isImporting ? "Đang xử lý..." : "Nạp Excel Mới"}
-            <input type="file" accept=".xlsx, .xls" onChange={handleImportExcel} className="hidden" disabled={isImporting} />
-          </label>
-        </div>
+        {isAdminOrManager && (
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setShowHistory(true)}
+              className="h-12 px-5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all flex items-center gap-2 border border-white/0"
+            >
+              <RotateCcw size={16} /> Lịch sử nạp
+            </button>
+            
+            <label className={`h-12 px-6 bg-gold hover:bg-gold-hover text-sidebar rounded-xl font-black uppercase text-xs tracking-widest transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-gold/20 ${isImporting ? "opacity-50 cursor-not-allowed" : ""}`}>
+              {isImporting ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
+              {isImporting ? "Đang xử lý..." : "Nạp Excel Mới"}
+              <input type="file" accept=".xlsx, .xls" onChange={handleImportExcel} className="hidden" disabled={isImporting} />
+            </label>
+          </div>
+        )}
       </div>
 
       {/* Tabs & Search */}
@@ -521,12 +539,14 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
                     <div className="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center text-gold group-hover:bg-gold group-hover:text-sidebar transition-all">
                       <Layers size={24} />
                     </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleDeleteBatch(batch.name); }}
-                      className="h-10 w-10 rounded-xl bg-red-500/10 text-red-500 opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {isAdminOrManager && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDeleteBatch(batch.name); }}
+                        className="h-10 w-10 rounded-xl bg-red-500/10 text-red-500 opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                   <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1 group-hover:text-gold transition-colors truncate">
                     {batch.name}
