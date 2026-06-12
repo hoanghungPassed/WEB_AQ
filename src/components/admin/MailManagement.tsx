@@ -164,18 +164,152 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
         const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        
+        // Read raw rows as nested arrays to detect structure
+        const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        if (rawRows.length === 0) {
+          triggerToast("File Excel trống!");
+          setIsImporting(false);
+          return;
+        }
 
-        const importedMails = jsonData.map((row: any, idx: number) => ({
-          email: row.Email || row.email || "",
-          password: row.Password || row.password || "123456",
-          recovery: row.Recovery || row.recovery || "",
-          phone: row.Phone || row.phone || "",
-          type: activeTab,
-          verificationStatus: "Chưa check",
-          workStatus: activeTab === "ROOT" ? "Đang xử lý" : (activeTab === "MONETIZED" ? "Chưa bán" : "Chưa làm"),
-          stt: idx + 1
-        })).filter((m: any) => m.email);
+        // Clean out completely empty rows
+        const rows = rawRows.filter(r => r && r.length > 0 && r.some(cell => cell !== null && cell !== undefined && String(cell).trim() !== ""));
+        if (rows.length === 0) {
+          triggerToast("File Excel trống!");
+          setIsImporting(false);
+          return;
+        }
+
+        // Detect if the first row is a header row
+        const firstRow = rows[0];
+        const hasEmailInFirstRow = firstRow.some(cell => typeof cell === "string" && cell.includes("@"));
+        
+        let isHeader = false;
+        if (!hasEmailInFirstRow) {
+          const commonHeaders = ["mail", "email", "pass", "password", "2fa", "twofa", "sdt", "phone", "stt", "no", "link", "recovery", "khoiphuc"];
+          isHeader = firstRow.some(cell => {
+            if (typeof cell !== "string") return false;
+            const clean = cell.toLowerCase().trim();
+            return commonHeaders.some(ch => clean.includes(ch));
+          });
+        }
+
+        let headerRow: string[] = [];
+        let dataStartIdx = 0;
+        if (isHeader) {
+          headerRow = firstRow.map(h => String(h || "").trim());
+          dataStartIdx = 1;
+        } else {
+          headerRow = [];
+          dataStartIdx = 0;
+        }
+
+        // Column indices matching
+        let emailIdx = -1;
+        let passwordIdx = -1;
+        let recoveryIdx = -1;
+        let twoFAIdx = -1;
+        let phoneIdx = -1;
+        let phoneLinkIdx = -1;
+
+        const cleanStr = (s: string) => s.toLowerCase().replace(/[\s_\-\.đ]/g, "d").replace(/[đ]/g, "d").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+        // 1. Match by headers if header row exists
+        if (headerRow.length > 0) {
+          headerRow.forEach((h, idx) => {
+            const c = cleanStr(h);
+            if (c === "mail" || c === "email" || c === "diachimail" || c === "account" || c === "tk" || c === "taikhoan") {
+              if (emailIdx === -1) emailIdx = idx;
+            } else if (c === "pass" || c === "password" || c === "matkhau" || c === "pwd" || c === "mk") {
+              if (passwordIdx === -1) passwordIdx = idx;
+            } else if (c === "mailkp" || c === "mailkhoiphuc" || c === "recovery" || c === "recoverymail" || c === "kp" || c.includes("khoiphuc")) {
+              if (recoveryIdx === -1) recoveryIdx = idx;
+            } else if (c === "2fa" || c === "twofa" || c === "ma2fa" || c === "twofactor") {
+              if (twoFAIdx === -1) twoFAIdx = idx;
+            } else if (c === "sdt" || c === "phone" || c === "sodienthoai" || c === "tel" || c === "dienthoai") {
+              if (phoneIdx === -1) phoneIdx = idx;
+            } else if (c === "linkotp" || c === "link" || c === "phonelink" || c === "otplink" || c.includes("otp")) {
+              if (phoneLinkIdx === -1) phoneLinkIdx = idx;
+            }
+          });
+        }
+
+        // 2. Scan content in data rows for value types
+        const sampleRows = rows.slice(dataStartIdx, dataStartIdx + 5);
+        const isEmail = (val: any) => typeof val === "string" && val.includes("@");
+        const isUrl = (val: any) => typeof val === "string" && (val.startsWith("http") || val.includes("sms222") || val.includes("token="));
+        const isTwoFA = (val: any) => typeof val === "string" && /^[a-zA-Z0-9]{16,64}$/.test(val) && !val.includes("@") && !val.includes("http");
+        const isPhone = (val: any) => {
+          if (typeof val === "number") return true;
+          if (typeof val === "string") {
+            const clean = val.replace(/[\s\-\+\(\)]/g, "");
+            return clean.length >= 8 && /^\d+$/.test(clean);
+          }
+          return false;
+        };
+
+        const maxCols = Math.max(...rows.map(r => r.length));
+        for (let col = 0; col < maxCols; col++) {
+          const colValues = sampleRows.map(r => r[col]).filter(v => v !== null && v !== undefined && String(v).trim() !== "");
+          if (colValues.length === 0) continue;
+
+          if (colValues.every(isEmail)) {
+            const isRecoveryCandidate = colValues.some(v => v.includes("recovery") || v.includes("kp") || v.includes("phuoccave"));
+            if (emailIdx === -1 && !isRecoveryCandidate) {
+              emailIdx = col;
+            } else if (recoveryIdx === -1) {
+              recoveryIdx = col;
+            }
+          } else if (colValues.every(isUrl)) {
+            if (phoneLinkIdx === -1) phoneLinkIdx = col;
+          } else if (colValues.every(isTwoFA) && colValues[0].length >= 16) {
+            if (twoFAIdx === -1) twoFAIdx = col;
+          } else if (colValues.every(isPhone)) {
+            if (phoneIdx === -1) phoneIdx = col;
+          } else if (passwordIdx === -1 && colValues.every(v => typeof v === "string" && v.length >= 4 && !v.includes("@") && !v.includes("http"))) {
+            passwordIdx = col;
+          }
+        }
+
+        // Fallbacks
+        if (emailIdx === -1) {
+          for (let col = 0; col < maxCols; col++) {
+            if (sampleRows.some(r => isEmail(r[col]))) {
+              emailIdx = col;
+              break;
+            }
+          }
+        }
+        if (passwordIdx === -1 && emailIdx !== -1) {
+          if (emailIdx + 1 < maxCols) passwordIdx = emailIdx + 1;
+        }
+
+        const importedMails: any[] = [];
+        for (let i = dataStartIdx; i < rows.length; i++) {
+          const row = rows[i];
+          const email = emailIdx !== -1 && emailIdx < row.length ? String(row[emailIdx] || "").trim() : "";
+          if (!email || !email.includes("@")) continue;
+
+          const password = passwordIdx !== -1 && passwordIdx < row.length ? String(row[passwordIdx] || "").trim() : "123456";
+          const recovery = recoveryIdx !== -1 && recoveryIdx < row.length ? String(row[recoveryIdx] || "").trim() : "";
+          const twoFA = twoFAIdx !== -1 && twoFAIdx < row.length ? String(row[twoFAIdx] || "").trim() : "";
+          const phone = phoneIdx !== -1 && phoneIdx < row.length ? String(row[phoneIdx] || "").trim() : "";
+          const phoneLink = phoneLinkIdx !== -1 && phoneLinkIdx < row.length ? String(row[phoneLinkIdx] || "").trim() : "";
+
+          importedMails.push({
+            email,
+            password,
+            recovery,
+            twoFA,
+            phone,
+            phoneLink,
+            type: activeTab,
+            verificationStatus: "Chưa check",
+            workStatus: activeTab === "ROOT" ? "Đang xử lý" : (activeTab === "MONETIZED" ? "Chưa bán" : "Chưa làm"),
+            stt: importedMails.length + 1
+          });
+        }
 
         if (importedMails.length === 0) {
           triggerToast("File Excel không hợp lệ hoặc trống!");
