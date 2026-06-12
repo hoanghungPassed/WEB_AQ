@@ -27,7 +27,8 @@ import {
   Calendar,
   User as UserIcon,
   Loader2,
-  FileText
+  FileText,
+  Copy
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import useSWR from "swr";
@@ -36,6 +37,7 @@ import { MailData } from "@/types/admin";
 import MailDetailModal from "@/components/admin/MailDetailModal";
 import { ImportHistoryModal, ImportHistoryItem } from "@/components/admin/modals/ImportHistoryModal";
 import BatchNameModal from "@/components/admin/modals/BatchNameModal";
+import TOTPDisplay from "@/components/admin/TOTPDisplay";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -100,11 +102,20 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
     setTimeout(() => setNotification(null), 3000);
   };
 
+  const handleCopy = (text: string, label: string) => {
+    if (!text) return;
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      triggerToast(`Đã sao chép ${label}: ${text}`);
+    }
+  };
+
   const filteredMails = useMemo(() => {
     return mails.filter((mail) => {
+      const recoveryVal = mail.recoveryMail || mail.recovery || "";
       const matchesSearch =
         mail.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        mail.recovery.toLowerCase().includes(searchQuery.toLowerCase());
+        recoveryVal.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesBatch = !selectedBatch || mail.batchName === selectedBatch;
       const matchesStatus = statusFilter === "ALL" || mail.verificationStatus === statusFilter;
       return matchesSearch && matchesBatch && matchesStatus;
@@ -529,70 +540,168 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
                   </div>
                 </motion.div>
               ))}
-              {batchStats.length === 0 && (
-                <div className="col-span-full py-32 flex flex-col items-center justify-center text-center opacity-20">
-                  <Mail size={80} className="mb-4" />
-                  <p className="text-2xl font-black uppercase tracking-widest">Chưa có đợt nạp nào</p>
-                </div>
-              )}
             </div>
           </div>
         ) : (
           /* MAIL LIST VIEW */
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="flex-1 overflow-auto custom-scrollbar">
-              <table className="w-full text-left border-collapse min-w-[1000px]">
+          <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
+            <div className="flex-1 min-h-0 overflow-auto">
+              <table className="w-full text-left border-collapse min-w-[1200px]">
                 <thead className="sticky top-0 bg-[#0a0a0a] z-20 shadow-xl">
                   <tr className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] border-b border-white/5">
                     <th className="px-8 py-5">STT</th>
                     <th className="px-6 py-5">Email</th>
-                    <th className="px-6 py-5">Mật khẩu / Recovery</th>
+                    <th className="px-6 py-5">Mật khẩu</th>
+                    <th className="px-6 py-5">Mail KP</th>
+                    <th className="px-6 py-5">Mã 2FA</th>
+                    <th className="px-6 py-5">Số điện thoại</th>
+                    <th className="px-6 py-5">Link OTP</th>
                     <th className="px-6 py-5">Trạng thái</th>
                     <th className="px-6 py-5">Người gán</th>
                     <th className="px-8 py-5 text-right">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {paginatedMails.map((mail, idx) => (
-                    <tr key={mail.id} className="group hover:bg-white/5 transition-all">
-                      <td className="px-8 py-4 text-xs font-black text-gray-500">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-black text-white group-hover:text-gold transition-colors">{mail.email}</p>
-                        <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mt-0.5">{mail.batchName}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-xs font-mono text-gray-400">{mail.password}</p>
-                        <p className="text-[10px] text-gray-600 mt-1">{mail.recovery}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
-                          mail.verificationStatus === "Đã xanh" ? "bg-green-500/10 text-green-500 border-green-500/20" :
-                          mail.verificationStatus === "Lỗi" ? "bg-red-500/10 text-red-500 border-red-500/20" :
-                          "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-                        }`}>
-                          {mail.verificationStatus}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className={`h-6 w-6 rounded-md bg-white/5 flex items-center justify-center text-[10px] font-black ${mail.assigneeName ? "text-gold" : "text-gray-600"}`}>
-                            {mail.assigneeName ? mail.assigneeName.charAt(0) : "?"}
+                  {paginatedMails.map((mail, idx) => {
+                    const passwordVal = mail.password || mail.pass || "";
+                    const recoveryVal = mail.recoveryMail || mail.recovery || "";
+                    const twoFAVal = mail.twoFA || "";
+                    const phoneVal = mail.phone || "";
+                    const phoneLinkVal = mail.phoneLink || mail.otpLink || "";
+
+                    return (
+                      <tr key={mail.id} className="group hover:bg-white/5 transition-all">
+                        <td className="px-8 py-4 text-xs font-black text-gray-500">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
+                        <td className="px-6 py-4">
+                          <div 
+                            onClick={() => handleCopy(mail.email, "email")}
+                            className="cursor-pointer border-b border-dashed border-zinc-700/50 hover:border-gold hover:text-gold transition-all w-max max-w-[220px] truncate"
+                            title="Bấm để sao chép Email"
+                          >
+                            <p className="text-sm font-black text-white group-hover:text-gold transition-colors">{mail.email}</p>
                           </div>
-                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
-                            {mail.assigneeName || "Sẵn sàng"}
+                          <div 
+                            onClick={() => handleCopy(mail.batchName || "", "tên lô")}
+                            className="cursor-pointer border-b border-dashed border-transparent hover:border-zinc-500/50 hover:text-zinc-400 transition-all w-max max-w-[150px] truncate mt-0.5"
+                            title="Bấm để sao chép tên lô"
+                          >
+                            <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">{mail.batchName}</p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {passwordVal ? (
+                            <div 
+                              onClick={() => handleCopy(passwordVal, "mật khẩu")}
+                              className="cursor-pointer border-b border-dashed border-zinc-700/50 hover:border-gold hover:text-gold transition-all font-mono text-xs text-zinc-300 w-max"
+                              title="Bấm để sao chép mật khẩu"
+                            >
+                              {passwordVal}
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-zinc-600 italic">---</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {recoveryVal ? (
+                            <div 
+                              onClick={() => handleCopy(recoveryVal, "mail khôi phục")}
+                              className="cursor-pointer border-b border-dashed border-zinc-700/50 hover:border-gold hover:text-gold transition-all text-xs text-zinc-300 w-max"
+                              title="Bấm để sao chép mail khôi phục"
+                            >
+                              {recoveryVal}
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-zinc-600 italic">---</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-1">
+                            {twoFAVal ? (
+                              <>
+                                <div className="w-max">
+                                  <TOTPDisplay secret={twoFAVal} compact={true} onCopy={handleCopy} />
+                                </div>
+                                <div 
+                                  onClick={() => handleCopy(twoFAVal, "mã secret 2FA")}
+                                  className="cursor-pointer border-b border-dashed border-zinc-800/50 hover:border-gold hover:text-gold transition-all font-mono text-[10px] text-gray-600 w-max max-w-[120px] truncate"
+                                  title="Bấm để sao chép mã secret 2FA"
+                                >
+                                  {twoFAVal}
+                                </div>
+                              </>
+                            ) : (
+                              <span className="text-[10px] text-zinc-600 italic">---</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {phoneVal ? (
+                            <div 
+                              onClick={() => handleCopy(phoneVal, "SĐT")}
+                              className="cursor-pointer border-b border-dashed border-zinc-700/50 hover:border-gold hover:text-gold transition-all font-mono text-xs text-zinc-300 w-max"
+                              title="Bấm để sao chép SĐT"
+                            >
+                              {phoneVal}
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-zinc-600 italic">---</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {phoneLinkVal ? (
+                            <div className="flex items-center gap-2 w-max">
+                              <div 
+                                onClick={() => handleCopy(phoneLinkVal, "link OTP")}
+                                className="cursor-pointer border-b border-dashed border-zinc-700/50 hover:border-gold hover:text-gold transition-all text-xs text-zinc-300 truncate max-w-[180px]"
+                                title="Bấm để sao chép link OTP"
+                              >
+                                {phoneLinkVal}
+                              </div>
+                              <a 
+                                href={phoneLinkVal} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-zinc-500 hover:text-gold p-1 bg-white/5 rounded-md hover:bg-white/10 transition-all flex items-center justify-center shrink-0"
+                                title="Mở link OTP trong tab mới"
+                              >
+                                <ExternalLink size={12} />
+                              </a>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-zinc-600 italic">---</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+                            mail.verificationStatus === "Đã xanh" ? "bg-green-500/10 text-green-500 border-green-500/20" :
+                            mail.verificationStatus === "Lỗi" ? "bg-red-500/10 text-red-500 border-red-500/20" :
+                            "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                          }`}>
+                            {mail.verificationStatus}
                           </span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-4 text-right">
-                        <button 
-                          onClick={() => setSelectedMail(mail)}
-                          className="h-9 px-4 bg-white/5 hover:bg-gold text-white hover:text-sidebar rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-                        >
-                          Cấu hình
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <div className={`h-6 w-6 rounded-md bg-white/5 flex items-center justify-center text-[10px] font-black ${mail.assigneeName ? "text-gold" : "text-gray-600"}`}>
+                              {mail.assigneeName ? mail.assigneeName.charAt(0) : "?"}
+                            </div>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+                              {mail.assigneeName || "Sẵn sàng"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-4 text-right">
+                          <button 
+                            onClick={() => setSelectedMail(mail)}
+                            className="h-9 px-4 bg-white/5 hover:bg-gold text-white hover:text-sidebar rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                          >
+                            Cấu hình
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

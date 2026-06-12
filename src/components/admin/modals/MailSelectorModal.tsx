@@ -28,7 +28,7 @@ export const MailSelectorModal = ({
     (m.workStatus === "Chưa làm" || !m.workStatus) &&
     (!modalSearchQuery || 
       m.email.toLowerCase().includes(modalSearchQuery.toLowerCase()) || 
-      m.recovery?.toLowerCase().includes(modalSearchQuery.toLowerCase()))
+      (m.recoveryMail || m.recovery || "")?.toLowerCase().includes(modalSearchQuery.toLowerCase()))
   );
 
   const allSelected = availableMails.length > 0 && availableMails.every((m) => selectedMailIds.includes(m.id));
@@ -138,7 +138,7 @@ export const MailSelectorModal = ({
                     {mail.id}
                   </td>
                   <td className="py-3 px-6 font-bold text-white cursor-pointer" onClick={() => handleToggleRow(mail.id)}>{mail.email}</td>
-                  <td className="py-3 px-6 text-sm text-gray-400 font-mono">{mail.recovery}</td>
+                  <td className="py-3 px-6 text-sm text-gray-400 font-mono">{mail.recoveryMail || mail.recovery}</td>
                   <td className="py-3 px-6 text-center">
                     <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-green-500/10 text-green-500 border border-green-500/20">
                       {mail.verificationStatus}
