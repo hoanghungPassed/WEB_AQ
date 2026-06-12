@@ -123,6 +123,13 @@ export default function TaskManagementPage() {
   const [modalSearchQuery, setModalSearchQuery] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Worksheet states for staff
+  const [taskMailsList, setTaskMailsList] = useState<MailData[]>([]);
+  const [loadingTaskMails, setLoadingTaskMails] = useState<boolean>(false);
+  const [mailLinksState, setMailLinksState] = useState<Record<string, string[]>>({});
+  const [savingMailId, setSavingMailId] = useState<string | null>(null);
+  const [completingTask, setCompletingTask] = useState<boolean>(false);
+
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
@@ -354,8 +361,54 @@ export default function TaskManagementPage() {
 
   const selectedTask = useMemo(() => tasks.find((t: TaskAssignment) => t.id === selectedTaskId), [selectedTaskId, tasks]);
 
+  // Load task mails dynamically for selected task
+  useEffect(() => {
+    if (!selectedTaskId || !selectedTask) {
+      setTaskMailsList([]);
+      return;
+    }
+
+    const fetchTaskMails = async () => {
+      setLoadingTaskMails(true);
+      try {
+        const batchVal = (selectedTask as any).batch || (selectedTask as any).batchName || "";
+        const url = `/api/admin/mails?batch=${encodeURIComponent(batchVal)}&all=true`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const resData = await res.json();
+          if (resData.success && resData.data) {
+            setTaskMailsList(resData.data);
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi fetch task mails:", err);
+      } finally {
+        setLoadingTaskMails(false);
+      }
+    };
+
+    fetchTaskMails();
+  }, [selectedTaskId, selectedTask]);
+
+  // Map link states when task mails load
+  useEffect(() => {
+    const initialState: Record<string, string[]> = {};
+    taskMailsList.forEach((mail: any) => {
+      const mailId = mail._id || mail.id;
+      initialState[mailId] = [
+        mail.links?.[0] || "",
+        mail.links?.[1] || "",
+        mail.links?.[2] || ""
+      ];
+    });
+    setMailLinksState(initialState);
+  }, [taskMailsList]);
+
   const taskMails: MailData[] = useMemo(() => {
     if (!selectedTask) return [];
+    if (isStaff) {
+      return taskMailsList;
+    }
     
     let mailType = "ROOT";
     if (selectedTask.type === "MAIL_VE_TINH") mailType = "SATELLITE";
@@ -405,6 +458,93 @@ export default function TaskManagementPage() {
     setTimeout(() => setNotification(null), 3000);
     window.dispatchEvent(new Event("storage"));
   }, []);
+
+  const handleLinkChange = (mailId: string, index: number, value: string) => {
+    setMailLinksState(prev => {
+      const current = prev[mailId] ? [...prev[mailId]] : ["", "", ""];
+      current[index] = value;
+      return { ...prev, [mailId]: current };
+    });
+  };
+
+  const handleSaveMailLinks = async (mail: any) => {
+    const mailId = mail._id || mail.id;
+    const links = mailLinksState[mailId] || ["", "", ""];
+
+    setSavingMailId(mailId);
+    try {
+      const res = await fetch(`/api/admin/mails/${mailId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          links: links.map(l => l.trim()),
+          status: "USED",
+          workStatus: "Đã làm"
+        })
+      });
+
+      if (res.ok) {
+        setNotification(`Đã lưu báo cáo cho mail ${mail.email} thành công!`);
+        setTimeout(() => setNotification(null), 3000);
+        // Refresh local task mails list
+        setTaskMailsList(prev => prev.map((m: any) => {
+          const mId = m._id || m.id;
+          if (mId === mailId) {
+            return { ...m, links, status: "USED", workStatus: "Đã làm" };
+          }
+          return m;
+        }));
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "Lưu thất bại!");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi kết nối máy chủ khi lưu mail!");
+    } finally {
+      setSavingMailId(null);
+    }
+  };
+
+  const isTaskCompleteEligible = useMemo(() => {
+    if (!isStaff || taskMailsList.length === 0) return false;
+    return taskMailsList.every((mail: any) => {
+      const hasLinks = mail.links && 
+        mail.links[0]?.trim() !== "" && 
+        mail.links[1]?.trim() !== "" && 
+        mail.links[2]?.trim() !== "";
+      return (mail.workStatus === "Đã làm" || mail.status === "USED") && hasLinks;
+    });
+  }, [taskMailsList, isStaff]);
+
+  const handleCompleteTask = async () => {
+    if (!selectedTaskId || !selectedTask) return;
+    setCompletingTask(true);
+    try {
+      const res = await fetch(`/api/admin/tasks/${selectedTaskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "COMPLETED"
+        })
+      });
+
+      if (res.ok) {
+        setNotification("Chúc mừng! Bạn đã hoàn thành nhiệm vụ xuất sắc!");
+        setTimeout(() => setNotification(null), 4000);
+        setSelectedTaskId(null); // Go back to task list
+        loadData(); // Reload tasks
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "Cập nhật trạng thái nhiệm vụ thất bại!");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi kết nối máy chủ khi hoàn thành nhiệm vụ!");
+    } finally {
+      setCompletingTask(false);
+    }
+  };
 
   const handleCustomAssignmentSubmit = useCallback(() => {
     if (!targetStaffId) {
@@ -916,6 +1056,68 @@ export default function TaskManagementPage() {
                   </div>
                 </div>
               </motion.div>
+            ) : isStaff ? (
+              <motion.div key="staff-table" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1 bg-zinc-950/10 border border-white/5 rounded-[32px] overflow-hidden flex flex-col shadow-2xl">
+                <div className="flex-1 overflow-auto custom-scrollbar">
+                  <table className="w-full text-left min-w-[800px]">
+                    <thead className="sticky top-0 bg-[#0d0d0d] z-30 shadow-xl">
+                      <tr className="border-b border-white/5 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
+                        <th className="px-8 py-5">Tên công việc</th>
+                        <th className="px-6 py-5">Lô mail được giao</th>
+                        <th className="px-6 py-5 text-center">Trạng thái</th>
+                        <th className="px-6 py-5 text-center">Ngày giao</th>
+                        <th className="px-8 py-5 text-right">Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {filteredTasks.length > 0 ? (
+                        filteredTasks.map((task: TaskAssignment) => {
+                          const dateStr = (task as any).createdAt || (task as any).assignedAt ? new Date((task as any).createdAt || (task as any).assignedAt).toLocaleDateString("vi-VN") : "---";
+                          const batchName = (task as any).batch || (task as any).batchName || (task as any).mailRange || "---";
+                          return (
+                            <tr key={task.id} className="group hover:bg-zinc-800/30 bg-zinc-900/[0.01] transition-all">
+                              <td className="px-8 py-5">
+                                <span className="text-base font-black text-white uppercase tracking-tight group-hover:text-gold transition-all">{task.title}</span>
+                              </td>
+                              <td className="px-6 py-5 text-zinc-300 font-bold">
+                                {batchName}
+                              </td>
+                              <td className="px-6 py-5 text-center">
+                                <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
+                                  task.status === "COMPLETED"
+                                    ? "bg-green-500/10 text-green-500 border-green-500/20"
+                                    : task.status === "IN_PROGRESS"
+                                    ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                                    : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                                }`}>
+                                  {task.status === "COMPLETED" ? "Hoàn thành" : task.status === "IN_PROGRESS" ? "Đang làm" : "Đang chờ"}
+                                </span>
+                              </td>
+                              <td className="px-6 py-5 text-center text-sm text-gray-400 font-medium">
+                                {dateStr}
+                              </td>
+                              <td className="px-8 py-5 text-right">
+                                <button
+                                  onClick={() => setSelectedTaskId(task.id)}
+                                  className="h-10 px-5 bg-gold/15 text-gold hover:bg-gold hover:text-sidebar rounded-xl text-[10px] font-black uppercase tracking-widest transition-all inline-flex items-center gap-2"
+                                >
+                                  ▶️ Bắt đầu làm
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="px-8 py-20 text-center text-gray-500 font-bold uppercase tracking-widest">
+                            Không có nhiệm vụ được giao
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </motion.div>
             ) : (
               <motion.div key="staff-grid" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1 overflow-y-auto custom-scrollbar pr-2">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pb-10">
@@ -953,7 +1155,26 @@ export default function TaskManagementPage() {
                 </div>
                 
                 <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-                  {!isAdminOrManager && (
+                  {isStaff && isTaskCompleteEligible && selectedTask?.status !== "COMPLETED" && (
+                    <button 
+                      onClick={handleCompleteTask}
+                      disabled={completingTask}
+                      className="h-14 px-8 bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 rounded-2xl flex items-center justify-center gap-2 font-black text-sm uppercase tracking-wider transition-all shadow-lg shadow-green-500/20 animate-pulse disabled:opacity-50"
+                    >
+                      {completingTask ? <Loader2 className="animate-spin" size={18} /> : "🎯 Hoàn thành Nhiệm Vụ"}
+                    </button>
+                  )}
+
+                  {isStaff && selectedTask?.status === "PENDING" && (
+                    <button 
+                      onClick={() => updateTaskStatus("IN_PROGRESS")}
+                      className="h-14 px-6 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-2xl flex items-center justify-center font-black text-[10px] uppercase tracking-widest hover:bg-blue-500/30 transition-all"
+                    >
+                      Báo: Đang xử lý
+                    </button>
+                  )}
+                  
+                  {!isAdminOrManager && !isStaff && (
                     <>
                       <button 
                         onClick={() => updateTaskStatus("IN_PROGRESS")}
@@ -984,16 +1205,109 @@ export default function TaskManagementPage() {
                   <div className="w-full overflow-x-auto custom-scrollbar">
                     <table className="w-full text-left min-w-[900px]">
                       <thead className="sticky top-0 bg-[#0d0d0d] z-30 shadow-xl">
-                        <tr className="border-b border-white/0 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
-                          <th className="px-10 py-3 whitespace-nowrap">STT</th>
-                          <th className="px-6 py-3 whitespace-nowrap">Email / Thông tin</th>
-                          <th className="px-6 py-3 text-center whitespace-nowrap">Người thực hiện</th>
-                          <th className="px-6 py-3 text-center whitespace-nowrap">Trạng thái</th>
-                          <th className="px-10 py-3 text-right whitespace-nowrap">Hành động</th>
-                        </tr>
+                        {isStaff ? (
+                          <tr className="border-b border-white/5 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
+                            <th className="px-10 py-3 whitespace-nowrap">STT</th>
+                            <th className="px-6 py-3 whitespace-nowrap">Email Vệ Tinh</th>
+                            <th className="px-6 py-3 text-center whitespace-nowrap">Trạng thái Mail</th>
+                            <th className="px-6 py-3 whitespace-nowrap">Link Kênh 1</th>
+                            <th className="px-6 py-3 whitespace-nowrap">Link Kênh 2</th>
+                            <th className="px-6 py-3 whitespace-nowrap">Link Kênh 3</th>
+                            <th className="px-10 py-3 text-right whitespace-nowrap">Hành động</th>
+                          </tr>
+                        ) : (
+                          <tr className="border-b border-white/0 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
+                            <th className="px-10 py-3 whitespace-nowrap">STT</th>
+                            <th className="px-6 py-3 whitespace-nowrap">Email / Thông tin</th>
+                            <th className="px-6 py-3 text-center whitespace-nowrap">Người thực hiện</th>
+                            <th className="px-6 py-3 text-center whitespace-nowrap">Trạng thái</th>
+                            <th className="px-10 py-3 text-right whitespace-nowrap">Hành động</th>
+                          </tr>
+                        )}
                       </thead>
                       <tbody className="divide-y divide-white/5">
-                        {taskMails.length > 0 ? (
+                        {isStaff ? (
+                          taskMails.length > 0 ? (
+                            taskMails.map((mail: MailData, i: number) => {
+                              const mailId = String(mail._id || mail.id);
+                              const links = mailLinksState[mailId] || ["", "", ""];
+                              const isMailCompleted = (mail.workStatus === "Đã làm" || (mail as any).status === "USED") && 
+                                links[0]?.trim() !== "" && 
+                                links[1]?.trim() !== "" && 
+                                links[2]?.trim() !== "";
+
+                              return (
+                                <tr key={`mail-${mailId}`} className="group hover:bg-zinc-800/50 bg-zinc-900/[0.02] transition-all">
+                                  <td className="py-3 px-10 text-[10px] font-black whitespace-nowrap">{i + 1}</td>
+                                  <td className="py-3 px-6 whitespace-nowrap">
+                                    <p className="text-sm font-bold text-white transition-colors whitespace-nowrap">{mail.email}</p>
+                                  </td>
+                                  <td className="py-3 px-6 text-center whitespace-nowrap">
+                                    <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border whitespace-nowrap ${
+                                      isMailCompleted
+                                      ? "bg-green-500/10 text-green-500 border-green-500/20" 
+                                      : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                                    }`}>
+                                      {isMailCompleted ? "Đã làm" : "Chưa làm"}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-6 whitespace-nowrap">
+                                    <input
+                                      type="text"
+                                      placeholder="Nhập Link Kênh 1"
+                                      value={links[0] || ""}
+                                      onChange={(e) => handleLinkChange(mailId, 0, e.target.value)}
+                                      className="h-10 bg-white/5 border border-white/5 rounded-xl px-4 text-xs text-white outline-none focus:border-gold/50 transition-all w-48"
+                                    />
+                                  </td>
+                                  <td className="py-3 px-6 whitespace-nowrap">
+                                    <input
+                                      type="text"
+                                      placeholder="Nhập Link Kênh 2"
+                                      value={links[1] || ""}
+                                      onChange={(e) => handleLinkChange(mailId, 1, e.target.value)}
+                                      className="h-10 bg-white/5 border border-white/5 rounded-xl px-4 text-xs text-white outline-none focus:border-gold/50 transition-all w-48"
+                                    />
+                                  </td>
+                                  <td className="py-3 px-6 whitespace-nowrap">
+                                    <input
+                                      type="text"
+                                      placeholder="Nhập Link Kênh 3"
+                                      value={links[2] || ""}
+                                      onChange={(e) => handleLinkChange(mailId, 2, e.target.value)}
+                                      className="h-10 bg-white/5 border border-white/5 rounded-xl px-4 text-xs text-white outline-none focus:border-gold/50 transition-all w-48"
+                                    />
+                                  </td>
+                                  <td className="py-3 px-10 text-right whitespace-nowrap">
+                                    <button 
+                                      onClick={() => handleSaveMailLinks(mail)} 
+                                      disabled={savingMailId === mailId}
+                                      className="h-9 px-4 bg-gold/10 text-gold hover:bg-gold hover:text-sidebar rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/0 transition-all flex items-center gap-1.5 float-right whitespace-nowrap disabled:opacity-50"
+                                    >
+                                      {savingMailId === mailId ? <Loader2 className="animate-spin" size={12} /> : "💾"} Lưu
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          ) : (
+                            <tr>
+                              <td colSpan={7} className="px-10 py-20 text-center">
+                                {loadingTaskMails ? (
+                                  <div className="flex flex-col items-center gap-4 opacity-50">
+                                    <Loader2 className="animate-spin text-gold" size={40} />
+                                    <p className="text-sm font-black uppercase tracking-[0.2em]">Đang tải danh sách mail...</p>
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col items-center gap-4 opacity-20">
+                                    <Mail size={60} className="text-gold" />
+                                    <p className="text-xl font-black uppercase tracking-[0.2em] text-white">Chưa có dữ liệu Lô mail</p>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        ) : taskMails.length > 0 ? (
                           taskMails.map((mail: MailData, i: number) => {
                             const rowPadding = !isAdminOrManager ? "py-1 px-6" : "py-2.5 px-6";
                             const textSize = !isAdminOrManager ? "text-sm" : "text-base";

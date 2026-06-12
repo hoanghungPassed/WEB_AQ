@@ -166,8 +166,6 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // 3. KIỂM TRA PHÂN QUYỀN API CHO NHÂN VIÊN
-    // BẮT BUỘC whitelist các API cần thiết cho role 03, 04, 05: /api/auth/me, /api/admin/tasks, /api/admin/attendance, /api/admin/notifications, /api/messages
     if (isApiCall && isStaff) {
       const isAllowedEndpoint = 
         pathname.startsWith("/api/auth/me") ||
@@ -180,6 +178,7 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith("/api/admin/fines") ||
         pathname.startsWith("/api/admin/2fa/setup") ||
         pathname.startsWith("/api/admin/2fa/verify") ||
+        pathname.startsWith("/api/admin/mails") ||
         (pathname.startsWith("/api/admin/settings") && method === "GET") ||
         (pathname.startsWith("/api/admin/users") && method === "GET");
 

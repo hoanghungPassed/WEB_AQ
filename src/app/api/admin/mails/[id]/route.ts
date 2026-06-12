@@ -19,23 +19,35 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
   }
 
-  const hasPermission = await checkPermission(userRole || "", 4, ["all", "tasks", "staff"]);
-  if (!hasPermission) {
-    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_UPDATE_MAIL", "mails", {}, req);
-    return NextResponse.json({ error: "Không có quyền cập nhật mail" }, { status: 403 });
+  await dbConnect();
+  const { id } = await params;
+
+  let mail = await RootMail.findById(id);
+  if (!mail) mail = await SatelliteMail.findById(id);
+  if (!mail) mail = await MonetizedMail.findById(id);
+
+  if (!mail) {
+    return NextResponse.json({ success: false, error: "Mail không tồn tại" }, { status: 404 });
   }
 
- await dbConnect();
- const body = await req.json();
- const { id } = await params;
- 
- let mail = await RootMail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
- if (!mail) {
- mail = await SatelliteMail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
- }
- if (!mail) {
- mail = await MonetizedMail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
- }
+  const hasPermission = await checkPermission(userRole || "", 4, ["all", "tasks", "staff"]);
+  if (!hasPermission) {
+    const isAssignedToUser = String(mail.assigneeId) === String(userId) || String(mail.assignee) === String(userId);
+    if (!isAssignedToUser) {
+      await logAuditTrail(userId || "unknown", "UNAUTHORIZED_UPDATE_MAIL", "mails", {}, req);
+      return NextResponse.json({ error: "Bạn không có quyền cập nhật mail này" }, { status: 403 });
+    }
+  }
+
+  const body = await req.json();
+  
+  mail = await RootMail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
+  if (!mail) {
+    mail = await SatelliteMail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
+  }
+  if (!mail) {
+    mail = await MonetizedMail.findByIdAndUpdate(id, body, { new: true, runValidators: true });
+  }
 
  if (!mail) {
  return NextResponse.json({ success: false, error:"Mail not found" }, { status: 404 });
