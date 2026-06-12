@@ -57,12 +57,12 @@ function LoginForm() {
   const [tempUserId, setTempUserId] = useState("");
 
   const [overtimeBypassFlag, setOvertimeBypassFlag] = useState(false);
-  const [showOvertimePopup, setShowOvertimePopup] = useState(false);
 
   const [isWaitingApproval, setIsWaitingApproval] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsClient(true);
   }, []);
 
@@ -70,12 +70,12 @@ function LoginForm() {
     if (!isClient) return;
     const msg = searchParams.get("message");
     if (msg === "pending") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessage("Đăng ký thành công! Vui lòng chờ Admin phê duyệt tài khoản.");
     }
     const err = searchParams.get("error");
     if (err === "system_closed") {
       setError("Hệ thống đã đóng cửa làm việc. Bạn cần đồng ý nộp phạt 50.000 VNĐ để tiếp tục đăng nhập ngoài giờ.");
-      setShowOvertimePopup(true);
     } else if (err === "2fa_required") {
       setError("Bạn cần hoàn tất xác thực 2FA để tiếp tục.");
     }
@@ -142,7 +142,7 @@ function LoginForm() {
           }
         } else {
           if (data.error === "system_closed_fine_required") {
-            setShowOvertimePopup(true);
+            setError("Hệ thống đã đóng cửa làm việc. Bạn cần đồng ý nộp phạt 50.000 VNĐ để tiếp tục đăng nhập ngoài giờ.");
           }
           if (data.error && data.error.includes("chờ duyệt")) {
             setIsWaitingApproval(true);
@@ -187,7 +187,7 @@ function LoginForm() {
               setIsWaitingApproval(false);
               setError("Tự động đăng nhập thất bại sau khi duyệt");
             }
-          } catch (loginErr) {
+          } catch (_) {
             setIsWaitingApproval(false);
             setError("Lỗi kết nối khi tự động đăng nhập");
           }

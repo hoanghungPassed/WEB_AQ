@@ -55,10 +55,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       message: "Đổi mật khẩu thành công",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("Change password error:", error);
     return NextResponse.json(
-      { error: "Lỗi máy chủ: " + error.message },
+      { error: "Lỗi máy chủ: " + errorMessage },
       { status: 500 }
     );
   }

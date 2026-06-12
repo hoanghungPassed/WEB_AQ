@@ -9,13 +9,9 @@ import {
  CheckCircle2,
  DollarSign,
  Search,
- Filter,
  Download,
  Calendar,
- User,
- Zap,
- TrendingUp,
- MoreVertical
+ User
 } from"lucide-react";
 import { motion, AnimatePresence } from"framer-motion";
 import { useRouter } from"next/navigation";
@@ -23,7 +19,6 @@ import { FineReport } from"@/types/admin";
 
 export default function FinesReportPage() {
  const router = useRouter();
- const [user, setUser] = useState<any>(null);
  const [fineReports, setFineReports] = useState<FineReport[]>([]);
  const [searchQuery, setSearchQuery] = useState("");
  const [filterStatus, setFilterStatus] = useState<"ALL" |"PENDING" |"PAID" |"OVERDUE">("ALL");
@@ -31,10 +26,9 @@ export default function FinesReportPage() {
 
  useEffect(() => {
  const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
- if (storedUser) {
- setUser(JSON.parse(storedUser));
- } else {
+ if (!storedUser) {
  window.location.href ="/login";
+ return;
  }
 
  const fetchFines = async () => {
@@ -122,7 +116,7 @@ export default function FinesReportPage() {
  const errData = await res.json().catch(() => ({}));
  triggerToast(errData.error ||"Lỗi cập nhật!");
  }
- } catch (err) {
+ } catch (_) {
  triggerToast("Lỗi khi cập nhật trạng thái");
  }
  };
@@ -139,7 +133,7 @@ export default function FinesReportPage() {
  const errData = await res.json().catch(() => ({}));
  triggerToast(errData.error ||"Lỗi xóa báo cáo!");
  }
- } catch (err) {
+ } catch (_) {
  triggerToast("Lỗi khi xóa báo cáo");
  }
  };

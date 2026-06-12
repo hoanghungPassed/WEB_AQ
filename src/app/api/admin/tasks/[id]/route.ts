@@ -70,13 +70,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     // --- BẮT ĐẦU KIỂM TRA ĐIỀU KIỆN HOÀN THÀNH (SERVER-SIDE VALIDATION) ---
     if (body.status === 'COMPLETED' && oldTask.status !== 'COMPLETED') {
       // Race Condition Protection: Only allow completing if it's currently PENDING or IN_PROGRESS
-      if (oldTask.status === 'FAILED' || oldTask.status === 'CANCELLED') {
+      if ((oldTask.status as string) === 'FAILED' || (oldTask.status as string) === 'CANCELLED') {
         return NextResponse.json({ error: "Task này đã bị hủy hoặc thu hồi trước đó." }, { status: 400 });
       }
 
       const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
       
-      if (oldTask.type === 'MAIL_VE_TINH' || oldTask.type === 'SATELLITE') {
+      if ((oldTask.type as string) === 'MAIL_VE_TINH' || (oldTask.type as string) === 'SATELLITE') {
         let MailModel: any;
         try {
           MailModel = (await import('@/models/SatelliteMail')).SatelliteMail;
@@ -97,9 +97,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         }
 
         if (mailsToCheck.length > 0) {
-          const incompleteMails = mailsToCheck.filter(m => {
+          const incompleteMails = mailsToCheck.filter((m: any) => {
             const links = m.links || [];
-            const validLinks = links.filter(l => typeof l === 'string' && l.trim() !== "");
+            const validLinks = links.filter((l: any) => typeof l === 'string' && l.trim() !== "");
             return validLinks.length < 3;
           });
 
@@ -109,8 +109,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             }, { status: 400 });
           }
 
-          const hasInvalidLinks = mailsToCheck.some(m => 
-            (m.links || []).some(l => l && l.trim() !== "" && !youtubeRegex.test(l))
+          const hasInvalidLinks = mailsToCheck.some((m: any) => 
+            (m.links || []).some((l: any) => l && l.trim() !== "" && !youtubeRegex.test(l))
           );
           if (hasInvalidLinks) {
             return NextResponse.json({ 

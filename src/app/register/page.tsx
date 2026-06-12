@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, User, Mail, Loader2, ArrowLeft, Phone, Calendar, MapPin, UserCheck, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { Lock, User, Loader2, ArrowLeft, Phone, Calendar, MapPin, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import Pusher from "pusher-js";
@@ -23,12 +23,12 @@ export default function RegisterPage() {
  });
  const [errors, setErrors] = useState<Record<string, string>>({});
  const [isLoading, setIsLoading] = useState(false);
- const [success, setSuccess] = useState(false);
  const [isWaitingApproval, setIsWaitingApproval] = useState(false);
  const [approvalStatus, setApprovalStatus] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
  const [isUsernameDuplicate, setIsUsernameDuplicate] = useState(false);
 
  useEffect(() => {
+   // eslint-disable-next-line react-hooks/set-state-in-effect
    setIsClient(true);
  }, []);
 
@@ -140,7 +140,6 @@ export default function RegisterPage() {
  setIsLoading(true);
 
   // 1. Gọi API đăng ký lưu vào MongoDB
-  let createdUserOnServer: any = null;
   try {
     const regRes = await fetch("/api/auth/register", {
       method: "POST",
@@ -153,7 +152,6 @@ export default function RegisterPage() {
       setIsLoading(false);
       return;
     }
-    createdUserOnServer = regData.user;
   } catch (err: any) {
     console.error("Register API call failed:", err);
     setErrors({ username: "Không thể kết nối máy chủ" });
@@ -279,7 +277,7 @@ export default function RegisterPage() {
  <p className="mt-3 text-xs font-bold text-gray-500 uppercase tracking-[0.4em]">Hệ thống AQ MEDIA</p>
  </div>
 
- {success ? (
+ {isWaitingApproval ? (
  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-10 space-y-6">
  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[32px] bg-gold/20 text-gold mb-6 border border-white/0 animate-pulse">
  <Clock size={40} />

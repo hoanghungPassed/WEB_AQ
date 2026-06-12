@@ -214,8 +214,9 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ error: 'Vui lòng nhập mã xác thực hoặc mã dự phòng.' }, { status: 400 });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("2FA Login Error:", error);
-    return NextResponse.json({ error: 'Lỗi máy chủ khi xác thực 2FA: ' + error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Lỗi máy chủ khi xác thực 2FA: ' + errorMessage }, { status: 500 });
   }
 }

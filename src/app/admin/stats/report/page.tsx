@@ -187,6 +187,116 @@ export default function ReportsPage() {
    });
  };
 
+ const handleExportExcel = async () => {
+    try {
+      const res = await fetch(`/api/admin/stats/export?month=${selectedMonth}`);
+      if (!res.ok) {
+        triggerToast('Xuất Excel thất bại');
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `AQ_MEDIA_REPORT_${selectedMonth}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      triggerToast('Đã xuất file Excel!');
+    } catch (e) {
+      console.error(e);
+      triggerToast('Lỗi khi xuất Excel');
+    }
+ };
+
+ const stats = useMemo(() => {
+   const s = kpiData?.stats;
+   return {
+     total: s?.total || 0,
+     roots: s?.rootCount || 0,
+     satellites: s?.satelliteCount || 0,
+     monetized: s?.monetizedCount || 0,
+     totalDone: s?.totalDone || 0,
+     completionRate: s?.total > 0 ? ((s.totalDone / s.total) * 100).toFixed(1) : "0.0",
+     liveRatio: s?.total > 0 ? (((s.total - s.dieMails) / s.total) * 100).toFixed(1) : "0.0",
+     dieMails: s?.dieMails || 0,
+     totalEligibleChannels: s?.totalEligibleChannels || 0
+   };
+ }, [kpiData]);
+
+  const monthlyCumulativeData = useMemo(() => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const dailyCounts = Array(daysInMonth).fill(0);
+    
+    (kpiData?.dailyStats || []).forEach((ds: any) => {
+      if (ds._id >= 1 && ds._id <= daysInMonth) {
+        dailyCounts[ds._id - 1] = ds.count;
+      }
+    });
+    
+    let cumulativeSum = 0;
+    const cumulative = dailyCounts.map((count: number) => {
+      cumulativeSum += count;
+      return cumulativeSum;
+    });
+    
+    return { daysInMonth, cumulative, total: cumulativeSum };
+  }, [kpiData, selectedMonth]);
+
+  const chartSvgData = useMemo(() => {
+    if (!monthlyCumulativeData) return { linePath: "", areaPath: "", points: [], maxVal: 10 };
+    const { daysInMonth, cumulative, total } = monthlyCumulativeData;
+    const maxVal = Math.max(10, total);
+    
+    const width = 500;
+    const height = 200;
+    const paddingLeft = 40;
+    const paddingRight = 20;
+    const paddingTop = 20;
+    const paddingBottom = 30;
+    
+    const chartWidth = width - paddingLeft - paddingRight;
+    const chartHeight = height - paddingTop - paddingBottom;
+    
+    const points = cumulative.map((val: number, idx: number) => {
+      const x = paddingLeft + idx * (chartWidth / (daysInMonth - 1));
+      const y = height - paddingBottom - (val / maxVal) * chartHeight;
+      return { x, y, val, day: idx + 1 };
+    });
+    
+    if (points.length === 0) return { linePath: "", areaPath: "", points: [], maxVal };
+    
+    // Build line path
+    let linePath = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      linePath += ` L ${points[i].x} ${points[i].y}`;
+    }
+    
+    // Build area path
+    const areaPath = `${linePath} L ${points[points.length - 1].x} ${height - paddingBottom} L ${points[0].x} ${height - paddingBottom} Z`;
+    
+    return {
+      linePath,
+      areaPath,
+      points,
+      maxVal
+    };
+  }, [monthlyCumulativeData]);
+
+  const xAxisLabels = useMemo(() => {
+    if (!monthlyCumulativeData) return [];
+    const { daysInMonth } = monthlyCumulativeData;
+    const labels = [];
+    const step = Math.ceil(daysInMonth / 6);
+    for (let i = 0; i < daysInMonth; i += step) {
+      labels.push(i + 1);
+    }
+    if (labels[labels.length - 1] !== daysInMonth) {
+      labels.push(daysInMonth);
+    }
+    return labels;
+  }, [monthlyCumulativeData]);
+
  const formatVND = (amount: number) => {
    return amount.toLocaleString("vi-VN") + " ₫";
  };
@@ -378,7 +488,7 @@ export default function ReportsPage() {
         <path d={chartSvgData.linePath} fill="none" stroke="#38bdf8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
       )}
       
-      {(chartSvgData.points || []).map((pt, i) => (
+      {(chartSvgData.points || []).map((pt: any, i: number) => (
         <circle 
           key={i} 
           cx={pt.x} 

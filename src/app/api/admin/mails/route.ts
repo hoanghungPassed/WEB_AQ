@@ -158,14 +158,15 @@ export async function GET(req: NextRequest) {
     // Paged Query for combined (ALL) collection
     // To handle cross-collection pagination safely without a bomb, 
     // we fetch a reasonable slice from each and combine.
-    const fetchLimit = skip + limit;
+    const _skip = (page - 1) * limit;
+    const fetchLimit = _skip + limit;
     const [rootMails, satelliteMails, monetizedMails] = await Promise.all([
       RootMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).limit(fetchLimit).lean(),
       SatelliteMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).limit(fetchLimit).lean(),
       MonetizedMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).limit(fetchLimit).lean()
     ]);
     const mails: any[] = [...rootMails, ...satelliteMails, ...monetizedMails];
-    
+
     // In-memory sort combined array
     mails.sort((a: any, b: any) => {
       const valA = a[sortBy] || a.createdAt;
@@ -176,8 +177,7 @@ export async function GET(req: NextRequest) {
     });
 
     const total = mails.length;
-    const skip = (page - 1) * limit;
-    const paginatedData = mails.slice(skip, skip + limit);
+    const paginatedData = mails.slice(_skip, _skip + limit);
 
     return NextResponse.json({
       success: true,

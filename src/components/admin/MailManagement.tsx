@@ -4,31 +4,18 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
-  Download,
   Upload,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
   CheckCircle,
-  X,
   ArrowLeft,
-  PlusCircle,
   Trash2,
-  Filter,
-  ShieldCheck,
-  Mail,
-  Zap,
-  Play,
   RotateCcw,
-  Check,
-  AlertCircle,
   Database,
   Layers,
   Calendar,
-  User as UserIcon,
-  Loader2,
-  FileText,
-  Copy
+  Loader2
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import useSWR from "swr";
@@ -54,6 +41,7 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
 
   useEffect(() => {
     if (type && (type === "ROOT" || type === "SATELLITE" || type === "MONETIZED" || type === "ALL")) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveTab(type as any);
     }
   }, [type]);
@@ -94,9 +82,11 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
 
   useEffect(() => {
     if (initialUser) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUser(initialUser);
     } else {
       const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (storedUser) setUser(JSON.parse(storedUser));
     }
 
