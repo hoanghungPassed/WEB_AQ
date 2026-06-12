@@ -144,22 +144,24 @@ export async function POST(req: NextRequest) {
  user.isOnline = false;
  await user.save();
 
- // Calculate working hours and update Attendance record
- let totalWorkingMins = 0;
- const attendance = await Attendance.findOne({ userId, date: todayStr });
- if (attendance && attendance.checkInTime) {
-   attendance.checkOutTime = now;
-   const dIn = new Date(attendance.checkInTime);
-   const t_in = dIn.getHours() * 60 + dIn.getMinutes();
-   const t_out = vnTime.getHours() * 60 + vnTime.getMinutes();
-   
-   // Typical 8:00 - 12:00, 13:30 - 18:00 logic
-   const overlap1 = Math.max(0, Math.min(720, t_out) - Math.max(480, t_in));
-   const overlap2 = Math.max(0, Math.min(1080, t_out) - Math.max(810, t_in));
-   totalWorkingMins = overlap1 + overlap2;
-   attendance.totalHours = parseFloat((totalWorkingMins / 60).toFixed(2));
-   await attendance.save();
- }
+  // Calculate working hours and update Attendance record
+  let totalWorkingMins = 0;
+  const attendance = await Attendance.findOne({ userId, date: todayStr });
+  if (attendance && attendance.checkInTime) {
+    attendance.checkOutTime = now;
+    const dIn = new Date(attendance.checkInTime);
+    const dInUtc = dIn.getTime() + dIn.getTimezoneOffset() * 60000;
+    const dInVn = new Date(dInUtc + 3600000 * 7);
+    const t_in = dInVn.getHours() * 60 + dInVn.getMinutes();
+    const t_out = vnTime.getHours() * 60 + vnTime.getMinutes();
+    
+    // Typical 8:00 - 12:00, 13:30 - 18:00 logic
+    const overlap1 = Math.max(0, Math.min(720, t_out) - Math.max(480, t_in));
+    const overlap2 = Math.max(0, Math.min(1080, t_out) - Math.max(810, t_in));
+    totalWorkingMins = overlap1 + overlap2;
+    attendance.totalHours = parseFloat((totalWorkingMins / 60).toFixed(2));
+    await attendance.save();
+  }
 
  try {
  await Log.create({

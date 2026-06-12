@@ -319,38 +319,81 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Không có quyền xóa lô mail" }, { status: 403 });
   }
 
- await dbConnect();
- const { searchParams } = new URL(req.url);
- const batchId = searchParams.get('batchId');
- const batchName = searchParams.get('batchName');
+  await dbConnect();
+  const { searchParams } = new URL(req.url);
+  const batchId = searchParams.get('batchId');
+  const batchName = searchParams.get('batchName');
 
- if (!batchId && !batchName) {
- return NextResponse.json({ success: false, error:"Missing batchId or batchName" }, { status: 400 });
- }
+  if (!batchId && !batchName) {
+  return NextResponse.json({ success: false, error:"Missing batchId or batchName" }, { status: 400 });
+  }
 
- const query: any = {};
- if (batchId) query.batchId = batchId;
- else if (batchName) query.batchName = batchName;
+  const query: any = {};
+  if (batchId) query.batchId = batchId;
+  else if (batchName) query.batchName = batchName;
 
- const resRoot = await RootMail.deleteMany(query);
- const resSat = await SatelliteMail.deleteMany(query);
- const resMon = await MonetizedMail.deleteMany(query);
- 
- const deletedCount = resRoot.deletedCount + resSat.deletedCount + resMon.deletedCount;
+  const resRoot = await RootMail.deleteMany(query);
+  const resSat = await SatelliteMail.deleteMany(query);
+  const resMon = await MonetizedMail.deleteMany(query);
+  
+  const deletedCount = resRoot.deletedCount + resSat.deletedCount + resMon.deletedCount;
 
- try {
- const { logAction } = await import('@/lib/logger');
- await logAction("system", `Xóa lô mail: ${batchName || batchId} (${deletedCount} mail)`, `Đã xóa lô mail.`);
- } catch (logErr) {
- console.error("Log error:", logErr);
- }
- 
- await logAuditTrail(userId || "system", "DELETE_MAILS_SUCCESS", "mails", { batchId, batchName, deletedCount }, req);
- 
- return NextResponse.json({ success: true, deletedCount }, { status: 200 });
- } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
- console.error("LỖI API DELETE:", error);
- return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
- }
+  // Cascading deletes on Batch and Task collections
+  try {
+    const BatchModel = (await import("@/models/Batch")).default;
+    const { Task } = await import("@/models/Task");
+
+    const batchQuery: any = {};
+    if (batchId) batchQuery._id = batchId;
+    else if (batchName) batchQuery.name = batchName;
+
+    let targetBatch = null;
+    if (batchId) {
+      targetBatch = await BatchModel.findById(batchId);
+    } else if (batchName) {
+      targetBatch = await BatchModel.findOne({ name: batchName });
+    }
+
+    await BatchModel.deleteMany(batchQuery);
+
+    const taskQuery: any = {};
+    if (targetBatch) {
+      taskQuery.$or = [
+        { batch: targetBatch.name },
+        { batch: targetBatch._id.toString() },
+        { batchName: targetBatch.name },
+        { batchId: targetBatch._id.toString() }
+      ];
+    } else {
+      const term = batchId || batchName;
+      taskQuery.$or = [
+        { batch: term },
+        { batchName: term },
+        { batchId: term }
+      ];
+    }
+    await Task.deleteMany(taskQuery);
+
+    // Invalidate batch cache
+    cachedBatches = [];
+    lastBatchCacheTime = 0;
+  } catch (cascadeErr) {
+    console.error("Cascading delete error:", cascadeErr);
+  }
+
+  try {
+  const { logAction } = await import('@/lib/logger');
+  await logAction("system", `Xóa lô mail: ${batchName || batchId} (${deletedCount} mail)`, `Đã xóa lô mail.`);
+  } catch (logErr) {
+  console.error("Log error:", logErr);
+  }
+  
+  await logAuditTrail(userId || "system", "DELETE_MAILS_SUCCESS", "mails", { batchId, batchName, deletedCount }, req);
+  
+  return NextResponse.json({ success: true, deletedCount }, { status: 200 });
+  } catch (error: unknown) {
+     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+  console.error("LỖI API DELETE:", error);
+  return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
+  }
 }

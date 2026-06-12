@@ -106,16 +106,23 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   // Auto-update KPI & Mail status if transitioning to COMPLETED
   if (body.status === 'COMPLETED' && oldTask.status !== 'COMPLETED') {
     try {
-      // 1. Cập nhật Mail vệ tinh thành USED và Đã làm cho toàn bộ lô
+      // 1. Cập nhật Mail thành USED và Đã làm cho toàn bộ lô/dải
       try {
-        const { SatelliteMail } = await import('@/models/SatelliteMail');
+        let MailModel: any;
+        if (task.type === 'MAIL_GOC') {
+          MailModel = (await import('@/models/RootMail')).RootMail;
+        } else if (task.type === 'MAIL_MONETIZED') {
+          MailModel = (await import('@/models/MonetizedMail')).MonetizedMail;
+        } else {
+          MailModel = (await import('@/models/SatelliteMail')).SatelliteMail;
+        }
         
         // Find batch associated with this task
         const batchIdentifier = task.batch || (task as any).batchName || (task as any).batchId;
         
         if (batchIdentifier) {
           // Update entire batch
-          await SatelliteMail.updateMany(
+          await MailModel.updateMany(
             { 
               $or: [
                 { batchName: batchIdentifier },
@@ -135,13 +142,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
         // Individual updates if mailIds were specified
         if (task.mailIds && task.mailIds.length > 0) {
-          await SatelliteMail.updateMany(
+          await MailModel.updateMany(
             { _id: { $in: task.mailIds } },
             { $set: { status: 'USED', workStatus: 'Đã làm' } }
           );
         }
       } catch (mailErr) {
-        console.error("Lỗi cập nhật trạng thái Mail vệ tinh:", mailErr);
+        console.error("Lỗi cập nhật trạng thái Mail:", mailErr);
       }
 
       // 2. Update Global KPI in SyncStore

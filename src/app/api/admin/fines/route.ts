@@ -124,13 +124,6 @@ export async function PUT(req: NextRequest) {
  try {
   const userId = req.headers.get("x-user-id");
   const userRole = req.headers.get("x-user-role");
-
-  const hasPermission = await checkPermission(userRole || "", 4, ["all", "attendance"]);
-  if (!hasPermission) {
-    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_UPDATE_FINE", "fines", {}, req);
-    return NextResponse.json({ error: "Không có quyền cập nhật báo cáo phạt" }, { status: 403 });
-  }
-
   const isStaff = userRole === "03" || userRole === "04" || userRole === "05";
 
    await dbConnect();
@@ -144,10 +137,25 @@ export async function PUT(req: NextRequest) {
    const existingFine = await Fine.findById(id);
    if (!existingFine) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
 
-   // IDOR Protection: Staff can only update their own fines
-   if (isStaff && existingFine.userId?.toString() !== userId) {
-     await logAuditTrail(userId || "unknown", "UNAUTHORIZED_FINE_UPDATE_ATTEMPT", "fines", { fineId: id }, req);
-     return NextResponse.json({ error: "Không có quyền cập nhật báo cáo phạt của người khác" }, { status: 403 });
+   // IDOR & Permission Protection
+   if (isStaff) {
+     // Staff can only update their own fines
+     if (existingFine.userId?.toString() !== userId) {
+       await logAuditTrail(userId || "unknown", "UNAUTHORIZED_FINE_UPDATE_ATTEMPT", "fines", { fineId: id }, req);
+       return NextResponse.json({ error: "Không có quyền cập nhật báo cáo phạt của người khác" }, { status: 403 });
+     }
+     // Staff cannot alter the fine amount
+     if (body.amount !== undefined && Number(body.amount) !== existingFine.amount) {
+       await logAuditTrail(userId || "unknown", "UNAUTHORIZED_FINE_AMOUNT_UPDATE", "fines", { fineId: id }, req);
+       return NextResponse.json({ error: "Nhân viên không được phép sửa đổi số tiền phạt" }, { status: 403 });
+     }
+   } else {
+     // Non-staff requires manager/admin permissions (level 4)
+     const hasPermission = await checkPermission(userRole || "", 4, ["all", "attendance"]);
+     if (!hasPermission) {
+       await logAuditTrail(userId || "unknown", "UNAUTHORIZED_UPDATE_FINE", "fines", {}, req);
+       return NextResponse.json({ error: "Không có quyền cập nhật báo cáo phạt" }, { status: 403 });
+     }
    }
 
    // Validate using Zod UpdateFineSchema

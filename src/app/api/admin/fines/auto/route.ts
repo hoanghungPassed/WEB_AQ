@@ -17,62 +17,68 @@ export async function POST(req: NextRequest) {
   const userId = req.headers.get("x-user-id");
   const userRole = req.headers.get("x-user-role");
 
-  const hasPermission = await checkPermission(userRole || "", 5, ["all"]);
+  const hasPermission = await checkPermission(userRole || "", 3, ["all", "attendance"]);
   if (!hasPermission) {
     await logAuditTrail(userId || "unknown", "UNAUTHORIZED_RUN_AUTO_FINES", "fines", {}, req);
     return NextResponse.json({ error: "Không có quyền chạy tự động tính phạt" }, { status: 403 });
   }
  
- // Auto-fining logic: Check staff KPI and fine if they didn't meet the target after offWorkTime
- const staffs = await User.find({ role: { $in: ["04","05"] } });
- 
- const now = new Date();
- const currentMins = now.getHours() * 60 + now.getMinutes();
+  // Auto-fining logic: Check staff KPI and fine if they didn't meet the target after offWorkTime
+  const staffs = await User.find({ role: { $in: ["04","05"] } });
+  
+  const now = new Date();
+  const vnTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+  const currentMins = vnTime.getUTCHours() * 60 + vnTime.getUTCMinutes();
 
- let count = 0;
+  let count = 0;
 
- for (const staff of staffs) {
- const offWorkStr = staff.offWorkTime ||"17:30";
- const [offH, offM] = offWorkStr.split(":").map(Number);
- const offMins = offH * 60 + offM;
+  for (const staff of staffs) {
+  const offWorkStr = staff.offWorkTime ||"17:30";
+  const [offH, offM] = offWorkStr.split(":").map(Number);
+  const offMins = offH * 60 + offM;
 
- // If past offWorkTime
- if (currentMins > offMins) {
- // Query incomplete tasks
- const incompleteTasks = await Task.find({
- assigneeId: staff._id,
- status: { $ne: 'COMPLETED' } 
- });
+  // If past offWorkTime
+  if (currentMins > offMins) {
+  // Query incomplete tasks
+  const incompleteTasks = await Task.find({
+  assigneeId: staff._id,
+  status: { $ne: 'COMPLETED' } 
+  });
 
- if (incompleteTasks.length > 0) {
- // Check if fine already exists for today to avoid duplicate fines
- const startOfDay = new Date();
- startOfDay.setHours(0, 0, 0, 0);
- 
- const existingFine = await Fine.findOne({
- userId: staff._id,
- reason: { $regex: /Không hoàn thành task/ },
- createdAt: { $gte: startOfDay }
- });
+  if (incompleteTasks.length > 0) {
+  // Check if fine already exists for today to avoid duplicate fines
+  const startOfDay = new Date(Date.UTC(
+    vnTime.getUTCFullYear(),
+    vnTime.getUTCMonth(),
+    vnTime.getUTCDate(),
+    0, 0, 0, 0
+  ));
+  startOfDay.setTime(startOfDay.getTime() - (7 * 60 * 60 * 1000));
+  
+  const existingFine = await Fine.findOne({
+  userId: staff._id,
+  reason: { $regex: /Không hoàn thành task/ },
+  createdAt: { $gte: startOfDay }
+  });
 
- if (!existingFine) {
- await Fine.create({
- userId: staff._id,
- reason: `Không hoàn thành task đúng hạn (sau ${offWorkStr})`,
- amount: 50000,
- status:"UNPAID"
- });
+  if (!existingFine) {
+  await Fine.create({
+  userId: staff._id,
+  reason: `Không hoàn thành task đúng hạn (sau ${offWorkStr})`,
+  amount: 50000,
+  status:"UNPAID"
+  });
 
- // Send auto fine email notification (fire-and-forget)
- if (staff.email) {
-   sendFineEmail(staff.email, staff.name || "Nhân viên", 50000, `Không hoàn thành task đúng hạn (sau ${offWorkStr})`).catch(console.error);
- }
+  // Send auto fine email notification (fire-and-forget)
+  if (staff.email) {
+    sendFineEmail(staff.email, staff.name || "Nhân viên", 50000, `Không hoàn thành task đúng hạn (sau ${offWorkStr})`).catch(console.error);
+  }
 
- count++;
- }
- }
- }
- }
+  count++;
+  }
+  }
+  }
+  }
  
  if (count > 0) {
  await logAction("system","Tự động tính toán và áp dụng phạt", `Đã kiểm tra KPI của ${staffs.length} nhân sự. Phạt: ${count} người.`);
