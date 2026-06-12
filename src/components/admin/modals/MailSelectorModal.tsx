@@ -7,8 +7,8 @@ interface MailSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
   mails: MailData[];
-  selectedMailIds: number[];
-  setSelectedMailIds: (ids: number[] | ((prev: number[]) => number[])) => void;
+  selectedMailIds: string[];
+  setSelectedMailIds: (ids: string[] | ((prev: string[]) => string[])) => void;
   modalSearchQuery: string;
   setModalSearchQuery: (query: string) => void;
 }
@@ -31,22 +31,25 @@ export const MailSelectorModal = ({
       (m.recoveryMail || m.recovery || "")?.toLowerCase().includes(modalSearchQuery.toLowerCase()))
   );
 
-  const allSelected = availableMails.length > 0 && availableMails.every((m) => selectedMailIds.includes(m.id));
-  const someSelected = availableMails.some((m) => selectedMailIds.includes(m.id)) && !allSelected;
+  const getMailKey = (m: MailData) => String(m._id || m.id || "");
+
+  const allSelected = availableMails.length > 0 && availableMails.every((m) => selectedMailIds.includes(getMailKey(m)));
+  const someSelected = availableMails.some((m) => selectedMailIds.includes(getMailKey(m))) && !allSelected;
 
   const handleSelectAll = () => {
     if (allSelected) {
-      setSelectedMailIds(prev => (prev || []).filter(id => !availableMails.some((m) => m.id === id)));
+      setSelectedMailIds(prev => (prev || []).filter(id => !availableMails.some((m) => getMailKey(m) === id)));
     } else {
       const newIds = [...selectedMailIds];
       availableMails.forEach((m) => {
-        if (!newIds.includes(m.id)) newIds.push(m.id);
+        const key = getMailKey(m);
+        if (key && !newIds.includes(key)) newIds.push(key);
       });
       setSelectedMailIds(newIds);
     }
   };
 
-  const handleToggleRow = (id: number) => {
+  const handleToggleRow = (id: string) => {
     setSelectedMailIds(prev => 
       prev.includes(id) ? (prev || []).filter(x => x !== id) : [...prev, id]
     );
@@ -123,29 +126,32 @@ export const MailSelectorModal = ({
           </thead>
           <tbody className="divide-y divide-white/5 text-gray-300">
             {availableMails.length > 0 ? (
-              availableMails.map((mail, index) => (
-                <tr key={mail.id} className="hover:bg-zinc-800/50 bg-zinc-900/[0.02] transition-colors group">
-                  <td className="py-3 px-6 text-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedMailIds.includes(mail.id)}
-                      onChange={() => handleToggleRow(mail.id)}
-                      className="rounded border-white/0 bg-white/5 text-gold focus:ring-0 cursor-pointer h-4 w-4"
-                    />
-                  </td>
-                  <td className="py-3 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
-                  <td className="py-3 px-6 text-[10px] font-black text-gold/80">
-                    {mail.id}
-                  </td>
-                  <td className="py-3 px-6 font-bold text-white cursor-pointer" onClick={() => handleToggleRow(mail.id)}>{mail.email}</td>
-                  <td className="py-3 px-6 text-sm text-gray-400 font-mono">{mail.recoveryMail || mail.recovery}</td>
-                  <td className="py-3 px-6 text-center">
-                    <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-green-500/10 text-green-500 border border-green-500/20">
-                      {mail.verificationStatus}
-                    </span>
-                  </td>
-                </tr>
-              ))
+              availableMails.map((mail, index) => {
+                const key = getMailKey(mail);
+                return (
+                  <tr key={key} className="hover:bg-zinc-800/50 bg-zinc-900/[0.02] transition-colors group">
+                    <td className="py-3 px-6 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedMailIds.includes(key)}
+                        onChange={() => handleToggleRow(key)}
+                        className="rounded border-white/0 bg-white/5 text-gold focus:ring-0 cursor-pointer h-4 w-4"
+                      />
+                    </td>
+                    <td className="py-3 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
+                    <td className="py-3 px-6 text-[10px] font-black text-gold/80">
+                      {mail.stt || mail.id}
+                    </td>
+                    <td className="py-3 px-6 font-bold text-white cursor-pointer" onClick={() => handleToggleRow(key)}>{mail.email}</td>
+                    <td className="py-3 px-6 text-sm text-gray-400 font-mono">{mail.recoveryMail || mail.recovery}</td>
+                    <td className="py-3 px-6 text-center">
+                      <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-green-500/10 text-green-500 border border-green-500/20">
+                        {mail.verificationStatus}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan={6} className="py-12 text-center font-bold uppercase tracking-widest text-sm">

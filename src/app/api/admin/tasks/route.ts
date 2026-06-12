@@ -37,13 +37,10 @@ export async function GET(req: NextRequest) {
 
     const today = searchParams.get("today");
     if (today === "true") {
-      const todayStart = new Date();
-      todayStart.setUTCHours(0, 0, 0, 0);
-      todayStart.setUTCHours(todayStart.getUTCHours() + 7);
-
-      const todayEnd = new Date();
-      todayEnd.setUTCHours(23, 59, 59, 999);
-      todayEnd.setUTCHours(todayEnd.getUTCHours() + 7);
+      const now = new Date();
+      const vnTime = new Date(now.getTime() + 7 * 3600000);
+      const todayStart = new Date(Date.UTC(vnTime.getUTCFullYear(), vnTime.getUTCMonth(), vnTime.getUTCDate(), -7, 0, 0, 0));
+      const todayEnd = new Date(Date.UTC(vnTime.getUTCFullYear(), vnTime.getUTCMonth(), vnTime.getUTCDate(), 16, 59, 59, 999));
 
       filter.createdAt = {
         $gte: todayStart,

@@ -85,6 +85,7 @@ export const CreateTaskSchema = z.object({
   range: z.string().optional(),
   mailType: z.string().optional(),
   selectedMailIds: z.array(z.number()).optional(),
+  mailIds: z.array(z.string()).optional(),
   assigneeName: z.string().optional(),
   mailCount: z.number().optional(),
   createdBy: z.string().optional(),

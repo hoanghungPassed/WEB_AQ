@@ -17,8 +17,8 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
 
-    // Specific logic for staff roles (03 and 04)
-    if (userRole === "03" || userRole === "04") {
+    // Specific logic for staff roles (03, 04, and 05)
+    if (userRole === "03" || userRole === "04" || userRole === "05") {
       const now = new Date();
       const vnNow = new Date(now.getTime() + 7 * 3600000);
       const todayStr = vnNow.toISOString().split('T')[0];

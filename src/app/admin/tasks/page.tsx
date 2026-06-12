@@ -121,7 +121,7 @@ export default function TaskManagementPage() {
 
   // Custom selector state for "Check, xóa, tạo"
   const [isSelectMailModalOpen, setIsSelectMailModalOpen] = useState<boolean>(false);
-  const [selectedMailIdsForTask, setSelectedMailIdsForTask] = useState<number[]>([]);
+  const [selectedMailIdsForTask, setSelectedMailIdsForTask] = useState<string[]>([]);
   const [modalSearchQuery, setModalSearchQuery] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -202,7 +202,11 @@ export default function TaskManagementPage() {
       }
 
       if (mailData && mailData.success) {
-        setMails(mailData.data);
+        const mapped = (mailData.data || []).map((m: any) => ({
+          ...m,
+          id: m._id
+        }));
+        setMails(mapped);
       }
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -404,7 +408,7 @@ export default function TaskManagementPage() {
   // Load task mails dynamically for selected task
   const selectedTaskBatch = selectedTask?.batch || (selectedTask as any)?.batchName || "";
   useEffect(() => {
-    if (!selectedTaskId || !selectedTaskBatch) {
+    if (!selectedTaskId) {
       setTaskMailsList([]);
       return;
     }
@@ -412,12 +416,28 @@ export default function TaskManagementPage() {
     const fetchTaskMails = async () => {
       setLoadingTaskMails(true);
       try {
-        const url = `/api/admin/mails?batch=${encodeURIComponent(selectedTaskBatch)}&all=true`;
+        let url = `/api/admin/mails?all=true`;
+        if (selectedTaskBatch) {
+          url += `&batch=${encodeURIComponent(selectedTaskBatch)}`;
+        } else if (selectedTask) {
+          const ids = (selectedTask.selectedMailIds || []).join(",") || 
+                      ((selectedTask as any).mailIds || []).join(",");
+          if (ids) {
+            url += `&ids=${encodeURIComponent(ids)}`;
+          } else {
+            url += `&assigneeId=${encodeURIComponent(selectedTask.assigneeId || "")}`;
+          }
+        }
+
         const res = await fetch(url);
         if (res.ok) {
           const resData = await res.json();
           if (resData.success && resData.data) {
-            setTaskMailsList(resData.data);
+            const mapped = (resData.data || []).map((m: any) => ({
+              ...m,
+              id: m._id
+            }));
+            setTaskMailsList(mapped);
           }
         }
       } catch (err) {
@@ -428,7 +448,7 @@ export default function TaskManagementPage() {
     };
 
     fetchTaskMails();
-  }, [selectedTaskId, selectedTaskBatch]);
+  }, [selectedTaskId, selectedTaskBatch, selectedTask]);
 
   const taskMailsListKey = useMemo(() => {
     return (taskMailsList || []).map((m: any) => `${m._id || m.id}-${(m.links || []).join(",")}`).join("|");
@@ -489,7 +509,7 @@ export default function TaskManagementPage() {
       );
     }
 
-    if (user?.role === "04" || user?.role === "05") {
+    if (user?.role === "03" || user?.role === "04" || user?.role === "05") {
       filtered = (filtered || []).filter((m: MailData) => String(m.assigneeId) === String(user.id));
     }
 
@@ -635,7 +655,8 @@ export default function TaskManagementPage() {
     const selectedStaff = staffList.find((s: StaffData) => String(s.id) === String(targetStaffId));
     if (!selectedStaff) return;
 
-    let assignedIds: number[] = [];
+    let assignedIds: string[] = [];
+    let assignedStts: number[] = [];
     let note = assignmentNote;
     let mailCount = 0;
     let typeLabel = "ROOT";
@@ -653,7 +674,12 @@ export default function TaskManagementPage() {
       mailCount = assignedIds.length;
       
       const mailsOfType = (mails || []).filter((m: MailData) => m.type === "ROOT");
-      const indices = assignedIds.map((id: number) => mailsOfType.findIndex((m: MailData) => m.id === id) + 1).filter((idx: number) => idx > 0).sort((a: number, b: number) => a - b);
+      assignedStts = assignedIds.map(id => {
+        const mailObj = mails.find(m => String(m._id || m.id) === id);
+        return mailObj ? (mailObj.stt || 0) : 0;
+      }).filter(Boolean);
+
+      const indices = assignedIds.map((id: string) => mailsOfType.findIndex((m: MailData) => String(m._id || m.id) === id) + 1).filter((idx: number) => idx > 0).sort((a: number, b: number) => a - b);
       mailRangeStr = indices.length > 0 ? `${indices[0]}-${indices[indices.length - 1]}` : `${mailCount} mail`;
     } 
     else if (selectedTemplate === "Làm kênh") {
@@ -673,12 +699,13 @@ export default function TaskManagementPage() {
       if (currentBatch && currentBatch.startIndex !== undefined && currentBatch.endIndex !== undefined) {
         batchRange = `${currentBatch.startIndex}-${currentBatch.endIndex}`;
       } else {
-        const firstIdx = allSatellites.findIndex((m: MailData) => m.id === batchMails[0].id) + 1;
-        const lastIdx = allSatellites.findIndex((m: MailData) => m.id === batchMails[batchMails.length - 1].id) + 1;
+        const firstIdx = allSatellites.findIndex((m: MailData) => String(m._id || m.id) === String(batchMails[0]._id || batchMails[0].id)) + 1;
+        const lastIdx = allSatellites.findIndex((m: MailData) => String(m._id || m.id) === String(batchMails[batchMails.length - 1]._id || batchMails[batchMails.length - 1].id)) + 1;
         batchRange = `${firstIdx}-${lastIdx}`;
       }
       
-      assignedIds = batchMails.map((m: MailData) => m.id);
+      assignedIds = batchMails.map((m: MailData) => String(m._id || m.id));
+      assignedStts = batchMails.map((m: MailData) => m.stt || m.id || 0);
       mailCount = assignedIds.length;
       mailRangeStr = `${selectedLo} (STT ${batchRange})`;
       note = `${note} - Lô gán: ${selectedLo} (STT ${batchRange})`;
@@ -688,9 +715,11 @@ export default function TaskManagementPage() {
       taskType = "MAIL_MONETIZED";
       const mailsOfType = (mails || []).filter((m: MailData) => m.type === "MONETIZED");
       const mailsWithSTT = mailsOfType.map((m: MailData, idx: number) => ({ ...m, currentSTT: idx + 1 }));
-      assignedIds = mailsWithSTT
-        .filter((m: any) => m.currentSTT >= mailRangeStart && m.currentSTT <= mailRangeEnd && !m.assigneeId)
-        .map((m: any) => m.id);
+      const selectedMails = mailsWithSTT
+        .filter((m: any) => m.currentSTT >= mailRangeStart && m.currentSTT <= mailRangeEnd && !m.assigneeId);
+
+      assignedIds = selectedMails.map((m: any) => String(m._id || m.id));
+      assignedStts = selectedMails.map((m: any) => m.stt || m.id || 0);
 
       if (assignedIds.length === 0) {
         alert("Không tìm thấy mail bật kiếm tiền khả dụng trong dải STT này.");
@@ -712,7 +741,7 @@ export default function TaskManagementPage() {
         return;
       }
 
-      const rootMail = mails.find((m: MailData) => String(m.id) === String(selectedRootMailId));
+      const rootMail = mails.find((m: MailData) => String(m._id || m.id) === String(selectedRootMailId));
       if (!rootMail) return;
 
       const targetMails = (mails || []).filter((m: MailData) => 
@@ -726,7 +755,9 @@ export default function TaskManagementPage() {
         return;
       }
 
-      assignedIds = [rootMail.id, ...targetMails.map((m: MailData) => m.id)];
+      const selectedMails = [rootMail, ...targetMails];
+      assignedIds = selectedMails.map((m: MailData) => String(m._id || m.id));
+      assignedStts = selectedMails.map((m: MailData) => m.stt || m.id || 0);
       mailCount = assignedIds.length;
       mailRangeStr = `Ghép cặp: Mail gốc (${rootMail.email}) + ${selectedMoiKenhLo}`;
       note = `${note} (Ghép cặp Mail Gốc: ${rootMail.email} với ${selectedMoiKenhLo} vệ tinh)`;
@@ -746,7 +777,8 @@ export default function TaskManagementPage() {
       batch: selectedTemplate === "Làm kênh" ? selectedLo : "",
       range: mailRangeStr,
       mailType: typeLabel as any,
-      selectedMailIds: selectedTemplate === "Check, xóa, tạo" ? assignedIds : undefined
+      selectedMailIds: selectedTemplate === "Check, xóa, tạo" ? assignedStts : undefined,
+      mailIds: assignedIds
     };
 
     setIsSubmitting(true);
@@ -781,6 +813,7 @@ export default function TaskManagementPage() {
 
         setNotification(`Đã giao việc thành công cho ${selectedStaff.name}!`);
         setTimeout(() => setNotification(null), 4000);
+        setSelectedMailIdsForTask([]);
         loadData();
       } else {
         const errData = await res.json().catch(() => ({}));
@@ -1559,7 +1592,7 @@ export default function TaskManagementPage() {
             type={selectedMailForConfig.type}
             user={user}
             onClose={() => setSelectedMailForConfig(null)} 
-            onSave={(updatedFields) => handleSaveUnifiedDetails(selectedMailForConfig.id, updatedFields)}
+            onSave={(updatedFields) => handleSaveUnifiedDetails(selectedMailForConfig._id || selectedMailForConfig.id, updatedFields)}
           />
         )}
       </AnimatePresence>

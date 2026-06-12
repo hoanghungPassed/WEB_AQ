@@ -75,6 +75,22 @@ export async function GET(req: NextRequest) {
       ];
     }
 
+    const idsParam = searchParams.get("ids");
+    if (idsParam) {
+      const idsArray = idsParam.split(",");
+      const objectIds = idsArray.filter(id => id.length === 24);
+      const numericIds = idsArray.map(id => parseInt(id)).filter(id => !isNaN(id));
+      
+      const idOrConditions: any[] = [];
+      if (objectIds.length > 0) idOrConditions.push({ _id: { $in: objectIds } });
+      if (numericIds.length > 0) idOrConditions.push({ stt: { $in: numericIds } });
+      
+      if (idOrConditions.length > 0) {
+        query.$and = query.$and || [];
+        query.$and.push({ $or: idOrConditions });
+      }
+    }
+
     const getModel = (t: string) => {
       if (t === "ROOT") return RootMail;
       if (t === "SATELLITE") return SatelliteMail;

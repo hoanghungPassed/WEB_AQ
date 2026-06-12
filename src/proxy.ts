@@ -179,6 +179,9 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith("/api/admin/2fa/setup") ||
         pathname.startsWith("/api/admin/2fa/verify") ||
         pathname.startsWith("/api/admin/mails") ||
+        pathname.startsWith("/api/admin/stats") ||
+        pathname.startsWith("/api/admin/mail/satellite-batches") ||
+        pathname.startsWith("/api/admin/kpis") ||
         (pathname.startsWith("/api/admin/settings") && method === "GET") ||
         (pathname.startsWith("/api/admin/users") && method === "GET");
 

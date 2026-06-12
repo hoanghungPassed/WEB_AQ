@@ -261,8 +261,8 @@ export default function AdminDashboard() {
    }
  };
 
- const isAdminOrManager = user?.role === "01" || user?.role === "02";
- const isStaff = user?.role === "04" || user?.role === "05";
+  const isAdminOrManager = user?.role === "01" || user?.role === "02";
+  const isStaff = user?.role === "03" || user?.role === "04" || user?.role === "05";
 
  const filteredMails = useMemo(() => {
    return (mails || []).filter((m: MailData) => {
@@ -276,9 +276,15 @@ export default function AdminDashboard() {
  const currentItems = filteredMails.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
  const totalPages = Math.ceil(filteredMails.length / itemsPerPage);
 
- const myTasks = useMemo(() => {
-   return tasksList.filter((t: TaskAssignment) => String(t.assigneeId) === String(user?.id || (user as any)?._id));
- }, [tasksList, user]);
+  const myTasks = useMemo(() => {
+    const userIdStr = String(user?.id || (user as any)?._id || "");
+    return tasksList.filter((t: TaskAssignment) => {
+      const taskAssigneeId = typeof t.assigneeId === 'object' && t.assigneeId 
+        ? (t.assigneeId as any)._id 
+        : t.assigneeId;
+      return String(taskAssigneeId) === userIdStr;
+    });
+  }, [tasksList, user]);
 
  if (selectedViewType) {
    return (
