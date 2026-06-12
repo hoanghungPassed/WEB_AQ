@@ -106,11 +106,11 @@ button:disabled {
 }
 
 /* Input Styling */
-input[type="text"],
+:where(input[type="text"],
 input[type="email"],
 input[type="password"],
 input[type="number"],
-textarea {
+textarea) {
   background-color: #1a1a22;
   border: 1px solid #3a3a44;
   border-radius: 0.75rem;
