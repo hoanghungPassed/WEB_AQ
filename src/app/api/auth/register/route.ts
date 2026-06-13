@@ -11,9 +11,9 @@ export async function POST(req: NextRequest) {
   try {
     await dbConnect();
     const data = await req.json();
-    const { name, birthYear, username, phone, address, password } = data;
+    const { name, birthYear, username, phone, email, address, password } = data;
 
-    if (!name || !username || !password) {
+    if (!name || !username || !password || !email || !phone) {
       return NextResponse.json({ error: "Thiếu thông tin bắt buộc" }, { status: 400 });
     }
 
@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
       name,
       birthYear: birthYear || "",
       username: lowercaseUsername,
+      email: email || "",
       phone: phone || "",
       address: address || "",
       password: hashedPassword,

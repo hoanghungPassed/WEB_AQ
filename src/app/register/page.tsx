@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, User, Loader2, ArrowLeft, Phone, Calendar, MapPin, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { Lock, User, Loader2, ArrowLeft, Phone, Calendar, MapPin, AlertCircle, CheckCircle2, Clock, Mail } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import Pusher from "pusher-js";
@@ -18,6 +18,7 @@ export default function RegisterPage() {
  birthYear: "",
  username: "",
  phone: "",
+ email: "",
  address: "",
  password: "",
  confirmPassword: ""
@@ -29,6 +30,8 @@ export default function RegisterPage() {
  const [isUsernameDuplicate, setIsUsernameDuplicate] = useState(false);
  const [agreeTerms, setAgreeTerms] = useState(false);
  const [rulesUrl, setRulesUrl] = useState("");
+ const [showOtpMethodModal, setShowOtpMethodModal] = useState(false);
+ const [otpMethod, setOtpMethod] = useState<"EMAIL" | "PHONE" | null>(null);
  const [showOtpModal, setShowOtpModal] = useState(false);
  const [otpCode, setOtpCode] = useState("");
  const [otpError, setOtpError] = useState("");
@@ -70,6 +73,10 @@ export default function RegisterPage() {
  if (name ==="phone") {
  const phoneRegex = /^(0|84)(3|5|7|8|9)([0-9]{8})$/;
  if (!phoneRegex.test(value)) error ="Số điện thoại không hợp lệ";
+ }
+ if (name === "email") {
+ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+ if (!emailRegex.test(value)) error = "Email không hợp lệ";
  }
  if (name ==="password") {
  if ((value || []).length < 6) error ="Tối thiểu 6 ký tự";
@@ -145,6 +152,9 @@ export default function RegisterPage() {
       const val = (formData as any)[key];
       if (key ==="phone") {
         if (!/^(0|84)(3|5|7|8|9)([0-9]{8})$/.test(val)) newErrors[key] ="SĐT không hợp lệ";
+      } else if (key === "email") {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(val)) newErrors[key] = "Email không hợp lệ";
       } else if (key ==="password") {
         if ((val || []).length < 6 || !/[!@#$%^&*(),.?":{}|<>]/.test(val)) newErrors[key] ="Mật khẩu không đủ mạnh";
       } else if (key ==="confirmPassword") {
@@ -159,6 +169,13 @@ export default function RegisterPage() {
       return;
     }
 
+    setShowOtpMethodModal(true);
+  };
+
+  const handleSelectOtpMethod = (method: "EMAIL" | "PHONE") => {
+    setOtpMethod(method);
+    setShowOtpMethodModal(false);
+
     // Generate random 6-digit OTP
     const generated = Math.floor(100000 + Math.random() * 900000).toString();
     setDemoOtp(generated);
@@ -166,10 +183,17 @@ export default function RegisterPage() {
     setOtpError("");
     setShowOtpModal(true);
 
-    toast.success(`Mã OTP xác minh đăng ký của bạn là: ${generated}`, {
-      duration: 10000,
-      icon: '🔑'
-    });
+    if (method === "EMAIL") {
+      toast.success(`[MOCK EMAIL] Mã OTP gửi tới mail ${formData.email} là: ${generated}`, {
+        duration: 15000,
+        icon: '✉️'
+      });
+    } else {
+      toast.success(`[MOCK SMS] Mã OTP gửi tới số ${formData.phone} là: ${generated}`, {
+        duration: 15000,
+        icon: '🔑'
+      });
+    }
   };
 
   const handleVerifyOtpAndSubmit = async (e: React.FormEvent) => {
@@ -371,7 +395,16 @@ export default function RegisterPage() {
  {errors.phone && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.phone}</p>}
  </div>
 
- <div className="md:col-span-2 space-y-1">
+ <div className="space-y-1">
+  <label className={labelClass}>Email</label>
+  <div className="relative group">
+  <Mail className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.email ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+  <input type="email" name="email" required value={formData.email} onChange={handleInputChange} placeholder="example@mail.com" style={{ paddingLeft: "3.5rem" }} className={inputClass("email")} />
+  </div>
+  {errors.email && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.email}</p>}
+  </div>
+
+ <div className="space-y-1">
  <label className={labelClass}>Địa chỉ liên hệ</label>
  <div className="relative group">
  <MapPin className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.address ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
@@ -541,6 +574,80 @@ export default function RegisterPage() {
     )}
   </AnimatePresence>
 
+  {/* OTP Method Picker Modal */}
+  <AnimatePresence>
+    {showOtpMethodModal && (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+      >
+        <motion.div
+          initial={{ scale: 0.9, y: 20 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.9, y: 20 }}
+          transition={{ type: "spring", duration: 0.5 }}
+          className="relative w-full max-w-md overflow-hidden rounded-[32px] border border-white/10 bg-[#161616]/90 p-8 text-center shadow-2xl backdrop-blur-xl"
+        >
+          <div className="absolute -left-20 -top-20 h-40 w-40 rounded-full bg-gold/10 blur-2xl" />
+          <div className="absolute -bottom-20 -right-20 h-40 w-40 rounded-full bg-gold/10 blur-2xl" />
+
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="h-16 w-16 rounded-2xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 mb-6">
+              <CheckCircle2 size={28} className="animate-pulse" />
+            </div>
+
+            <h3 className="text-xl font-black uppercase tracking-tight text-white mb-2">
+              Nhận OTP Xác thực
+            </h3>
+            <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider mb-8">
+              Vui lòng chọn kênh nhận mã xác thực
+            </p>
+
+            <div className="w-full space-y-4">
+              <button
+                type="button"
+                onClick={() => handleSelectOtpMethod("EMAIL")}
+                className="w-full h-16 rounded-2xl bg-zinc-900 border border-white/5 hover:border-gold/30 hover:bg-zinc-800/80 transition-all flex items-center gap-4 px-6 text-left"
+              >
+                <div className="h-10 w-10 rounded-xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 shrink-0">
+                  <Mail size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white">Nhận qua Email</p>
+                  <p className="text-[10px] text-zinc-500 font-semibold truncate max-w-[220px]">{formData.email}</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectOtpMethod("PHONE")}
+                className="w-full h-16 rounded-2xl bg-zinc-900 border border-white/5 hover:border-gold/30 hover:bg-zinc-800/80 transition-all flex items-center gap-4 px-6 text-left"
+              >
+                <div className="h-10 w-10 rounded-xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 shrink-0">
+                  <Phone size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white">Nhận qua Số điện thoại</p>
+                  <p className="text-[10px] text-zinc-500 font-semibold truncate max-w-[220px]">{formData.phone}</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowOtpMethodModal(false)}
+                className="w-full h-12 rounded-xl text-zinc-500 hover:text-zinc-300 font-bold uppercase text-xs tracking-wider transition-all"
+              >
+                Hủy bỏ
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+
   {/* OTP Verification Modal */}
   <AnimatePresence>
     {showOtpModal && (
@@ -562,14 +669,14 @@ export default function RegisterPage() {
 
           <div className="relative z-10 flex flex-col items-center">
             <div className="h-16 w-16 rounded-2xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 mb-6">
-              <Lock size={28} className="animate-pulse" />
+              {otpMethod === "EMAIL" ? <Mail size={28} className="animate-pulse" /> : <Phone size={28} className="animate-pulse" />}
             </div>
 
             <h3 className="text-xl font-black uppercase tracking-tight text-white mb-2">
               Xác thực OTP đăng ký
             </h3>
             <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider mb-6">
-              Mã OTP đã được gửi tới số điện thoại {formData.phone}
+              Mã OTP đã được gửi tới {otpMethod === "EMAIL" ? `email ${formData.email}` : `số điện thoại ${formData.phone}`}
             </p>
 
             <form onSubmit={handleVerifyOtpAndSubmit} className="w-full space-y-4">

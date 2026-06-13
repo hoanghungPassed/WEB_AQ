@@ -65,8 +65,16 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           mutate('/api/admin/notifications?type=SYSTEM');
           // Add a local notification instantly
           setNotifications(prev => {
-            if (prev.some(n => n.id === notif.id || n._id === notif._id)) return prev;
-            return [{ ...notif, read: false }, ...prev];
+            const targetId = notif.id || notif._id;
+            if (prev.some(n => (n.id || n._id) === targetId)) return prev;
+            const normalized = {
+              ...notif,
+              id: targetId,
+              _id: targetId,
+              read: notif.read !== undefined ? notif.read : (notif.isRead !== undefined ? notif.isRead : false),
+              isRead: notif.read !== undefined ? notif.read : (notif.isRead !== undefined ? notif.isRead : false)
+            };
+            return [normalized, ...prev];
           });
           
           // Custom toast or alert logic
@@ -129,8 +137,16 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
       } else if (!notif.targetUsername || notif.targetUsername?.toLowerCase() === user?.username?.toLowerCase()) {
         mutate('/api/admin/notifications?type=SYSTEM');
         setNotifications(prev => {
-          if (prev.some(n => n.id === notif.id || n._id === notif._id)) return prev;
-          return [{ ...notif, read: false }, ...prev];
+          const targetId = notif.id || notif._id;
+          if (prev.some(n => (n.id || n._id) === targetId)) return prev;
+          const normalized = {
+            ...notif,
+            id: targetId,
+            _id: targetId,
+            read: notif.read !== undefined ? notif.read : (notif.isRead !== undefined ? notif.isRead : false),
+            isRead: notif.read !== undefined ? notif.read : (notif.isRead !== undefined ? notif.isRead : false)
+          };
+          return [normalized, ...prev];
         });
       }
     });
@@ -183,17 +199,41 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
       setPendingRequests(accessReqs);
       accessNotifs = (accessReqs || []).map((req: any) => ({
         id: `access-${req.id}`,
+        _id: `access-${req.id}`,
         title: "Yêu cầu truy cập ngoài giờ",
         message: `Nhân viên ${req.staffName} đang xin phép vào hệ thống.`,
         time: req.time,
         type: "ACCESS_REQUEST",
         read: false,
+        isRead: false,
         data: req
       }));
     }
 
-    const dbNotifications = Array.isArray(dbNotifs) ? dbNotifs : (dbNotifs?.data || []);
-    setNotifications([...dbNotifications, ...adminNotifs, ...accessNotifs]);
+    const dbRaw = Array.isArray(dbNotifs) ? dbNotifs : (dbNotifs?.data || []);
+    const normalizedDb = dbRaw.map((n: any) => {
+      const isReadVal = n.read !== undefined ? n.read : (n.isRead !== undefined ? n.isRead : false);
+      return {
+        ...n,
+        id: n.id || n._id,
+        _id: n.id || n._id,
+        read: isReadVal,
+        isRead: isReadVal
+      };
+    });
+
+    const normalizedAdmin = adminNotifs.map((n: any) => {
+      const isReadVal = n.read !== undefined ? n.read : (n.isRead !== undefined ? n.isRead : false);
+      return {
+        ...n,
+        id: n.id || n._id,
+        _id: n.id || n._id,
+        read: isReadVal,
+        isRead: isReadVal
+      };
+    });
+
+    setNotifications([...normalizedDb, ...normalizedAdmin, ...accessNotifs]);
   }, [user?.role, dbNotifs]);
 
   const loadLocalNotifsRef = React.useRef(loadLocalNotifs);
@@ -221,57 +261,86 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
   });
 
   const uniqueNotifications = (filteredNotifications || []).filter((n, index, self) =>
-    index === self.findIndex((t) => t.id === n.id)
+    index === self.findIndex((t) => (t.id || t._id) === (n.id || n._id))
   );
 
   const unreadCount = (uniqueNotifications || []).filter(n => !n.read).length;
 
   const markAllRead = async () => {
-    const updated = await Promise.all((notifications || []).map(async (n) => {
+    // 1. Update client state immediately for responsiveness
+    const updated = (notifications || []).map((n) => {
       if (!n.targetUsername || n.targetUsername.toLowerCase() === user?.username?.toLowerCase()) {
-        if (!n.read && (n._id || n.id) && !String(n._id || n.id).startsWith("access-")) {
-          try {
-            await fetch('/api/admin/notifications/' + n.id, {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                "x-user-id": user?.id || user?._id || ""
-              },
-              body: JSON.stringify({ isRead: true })
-            });
-            mutate('/api/admin/notifications?type=SYSTEM');
-          } catch (err) {
-            console.error("Error setting notification read in DB:", err);
-          }
-        }
-        return { ...n, read: true };
+        return { ...n, read: true, isRead: true };
       }
       return n;
-    }));
+    });
     setNotifications(updated);
-    
-    // Chỉ cập nhật trạng thái đã đọc cho các thông báo hệ thống nằm trong localStorage
+
+    // Update localStorage
     try {
       const originalAdminNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
-      const updatedAdminNotifs = originalAdminNotifs.map((an: any) => {
-        const match = updated.find(u => String(u.id) === String(an.id));
-        return match ? { ...an, read: match.read } : an;
-      });
+      const updatedAdminNotifs = originalAdminNotifs.map((an: any) => ({ ...an, read: true, isRead: true }));
       localStorage.setItem("admin_notifications", JSON.stringify(updatedAdminNotifs));
     } catch (e) {
       console.error("Error saving admin_notifications:", e);
     }
     window.dispatchEvent(new Event("storage"));
+
+    // 2. Perform DB updates in background
+    const unreadDbNotifs = (notifications || []).filter(n => {
+      const targetId = n.id || n._id;
+      return (
+        (!n.targetUsername || n.targetUsername.toLowerCase() === user?.username?.toLowerCase()) &&
+        !n.read &&
+        targetId &&
+        !String(targetId).startsWith("access-")
+      );
+    });
+
+    if (unreadDbNotifs.length > 0) {
+      try {
+        await Promise.all(unreadDbNotifs.map(async (n) => {
+          const targetId = n.id || n._id;
+          return fetch('/api/admin/notifications/' + targetId, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "x-user-id": user?.id || user?._id || ""
+            },
+            body: JSON.stringify({ isRead: true })
+          });
+        }));
+      } catch (err) {
+        console.error("Error setting notifications read in DB:", err);
+      } finally {
+        mutate('/api/admin/notifications?type=SYSTEM');
+      }
+    }
   };
 
   const markSingleAsRead = async (id: string) => {
     const updated = (notifications || []).map(n => {
-      if (n.id === id) {
-        return { ...n, read: true };
+      if (String(n.id || n._id) === String(id)) {
+        return { ...n, read: true, isRead: true };
       }
       return n;
     });
     setNotifications(updated);
+
+    // Update localStorage
+    try {
+      const originalAdminNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
+      const updatedAdminNotifs = originalAdminNotifs.map((an: any) => {
+        if (String(an.id || an._id) === String(id)) {
+          return { ...an, read: true, isRead: true };
+        }
+        return an;
+      });
+      localStorage.setItem("admin_notifications", JSON.stringify(updatedAdminNotifs));
+    } catch (e) {
+      console.error("Error saving single admin_notification:", e);
+    }
+    window.dispatchEvent(new Event("storage"));
 
     if (id && !String(id).startsWith("access-")) {
       try {
@@ -283,30 +352,17 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           },
           body: JSON.stringify({ isRead: true })
         });
-        mutate('/api/admin/notifications?type=SYSTEM');
       } catch (err) {
         console.error("Error setting notification read in DB:", err);
+      } finally {
+        mutate('/api/admin/notifications?type=SYSTEM');
       }
     }
-    
-    // Chỉ cập nhật trạng thái đã đọc cho đúng thông báo hệ thống trong localStorage
-    try {
-      const originalAdminNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
-      const updatedAdminNotifs = originalAdminNotifs.map((an: any) => {
-        if (String(an.id) === String(id)) {
-          return { ...an, read: true };
-        }
-        return an;
-      });
-      localStorage.setItem("admin_notifications", JSON.stringify(updatedAdminNotifs));
-    } catch (e) {
-      console.error("Error saving single admin_notification:", e);
-    }
-    window.dispatchEvent(new Event("storage"));
   };
 
   const handleNotificationClick = async (notif: any) => {
-    markSingleAsRead(notif.id);
+    const targetId = notif.id || notif._id;
+    markSingleAsRead(targetId);
     
     if (notif.type === "REGISTRATION") {
       try {
@@ -476,11 +532,11 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           <div className="relative">
             <button 
               onClick={() => setIsNotifOpen(!isNotifOpen)}
-              className="relative flex h-10 w-10 items-center justify-center rounded-xl text-zinc-400 transition-all hover:bg-zinc-800/60 bg-zinc-900 border border-white/0 hover:text-[#a07800]"
+              className="relative flex h-12 w-12 items-center justify-center rounded-xl text-zinc-400 transition-all hover:bg-zinc-800/60 bg-zinc-900 border border-white/0 hover:text-[#a07800]"
             >
-              <Bell size={18} />
+              <Bell size={22} />
               {unreadCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-black text-white border-2 border-[#09090b] shadow-md animate-pulse">
+                <span className="absolute -top-1 -right-1 flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black text-white border-2 border-[#09090b] shadow-md animate-pulse">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -505,9 +561,10 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                       {(uniqueNotifications || []).length > 0 ? (
                         (uniqueNotifications || []).map((n) => (
                           <div 
-                            key={n.id} 
+                            key={n.id || n._id} 
                             onClick={() => {
-                              markSingleAsRead(n.id);
+                              const targetId = n.id || n._id;
+                              markSingleAsRead(targetId);
                               handleNotificationClick(n);
                             }}
                             className={`p-4 rounded-xl border transition-all cursor-pointer group flex flex-col ${
@@ -630,7 +687,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#18181b] border border-white/0 rounded-2xl p-6 w-full max-w-2xl shadow-2xl relative max-h-[85vh] flex flex-col"
+              className="bg-[#18181b] border border-white/0 rounded-2xl p-6 w-full max-w-4xl shadow-2xl relative max-h-[85vh] flex flex-col"
             >
               <div className="flex items-center justify-between mb-6 border-b border-white/0 pb-4">
                 <div className="flex items-center gap-3">
@@ -657,7 +714,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
               <div className="flex gap-3 mb-6 bg-zinc-950/40 p-1.5 rounded-xl border border-white/0">
                 <button
                   onClick={() => setNotifTab("UNREAD")}
-                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${
                     notifTab === "UNREAD"
                       ? "bg-[#a07800] text-white shadow-sm font-black"
                       : "text-zinc-400 hover:text-zinc-200"
@@ -667,7 +724,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                 </button>
                 <button
                   onClick={() => setNotifTab("READ")}
-                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${
                     notifTab === "READ"
                       ? "bg-[#a07800] text-white shadow-sm font-black"
                       : "text-zinc-400 hover:text-zinc-200"
@@ -688,38 +745,39 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
                     : (uniqueNotifications || []).filter(n => n.read)
                   ).map((n) => (
                     <div
-                      key={n.id}
+                      key={n.id || n._id}
                       onClick={() => {
-                        markSingleAsRead(n.id);
+                        const targetId = n.id || n._id;
+                        markSingleAsRead(targetId);
                         handleNotificationClick(n);
                         if (n.type === "REGISTRATION") {
                           setShowAllNotificationsModal(false);
                         }
                       }}
-                      className={`p-4 rounded-xl border transition-all cursor-pointer group flex items-start gap-4 ${
+                      className={`p-5 rounded-2xl border transition-all cursor-pointer group flex items-start gap-5 ${
                         !n.read
                           ? "bg-[#a07800]/5 border-[#a07800]/15 hover:bg-[#a07800]/10"
                           : "bg-zinc-950/20 border-white/0 hover:bg-zinc-800/40"
                       }`}
                     >
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${
+                      <div className={`h-12 w-12 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${
                         n.type === "REGISTRATION" ? "bg-[#a07800]/20 text-[#a07800]" : "bg-green-500/20 text-green-400"
                       }`}>
-                        {n.type === "REGISTRATION" ? <UserPlus size={18} /> : <CheckCircle2 size={18} />}
+                        {n.type === "REGISTRATION" ? <UserPlus size={20} /> : <CheckCircle2 size={20} />}
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-bold text-zinc-100 group-hover:text-[#a07800] transition-colors truncate">{safeText(n.title)}</p>
-                          <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider shrink-0">{safeText(n.time)}</span>
+                          <p className="text-sm font-bold text-zinc-100 group-hover:text-[#a07800] transition-colors truncate">{safeText(n.title)}</p>
+                          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider shrink-0">{safeText(n.time)}</span>
                         </div>
-                        <p className="text-xs text-zinc-400 mt-1 leading-relaxed font-semibold">{safeText(n.message)}</p>
+                        <p className="text-sm text-zinc-300 mt-1.5 leading-relaxed font-semibold">{safeText(n.message)}</p>
                         {!n.read && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              markSingleAsRead(n.id);
+                              markSingleAsRead(n.id || n._id);
                             }}
-                            className="mt-2 text-[9px] font-black text-[#a07800] hover:underline uppercase tracking-wider"
+                            className="mt-2 text-[10px] font-black text-[#a07800] hover:underline uppercase tracking-wider"
                           >
                             Đánh dấu đã đọc
                           </button>
