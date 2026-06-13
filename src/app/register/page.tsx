@@ -23,7 +23,7 @@ export default function RegisterPage() {
  password: "",
  confirmPassword: ""
  });
- const [errors, setErrors] = useState({ name: "", phone: "", email: "", password: "", username: "", birthYear: "", address: "" });
+ const [errors, setErrors] = useState({ name: "", phone: "", email: "", password: "", username: "", birthYear: "", address: "", confirmPassword: "" });
  const [isLoading, setIsLoading] = useState(false);
  const [isWaitingApproval, setIsWaitingApproval] = useState(false);
  const [approvalStatus, setApprovalStatus] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
@@ -138,14 +138,59 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 1. Kiểm tra check đồng ý điều khoản
     if (!agreeTerms) {
       toast.error("Bạn phải đồng ý với Nội quy và Điều khoản dịch vụ!");
       return;
     }
 
-    const hasErrors = errors.name || errors.phone || errors.email || errors.password || errors.username;
-    if (hasErrors) {
-      toast.error("Vui lòng sửa các lỗi nhập liệu trước khi tiếp tục!");
+    // 2. Kiểm tra xem có trường bắt buộc nào để trống không
+    if (
+      !formData.name.trim() ||
+      !formData.birthYear ||
+      !formData.username.trim() ||
+      !formData.phone.trim() ||
+      !formData.email.trim() ||
+      !formData.address.trim() ||
+      !formData.password ||
+      !formData.confirmPassword
+    ) {
+      toast.error("Vui lòng điền đầy đủ tất cả các trường thông tin!");
+      return;
+    }
+
+    // 3. Chạy validation thủ công cho tất cả các trường
+    const isNameOk = validateField("name", formData.name);
+    const isUsernameOk = validateField("username", formData.username);
+    const isPhoneOk = validateField("phone", formData.phone);
+    const isEmailOk = validateField("email", formData.email);
+    const isPasswordOk = validateField("password", formData.password);
+    const isConfirmPasswordOk = validateField("confirmPassword", formData.confirmPassword);
+
+    // 4. Nếu có bất kỳ lỗi validation nào
+    if (!isNameOk || !isUsernameOk || !isPhoneOk || !isEmailOk || !isPasswordOk || !isConfirmPasswordOk) {
+      const activeError = 
+        (errors.name && `Họ và tên: ${errors.name}`) ||
+        (errors.username && `Tên đăng nhập: ${errors.username}`) ||
+        (errors.phone && `Số điện thoại: ${errors.phone}`) ||
+        (errors.email && `Email: ${errors.email}`) ||
+        (errors.password && `Mật khẩu: ${errors.password}`) ||
+        (errors.confirmPassword && `Mật khẩu xác nhận: ${errors.confirmPassword}`);
+      
+      toast.error(activeError || "Vui lòng kiểm tra lại các thông tin nhập liệu!");
+      return;
+    }
+
+    // 5. Nếu mật khẩu không khớp
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Mật khẩu xác nhận không trùng khớp!");
+      return;
+    }
+
+    // 6. Kiểm tra trùng lặp username
+    if (isUsernameDuplicate) {
+      toast.error("Tên đăng nhập đã tồn tại, vui lòng chọn tên khác!");
       return;
     }
 
@@ -468,7 +513,7 @@ export default function RegisterPage() {
     </label>
   </div>
 
- <button type="submit" disabled={isLoading || isUsernameDuplicate || !isFormValid} className="md:col-span-2 mt-8 h-16 w-full rounded-2xl bg-gold font-black uppercase tracking-[0.2em] text-[#0a0a0a] text-sm transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-70 shadow-2xl shadow-gold/20 flex items-center justify-center gap-3">
+ <button type="submit" disabled={isLoading} className="md:col-span-2 mt-8 h-16 w-full rounded-2xl bg-gold font-black uppercase tracking-[0.2em] text-[#0a0a0a] text-sm transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-70 shadow-2xl shadow-gold/20 flex items-center justify-center gap-3">
  {isLoading ? (
  <div className="flex items-center gap-3">
  <Loader2 className="animate-spin" size={24} />
