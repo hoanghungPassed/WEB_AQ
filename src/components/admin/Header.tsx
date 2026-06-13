@@ -40,6 +40,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
   const [selectedRole, setSelectedRole] = useState<string>("04");
   const [isActionSubmitting, setIsActionSubmitting] = useState(false);
   const [dateTimeStr, setDateTimeStr] = useState("");
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 
   const safeText = (value: unknown) => {
     if (value === null || value === undefined) return "";
@@ -111,6 +112,20 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
             setSelectedRole("04");
           });
         }
+      } else if (notif.type === "ACCESS_REQUEST") {
+        const roleUpper = String(user?.role || "").toUpperCase();
+        if (roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC") {
+          const audio = new Audio('/notification.mp3');
+          audio.play().catch(e => {});
+
+          const accessReqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
+          if (!accessReqs.some((r: any) => r.id === notif.data.id)) {
+            const updated = [...accessReqs, notif.data];
+            localStorage.setItem("pending_access_requests", JSON.stringify(updated));
+            window.dispatchEvent(new Event("storage"));
+            loadLocalNotifsRef.current();
+          }
+        }
       } else if (!notif.targetUsername || notif.targetUsername?.toLowerCase() === user?.username?.toLowerCase()) {
         mutate('/api/admin/notifications?type=SYSTEM');
         setNotifications(prev => {
@@ -154,40 +169,48 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
     dedupingInterval: 10000
   });
 
+  const loadLocalNotifs = React.useCallback(() => {
+    let adminNotifs = [];
+    try {
+      adminNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
+    } catch (err) {}
+
+    const roleUpper = String(user?.role || "").toUpperCase();
+    const isAuthorizedManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
+    let accessNotifs: any[] = [];
+    if (isAuthorizedManager) {
+      const accessReqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
+      setPendingRequests(accessReqs);
+      accessNotifs = (accessReqs || []).map((req: any) => ({
+        id: `access-${req.id}`,
+        title: "Yêu cầu truy cập ngoài giờ",
+        message: `Nhân viên ${req.staffName} đang xin phép vào hệ thống.`,
+        time: req.time,
+        type: "ACCESS_REQUEST",
+        read: false,
+        data: req
+      }));
+    }
+
+    const dbNotifications = Array.isArray(dbNotifs) ? dbNotifs : (dbNotifs?.data || []);
+    setNotifications([...dbNotifications, ...adminNotifs, ...accessNotifs]);
+  }, [user?.role, dbNotifs]);
+
+  const loadLocalNotifsRef = React.useRef(loadLocalNotifs);
   useEffect(() => {
-    const loadLocalNotifs = () => {
-      let adminNotifs = [];
-      try {
-        adminNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
-      } catch (err) {}
+    loadLocalNotifsRef.current = loadLocalNotifs;
+  }, [loadLocalNotifs]);
 
-      const roleUpper = String(user?.role || "").toUpperCase();
-      const isAuthorizedManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
-      let accessNotifs: any[] = [];
-      if (isAuthorizedManager) {
-        const accessReqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
-        accessNotifs = (accessReqs || []).map((req: any) => ({
-          id: `access-${req.id}`,
-          title: "Yêu cầu truy cập ngoài giờ",
-          message: `Nhân viên ${req.staffName} đang xin phép vào hệ thống.`,
-          time: req.time,
-          type: "ACCESS_REQUEST",
-          read: false,
-          data: req
-        }));
-      }
-
-      const dbNotifications = Array.isArray(dbNotifs) ? dbNotifs : (dbNotifs?.data || []);
-      setNotifications([...dbNotifications, ...adminNotifs, ...accessNotifs]);
-    };
-
+  useEffect(() => {
     loadLocalNotifs();
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === "admin_notifications" || e.key === "pending_access_requests" || e.key === "request_trigger") loadLocalNotifs();
+      if (!e.key || e.key === "admin_notifications" || e.key === "pending_access_requests" || e.key === "request_trigger") {
+        loadLocalNotifs();
+      }
     };
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
-  }, [user?.role, dbNotifs]);
+  }, [loadLocalNotifs]);
 
   const filteredNotifications = (notifications || []).filter(n => {
     if (n.type === "REGISTRATION") {
@@ -339,6 +362,68 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
     sessionStorage.removeItem("user");
     localStorage.removeItem("user");
     window.location.href = "/login";
+  };
+
+  const handleApproveAccess = async (request: any) => {
+    setIsActionSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/attendance/approve-access/${request.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || user?._id || ""
+        },
+        body: JSON.stringify({ 
+          status: "APPROVED",
+          userId: request.userId,
+          type: request.type,
+          username: request.username,
+          staffName: request.staffName
+        })
+      });
+
+      if (res.ok) {
+        const accessReqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
+        const updated = (accessReqs || []).filter((r: any) => r.id !== request.id);
+        localStorage.setItem("pending_access_requests", JSON.stringify(updated));
+        window.dispatchEvent(new Event("storage"));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsActionSubmitting(false);
+    }
+  };
+
+  const handleDenyAccess = async (request: any) => {
+    setIsActionSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/attendance/approve-access/${request.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || user?._id || ""
+        },
+        body: JSON.stringify({ 
+          status: "DENIED",
+          userId: request.userId,
+          type: request.type,
+          username: request.username,
+          staffName: request.staffName
+        })
+      });
+
+      if (res.ok) {
+        const accessReqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
+        const updated = (accessReqs || []).filter((r: any) => r.id !== request.id);
+        localStorage.setItem("pending_access_requests", JSON.stringify(updated));
+        window.dispatchEvent(new Event("storage"));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsActionSubmitting(false);
+    }
   };
 
   const handleMessageClick = async (partnerId?: string) => {
@@ -796,6 +881,48 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           </div>
         </div>
       )}
+
+      {/* Manager Approval Notification Popup */}
+      {(user?.role === "ADMIN" || user?.role === "01" || user?.role === "02" || String(user?.role).toUpperCase().includes("QUẢN LÝ")) && pendingRequests.length > 0 && (() => {
+        const request = pendingRequests[0];
+        const isLateRequest = request?.type === "FINE_PAYMENT" || request?.type === "LATE_EXCUSE";
+        return (
+          <div className="fixed bottom-10 right-10 z-50">
+            <div className="bg-sidebar border border-white/10 p-6 rounded-[32px] shadow-2xl w-96 bg-[#18181b]">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 bg-gold rounded-full flex items-center justify-center text-sidebar animate-pulse">
+                  <Bell size={20} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-gold uppercase tracking-widest">
+                    {isLateRequest ? "Yêu cầu duyệt đi muộn" : "Yêu cầu truy cập mới"}
+                  </p>
+                  <p className="text-lg font-black text-white">{safeText(request?.staffName)}</p>
+                </div>
+              </div>
+              <p className="text-gray-400 text-base mb-6 font-medium leading-relaxed">
+                {request?.reason || (isLateRequest 
+                  ? `Nhân viên ${safeText(request?.staffName)} vừa gửi yêu cầu mở khóa do đi muộn/chuyển khoản.`
+                  : "Nhân viên này đang xin phép truy cập hệ thống ngoài giờ làm việc.")}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleApproveAccess(request)}
+                  className="flex-1 h-12 bg-green-500 rounded-xl text-white font-bold flex items-center justify-center gap-2 hover:bg-green-600 transition-all shadow-lg shadow-green-500/20"
+                >
+                  <CheckCircle2 size={18} /> {isLateRequest ? "Duyệt ngay" : "Đồng ý"}
+                </button>
+                <button
+                  onClick={() => handleDenyAccess(request)}
+                  className="flex-1 h-12 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 font-bold flex items-center justify-center gap-2 hover:bg-red-500/20 transition-all"
+                >
+                  <X size={18} /> Từ chối
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 };

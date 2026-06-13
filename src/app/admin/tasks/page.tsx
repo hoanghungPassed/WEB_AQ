@@ -22,7 +22,8 @@ import {
   Database,
   RefreshCcw,
   Search,
-  Copy
+  Copy,
+  User
 } from "lucide-react";
 
 import { MailData, StaffData, TaskAssignment } from "@/types/admin";
@@ -37,6 +38,8 @@ import MailDetailModal from "@/components/admin/MailDetailModal";
 import { Badge } from "@/components/ui/Badge";
 import { MailSelectorModal } from "@/components/admin/modals/MailSelectorModal";
 import TOTPDisplay from "@/components/admin/TOTPDisplay";
+import { toast as hotToast } from "react-hot-toast";
+import { mutate } from "swr";
 
 const TaskCard = React.memo(({ task, onClick }: { task: TaskAssignment, onClick: () => void }) => {
   const statusConfig: Record<string, { icon: React.ReactNode, variant: "default" | "success" | "warning" | "danger" | "info" | "gold", label: string }> = {
@@ -159,6 +162,7 @@ export default function TaskManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [staffSearch, setStaffSearch] = useState("");
+  const [showStaffDropdown, setShowStaffDropdown] = useState(false);
   const [staffOnlineFilter, setStaffOnlineFilter] = useState("ALL");
 
   // Pagination State
@@ -405,6 +409,15 @@ export default function TaskManagementPage() {
 
   const selectedTask = useMemo(() => tasks.find((t: TaskAssignment) => t.id === selectedTaskId), [selectedTaskId, tasks]);
 
+  const taskIndex = useMemo(() => {
+    if (!selectedTaskId || !selectedTask) return 0;
+    // Find all tasks assigned to the same user
+    const assigneeTasks = (tasks || []).filter((t: TaskAssignment) => String(t.assigneeId) === String(selectedTask.assigneeId));
+    // Sort tasks in chronological order so that taskIndex is stable (oldest task is index 0)
+    const sorted = [...assigneeTasks].sort((a: any, b: any) => new Date(a.createdAt || a.assignedAt || 0).getTime() - new Date(b.createdAt || b.assignedAt || 0).getTime());
+    return sorted.findIndex(t => t.id === selectedTaskId);
+  }, [tasks, selectedTaskId, selectedTask]);
+
   // Load task mails dynamically for selected task
   const selectedTaskBatch = selectedTask?.batch || (selectedTask as any)?.batchName || "";
   useEffect(() => {
@@ -521,7 +534,12 @@ export default function TaskManagementPage() {
   const handleSaveUnifiedDetails = useCallback(async (mailId: string | number, updatedFields: any) => {
     try {
       const additionalFields: any = {};
-      if (updatedFields.links && Array.isArray(updatedFields.links) && updatedFields.links.filter(Boolean).length === 3) {
+      if (updatedFields.workStatus) {
+        additionalFields.workStatus = updatedFields.workStatus;
+        if (updatedFields.workStatus === "Đã làm") {
+          additionalFields.status = "USED";
+        }
+      } else if (updatedFields.links && Array.isArray(updatedFields.links) && updatedFields.links.filter(Boolean).length === 3) {
         additionalFields.status = "USED";
         additionalFields.workStatus = "Đã làm";
       }
@@ -533,8 +551,9 @@ export default function TaskManagementPage() {
       });
 
       if (res.ok) {
-        setNotification("Đã cập nhật chi tiết mail thành công.");
-        setTimeout(() => setNotification(null), 3000);
+        hotToast.success("Lưu dữ liệu thành công");
+        hotToast.success("Đã cập nhật!");
+        toast.success("Lưu dữ liệu thành công");
         
         // Refresh local task mails list
         setTaskMailsList(prev => prev.map((m: any) => {
@@ -549,6 +568,13 @@ export default function TaskManagementPage() {
           const mId = m._id || m.id;
           return String(mId) === String(mailId) ? { ...m, ...updatedFields, ...additionalFields } : m;
         }));
+
+        mutate("/api/admin/tasks");
+        try {
+          mutate((key: any) => typeof key === "string" && key.includes("/api/admin/mails"));
+        } catch (e) {
+          console.error("SWR mutate filter error:", e);
+        }
 
         window.dispatchEvent(new Event("storage"));
       } else {
@@ -572,6 +598,14 @@ export default function TaskManagementPage() {
   const handleSaveMailLinks = async (mail: any) => {
     const mailId = mail._id || mail.id;
     const links = mailLinksState[mailId] || ["", "", ""];
+
+    // Validation
+    const linksCount = (links || []).filter(l => typeof l === 'string' && l.trim() !== "").length;
+    const isLoiStatus = (mail.workStatus || "").toLowerCase() === "lỗi";
+    if (!isLoiStatus && linksCount < 3) {
+      hotToast.error("Thiếu kênh hoặc sai định dạng! Vui lòng điền đủ 3 link kênh hợp lệ trước khi cập nhật.");
+      return;
+    }
 
     setSavingMailId(mailId);
     try {
@@ -611,6 +645,7 @@ export default function TaskManagementPage() {
   const isTaskCompleteEligible = useMemo(() => {
     if (!isStaff || taskMailsList.length === 0) return false;
     return taskMailsList.every((mail: any) => {
+      if (mail.workStatus === "Lỗi") return true;
       const hasLinks = mail.links && 
         mail.links[0]?.trim() !== "" && 
         mail.links[1]?.trim() !== "" && 
@@ -837,6 +872,7 @@ export default function TaskManagementPage() {
     if (newStatus === "COMPLETED" && selectedTask?.type === "MAIL_VE_TINH") {
       const errorMails: string[] = [];
       taskMails.forEach((m: MailData) => {
+        if (m.workStatus === "Lỗi") return;
         const activeLinks = (m.links || []).filter((l: string) => typeof l === 'string' && l.trim() !== "");
         if (activeLinks.length < 3) {
           errorMails.push(`- ${m.email} (thiếu ${3 - activeLinks.length} kênh)`);
@@ -985,35 +1021,65 @@ export default function TaskManagementPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-4 mb-4">
+                    <div className="space-y-4 mb-4 relative z-50">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Tìm kiếm nhân viên đang onl</label>
-                        <div className="relative">
-                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Tìm kiếm & Chọn nhân viên thực hiện (Chỉ hiển thị người online)</label>
+                        <div className="relative flex items-center">
+                          <Search className="absolute left-3 text-gray-500" size={16} />
                           <input
                             type="text"
                             placeholder="Nhập tên nhân viên đang online..."
                             value={staffSearch}
-                            onChange={(e) => setStaffSearch(e.target.value)}
+                            onChange={(e) => {
+                              setStaffSearch(e.target.value);
+                              setShowStaffDropdown(true);
+                            }}
+                            onFocus={() => setShowStaffDropdown(true)}
                             className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl pl-12 pr-6 text-white text-base outline-none focus:border-white/5 transition-all"
                           />
                         </div>
-                      </div>
 
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chọn nhân viên thực hiện (Chỉ hiển thị người online)</label>
-                        <select 
-                          value={targetStaffId}
-                          onChange={(e) => setTargetStaffId(e.target.value)}
-                          className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all"
-                        >
-                          <option value="" className="bg-zinc-900 text-white">-- Chọn nhân sự thực hiện --</option>
-                          {(eligibleStaff || []).map((staff: StaffData) => (
-                            <option key={staff.id} value={staff.id} className="bg-zinc-900 text-white">
-                              🟢 {staff.name} (@{staff.username}) ({staff.role === "02" ? "Quản lý công việc" : staff.role === "03" ? "Quản lý nhân sự" : "Nhân viên"})
-                            </option>
-                          ))}
-                        </select>
+                        <AnimatePresence>
+                          {showStaffDropdown && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setShowStaffDropdown(false)}></div>
+                              <motion.div 
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 bg-[#121212] border border-white/10 rounded-2xl shadow-2xl max-h-60 overflow-y-auto overflow-x-hidden"
+                              >
+                                {(eligibleStaff || []).length === 0 ? (
+                                  <div className="p-4 text-center text-gray-500 text-sm">Không tìm thấy nhân viên online phù hợp.</div>
+                                ) : (
+                                  (eligibleStaff || []).map((staff: StaffData) => (
+                                    <button
+                                      key={staff.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setTargetStaffId(staff.id);
+                                        setStaffSearch(`${staff.name} (@${staff.username})`);
+                                        setShowStaffDropdown(false);
+                                      }}
+                                      className={`w-full text-left px-4 py-3 hover:bg-white/5 transition-colors flex items-center gap-3 ${targetStaffId === staff.id ? 'bg-gold/10 text-gold' : 'text-white'}`}
+                                    >
+                                      <div className="relative">
+                                        <div className="w-8 h-8 rounded-full bg-sidebar flex items-center justify-center border border-white/10">
+                                          <User size={14} className={targetStaffId === staff.id ? 'text-gold' : 'text-gray-400'} />
+                                        </div>
+                                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#121212]"></div>
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-bold">{staff.name}</p>
+                                        <p className="text-xs text-gray-500">@{staff.username} • {staff.role === "02" ? "QL Công Việc" : staff.role === "03" ? "QL Nhân Sự" : "Nhân viên"}</p>
+                                      </div>
+                                    </button>
+                                  ))
+                                )}
+                              </motion.div>
+                            </>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
 
@@ -1117,7 +1183,7 @@ export default function TaskManagementPage() {
                           <select 
                             value={selectedRootMailId}
                             onChange={(e) => setSelectedRootMailId(e.target.value)}
-                            className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all"
+                            className="w-full h-14 bg-black/20 border border-white/10 rounded-2xl px-6 text-white text-base outline-none focus:border-gold cursor-pointer transition-all"
                           >
                             <option value="" className="bg-zinc-900 text-white">-- Chọn Mail Gốc trong DB --</option>
                             {(mails || []).filter((m: MailData) => m.type === "ROOT" && m.verificationStatus === "Đã xanh" && !m.assigneeId).map((m: MailData) => (
@@ -1134,7 +1200,7 @@ export default function TaskManagementPage() {
                             value={selectedMoiKenhLo}
                             onChange={(e) => setSelectedMoiKenhLo(e.target.value)}
                             disabled={!targetStaffId}
-                            className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 cursor-pointer transition-all ${!targetStaffId ? 'opacity-40 cursor-not-allowed' : ''}`}
+                            className={`w-full h-14 bg-black/20 border border-white/10 rounded-2xl px-6 text-white text-base outline-none focus:border-gold cursor-pointer transition-all ${!targetStaffId ? 'opacity-40 cursor-not-allowed' : ''}`}
                           >
                             <option value="" className="bg-zinc-900 text-white">{!targetStaffId ? '-- Vui lòng chọn nhân viên trước --' : '-- Chọn Lô Vệ Tinh --'}</option>
                             {(filteredBatches || []).map(b => (
@@ -1329,7 +1395,7 @@ export default function TaskManagementPage() {
                             <th className="px-6 py-3 whitespace-nowrap">Mã 2FA</th>
                             <th className="px-6 py-3 whitespace-nowrap">Số điện thoại</th>
                             <th className="px-6 py-3 whitespace-nowrap">Link OTP</th>
-                            <th className="px-6 py-3 text-center whitespace-nowrap">Trạng thái Mail</th>
+                            <th className="px-6 py-3 text-center whitespace-nowrap">Trạng thái</th>
                             <th className="px-10 py-3 text-right whitespace-nowrap">Hành động</th>
                           </tr>
                         ) : (
@@ -1361,7 +1427,11 @@ export default function TaskManagementPage() {
 
                               return (
                                 <tr key={`mail-${mailId}`} className="group hover:bg-zinc-800/50 bg-zinc-900/[0.02] transition-all">
-                                  <td className="py-3 px-10 text-[10px] font-black whitespace-nowrap">{i + 1}</td>
+                                  <td className="py-3 px-10 text-[10px] font-black whitespace-nowrap">
+                                    {selectedTask?.type === "MAIL_VE_TINH"
+                                      ? (taskIndex * 17) + i + 1
+                                      : i + 1}
+                                  </td>
                                   <td className="py-3 px-6 whitespace-nowrap">
                                     <div className="flex items-center gap-1.5 group/copy">
                                       <span 
@@ -1473,20 +1543,31 @@ export default function TaskManagementPage() {
                                   </td>
                                   <td className="py-3 px-6 text-center whitespace-nowrap">
                                     <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border whitespace-nowrap ${
-                                      isMailCompleted
+                                      mail.workStatus === "Đã làm"
                                       ? "bg-green-500/10 text-green-500 border-green-500/20" 
+                                      : mail.workStatus === "Lỗi"
+                                      ? "bg-red-500/10 text-red-500 border-red-500/20"
                                       : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
                                     }`}>
-                                      {isMailCompleted ? "Đã làm" : "Chưa làm"}
+                                      {mail.workStatus || "Chưa làm"}
                                     </span>
                                   </td>
                                   <td className="py-3 px-10 text-right whitespace-nowrap">
-                                    <button 
-                                      onClick={() => setSelectedMailForConfig(mail)} 
-                                      className="h-9 px-3.5 bg-gold/15 text-gold hover:bg-gold hover:text-sidebar rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/0 transition-all inline-flex items-center gap-1.5 float-right whitespace-nowrap"
-                                    >
-                                      <Play size={12} /> Nhập Link
-                                    </button>
+                                    {selectedTask?.status === "COMPLETED" ? (
+                                      <button 
+                                        onClick={() => setSelectedMailForConfig(mail)} 
+                                        className="h-9 px-3.5 bg-white/10 text-white hover:bg-gold hover:text-sidebar rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/0 transition-all inline-flex items-center gap-1.5 float-right whitespace-nowrap"
+                                      >
+                                        Chi tiết
+                                      </button>
+                                    ) : (
+                                      <button 
+                                        onClick={() => setSelectedMailForConfig(mail)} 
+                                        className="h-9 px-3.5 bg-gold/15 text-gold hover:bg-gold hover:text-sidebar rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/0 transition-all inline-flex items-center gap-1.5 float-right whitespace-nowrap"
+                                      >
+                                        Nhập Link
+                                      </button>
+                                    )}
                                   </td>
                                 </tr>
                               );
@@ -1593,6 +1674,7 @@ export default function TaskManagementPage() {
             mail={selectedMailForConfig} 
             type={selectedMailForConfig.type}
             user={user}
+            viewOnly={selectedTask?.status === "COMPLETED"}
             onClose={() => setSelectedMailForConfig(null)} 
             onSave={(updatedFields) => handleSaveUnifiedDetails(selectedMailForConfig._id || selectedMailForConfig.id, updatedFields)}
           />

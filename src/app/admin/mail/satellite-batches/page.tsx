@@ -665,11 +665,11 @@ export default function SatelliteBatchesPage() {
  {/* Filter Bar */}
  <div className="flex flex-col lg:flex-row bg-sidebar/50 border border-white/0 p-6 rounded-[20px] flex-shrink-0 gap-6 lg:items-center justify-between">
  {/* Search */}
- <div className="relative group flex-1">
-   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
+ <div className="relative flex items-center group flex-1">
+   <Search className="absolute left-3 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
    <input 
      placeholder="Tìm kiếm nhân sự..."
-     className="w-full bg-black/40 border border-white/0 rounded-xl pl-12 pr-4 h-12 text-sm text-white outline-none focus:border-white/5 transition-all"
+     className="w-full bg-black/40 border border-white/0 rounded-xl pl-10 pr-4 h-12 text-sm text-white outline-none focus:border-white/5 transition-all"
      type="text" 
      value={staffSearchTerm}
      onChange={(e) => setStaffSearchTerm(e.target.value)}
@@ -868,8 +868,8 @@ export default function SatelliteBatchesPage() {
  </div>
 
  <div className="flex items-center gap-3">
- <div className="relative group">
- <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={16} />
+ <div className="relative flex items-center group">
+ <Search className="absolute left-3 text-gray-500 group-focus-within:text-gold transition-colors" size={16} />
  <input 
  placeholder="Tìm kiếm Lô..."
  className="bg-black/20 border border-white/0 rounded-xl pl-10 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-48"

@@ -7,11 +7,6 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     await dbConnect();
     let settings = await SystemSetting.findOne();
     if (!settings) {
@@ -19,7 +14,8 @@ export async function GET(req: NextRequest) {
         brandName: "AQ MEDIA",
         openTime: "08:00",
         closeTime: "18:00",
-        checkInTime: "17:30"
+        checkInTime: "17:30",
+        rulesUrl: ""
       });
     }
 
@@ -93,6 +89,7 @@ export async function PUT(req: NextRequest) {
     if (bStart !== undefined) updateData.breakStartTime = bStart;
     if (bEnd !== undefined) updateData.breakEndTime = bEnd;
     if (data.checkInTime !== undefined) updateData.checkInTime = data.checkInTime;
+    if (data.rulesUrl !== undefined) updateData.rulesUrl = data.rulesUrl;
 
     // Automatically calculate closeTime (workEndTime)
     if (start !== undefined) {

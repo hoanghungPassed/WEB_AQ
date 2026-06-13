@@ -14,8 +14,8 @@ export default function MailCategoryPage() {
  if (storedUser) {
  const parsedUser = JSON.parse(storedUser);
  setUser(parsedUser);
- if (parsedUser.role ==="04" && category !=="satellite") {
- window.location.href ="/admin/mail/satellite";
+ if ((parsedUser.role === "03" || parsedUser.role === "04") && category !== "satellite" && category !== "root") {
+ window.location.href = "/admin/mail/satellite";
  }
  }
  }, [category]);

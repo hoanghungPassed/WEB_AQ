@@ -90,14 +90,14 @@ export const MailSelectorModal = ({
       }
     >
       <div className="mb-6 relative z-10">
-        <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-2xl px-4 h-12 w-full focus-within:border-gold transition-all">
-          <Search size={16} className="text-gray-500 shrink-0" />
+        <div className="relative flex items-center bg-black/20 border border-white/0 rounded-2xl h-12 w-full focus-within:border-gold transition-all">
+          <Search size={16} className="absolute left-3 text-gray-500 shrink-0" />
           <input
             type="text"
             placeholder="Tìm kiếm Email hoặc Mail KP..."
             value={modalSearchQuery}
             onChange={(e) => setModalSearchQuery(e.target.value)}
-            className="bg-transparent border-none outline-none text-sm text-white w-full"
+            className="pl-10 bg-transparent border-none outline-none text-sm text-white w-full h-full"
           />
         </div>
       </div>

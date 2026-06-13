@@ -15,14 +15,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Bỏ qua xác thực cho các API công khai (Đăng nhập, Đăng ký, Xác thực 2FA lúc đăng nhập, Reset mật khẩu)
+  // Bỏ qua xác thực cho các API công khai (Đăng nhập, Đăng ký, Xác thực 2FA lúc đăng nhập, Reset mật khẩu, và GET settings)
   const isPublicApi = 
     pathname.startsWith("/api/auth/login") ||
     pathname.startsWith("/api/auth/register") ||
     pathname.startsWith("/api/auth/check-status") ||
     pathname.startsWith("/api/auth/check-username") ||
     pathname.startsWith("/api/admin/2fa/login") ||
-    pathname.startsWith("/api/auth/reset-password");
+    pathname.startsWith("/api/auth/reset-password") ||
+    (pathname.startsWith("/api/admin/settings") && method === "GET");
 
   if (isPublicApi) {
     return NextResponse.next();

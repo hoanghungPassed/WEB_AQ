@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import useSWR from "swr";
+import toast from "react-hot-toast";
 
 import { MailData } from "@/types/admin";
 import MailDetailModal from "@/components/admin/MailDetailModal";
@@ -104,8 +105,11 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
   }, [initialUser]);
 
   const triggerToast = (msg: string) => {
-    setNotification(msg);
-    setTimeout(() => setNotification(null), 3000);
+    if (msg.toLowerCase().includes("lỗi") || msg.toLowerCase().includes("không hợp lệ") || msg.toLowerCase().includes("trống") || msg.toLowerCase().includes("thất bại")) {
+      toast.error(msg);
+    } else {
+      toast.success(msg);
+    }
   };
 
   const handleCopy = (text: string, label: string) => {
@@ -162,6 +166,13 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
       ...info
     })).sort((a, b) => b.importedAt.localeCompare(a.importedAt));
   }, [mails, importHistory, activeTab]);
+
+  const batchIndex = useMemo(() => {
+    if (!selectedBatch || !batchStats) return 0;
+    // Sort oldest first to get a stable chronological index
+    const sorted = [...batchStats].sort((a, b) => a.importedAt.localeCompare(b.importedAt) || a.name.localeCompare(b.name));
+    return sorted.findIndex(b => b.name === selectedBatch);
+  }, [batchStats, selectedBatch]);
 
   const totalPages = Math.ceil(filteredMails.length / itemsPerPage);
   const paginatedMails = useMemo(() => {
@@ -467,28 +478,35 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
       {/* Tabs & Search */}
       <div className="flex flex-col lg:flex-row gap-4 flex-shrink-0">
         <div className="flex bg-white/5 p-1 rounded-2xl border border-white/0">
-          {(["ALL", "ROOT", "SATELLITE", "MONETIZED"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => { setActiveTab(tab); setViewMode("BATCHES"); setSelectedBatch(null); }}
-              className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                activeTab === tab ? "bg-gold text-sidebar shadow-lg" : "text-gray-500 hover:text-white"
-              }`}
-            >
-              {tab === "ALL" ? "Tất cả" : tab === "ROOT" ? "Mail Gốc" : tab === "SATELLITE" ? "Vệ Tinh" : "Kiếm Tiền"}
-            </button>
-          ))}
+          {(["ALL", "ROOT", "SATELLITE", "MONETIZED"] as const)
+            .filter((tab) => {
+              if (roleUpper === "03" || roleUpper === "04") {
+                return tab === "ROOT" || tab === "SATELLITE";
+              }
+              return true;
+            })
+            .map((tab) => (
+              <button
+                key={tab}
+                onClick={() => { setActiveTab(tab); setViewMode("BATCHES"); setSelectedBatch(null); }}
+                className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  activeTab === tab ? "bg-gold text-sidebar shadow-lg" : "text-gray-500 hover:text-white"
+                }`}
+              >
+                {tab === "ALL" ? "Tất cả" : tab === "ROOT" ? "Mail Gốc" : tab === "SATELLITE" ? "Vệ Tinh" : "Kiếm Tiền"}
+              </button>
+            ))}
         </div>
 
         <div className="flex-1 flex gap-3">
-          <div className="relative flex-1 group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
+          <div className="relative flex items-center flex-1 group">
+            <Search className="absolute left-3 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
             <input
               type="text"
               placeholder="Tìm kiếm email, lô, ghi chú..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl pl-12 pr-6 text-white text-sm outline-none focus:border-white/10 transition-all shadow-inner"
+              className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl pl-10 pr-6 text-white text-sm outline-none focus:border-white/10 transition-all shadow-inner"
             />
           </div>
           {viewMode === "MAILS" && (
@@ -581,7 +599,11 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
 
                     return (
                       <tr key={mail.id} className="group hover:bg-white/5 transition-all">
-                        <td className="px-8 py-4 text-xs font-black text-gray-500">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
+                        <td className="px-8 py-4 text-xs font-black text-gray-500">
+                          {activeTab === "SATELLITE" && selectedBatch
+                            ? (batchIndex * 17) + (currentPage - 1) * itemsPerPage + idx + 1
+                            : (currentPage - 1) * itemsPerPage + idx + 1}
+                        </td>
                         <td className="px-6 py-4">
                           <div 
                             onClick={() => handleCopy(mail.email, "email")}

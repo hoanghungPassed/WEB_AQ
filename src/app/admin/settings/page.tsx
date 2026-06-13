@@ -141,6 +141,7 @@ export default function SettingsPage() {
 
   // Agency name config state
   const [agencyConfigName, setAgencyConfigName] = useState("AQ MEDIA");
+  const [rulesUrl, setRulesUrl] = useState("");
 
   // 2FA States
   const [twoFAEnabledState, setTwoFAEnabledState] = useState<boolean>(false);
@@ -374,6 +375,7 @@ export default function SettingsPage() {
           setBreakStartTime(dbSettings.breakStartTime || "12:00");
           setBreakEndTime(dbSettings.breakEndTime || "13:30");
           setSystemCloseTime(dbSettings.checkInTime || "17:30");
+          setRulesUrl(dbSettings.rulesUrl || "");
 
           // Sync work config
           const workConfig = {
@@ -431,6 +433,7 @@ export default function SettingsPage() {
     if (savedAgencyConfig) {
       const agencyConfig = JSON.parse(savedAgencyConfig);
       setAgencyConfigName(agencyConfig.name ||"AQ MEDIA");
+      setRulesUrl(agencyConfig.rulesUrl || "");
     }
   };
 
@@ -722,6 +725,7 @@ export default function SettingsPage() {
   const handleSaveAgencyConfig = async () => {
     const agencyConfig = {
       name: agencyConfigName,
+      rulesUrl: rulesUrl,
       updatedAt: new Date().toLocaleString("vi-VN"),
     };
     localStorage.setItem("global_agency_config", JSON.stringify(agencyConfig));
@@ -737,13 +741,13 @@ export default function SettingsPage() {
       await fetch("/api/admin/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brandName: agencyConfigName })
+        body: JSON.stringify({ brandName: agencyConfigName, rulesUrl: rulesUrl })
       });
     } catch (err) {
       console.error("PUT brand settings sync error:", err);
     }
 
-    triggerToast("Đã lưu tên Agency thành công!");
+    triggerToast("Đã lưu cấu hình Agency và nội quy thành công!");
 
     // Add activity log
     const existingLogs = localStorage.getItem("global_system_logs");
@@ -1369,13 +1373,14 @@ export default function SettingsPage() {
  </CollapsibleSection>
 
  {/* Section: Agency Config */}
- <CollapsibleSection id="AGENCY_CONFIG" icon={Building2} title="Tên Thương Hiệu (Brand Name)" openSections={openSections} toggleSection={toggleSection}>
+ <CollapsibleSection id="AGENCY_CONFIG" icon={Building2} title="Thương hiệu & Nội quy công ty" openSections={openSections} toggleSection={toggleSection}>
  <div className="pt-5 space-y-6">
  <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-5">
  <p className="text-base text-blue-400 font-medium leading-relaxed">
- 🌟 Thiết lập tên thương hiệu hiển thị trên toàn hệ thống (Mặc định: AQ MEDIA).
+ 🌟 Thiết lập tên thương hiệu hiển thị trên toàn hệ thống và đường dẫn tải nội quy công ty.
  </p>
  </div>
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
  <div className="space-y-2">
  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Tên Thương Hiệu</label>
  <input 
@@ -1384,14 +1389,26 @@ export default function SettingsPage() {
  onChange={(e) => setAgencyConfigName(e.target.value)}
  onMouseDown={(e) => e.stopPropagation()}
  placeholder="VD: AQ MEDIA"
- className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full md:w-1/2 font-bold"
+ className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full font-bold"
  />
+ </div>
+ <div className="space-y-2">
+ <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Đường dẫn Nội quy công ty (URL)</label>
+ <input 
+ type="url" 
+ value={rulesUrl}
+ onChange={(e) => setRulesUrl(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
+ placeholder="VD: https://docs.google.com/document/d/... (hoặc link PDF)"
+ className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+ />
+ </div>
  </div>
  <button 
  onClick={handleSaveAgencyConfig}
  className="h-14 mt-4 px-8 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase text-base tracking-widest hover:bg-amber-700 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] w-full md:w-auto"
  >
- <Save size={18} /> Lưu Tên Thương Hiệu
+ <Save size={18} /> Lưu Cấu Hình
  </button>
  </div>
  </CollapsibleSection>

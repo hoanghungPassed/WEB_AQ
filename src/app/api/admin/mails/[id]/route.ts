@@ -43,7 +43,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   
   // Mass Assignment Protection: Staff can only update specific fields
   if (!hasPermission) {
-    const allowedFields = ['links', 'note', 'status', 'isDone', 'processStatus'];
+    const allowedFields = ['links', 'note', 'status', 'isDone', 'processStatus', 'workStatus', 'channelNames', 'eligibleChannels', 'verificationStatus', 'cccdDate'];
     const filteredBody: any = {};
     allowedFields.forEach(field => {
       if (body[field] !== undefined) filteredBody[field] = body[field];

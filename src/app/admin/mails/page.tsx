@@ -121,10 +121,10 @@ function MailTableContent() {
  {/* Status Filter */}
  <div className="relative">
  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
- <select 
+ <select
  value={selectedStatus}
  onChange={(e) => setSelectedStatus(e.target.value)}
- className="h-10 pl-9 pr-4 rounded-lg bg-sidebar border border-white/0 text-sm text-white focus:border-white/5 focus:outline-none appearance-none cursor-pointer transition-all"
+ className="h-10 px-4 rounded-xl bg-black/20 border border-white/10 text-sm text-white focus:border-gold focus:outline-none appearance-none cursor-pointer transition-all w-full sm:w-auto"
  >
  <option value="all">Tất cả trạng thái</option>
  {(CHANNEL_STATUS_OPTIONS || []).map(status => (

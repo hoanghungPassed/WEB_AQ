@@ -1431,26 +1431,42 @@ const typingTimer = setInterval(checkTyping, 1000);
  window.location.href ="/login";
  };
 
- const handleRequestAccess = () => {
- if (!user) return;
- const newRequest = {
- id: Date.now(),
- staffName: user?.name,
- username: user?.username,
- time: new Date().toLocaleTimeString(),
- reason:"Xin phép vào hệ thống làm việc ngoài giờ",
- status:"PENDING"
- };
+ const handleRequestAccess = async () => {
+    if (!user) return;
+    const requestBody = {
+      type: "ACCESS",
+      reason: "Xin phép vào hệ thống làm việc ngoài giờ",
+      staffName: user.name,
+      username: user.username
+    };
 
- const updatedRequests = [...pendingRequests, newRequest];
- setPendingRequests(updatedRequests);
- localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
- // Tạo trigger để các tab khác nhận được
- localStorage.setItem("request_trigger", Date.now().toString());
-
- // Đồng bộ lên server ngay lập tức để Admin nhận được yêu cầu
- 
- };
+    try {
+      const res = await fetch("/api/admin/attendance/request-access", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user.id || user._id || ""
+        },
+        body: JSON.stringify(requestBody)
+      });
+      if (res.ok) {
+        setIsPendingApproval(true);
+        const json = await res.json();
+        const newRequest = json.data;
+        const savedRequests = localStorage.getItem("pending_access_requests");
+        const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+        const updatedRequests = [...currentRequests, newRequest];
+        localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
+        localStorage.setItem("request_trigger", Date.now().toString());
+        window.dispatchEvent(new Event("storage"));
+        
+        setFineSuccessToast("Yêu cầu truy cập của bạn đã được gửi tới Admin!");
+        setTimeout(() => setFineSuccessToast(null), 5000);
+      }
+    } catch (e) {
+      console.error("Request access error:", e);
+    }
+  };
 
   const handleApprove = async (request: any) => {
     const updated = (pendingRequests || []).filter((r: any) => r.id !== request.id);
@@ -1756,6 +1772,7 @@ const typingTimer = setInterval(checkTyping, 1000);
  isPendingApproval={isPendingApproval}
  isDeniedApproval={statusData?.status === "REJECTED"}
  username={user?.username}
+ userId={user?.id || user?._id}
  />
  )}
 
@@ -1769,79 +1786,102 @@ const typingTimer = setInterval(checkTyping, 1000);
       isPendingApproval={isPendingApproval}
       isLateLock={true}
       username={user?.username}
+      userId={user?.id || user?._id}
       fineAmount={fineAmount}
       bankConfig={bankConfig}
       lateMins={lateMins}
-      onSendExcuse={(reason) => {
-        if (user) {
-          const newRequest = {
-            id: Date.now(),
-            staffName: user?.name,
-            username: user?.username,
-            time: new Date().toLocaleTimeString(),
-            reason: `Giải trình đi muộn: ${reason}`,
-            status: "PENDING",
-            type: "LATE_EXCUSE",
-            fineId: activeFine?._id || activeFine?.id
-          };
-          const savedRequests = localStorage.getItem("pending_access_requests");
-          const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
-          const updatedRequests = [...currentRequests, newRequest];
-          localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
+      onSendExcuse={async (reason) => {
+        if (!user) return;
+        const requestBody = {
+          type: "LATE_EXCUSE",
+          reason: `Giải trình đi muộn: ${reason}`,
+          staffName: user.name,
+          username: user.username
+        };
+        try {
+          const res = await fetch("/api/admin/attendance/request-access", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-user-id": user.id || user._id || ""
+            },
+            body: JSON.stringify(requestBody)
+          });
+          if (res.ok) {
+            setIsPendingApproval(true);
+            const json = await res.json();
+            const newRequest = json.data;
+            const savedRequests = localStorage.getItem("pending_access_requests");
+            const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+            const updatedRequests = [...currentRequests, newRequest];
+            localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
 
-          const savedUsers = localStorage.getItem("global_users");
-          if (savedUsers) {
-            const allUsers = JSON.parse(savedUsers);
-            const updated = (allUsers || []).map((u: any) =>
-              u.username === user?.username ? { 
-                ...u, 
-                isLateLocked: true, 
-                lateExcuseStatus: "PENDING_APPROVAL",
-                status: "PENDING_APPROVAL" 
-              } : u
-            );
-            localStorage.setItem("global_users", JSON.stringify(updated));
+            const savedUsers = localStorage.getItem("global_users");
+            if (savedUsers) {
+              const allUsers = JSON.parse(savedUsers);
+              const updated = (allUsers || []).map((u: any) =>
+                u.username === user.username ? { 
+                  ...u, 
+                  isLateLocked: true, 
+                  lateExcuseStatus: "PENDING_APPROVAL",
+                  status: "PENDING_APPROVAL" 
+                } : u
+              );
+              localStorage.setItem("global_users", JSON.stringify(updated));
+            }
+            window.dispatchEvent(new Event("storage"));
+            setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
+            setTimeout(() => setFineSuccessToast(null), 5000);
           }
-          window.dispatchEvent(new Event("storage"));
-          
-          setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
-          setTimeout(() => setFineSuccessToast(null), 5000);
+        } catch (e) {
+          console.error("Excuse submit error:", e);
         }
       }}
-      onReportPayment={() => {
-        if (user) {
-          const newRequest = {
-            id: Date.now(),
-            staffName: user?.name,
-            username: user?.username,
-            time: new Date().toLocaleTimeString(),
-            reason: `Nộp phạt đi muộn: ${formatLateMins(lateMins)} (${fineAmount.toLocaleString("vi-VN")} VND)`,
-            status: "PENDING",
-            type: "FINE_PAYMENT",
-            fineId: activeFine?._id || activeFine?.id
-          };
-          const savedRequests = localStorage.getItem("pending_access_requests");
-          const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
-          const updatedRequests = [...currentRequests, newRequest];
-          localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
+      onReportPayment={async () => {
+        if (!user) return;
+        const requestBody = {
+          type: "FINE_PAYMENT",
+          reason: `Nộp phạt đi muộn: ${formatLateMins(lateMins)} (${fineAmount.toLocaleString("vi-VN")} VND)`,
+          staffName: user.name,
+          username: user.username
+        };
+        try {
+          const res = await fetch("/api/admin/attendance/request-access", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-user-id": user.id || user._id || ""
+            },
+            body: JSON.stringify(requestBody)
+          });
+          if (res.ok) {
+            setIsPendingApproval(true);
+            const json = await res.json();
+            const newRequest = json.data;
+            const savedRequests = localStorage.getItem("pending_access_requests");
+            const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+            const updatedRequests = [...currentRequests, newRequest];
+            localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
 
-          const savedUsers = localStorage.getItem("global_users");
-          if (savedUsers) {
-            const allUsers = JSON.parse(savedUsers);
-            const updated = (allUsers || []).map((u: any) =>
-              u.username === user?.username ? { 
-                ...u, 
-                isLateLocked: true, 
-                finePaymentStatus: "PENDING_APPROVAL",
-                status: "PENDING_APPROVAL"
-              } : u
-            );
-            localStorage.setItem("global_users", JSON.stringify(updated));
+            const savedUsers = localStorage.getItem("global_users");
+            if (savedUsers) {
+              const allUsers = JSON.parse(savedUsers);
+              const updated = (allUsers || []).map((u: any) =>
+                u.username === user.username ? { 
+                  ...u, 
+                  isLateLocked: true, 
+                  finePaymentStatus: "PENDING_APPROVAL",
+                  status: "PENDING_APPROVAL"
+                } : u
+              );
+              localStorage.setItem("global_users", JSON.stringify(updated));
+            }
+            window.dispatchEvent(new Event("storage"));
+            setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
+            setTimeout(() => setFineSuccessToast(null), 5000);
           }
-          window.dispatchEvent(new Event("storage"));
-          
-          setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
-          setTimeout(() => setFineSuccessToast(null), 5000);
+        } catch (e) {
+          console.error("Report payment error:", e);
         }
       }}
       finePaymentPending={finePaymentPending}

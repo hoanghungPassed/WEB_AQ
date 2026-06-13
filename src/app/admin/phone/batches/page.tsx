@@ -254,11 +254,11 @@ export default function PhoneBatchesPage() {
  };
 
  const handleExportExcel = (batch: string, p: PhoneItem[]) => {
- let csv ="STT,Số Điện Thoại,Link OTP,Trạng Thái\\n";
+ let csv ="STT,Số Điện Thoại,Link OTP,Trạng Thái\n";
  p.forEach((item, i) => {
- csv += `${i+1},${item.number},${item.otpLink},${item.status}\\n`;
+ csv += `${i+1},${item.number},${item.otpLink},${item.status}\n`;
  });
- const blob = new Blob(["\\ufeff" + csv], { type:"text/csv;charset=utf-8;" });
+ const blob = new Blob(["\ufeff" + csv], { type:"text/csv;charset=utf-8;" });
  const url = URL.createObjectURL(blob);
  const link = document.createElement("a");
  link.href = url;
@@ -282,44 +282,27 @@ export default function PhoneBatchesPage() {
  return;
  }
 
- const lines = text.split(/\\r?\\n/).filter((l) => l.trim() !=="");
- const newItems: any[] = [];
-
- for (const line of lines) {
- const parts = line.split("|");
- const phoneNumber = (parts[0] ||"").trim();
- const otpLink = (parts[1] ||"").trim();
- if (!phoneNumber) continue;
-
- newItems.push({ number: phoneNumber, otpLink });
- }
-
- if (newItems.length === 0) {
- triggerToast("Không tìm được SĐT hợp lệ nào trong file!");
- return;
- }
-
- const importBatchName = batchName.trim() || `Lô_${new Date().toISOString().replace(/[:.]/g,"-")}`;
+ const importBatchName = batchName.trim() || `Lô_${new Date().toISOString().replace(/[:.]/g, "-")}`;
  
  try {
- const res = await fetch("/api/admin/phones", {
- method:"POST",
- headers: {"Content-Type":"application/json" },
- body: JSON.stringify({ batch: importBatchName, phones: newItems, username: user?.username ||"Admin" })
+ const res = await fetch(`/api/admin/phones/import?batch=${encodeURIComponent(importBatchName)}&username=${encodeURIComponent(user?.username || "Admin")}`, {
+ method: "POST",
+ headers: { "Content-Type": "text/plain" },
+ body: text
  });
  const data = await res.json();
  if (data.success) {
- triggerToast(data.message ||"Import thành công!");
+ triggerToast(data.message || "Import thành công!");
  
  // Save import history
  if (data.imported > 0) {
  const historyEntry = {
  id: `import-${Date.now()}`,
- type:"SĐT" as const,
+ type: "SĐT" as const,
  fileName: importBatchName,
  quantity: data.imported,
  importedAt: new Date().toLocaleString("vi-VN"),
- importedBy: user?.name || user?.username ||"Admin"
+ importedBy: user?.name || user?.username || "Admin"
  };
 
  const savedHistory = localStorage.getItem("global_import_history");
@@ -328,24 +311,24 @@ export default function PhoneBatchesPage() {
  localStorage.setItem("global_import_history", JSON.stringify(updatedHistory));
  window.dispatchEvent(new Event("storage"));
  fetch("/api/sync", {
- method:"POST",
- headers: {"Content-Type":"application/json" },
- body: JSON.stringify({"global_import_history": JSON.stringify(updatedHistory) }),
+ method: "POST",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({ "global_import_history": JSON.stringify(updatedHistory) }),
  }).catch(() => {});
  }
 
  window.location.reload();
  } else {
- triggerToast("Lỗi:" + data.error);
+ triggerToast("Lỗi: " + data.error);
  }
  } catch (err) {
  console.error(err);
  triggerToast("Lỗi hệ thống khi import SĐT");
  }
  };
- reader.readAsText(file,"UTF-8");
+ reader.readAsText(file, "UTF-8");
 
- if (fileInputRef.current) fileInputRef.current.value ="";
+ if (fileInputRef.current) fileInputRef.current.value = "";
  };
 
  // ─── Employee detail view ─────────────────────────────────
@@ -794,11 +777,11 @@ export default function PhoneBatchesPage() {
  </h3>
 
  {/* Search employees */}
- <div className="relative group">
- <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={14} />
+ <div className="relative flex items-center group">
+ <Search className="absolute left-3 text-gray-500 group-focus-within:text-gold transition-colors" size={14} />
  <input
  placeholder="Tìm tên hoặc username..."
- className="w-full bg-black/20 border border-white/0 rounded-xl pl-9 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all"
+ className="w-full bg-black/20 border border-white/0 rounded-xl pl-10 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all"
  type="text"
  value={staffSearch}
  onChange={(e) => setStaffSearch(e.target.value)}

@@ -37,6 +37,7 @@ interface SidebarProps {
 
 const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
   const [brandName, setBrandName] = React.useState("AQ MEDIA");
+  const [rulesUrl, setRulesUrl] = React.useState("");
 
   React.useEffect(() => {
     const updateBrand = () => {
@@ -47,10 +48,30 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
           if (parsed.name) {
             setBrandName(parsed.name);
           }
+          if (parsed.rulesUrl) {
+            setRulesUrl(parsed.rulesUrl);
+          }
         } catch (e) {}
       }
     };
     updateBrand();
+
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/admin/settings");
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            if (json.data.brandName) setBrandName(json.data.brandName);
+            if (json.data.rulesUrl) setRulesUrl(json.data.rulesUrl);
+          }
+        }
+      } catch (err) {
+        console.error("Sidebar settings fetch failed:", err);
+      }
+    };
+    fetchSettings();
+
     window.addEventListener("storage", updateBrand);
     return () => window.removeEventListener("storage", updateBrand);
   }, []);
@@ -171,6 +192,15 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
     });
   }
 
+  if (rulesUrl) {
+    dynamicMenuItems.push({
+      title: "Nội quy công ty",
+      icon: <FileText size={20} />,
+      href: rulesUrl,
+      isExternal: true
+    });
+  }
+
   dynamicMenuItems.push({
     title: "Hệ thống",
     icon: <Settings size={20} />,
@@ -251,6 +281,18 @@ const Sidebar = ({ isCollapsed, user, windowWidth }: SidebarProps) => {
                     </motion.div>
                   )}
                 </button>
+              ) : item.isExternal ? (
+                <a
+                  href={item.href || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold uppercase tracking-wider transition-all hover:bg-zinc-800/50 hover:text-zinc-300 text-zinc-400"
+                >
+                  <span className="flex-shrink-0 transition-colors group-hover:text-zinc-200">
+                    {item.icon}
+                  </span>
+                  {!isCollapsed && <span className="whitespace-nowrap tracking-wide">{item.title}</span>}
+                </a>
               ) : (
                 <Link
                   href={item.href || "#"}

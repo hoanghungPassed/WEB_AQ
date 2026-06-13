@@ -772,14 +772,14 @@ function StaffManagementContent() {
  <CalendarDays size={18} /> Lịch Trực Nhật
  </button>
  )}
- {!isRestricted && (
+ {/* {!isRestricted && (
  <button 
  onClick={() => setActiveTab("AUTO_MESSAGES")}
  className={`h-12 px-6 rounded-2xl font-bold uppercase text-sm tracking-wider flex items-center gap-2 transition-all ${activeTab ==="AUTO_MESSAGES" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :" bg-white/5 text-gray-500 hover:bg-white/10"}`}
  >
  <MessageSquare size={18} /> Tin nhắn tự động
  </button>
- )}
+ )} */}
  {!isRestricted && (
  <div className="flex items-center gap-2 p-1 bg-white/5 rounded-[24px] border border-white/0 shadow-inner">
  <button 
@@ -916,8 +916,8 @@ function StaffManagementContent() {
  {/* Toolbar */}
  <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-sidebar/50 border border-white/0 p-6 rounded-[32px] backdrop-blur-xl">
  <div className="flex flex-1 gap-4 w-full">
- <div className="relative flex-1 group">
- <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={20} />
+ <div className="relative flex-1 group flex items-center">
+ <Search className="absolute left-5 text-gray-500 group-focus-within:text-gold transition-colors" size={20} />
  <input
  type="text"
  placeholder="Tìm kiếm tên hoặc username..."
@@ -931,8 +931,8 @@ function StaffManagementContent() {
  <>
  <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-2xl px-4 h-12 min-w-[180px]">
  <Filter size={16} className="text-gold" />
- <select 
- className="bg-transparent border-none outline-none text-sm text-white font-bold uppercase tracking-widest cursor-pointer w-full"
+ <select
+ className="bg-black/20 border border-white/10 rounded-xl px-4 py-2 outline-none text-sm text-white font-bold uppercase tracking-widest cursor-pointer w-full focus:border-gold transition-colors"
  value={roleFilter}
  onChange={(e) => setRoleFilter(e.target.value)}
  >
@@ -946,8 +946,8 @@ function StaffManagementContent() {
  </div>
  <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-2xl px-4 h-12 min-w-[180px]">
  <Activity size={16} className="text-gold" />
- <select 
- className="bg-transparent border-none outline-none text-sm text-white font-bold uppercase tracking-widest cursor-pointer w-full"
+ <select
+ className="bg-black/20 border border-white/10 rounded-xl px-4 py-2 outline-none text-sm text-white font-bold uppercase tracking-widest cursor-pointer w-full focus:border-gold transition-colors"
  value={statusFilter}
  onChange={(e) => setStatusFilter(e.target.value)}
  >
@@ -1083,7 +1083,7 @@ function StaffManagementContent() {
  {!isRestricted ? (
  <select 
  id={`role-assign-${staff.id}`}
- className="h-10 px-4 rounded-xl bg-black/20 border border-white/0 text-[10px] font-black text-white uppercase outline-none focus:border-white/5 cursor-pointer"
+ className="h-10 px-4 rounded-xl bg-black/20 border border-white/10 text-[10px] font-black text-white uppercase outline-none focus:border-gold cursor-pointer transition-colors"
  >
  <option value="04">Nhân viên chính thức</option>
  <option value="05">Nhân viên thử việc</option>
@@ -1424,7 +1424,7 @@ function StaffManagementContent() {
         onClick={() => setActiveDetailDay(day)}
         className={`group/day flex flex-col items-center justify-between p-3 rounded-2xl border text-center transition-all hover:scale-105 hover:bg-white/[0.06] hover:border-white/0 active:scale-95 ${borderStyle}`}
       >
-        <span className={`text-[9px] font-bold uppercase tracking-tighter ${isToday ?"text-gold" :"text-gray-500"}`}>Ngày ${day.dayNum}</span>
+        <span className={`text-[9px] font-bold uppercase tracking-tighter ${isToday ?"text-gold" :"text-gray-500"}`}>Ngày {day.dayNum}</span>
         <div className="my-2 flex items-center justify-center">
           {statusIcon}
         </div>
@@ -1636,13 +1636,13 @@ function StatCard({ title, value, icon, color }: any) {
 }
 
 function InfoRow({ label, value, icon }: any) {
- return (
- <div className="flex items-center justify-between p-3 rounded-2xl bg-white/0 border border-white/0 group hover:bg-white/5 transition-all">
- <div className="flex items-center gap-3">
- <div className="text-gold opacity-60 group-hover:opacity-100 transition-all">{icon}</div>
- <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{label}</span>
- </div>
- <span className="text-sm font-semibold text-white">{value}</span>
- </div>
- );
+  return (
+    <div className="flex items-center justify-between p-3 rounded-2xl bg-white/0 border border-white/0 group hover:bg-white/5 transition-all">
+      <div className="flex items-center gap-3">
+        <div className="text-gold opacity-60 group-hover:opacity-100 transition-all">{icon}</div>
+        <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{label}</span>
+      </div>
+      <span className="text-sm font-semibold text-white">{value}</span>
+    </div>
+  );
 }

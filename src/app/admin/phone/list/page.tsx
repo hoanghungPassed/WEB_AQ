@@ -212,16 +212,16 @@ export default function EmployeePhoneListPage() {
  <div className="bg-sidebar border border-white/0 rounded-[36px] p-6 shadow-2xl flex-1 flex flex-col justify-between min-h-[400px]">
  {/* Table Toolbar */}
  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/0 mb-4">
- <div className="relative group">
- <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={15} />
- <input 
- placeholder="Tìm kiếm số điện thoại..."
- className="bg-black/20 border border-white/0 rounded-xl pl-10 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-64"
- type="text" 
- value={searchTerm}
- onChange={(e) => setSearchTerm(e.target.value)}
- />
- </div>
+  <div className="relative flex items-center group">
+  <Search className="absolute left-3 text-gray-500 group-focus-within:text-gold transition-colors" size={15} />
+  <input 
+  placeholder="Tìm kiếm số điện thoại..."
+  className="bg-black/20 border border-white/0 rounded-xl pl-10 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-64"
+  type="text" 
+  value={searchTerm}
+  onChange={(e) => setSearchTerm(e.target.value)}
+  />
+  </div>
 
  <div className="flex items-center gap-3">
  <span className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Lọc theo trạng thái:</span>

@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Lock, Clock, Send, ShieldAlert, LogOut, CheckCircle2, Loader2 } from "lucide-react";
+import { toast } from "react-hot-toast";
+import Pusher from "pusher-js";
 
 interface AccessLockProps {
   message: string;
@@ -12,6 +14,7 @@ interface AccessLockProps {
   // Late lock props
   isLateLock?: boolean;
   username?: string;
+  userId?: string;
   fineAmount?: number;
   bankConfig?: {
     bankName?: string;
@@ -26,6 +29,8 @@ interface AccessLockProps {
   finePaymentPending?: boolean;
   isDeniedApproval?: boolean;
   onRetry?: () => void;
+  onApproved?: () => void;
+  onDenied?: () => void;
 }
 
 export default function AccessLock({
@@ -36,6 +41,7 @@ export default function AccessLock({
   isPendingApproval = false,
   isLateLock = false,
   username = "",
+  userId = "",
   fineAmount = 50000,
   bankConfig,
   lateMins = 0,
@@ -44,13 +50,47 @@ export default function AccessLock({
   finePaymentPending = false,
   isDeniedApproval = false,
   onRetry,
+  onApproved,
+  onDenied,
 }: AccessLockProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [excuseReason, setExcuseReason] = useState("");
+  
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Real-time listener for user-specific access approvals/denials
+  useEffect(() => {
+    if (!userId) return;
+
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || "", {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "ap1",
+    });
+
+    const channel = pusher.subscribe(`user-${userId}`);
+    channel.bind("access-response", (data: any) => {
+      if (data.status === "APPROVED") {
+        toast.success("Yêu cầu của bạn đã được phê duyệt!");
+        if (onApproved) {
+          onApproved();
+        } else {
+          window.location.reload();
+        }
+      } else if (data.status === "DENIED") {
+        toast.error("Yêu cầu của bạn đã bị từ chối!");
+        if (onDenied) {
+          onDenied();
+        }
+      }
+    });
+
+    return () => {
+      pusher.unsubscribe(`user-${userId}`);
+      pusher.disconnect();
+    };
+  }, [userId, onApproved, onDenied]);
 
   const formatLateMins = (mins: number) => {
     if (mins < 60) return `${mins} phút`;
@@ -61,7 +101,7 @@ export default function AccessLock({
 
   const handleExcuseSubmit = () => {
     if (!excuseReason.trim()) {
-      alert("Vui lòng nhập lý do giải trình trước khi gửi!");
+      toast.error("Vui lòng nhập lý do giải trình trước khi gửi!");
       return;
     }
     if (onSendExcuse) {
@@ -83,6 +123,7 @@ export default function AccessLock({
 
         {isPendingApproval && !isDeniedApproval ? (
           <div className="py-10 px-4 space-y-8 flex flex-col items-center justify-center animate-fade-in">
+            {/* ... giữ nguyên phần loading ... */}
             <div className="relative flex items-center justify-center mb-2">
               <div className="absolute inset-0 rounded-full bg-amber-500/10 blur-xl animate-pulse" />
               <div className="h-24 w-24 rounded-full border border-amber-500/20 border-dashed animate-[spin_25s_linear_infinite] absolute" />
@@ -94,7 +135,7 @@ export default function AccessLock({
 
             <div className="space-y-3 text-center">
               <h2 className="text-3xl font-extrabold uppercase tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500">
-                Đang xử lý yêu cầu...
+                Đang chờ phê duyệt...
               </h2>
               <div className="w-16 h-1 bg-gradient-to-r from-amber-400 to-amber-600 mx-auto rounded-full" />
             </div>
@@ -102,22 +143,16 @@ export default function AccessLock({
             <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden backdrop-blur-sm">
               <div className="absolute top-0 left-0 w-1 h-full bg-amber-500 animate-pulse" />
               <p className="text-gray-300 text-sm font-medium leading-relaxed text-left">
-                Hệ thống đang tiếp nhận bằng chứng của bạn. Vui lòng chờ **Admin hoặc Quản lý** đối soát và phê duyệt yêu cầu để tự động mở khóa tài khoản!
+                Yêu cầu của bạn đã được gửi tới Ban quản trị. Vui lòng giữ nguyên màn hình này, hệ thống sẽ tự động mở khóa ngay khi Admin phê duyệt!
               </p>
-              <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center text-[10px] text-gray-500 uppercase tracking-widest font-black">
-                <span>Trạng thái kiểm duyệt:</span>
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold uppercase tracking-wider animate-pulse">
-                  Chờ phê duyệt
-                </span>
-              </div>
             </div>
 
             <div className="pt-4 flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
               <button
                 onClick={onLogout}
-                className="px-8 h-12 bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/20 text-gray-300 hover:text-red-400 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2"
+                className="px-8 h-12 bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/20 text-gray-300 hover:text-red-400 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
               >
-                Đăng xuất tài khoản
+                Đăng xuất
               </button>
             </div>
           </div>
@@ -128,18 +163,51 @@ export default function AccessLock({
             </div>
             <h2 className="text-3xl font-bold uppercase tracking-tight text-red-500">Yêu cầu bị từ chối</h2>
             <p className="text-gray-300 text-base font-medium max-w-md mx-auto leading-relaxed">
-              Yêu cầu giải trình hoặc nộp phạt của bạn đã bị Admin/Quản lý từ chối. Vui lòng kiểm tra lại thông tin và thử gửi lại.
+              Yêu cầu của bạn đã bị Admin từ chối. Vui lòng kiểm tra lại lý do giải trình hoặc bằng chứng chuyển khoản và thử lại.
             </p>
             <div className="pt-6 flex gap-3 justify-center">
               <button
                 onClick={onRetry}
-                className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-zinc-50 font-bold rounded-xl transition-colors mt-4"
+                className="px-8 h-12 bg-gold text-sidebar font-black text-sm uppercase tracking-widest rounded-xl hover:bg-gold-hover transition-all shadow-lg shadow-gold/20"
               >
                 Thử gửi lại
               </button>
               <button
                 onClick={onLogout}
-                className="px-8 h-12 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg shadow-red-500/5"
+                className="px-8 h-12 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg"
+              >
+                Đăng xuất
+              </button>
+            </div>
+          </div>
+        ) : message.toLowerCase().includes("khóa") ? (
+          <div className="py-10 space-y-8 flex flex-col items-center">
+            <div className="h-24 w-24 bg-red-500/10 border border-red-500/30 text-red-500 rounded-[32px] flex items-center justify-center shadow-2xl shadow-red-500/5">
+              <Lock size={48} className="animate-pulse" />
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-4xl font-black text-white tracking-tighter uppercase">Tài khoản đã bị khóa</h2>
+              <p className="text-gray-500 font-bold uppercase tracking-[0.2em] text-xs">Liên hệ Admin để được hỗ trợ</p>
+            </div>
+
+            <div className="w-full max-w-md bg-red-500/5 border border-red-500/10 rounded-2xl p-6 text-left relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-red-500/50" />
+              <p className="text-gray-300 text-sm font-medium leading-relaxed italic">
+                "{message}"
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
+              <button
+                onClick={onSendRequest}
+                className="flex-1 h-14 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-sm tracking-widest rounded-2xl transition-all shadow-xl shadow-red-600/20 flex items-center justify-center gap-3"
+              >
+                <Send size={20} /> Gửi yêu cầu mở khóa
+              </button>
+              <button
+                onClick={onLogout}
+                className="h-14 px-8 bg-white/5 border border-white/0 text-gray-400 font-black uppercase text-sm tracking-widest rounded-2xl hover:bg-white/10 transition-all"
               >
                 Đăng xuất
               </button>

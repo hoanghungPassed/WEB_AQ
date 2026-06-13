@@ -7,6 +7,7 @@ import { Lock, User, Loader2, ArrowLeft, Phone, Calendar, MapPin, AlertCircle, C
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import Pusher from "pusher-js";
+import toast from "react-hot-toast";
 
 export default function RegisterPage() {
  const router = useRouter();
@@ -26,6 +27,23 @@ export default function RegisterPage() {
  const [isWaitingApproval, setIsWaitingApproval] = useState(false);
  const [approvalStatus, setApprovalStatus] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
  const [isUsernameDuplicate, setIsUsernameDuplicate] = useState(false);
+ const [agreeTerms, setAgreeTerms] = useState(false);
+ const [rulesUrl, setRulesUrl] = useState("");
+ const [showOtpModal, setShowOtpModal] = useState(false);
+ const [otpCode, setOtpCode] = useState("");
+ const [otpError, setOtpError] = useState("");
+ const [demoOtp, setDemoOtp] = useState("");
+
+ useEffect(() => {
+   fetch("/api/admin/settings")
+     .then(res => res.json())
+     .then(data => {
+       if (data.success && data.data?.rulesUrl) {
+         setRulesUrl(data.data.rulesUrl);
+       }
+     })
+     .catch(err => console.error("Failed to fetch settings:", err));
+ }, []);
 
  useEffect(() => {
    // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -115,52 +133,76 @@ export default function RegisterPage() {
     }
   };
 
- const handleRegister = async (e: React.FormEvent) => {
- e.preventDefault();
- 
- const newErrors: Record<string, string> = {};
- Object.keys(formData).forEach(key => {
- const val = (formData as any)[key];
- if (key ==="phone") {
- if (!/^(0|84)(3|5|7|8|9)([0-9]{8})$/.test(val)) newErrors[key] ="SĐT không hợp lệ";
- } else if (key ==="password") {
- if ((val || []).length < 6 || !/[!@#$%^&*(),.?":{}|<>]/.test(val)) newErrors[key] ="Mật khẩu không đủ mạnh";
- } else if (key ==="confirmPassword") {
- if (val !== formData.password) newErrors[key] ="Mật khẩu không khớp";
- } else if (!val) {
- newErrors[key] ="Thông tin bắt buộc";
- }
- });
-
- if (Object.keys(newErrors).length > 0) {
- setErrors(newErrors);
- return;
- }
-
- setIsLoading(true);
-
-  // 1. Gọi API đăng ký lưu vào MongoDB
-  try {
-    const regRes = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
+  const handleRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!agreeTerms) {
+      toast.error("Bạn phải đồng ý với Nội quy và Điều khoản dịch vụ!");
+      return;
+    }
+    
+    const newErrors: Record<string, string> = {};
+    Object.keys(formData).forEach(key => {
+      const val = (formData as any)[key];
+      if (key ==="phone") {
+        if (!/^(0|84)(3|5|7|8|9)([0-9]{8})$/.test(val)) newErrors[key] ="SĐT không hợp lệ";
+      } else if (key ==="password") {
+        if ((val || []).length < 6 || !/[!@#$%^&*(),.?":{}|<>]/.test(val)) newErrors[key] ="Mật khẩu không đủ mạnh";
+      } else if (key ==="confirmPassword") {
+        if (val !== formData.password) newErrors[key] ="Mật khẩu không khớp";
+      } else if (!val) {
+        newErrors[key] ="Thông tin bắt buộc";
+      }
     });
-    const regData = await regRes.json();
-    if (!regRes.ok) {
-      setErrors({ username: regData.error || "Đăng ký thất bại" });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    // Generate random 6-digit OTP
+    const generated = Math.floor(100000 + Math.random() * 900000).toString();
+    setDemoOtp(generated);
+    setOtpCode("");
+    setOtpError("");
+    setShowOtpModal(true);
+
+    toast.success(`Mã OTP xác minh đăng ký của bạn là: ${generated}`, {
+      duration: 10000,
+      icon: '🔑'
+    });
+  };
+
+  const handleVerifyOtpAndSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (otpCode !== demoOtp) {
+      setOtpError("Mã OTP không chính xác, vui lòng thử lại!");
+      return;
+    }
+
+    setShowOtpModal(false);
+    setIsLoading(true);
+
+    try {
+      const regRes = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      const regData = await regRes.json();
+      if (!regRes.ok) {
+        setErrors({ username: regData.error || "Đăng ký thất bại" });
+        setIsLoading(false);
+        return;
+      }
+    } catch (err: any) {
+      console.error("Register API call failed:", err);
+      setErrors({ username: "Không thể kết nối máy chủ" });
       setIsLoading(false);
       return;
     }
-  } catch (err: any) {
-    console.error("Register API call failed:", err);
-    setErrors({ username: "Không thể kết nối máy chủ" });
-    setIsLoading(false);
-    return;
-  }
 
-  setIsWaitingApproval(true);
-  setApprovalStatus("PENDING");
+    setIsWaitingApproval(true);
+    setApprovalStatus("PENDING");
   };
 
   const handleDismissWaiting = () => {
@@ -371,7 +413,29 @@ export default function RegisterPage() {
  )}
  </div>
 
- <button type="submit" disabled={isLoading || isUsernameDuplicate || (formData.password !== '' && formData.confirmPassword !== formData.password)} className="md:col-span-2 mt-8 h-16 w-full rounded-2xl bg-gold font-black uppercase tracking-[0.2em] text-[#0a0a0a] text-sm transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-70 shadow-2xl shadow-gold/20 flex items-center justify-center gap-3">
+  {/* Terms & Conditions Checkbox */}
+  <div className="md:col-span-2 flex items-start gap-3 mt-4">
+    <input
+      type="checkbox"
+      id="agreeTerms"
+      checked={agreeTerms}
+      onChange={(e) => setAgreeTerms(e.target.checked)}
+      className="mt-1 h-5 w-5 rounded border-gray-600 bg-gray-800 text-gold focus:ring-gold cursor-pointer"
+    />
+    <label htmlFor="agreeTerms" className="text-xs font-bold text-gray-400 select-none cursor-pointer leading-normal">
+      Tôi đồng ý với{" "}
+      {rulesUrl ? (
+        <a href={rulesUrl} target="_blank" rel="noopener noreferrer" className="text-gold hover:underline font-black">
+          Nội quy công ty
+        </a>
+      ) : (
+        <span className="text-gray-500 italic">Nội quy công ty (chưa cấu hình)</span>
+      )}{" "}
+      và các Điều khoản dịch vụ của AQ Media.
+    </label>
+  </div>
+
+ <button type="submit" disabled={isLoading || isUsernameDuplicate || !agreeTerms || (formData.password !== '' && formData.confirmPassword !== formData.password)} className="md:col-span-2 mt-8 h-16 w-full rounded-2xl bg-gold font-black uppercase tracking-[0.2em] text-[#0a0a0a] text-sm transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-70 shadow-2xl shadow-gold/20 flex items-center justify-center gap-3">
  {isLoading ? (
  <div className="flex items-center gap-3">
  <Loader2 className="animate-spin" size={24} />
@@ -471,6 +535,77 @@ export default function RegisterPage() {
                 <span>Quay lại</span>
               </button>
             )}
+          </div>
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+
+  {/* OTP Verification Modal */}
+  <AnimatePresence>
+    {showOtpModal && (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+      >
+        <motion.div
+          initial={{ scale: 0.9, y: 20 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.9, y: 20 }}
+          transition={{ type: "spring", duration: 0.5 }}
+          className="relative w-full max-w-md overflow-hidden rounded-[32px] border border-white/10 bg-[#161616]/90 p-8 text-center shadow-2xl backdrop-blur-xl"
+        >
+          <div className="absolute -left-20 -top-20 h-40 w-40 rounded-full bg-gold/10 blur-2xl" />
+          <div className="absolute -bottom-20 -right-20 h-40 w-40 rounded-full bg-gold/10 blur-2xl" />
+
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="h-16 w-16 rounded-2xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 mb-6">
+              <Lock size={28} className="animate-pulse" />
+            </div>
+
+            <h3 className="text-xl font-black uppercase tracking-tight text-white mb-2">
+              Xác thực OTP đăng ký
+            </h3>
+            <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider mb-6">
+              Mã OTP đã được gửi tới số điện thoại {formData.phone}
+            </p>
+
+            <form onSubmit={handleVerifyOtpAndSubmit} className="w-full space-y-4">
+              <input
+                type="text"
+                required
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="000000"
+                className="bg-black border-2 border-white/10 rounded-2xl h-14 text-2xl text-white outline-none focus:border-gold/50 focus:bg-[#202020] transition-all w-full text-center font-mono tracking-[0.3em] font-black placeholder:text-zinc-700"
+              />
+
+              {otpError && (
+                <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center justify-center gap-1 mt-1">
+                  <AlertCircle size={12} /> {otpError}
+                </p>
+              )}
+
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowOtpModal(false)}
+                  className="flex-1 h-12 rounded-xl border border-white/5 hover:bg-zinc-800 text-white font-bold uppercase text-xs tracking-wider transition-all"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={otpCode.length !== 6}
+                  className="flex-1 h-12 rounded-xl bg-gold text-[#0a0a0a] font-black uppercase text-xs tracking-wider hover:bg-gold-hover transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Xác nhận
+                </button>
+              </div>
+            </form>
           </div>
         </motion.div>
       </motion.div>
