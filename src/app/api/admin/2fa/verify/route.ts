@@ -57,7 +57,11 @@ export async function POST(request: Request) {
 
   if (!isValid) {
     await logAuditTrail(userId, 'VERIFY_2FA', 'User', { success: false, reason: 'invalid_token' }, request);
-    return NextResponse.json({ error: 'Mã xác thực không chính xác hoặc đã hết hạn.' }, { status: 401 });
+    const serverTime = new Date().toLocaleTimeString("vi-VN");
+    return NextResponse.json({ 
+      error: `Mã xác thực không chính xác hoặc đã hết hạn (Giờ máy chủ: ${serverTime}). Hãy đảm bảo giờ trên điện thoại đã được đặt ở chế độ TỰ ĐỘNG để đối chiếu.`,
+      server_time: serverTime
+    }, { status: 401 });
   }
 
   // Enable 2FA and generate fresh backup codes

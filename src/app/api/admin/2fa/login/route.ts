@@ -81,68 +81,74 @@ export async function POST(request: Request) {
       }
 
       if (!isVerified) {
-        await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: false, reason: 'invalid_token_all_strategies', ip }, request);
-        return NextResponse.json({ 
-          error: 'Mã OTP không chính xác hoặc đã hết hạn. Hãy đảm bảo giờ trên điện thoại đã được đặt ở chế độ TỰ ĐỘNG (đồng bộ mạng).',
-          server_time: new Date().toLocaleTimeString("vi-VN")
-        }, { status: 401 });
-      }
-
-      // AUTO-MIGRATION: Update DB with encrypted secret using current key
-      if (needsReEncryption) {
-        try {
-          user.twoFASecret = encrypt(secretBase32);
-          await user.save();
-          console.log(`2FA: Successfully migrated/re-encrypted secret for ${user.username}`);
-        } catch (migErr) {
-          console.error("2FA: Migration encryption failed:", migErr);
+        // Nếu OTP sai, không trả về lỗi ngay mà để trôi xuống kiểm tra Backup Code bên dưới
+        // trừ khi token chắc chắn không phải là mã dự phòng (ví dụ: chỉ có 6 số)
+        if (String(token).trim().length !== 8) {
+          await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: false, reason: 'invalid_token_all_strategies', ip }, request);
+          const serverTime = new Date().toLocaleTimeString("vi-VN");
+          return NextResponse.json({ 
+            error: `Mã OTP không chính xác hoặc đã hết hạn (Giờ máy chủ: ${serverTime}). Hãy đảm bảo giờ trên điện thoại đã được đặt ở chế độ TỰ ĐỘNG để đối chiếu.`,
+            server_time: serverTime
+          }, { status: 401 });
         }
+        console.log("2FA: OTP failed, but token length is 8, trying as backup code...");
+      } else {
+        // AUTO-MIGRATION: Update DB with encrypted secret using current key
+        if (needsReEncryption) {
+          try {
+            user.twoFASecret = encrypt(secretBase32);
+            await user.save();
+            console.log(`2FA: Successfully migrated/re-encrypted secret for ${user.username}`);
+          } catch (migErr) {
+            console.error("2FA: Migration encryption failed:", migErr);
+          }
+        }
+
+        // Token valid – sign full JWT token with 2FA verified flags
+        const userObj = user.toObject() as any;
+        delete userObj.password;
+        userObj.id = userObj._id.toString();
+
+        const jwtToken = signToken({
+          userId: user._id.toString(),
+          role: user.role,
+          username: user.username,
+          twoFAEnabled: true,
+          twoFAValidated: true,
+          overtimeBypass: !!overtimeBypass,
+        });
+
+        const response = NextResponse.json({
+          message: 'Xác thực 2FA thành công',
+          user: userObj,
+        });
+
+        const isProd = process.env.NODE_ENV === "production";
+
+        // Set the standard aq_token cookie
+        response.cookies.set(COOKIE_NAME, jwtToken, {
+          httpOnly: true,
+          secure: isProd,
+          sameSite: "lax",
+          path: "/",
+          maxAge: 7 * 24 * 60 * 60, // 7 days
+        });
+
+        // Set twoFAValidated cookie for compatibility
+        response.cookies.set('twoFAValidated', '1', {
+          httpOnly: true,
+          secure: isProd,
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 60 * 60, // 1 hour
+        });
+
+        // Clear temporary session cookie
+        response.cookies.delete('session');
+
+        await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: true, method: 'token', ip }, request);
+        return response;
       }
-
-      // Token valid – sign full JWT token with 2FA verified flags
-      const userObj = user.toObject() as any;
-      delete userObj.password;
-      userObj.id = userObj._id.toString();
-
-      const jwtToken = signToken({
-        userId: user._id.toString(),
-        role: user.role,
-        username: user.username,
-        twoFAEnabled: true,
-        twoFAValidated: true,
-        overtimeBypass: !!overtimeBypass,
-      });
-
-      const response = NextResponse.json({
-        message: 'Xác thực 2FA thành công',
-        user: userObj,
-      });
-
-      const isProd = process.env.NODE_ENV === "production";
-
-      // Set the standard aq_token cookie
-      response.cookies.set(COOKIE_NAME, jwtToken, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: "lax",
-        path: "/",
-        maxAge: 7 * 24 * 60 * 60, // 7 days
-      });
-
-      // Set twoFAValidated cookie for compatibility
-      response.cookies.set('twoFAValidated', '1', {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60, // 1 hour
-      });
-
-      // Clear temporary session cookie
-      response.cookies.delete('session');
-
-      await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: true, method: 'token', ip }, request);
-      return response;
     }
 
     // ----- Backup code verification -----

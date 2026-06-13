@@ -14,31 +14,39 @@ export async function generateQrDataUrl(otpauthUrl: string): Promise<string> {
 }
 
 export function verifyToken(secretBase32: string, token: string): boolean {
-  // Tăng window lên 2 (mỗi bước 30s) -> cho phép sai số +/- 1 phút giữa server và điện thoại
+  // Chuẩn hóa token: xóa khoảng trắng
+  const cleanToken = String(token).replace(/\s+/g, '').trim();
+  // Tăng window lên 6 (mỗi bước 30s) -> cho phép sai số +/- 3 phút giữa server và điện thoại
+  // Khắc phục triệt để vấn đề lệch giờ trên thiết bị người dùng
   return speakeasy.totp.verify({ 
-    secret: secretBase32, 
+    secret: secretBase32.replace(/\s+/g, '').toUpperCase(), 
     encoding: 'base32', 
-    token, 
-    window: 2 
+    token: cleanToken, 
+    window: 6 
   });
 }
 
 /**
  * Thử xác thực với nhiều loại encoding khác nhau (Base32, Hex)
+ * Có khả năng chịu lỗi lệch giờ cao (window=6)
  */
 export function verifyTokenAny(secret: string, token: string): boolean {
-  const window = 2; // Cho phép sai số thời gian 1 phút
+  if (!secret || !token) return false;
+  
+  const cleanToken = String(token).replace(/\s+/g, '').trim();
+  const cleanSecret = String(secret).replace(/\s+/g, '').trim().toUpperCase();
+  const window = 6; // Cho phép sai số thời gian 3 phút
   
   // 1. Thử Base32 (Chuẩn nhất)
   try {
-    if (speakeasy.totp.verify({ secret: secret.toUpperCase(), encoding: 'base32', token, window })) {
+    if (speakeasy.totp.verify({ secret: cleanSecret, encoding: 'base32', token: cleanToken, window })) {
       return true;
     }
   } catch (e) {}
 
   // 2. Thử Hex (Dữ liệu cũ hoặc copy nhầm)
   try {
-    if (speakeasy.totp.verify({ secret: secret.toUpperCase(), encoding: 'hex', token, window })) {
+    if (speakeasy.totp.verify({ secret: cleanSecret, encoding: 'hex', token: cleanToken, window })) {
       return true;
     }
   } catch (e) {}

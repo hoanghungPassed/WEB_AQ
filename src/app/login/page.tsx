@@ -301,21 +301,27 @@ function LoginForm() {
                     </div>
                   </div>
                 </>
-              ) : (
+              : (
                 <div className="space-y-3">
-                  <label className="text-lg font-medium text-gray-300 ml-1">Mã xác thực 2FA</label>
+                  <label className="text-lg font-medium text-gray-300 ml-1">Mã xác thực 2FA / Mã dự phòng</label>
                   <input
                     type="text"
                     required
-                    maxLength={6}
+                    maxLength={12}
                     value={totpCode}
                     onChange={(e) => setTotpCode(e.target.value.replace(/[^0-9a-zA-Z]/g, ""))}
-                    placeholder="000000"
-                    className="w-full rounded-2xl border border-gold/30 bg-black/40 px-6 py-5 text-2xl font-black text-gold text-center tracking-[0.3em] focus:outline-none font-mono uppercase"
+                    placeholder="Mã 6 số hoặc 8 ký tự"
+                    className="w-full rounded-2xl border border-gold/30 bg-black/40 px-6 py-5 text-2xl font-black text-gold text-center tracking-[0.2em] focus:outline-none font-mono uppercase"
                   />
-                  <button type="button" onClick={() => {setRequire2FA(false); setTotpCode("");}} className="text-xs font-bold text-gray-400 hover:text-white uppercase mt-2 block">← Quay lại</button>
+                  {error && error.includes("đối chiếu") && (
+                    <p className="text-[10px] text-gray-400 mt-2 text-center uppercase tracking-wider">
+                      Thời gian máy chủ hiện tại: <span className="text-gold">{(error.match(/\d{2}:\d{2}:\d{2}/) || [])[0]}</span>
+                    </p>
+                  )}
+                  <button type="button" onClick={() => {setRequire2FA(false); setTotpCode(""); setError("");}} className="text-xs font-bold text-gray-400 hover:text-white uppercase mt-2 block">← Quay lại</button>
                 </div>
               )}
+
 
               <button
                 type="submit"
