@@ -14,44 +14,49 @@ export async function generateQrDataUrl(otpauthUrl: string): Promise<string> {
 }
 
 export function verifyToken(secretBase32: string, token: string): boolean {
+  if (!secretBase32 || !token) return false;
+
   // Chuẩn hóa token: xóa khoảng trắng
   const cleanToken = String(token).replace(/\s+/g, '').trim();
-  // Tăng window lên 20 (mỗi bước 30s) -> cho phép sai số +/- 10 phút giữa server và điện thoại
-  // Khắc phục triệt để vấn đề lệch giờ lớn trên thiết bị người dùng
+  // Chuẩn hóa secret: xóa khoảng trắng và chuyển chữ hoa cho Base32
+  const cleanSecret = String(secretBase32).replace(/\s+/g, '').trim().toUpperCase();
+
+  // Nới rộng window lên 6 (mỗi bước 30s) -> cho phép sai số ±3 phút
+  // Giúp khắc phục triệt để lỗi lệch giờ (Time Drift) giữa thiết bị và server
   return speakeasy.totp.verify({ 
-    secret: secretBase32.replace(/\s+/g, '').toUpperCase(), 
+    secret: cleanSecret, 
     encoding: 'base32', 
     token: cleanToken, 
-    window: 20 
+    window: 6 
   });
 }
 
 /**
  * Thử xác thực với nhiều loại encoding khác nhau (Base32, Hex, ASCII)
- * Có khả năng chịu lỗi lệch giờ cực cao (window=20 ~ 10 phút)
+ * Sử dụng window: 6 (±3 phút) để đảm bảo độ tin cậy cao nhất.
  */
 export function verifyTokenAny(secret: string, token: string): boolean {
   if (!secret || !token) return false;
   
   const cleanToken = String(token).replace(/\s+/g, '').trim();
   const cleanSecret = String(secret).replace(/\s+/g, '').trim();
-  const window = 20; // Cho phép sai số thời gian 10 phút
+  const window = 6; // Độ trễ ±3 phút (Dung sai an toàn cao)
   
-  // 1. Thử Base32 (Chuẩn nhất)
+  // 1. Thử Base32 (Phổ biến nhất - Google Authenticator)
   try {
     if (speakeasy.totp.verify({ secret: cleanSecret.toUpperCase(), encoding: 'base32', token: cleanToken, window })) {
       return true;
     }
   } catch (e) {}
 
-  // 2. Thử Hex (Dữ liệu cũ hoặc copy nhầm)
+  // 2. Thử Hex (Dành cho các loại khóa chuẩn cũ hoặc thiết bị chuyên dụng)
   try {
     if (speakeasy.totp.verify({ secret: cleanSecret.toUpperCase(), encoding: 'hex', token: cleanToken, window })) {
       return true;
     }
   } catch (e) {}
 
-  // 3. Thử ASCII/UTF8 (Đề phòng trường hợp khóa lưu dạng thô)
+  // 3. Thử ASCII (Dành cho các chuỗi secret dạng ký tự thô)
   try {
     if (speakeasy.totp.verify({ secret: cleanSecret, encoding: 'ascii', token: cleanToken, window })) {
       return true;
