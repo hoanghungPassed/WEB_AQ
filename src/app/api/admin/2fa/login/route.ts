@@ -62,25 +62,29 @@ export async function POST(request: Request) {
 
       // STRATEGY 1: Try current decryption
       try {
-        secretBase32 = decrypt(storedSecret);
+        secretBase32 = decrypt(storedSecret).trim();
         if (verifyTokenAny(secretBase32, token)) {
           isVerified = true;
         }
       } catch (e) {
-        console.warn("2FA: Current key decryption failed.");
+        console.warn("2FA Login: Decryption failed, likely due to ENCRYPTION_KEY mismatch.");
       }
 
       // STRATEGY 2: If fail, maybe it's unencrypted Base32 or Hex (legacy)
       if (!isVerified) {
-        if (verifyTokenAny(storedSecret, token)) {
-          secretBase32 = storedSecret.toUpperCase();
+        if (verifyTokenAny(storedSecret.trim(), token)) {
+          secretBase32 = storedSecret.trim().toUpperCase();
           isVerified = true;
           needsReEncryption = true;
-          console.log("2FA: Verified via raw legacy fallback.");
+          console.log("2FA Login: Verified via raw legacy fallback.");
         }
       }
 
       if (!isVerified) {
+        const serverTime = new Date().toLocaleTimeString("vi-VN");
+        const serverUnix = Math.floor(Date.now() / 1000);
+        console.log(`2FA Failure: User=${userId}, ServerTime=${serverTime}, Unix=${serverUnix}, Token=${token}`);
+        
         // Nếu OTP sai, không trả về lỗi ngay mà để trôi xuống kiểm tra Backup Code bên dưới
         // trừ khi token chắc chắn không phải là mã dự phòng (ví dụ: chỉ có 6 số)
         if (String(token).trim().length !== 8) {
