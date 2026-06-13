@@ -301,7 +301,7 @@ function LoginForm() {
                     </div>
                   </div>
                 </>
-              : (
+              ) : (
                 <div className="space-y-3">
                   <label className="text-lg font-medium text-gray-300 ml-1">Mã xác thực 2FA / Mã dự phòng</label>
                   <input
