@@ -172,7 +172,7 @@ export default function RegisterPage() {
     setShowOtpMethodModal(true);
   };
 
-  const handleSelectOtpMethod = (method: "EMAIL" | "PHONE") => {
+  const handleSelectOtpMethod = async (method: "EMAIL" | "PHONE") => {
     setOtpMethod(method);
     setShowOtpMethodModal(false);
 
@@ -184,10 +184,34 @@ export default function RegisterPage() {
     setShowOtpModal(true);
 
     if (method === "EMAIL") {
-      toast.success(`[MOCK EMAIL] Mã OTP gửi tới mail ${formData.email} là: ${generated}`, {
-        duration: 15000,
-        icon: '✉️'
-      });
+      toast.loading("Đang gửi mã OTP tới email...", { id: "otp-send-loading" });
+      try {
+        const res = await fetch("/api/auth/send-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: formData.email, otp: generated })
+        });
+        toast.dismiss("otp-send-loading");
+        if (res.ok) {
+          toast.success(`Mã OTP đã được gửi tới email ${formData.email}! Vui lòng kiểm tra hộp thư.`, {
+            duration: 15000,
+            icon: '✉️'
+          });
+        } else {
+          const data = await res.json();
+          // Fallback if SMTP not configured
+          toast.success(`[FALLBACK] ${data.error || "Không thể gửi email"}. Mã OTP của bạn là: ${generated}`, {
+            duration: 15000,
+            icon: '✉️'
+          });
+        }
+      } catch (err) {
+        toast.dismiss("otp-send-loading");
+        toast.success(`[FALLBACK] Lỗi kết nối gửi email. Mã OTP của bạn là: ${generated}`, {
+          duration: 15000,
+          icon: '✉️'
+        });
+      }
     } else {
       toast.success(`[MOCK SMS] Mã OTP gửi tới số ${formData.phone} là: ${generated}`, {
         duration: 15000,
