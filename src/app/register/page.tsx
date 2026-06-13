@@ -23,15 +23,13 @@ export default function RegisterPage() {
  password: "",
  confirmPassword: ""
  });
- const [errors, setErrors] = useState<Record<string, string>>({});
+ const [errors, setErrors] = useState({ name: "", phone: "", email: "", password: "", username: "", birthYear: "", address: "" });
  const [isLoading, setIsLoading] = useState(false);
  const [isWaitingApproval, setIsWaitingApproval] = useState(false);
  const [approvalStatus, setApprovalStatus] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
  const [isUsernameDuplicate, setIsUsernameDuplicate] = useState(false);
  const [agreeTerms, setAgreeTerms] = useState(false);
  const [rulesUrl, setRulesUrl] = useState("");
- const [showOtpMethodModal, setShowOtpMethodModal] = useState(false);
- const [otpMethod, setOtpMethod] = useState<"EMAIL" | "PHONE" | null>(null);
  const [showOtpModal, setShowOtpModal] = useState(false);
  const [otpCode, setOtpCode] = useState("");
  const [otpError, setOtpError] = useState("");
@@ -69,27 +67,25 @@ export default function RegisterPage() {
  }, [formData.password]);
 
  const validateField = (name: string, value: string) => {
- let error ="";
- if (name ==="phone") {
- const phoneRegex = /^(0|84)(3|5|7|8|9)([0-9]{8})$/;
- if (!phoneRegex.test(value)) error ="Số điện thoại không hợp lệ";
- }
- if (name === "email") {
- const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
- if (!emailRegex.test(value)) error = "Email không hợp lệ";
- }
- if (name ==="password") {
- if ((value || []).length < 6) error ="Tối thiểu 6 ký tự";
- else if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) error ="Cần 1 ký tự đặc biệt";
- }
- if (name ==="confirmPassword") {
- if (value !== formData.password) error ="Mật khẩu không khớp";
- }
- if (name ==="username" && (value || []).length < 3) error ="Tối thiểu 3 ký tự";
- if (!value) error ="Không được để trống";
- setErrors(prev => ({ ...prev, [name]: error }));
- return !error;
- };
+    let errorMsg = "";
+    if (name === "name") {
+      if (!value.trim()) errorMsg = "Không được để trống";
+    } else if (name === "phone") {
+      const phoneRegex = /^0(3|5|7|8|9)[0-9]{8}$/;
+      if (!phoneRegex.test(value)) errorMsg = "Số điện thoại không hợp lệ (10 số)";
+    } else if (name === "email") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value)) errorMsg = "Email không hợp lệ";
+    } else if (name === "password") {
+      if (value.length < 6) errorMsg = "Tối thiểu 6 ký tự";
+    } else if (name === "username") {
+      if (value.length < 3) errorMsg = "Tối thiểu 3 ký tự";
+    } else if (name === "confirmPassword") {
+      if (value !== formData.password) errorMsg = "Mật khẩu không khớp";
+    }
+    setErrors(prev => ({ ...prev, [name]: errorMsg }));
+    return !errorMsg;
+  };
 
  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
  const { name, value } = e.target;
@@ -98,7 +94,7 @@ export default function RegisterPage() {
     setErrors(prev => {
       const next = { ...prev };
       if (next.username === "Tên đăng nhập đã tồn tại, vui lòng chọn tên khác") {
-        delete next.username;
+        next.username = "";
       }
       return next;
     });
@@ -129,7 +125,7 @@ export default function RegisterPage() {
           setErrors(prev => {
             const next = { ...prev };
             if (next.username === "Tên đăng nhập đã tồn tại, vui lòng chọn tên khác") {
-              delete next.username;
+              next.username = "";
             }
             return next;
           });
@@ -140,83 +136,46 @@ export default function RegisterPage() {
     }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agreeTerms) {
       toast.error("Bạn phải đồng ý với Nội quy và Điều khoản dịch vụ!");
       return;
     }
-    
-    const newErrors: Record<string, string> = {};
-    Object.keys(formData).forEach(key => {
-      const val = (formData as any)[key];
-      if (key ==="phone") {
-        if (!/^(0|84)(3|5|7|8|9)([0-9]{8})$/.test(val)) newErrors[key] ="SĐT không hợp lệ";
-      } else if (key === "email") {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(val)) newErrors[key] = "Email không hợp lệ";
-      } else if (key ==="password") {
-        if ((val || []).length < 6 || !/[!@#$%^&*(),.?":{}|<>]/.test(val)) newErrors[key] ="Mật khẩu không đủ mạnh";
-      } else if (key ==="confirmPassword") {
-        if (val !== formData.password) newErrors[key] ="Mật khẩu không khớp";
-      } else if (!val) {
-        newErrors[key] ="Thông tin bắt buộc";
-      }
-    });
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    const hasErrors = errors.name || errors.phone || errors.email || errors.password || errors.username;
+    if (hasErrors) {
+      toast.error("Vui lòng sửa các lỗi nhập liệu trước khi tiếp tục!");
       return;
     }
 
-    setShowOtpMethodModal(true);
-  };
-
-  const handleSelectOtpMethod = async (method: "EMAIL" | "PHONE") => {
-    setOtpMethod(method);
-    setShowOtpMethodModal(false);
-
+    setIsLoading(true);
     // Generate random 6-digit OTP
     const generated = Math.floor(100000 + Math.random() * 900000).toString();
     setDemoOtp(generated);
     setOtpCode("");
     setOtpError("");
-    setShowOtpModal(true);
 
-    if (method === "EMAIL") {
-      toast.loading("Đang gửi mã OTP tới email...", { id: "otp-send-loading" });
-      try {
-        const res = await fetch("/api/auth/send-otp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: formData.email, otp: generated })
-        });
-        toast.dismiss("otp-send-loading");
-        if (res.ok) {
-          toast.success(`Mã OTP đã được gửi tới email ${formData.email}! Vui lòng kiểm tra hộp thư.`, {
-            duration: 15000,
-            icon: '✉️'
-          });
-        } else {
-          const data = await res.json();
-          // Fallback if SMTP not configured
-          toast.success(`[FALLBACK] ${data.error || "Không thể gửi email"}. Mã OTP của bạn là: ${generated}`, {
-            duration: 15000,
-            icon: '✉️'
-          });
-        }
-      } catch (err) {
-        toast.dismiss("otp-send-loading");
-        toast.success(`[FALLBACK] Lỗi kết nối gửi email. Mã OTP của bạn là: ${generated}`, {
-          duration: 15000,
-          icon: '✉️'
-        });
-      }
-    } else {
-      toast.success(`[MOCK SMS] Mã OTP gửi tới số ${formData.phone} là: ${generated}`, {
-        duration: 15000,
-        icon: '🔑'
+    toast.loading("Đang gửi mã OTP tới email...", { id: "otp-send-loading" });
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email, otp: generated })
       });
+      toast.dismiss("otp-send-loading");
+      if (res.ok) {
+        toast.success("Mã OTP đã được gửi đến email của bạn!");
+        setShowOtpModal(true);
+      } else {
+        const data = await res.json();
+        toast.error(`Gửi OTP thất bại: ${data.error || "Lỗi máy chủ"}`);
+      }
+    } catch (err: any) {
+      toast.dismiss("otp-send-loading");
+      toast.error("Không thể kết nối máy chủ để gửi OTP.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -238,13 +197,13 @@ export default function RegisterPage() {
       });
       const regData = await regRes.json();
       if (!regRes.ok) {
-        setErrors({ username: regData.error || "Đăng ký thất bại" });
+        setErrors(prev => ({ ...prev, username: regData.error || "Đăng ký thất bại" }));
         setIsLoading(false);
         return;
       }
     } catch (err: any) {
       console.error("Register API call failed:", err);
-      setErrors({ username: "Không thể kết nối máy chủ" });
+      setErrors(prev => ({ ...prev, username: "Không thể kết nối máy chủ" }));
       setIsLoading(false);
       return;
     }
@@ -347,7 +306,24 @@ export default function RegisterPage() {
     };
   }, [isWaitingApproval, formData.username, performAutoLogin]);
 
- const inputClass = (name: string) => `h-14 w-full rounded-2xl border ${errors[name] ?"border-red-500 bg-red-50/50 bg-red-900/20" :" border-gray-600 bg-gray-800 text-white"} pl-14 pr-6 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder-gray-400 placeholder-gray-500 font-bold`;
+  const isFormValid =
+    formData.name.trim() !== "" &&
+    formData.birthYear !== "" &&
+    formData.username.trim() !== "" &&
+    formData.phone.trim() !== "" &&
+    formData.email.trim() !== "" &&
+    formData.address.trim() !== "" &&
+    formData.password !== "" &&
+    formData.confirmPassword !== "" &&
+    formData.confirmPassword === formData.password &&
+    agreeTerms &&
+    !errors.name &&
+    !errors.phone &&
+    !errors.email &&
+    !errors.password &&
+    !errors.username;
+
+ const inputClass = (name: string) => `h-14 w-full rounded-2xl border ${errors[name as keyof typeof errors] ?"border-red-500 bg-red-50/50 bg-red-900/20" :" border-gray-600 bg-gray-800 text-white"} pl-14 pr-6 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder-gray-400 placeholder-gray-500 font-bold`;
  const labelClass ="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1 mb-1 block";
 
  if (!isClient) return <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center"><Loader2 className="animate-spin text-gold" size={48} /></div>;
@@ -387,7 +363,7 @@ export default function RegisterPage() {
  <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.name ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
  <input type="text" name="name" required value={formData.name} onChange={handleInputChange} placeholder="Nguyễn Văn A" style={{ paddingLeft: "3.5rem" }} className={inputClass("name")} />
  </div>
- {errors.name && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.name}</p>}
+ {errors.name && <p className="text-red-500 text-[10px] mt-1 text-left ml-2">{errors.name}</p>}
  </div>
 
  <div className="space-y-1">
@@ -407,7 +383,7 @@ export default function RegisterPage() {
  <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.username ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
  <input type="text" name="username" required value={formData.username} onChange={handleInputChange} onBlur={handleUsernameBlur} placeholder="username_01" style={{ paddingLeft: "3.5rem" }} className={inputClass("username")} />
  </div>
- {errors.username && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.username}</p>}
+ {errors.username && <p className="text-red-500 text-[10px] mt-1 text-left ml-2">{errors.username}</p>}
  </div>
 
  <div className="space-y-1">
@@ -416,7 +392,7 @@ export default function RegisterPage() {
  <Phone className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.phone ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
  <input type="tel" name="phone" required value={formData.phone} onChange={handleInputChange} placeholder="09xxxxxxxx" style={{ paddingLeft: "3.5rem" }} className={inputClass("phone")} />
  </div>
- {errors.phone && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.phone}</p>}
+ {errors.phone && <p className="text-red-500 text-[10px] mt-1 text-left ml-2">{errors.phone}</p>}
  </div>
 
  <div className="space-y-1">
@@ -425,7 +401,7 @@ export default function RegisterPage() {
   <Mail className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.email ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
   <input type="email" name="email" required value={formData.email} onChange={handleInputChange} placeholder="example@mail.com" style={{ paddingLeft: "3.5rem" }} className={inputClass("email")} />
   </div>
-  {errors.email && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.email}</p>}
+  {errors.email && <p className="text-red-500 text-[10px] mt-1 text-left ml-2">{errors.email}</p>}
   </div>
 
  <div className="space-y-1">
@@ -453,7 +429,7 @@ export default function RegisterPage() {
  </div>
  </div>
  )}
- {errors.password && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1 ml-1"><AlertCircle size={12} /> {errors.password}</p>}
+ {errors.password && <p className="text-red-500 text-[10px] mt-1 text-left ml-2">{errors.password}</p>}
  </div>
 
  <div className="space-y-1">
@@ -492,7 +468,7 @@ export default function RegisterPage() {
     </label>
   </div>
 
- <button type="submit" disabled={isLoading || isUsernameDuplicate || !agreeTerms || (formData.password !== '' && formData.confirmPassword !== formData.password)} className="md:col-span-2 mt-8 h-16 w-full rounded-2xl bg-gold font-black uppercase tracking-[0.2em] text-[#0a0a0a] text-sm transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-70 shadow-2xl shadow-gold/20 flex items-center justify-center gap-3">
+ <button type="submit" disabled={isLoading || isUsernameDuplicate || !isFormValid} className="md:col-span-2 mt-8 h-16 w-full rounded-2xl bg-gold font-black uppercase tracking-[0.2em] text-[#0a0a0a] text-sm transition-all hover:bg-gold-hover active:scale-95 disabled:opacity-70 shadow-2xl shadow-gold/20 flex items-center justify-center gap-3">
  {isLoading ? (
  <div className="flex items-center gap-3">
  <Loader2 className="animate-spin" size={24} />
@@ -598,80 +574,6 @@ export default function RegisterPage() {
     )}
   </AnimatePresence>
 
-  {/* OTP Method Picker Modal */}
-  <AnimatePresence>
-    {showOtpMethodModal && (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
-      >
-        <motion.div
-          initial={{ scale: 0.9, y: 20 }}
-          animate={{ scale: 1, y: 0 }}
-          exit={{ scale: 0.9, y: 20 }}
-          transition={{ type: "spring", duration: 0.5 }}
-          className="relative w-full max-w-md overflow-hidden rounded-[32px] border border-white/10 bg-[#161616]/90 p-8 text-center shadow-2xl backdrop-blur-xl"
-        >
-          <div className="absolute -left-20 -top-20 h-40 w-40 rounded-full bg-gold/10 blur-2xl" />
-          <div className="absolute -bottom-20 -right-20 h-40 w-40 rounded-full bg-gold/10 blur-2xl" />
-
-          <div className="relative z-10 flex flex-col items-center">
-            <div className="h-16 w-16 rounded-2xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 mb-6">
-              <CheckCircle2 size={28} className="animate-pulse" />
-            </div>
-
-            <h3 className="text-xl font-black uppercase tracking-tight text-white mb-2">
-              Nhận OTP Xác thực
-            </h3>
-            <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider mb-8">
-              Vui lòng chọn kênh nhận mã xác thực
-            </p>
-
-            <div className="w-full space-y-4">
-              <button
-                type="button"
-                onClick={() => handleSelectOtpMethod("EMAIL")}
-                className="w-full h-16 rounded-2xl bg-zinc-900 border border-white/5 hover:border-gold/30 hover:bg-zinc-800/80 transition-all flex items-center gap-4 px-6 text-left"
-              >
-                <div className="h-10 w-10 rounded-xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 shrink-0">
-                  <Mail size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">Nhận qua Email</p>
-                  <p className="text-[10px] text-zinc-500 font-semibold truncate max-w-[220px]">{formData.email}</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleSelectOtpMethod("PHONE")}
-                className="w-full h-16 rounded-2xl bg-zinc-900 border border-white/5 hover:border-gold/30 hover:bg-zinc-800/80 transition-all flex items-center gap-4 px-6 text-left"
-              >
-                <div className="h-10 w-10 rounded-xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 shrink-0">
-                  <Phone size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">Nhận qua Số điện thoại</p>
-                  <p className="text-[10px] text-zinc-500 font-semibold truncate max-w-[220px]">{formData.phone}</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowOtpMethodModal(false)}
-                className="w-full h-12 rounded-xl text-zinc-500 hover:text-zinc-300 font-bold uppercase text-xs tracking-wider transition-all"
-              >
-                Hủy bỏ
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-    )}
-  </AnimatePresence>
-
   {/* OTP Verification Modal */}
   <AnimatePresence>
     {showOtpModal && (
@@ -693,14 +595,14 @@ export default function RegisterPage() {
 
           <div className="relative z-10 flex flex-col items-center">
             <div className="h-16 w-16 rounded-2xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 mb-6">
-              {otpMethod === "EMAIL" ? <Mail size={28} className="animate-pulse" /> : <Phone size={28} className="animate-pulse" />}
+              <Mail size={28} className="animate-pulse" />
             </div>
 
             <h3 className="text-xl font-black uppercase tracking-tight text-white mb-2">
               Xác thực OTP đăng ký
             </h3>
             <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider mb-6">
-              Mã OTP đã được gửi tới {otpMethod === "EMAIL" ? `email ${formData.email}` : `số điện thoại ${formData.phone}`}
+              Mã OTP đã được gửi tới email {formData.email}
             </p>
 
             <form onSubmit={handleVerifyOtpAndSubmit} className="w-full space-y-4">

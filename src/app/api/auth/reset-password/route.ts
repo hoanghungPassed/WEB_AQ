@@ -8,11 +8,11 @@ import { sendPasswordResetEmail } from "@/lib/email";
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-    const { username, newPassword } = await req.json();
+    const { username, email, newPassword } = await req.json();
 
-    if (!username || !newPassword) {
+    if ((!username && !email) || !newPassword) {
       return NextResponse.json(
-        { error: "Vui lòng nhập đầy đủ username và mật khẩu mới." },
+        { error: "Vui lòng nhập đầy đủ thông tin tài khoản và mật khẩu mới." },
         { status: 400 }
       );
     }
@@ -24,7 +24,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = await User.findOne({ username });
+    const query = email ? { email: email.toLowerCase() } : { username };
+    const user = await User.findOne(query);
     if (!user) {
       return NextResponse.json(
         { error: "Tài khoản không tồn tại trong hệ thống." },
