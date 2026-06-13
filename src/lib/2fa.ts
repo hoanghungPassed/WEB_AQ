@@ -38,9 +38,10 @@ export function verifyToken(secretInput: string, token: string): boolean {
 
     if (!secretBase32) return false;
 
-    // 3. Sử dụng speakeasy.authenticator.verify cho độ tương thích cao nhất với Google Authenticator
-    return speakeasy.authenticator.verify({
+    // 3. Sử dụng speakeasy.totp.verify với encoding: 'base32' để tương thích tuyệt đối với Google Authenticator
+    return speakeasy.totp.verify({
       secret: secretBase32.toUpperCase(),
+      encoding: 'base32',
       token: cleanToken,
       window: 2 // Cho phép sai số ±60 giây (Dung sai an toàn tiêu chuẩn)
     });
@@ -75,10 +76,11 @@ export function verifyTokenAny(secretInput: string, token: string): boolean {
 
   if (!secret) return false;
 
-  // 1. Authenticator (Base32) - Ưu tiên hàng đầu cho Google Authenticator
+  // 1. Google Authenticator Standard (Base32) - Ưu tiên hàng đầu
   try {
-    if (speakeasy.authenticator.verify({ 
+    if (speakeasy.totp.verify({ 
       secret: secret.toUpperCase(), 
+      encoding: 'base32',
       token: cleanToken, 
       window 
     })) {
