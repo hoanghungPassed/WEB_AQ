@@ -9,7 +9,7 @@ import { useRouter } from"next/navigation";
 import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle, Plus, FileText, Download, Paperclip, Phone, Minus, Copy, ExternalLink, ShieldAlert, Loader2, Search, UserSearch } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSWR } from "@/lib/useSWR";
-import Pusher from "pusher-js";
+import RealtimeProvider from "@/components/admin/RealtimeProvider";
 
 const lastSyncedCache: Record<string, string | null> = {};
 
@@ -853,67 +853,7 @@ const totalWorkingMins = overlap1 + overlap2;
    }
   }, [user, activeChatUser]);
 
-  useEffect(() => {
-    if (!user) return;
 
-    // Initialize Pusher Client
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || "", {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "ap1",
-    });
-
-    // 1. Subscribe to Company Chat
-    const companyChannel = pusher.subscribe("company-chat");
-    companyChannel.bind("new-message", (msg: any) => {
-      setCompanyMessages(prev => {
-        // Prevent duplicates
-        if (prev.some(m => m.id === msg.id || m._id === msg._id)) return prev;
-        return [...prev, msg];
-      });
-      if (msg.senderUsername !== user.username) {
-        playChatChime();
-        setUnreadCount(prev => prev + 1);
-      }
-      scrollToBottom();
-    });
-
-    // 2. Subscribe to Private Chat
-    const privateChannel = pusher.subscribe(`private-chat-${user.id || user._id}`);
-    privateChannel.bind("new-message", (msg: any) => {
-      setPrivateMessages(prev => {
-        if (prev.some(m => m.id === msg.id || m._id === msg._id)) return prev;
-        return [...prev, msg];
-      });
-      if (msg.senderUsername !== user.username) {
-        playChatChime();
-        setUnreadCount(prev => prev + 1);
-      }
-      scrollToBottom();
-    });
-
-    // 3. Subscribe to Newsfeed (Notifications)
-    const newsfeedChannel = pusher.subscribe("newsfeed");
-    newsfeedChannel.bind("new-post", (post: any) => {
-      setRoleUpdateNotif({ title: "Thông báo mới", message: post.title });
-      setTimeout(() => setRoleUpdateNotif(null), 5000);
-      router.refresh(); // Refresh SWR or server data
-    });
-
-    // 4. Subscribe to User Status Changes
-    const statusChannel = pusher.subscribe("system-users");
-    statusChannel.bind("status-changed", (data: any) => {
-      setChatUsers(prev => prev.map(u => 
-        (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline, lastActive: data.lastActive } : u
-      ));
-    });
-
-    return () => {
-      pusher.unsubscribe("company-chat");
-      pusher.unsubscribe(`private-chat-${user.id || user._id}`);
-      pusher.unsubscribe("newsfeed");
-      pusher.unsubscribe("system-users");
-      pusher.disconnect();
-    };
-  }, [user]);
 
   // Realtime useSWR Polling for systemSettings (30s interval)
   const { data: systemSettings } = useSWR("/api/admin/settings", async () => {
@@ -935,7 +875,7 @@ const totalWorkingMins = overlap1 + overlap2;
       console.error("Poll settings error in layout", err);
     }
     return null;
-  }, { refreshInterval: 30000 });
+  }, { revalidateOnFocus: false, dedupingInterval: 5000 });
 
   // 4. Realtime useSWR Polling for chat and active users (30s interval)
 
@@ -946,7 +886,7 @@ const totalWorkingMins = overlap1 + overlap2;
     if (!statusUrl) return null;
     const res = await fetch(statusUrl);
     return res.json();
-  }, { refreshInterval: 5000 });
+  }, { revalidateOnFocus: false, dedupingInterval: 5000 });
 
   const prevStatusRef = React.useRef<string | null>(null);
   useEffect(() => {
@@ -980,12 +920,12 @@ const totalWorkingMins = overlap1 + overlap2;
   useSWR("sync_users_rlt", async () => {
     if (user) await syncRealUsersFromDB();
     return Date.now();
-  }, { refreshInterval: 30000 });
+  }, { revalidateOnFocus: false, dedupingInterval: 5000 });
 
   const { mutate: mutateChat } = useSWR("sync_chat_rlt", async () => {
     if (user) loadChatData();
     return Date.now();
-  }, { refreshInterval: 30000 });
+  }, { revalidateOnFocus: false, dedupingInterval: 5000 });
 
   useEffect(() => {
     if (!user) return;
@@ -1648,7 +1588,18 @@ const typingTimer = setInterval(checkTyping, 1000);
  }
 
  return (
- <div className="flex h-screen bg-background text-xl overflow-hidden">
+  <div className="flex h-screen bg-background text-xl overflow-hidden">
+    <RealtimeProvider
+      user={user}
+      setChatUsers={setChatUsers}
+      setCompanyMessages={setCompanyMessages}
+      setPrivateMessages={setPrivateMessages}
+      setUnreadCount={setUnreadCount}
+      setRoleUpdateNotif={setRoleUpdateNotif}
+      setRealtimeToast={setRealtimeToast}
+      playChatChime={playChatChime}
+      scrollToBottom={scrollToBottom}
+    />
  {/* Sidebar */}
  <Sidebar isCollapsed={isCollapsed} user={user} windowWidth={windowWidth} />
 

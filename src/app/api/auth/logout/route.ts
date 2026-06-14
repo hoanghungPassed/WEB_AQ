@@ -28,6 +28,11 @@ export async function POST(req: NextRequest) {
           isOnline: false,
           lastActive: now
         });
+
+        await pusherServer.trigger("system", "user-status-changed", {
+          userId: authUser.userId,
+          isOnline: false
+        });
       } catch (pushErr) {}
 
       // Cập nhật bản ghi Attendance khi logout

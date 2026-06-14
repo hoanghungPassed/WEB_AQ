@@ -60,7 +60,7 @@ export default function EmployeePhoneListPage() {
  const { data: myPhones, mutate, isValidating: isLoading } = useSWR(
     user ? `my-phones-${user.id}` : null,
     fetchPhones,
-    { refreshInterval: 10000 }
+    { revalidateOnFocus: false, dedupingInterval: 5000 }
  );
 
  const triggerToast = (msg: string) => {

@@ -46,6 +46,31 @@ function StaffManagementContent() {
   const [activeTab, setActiveTab] = useState<"ACTIVE" | "PENDING" | "DUTY" | "AUTO_MESSAGES">("ACTIVE");
   const [pendingSubTab, setPendingSubTab] = useState<"ACCOUNTS" | "ACCESS">("ACCOUNTS");
 
+  const handleTabChange = (tab: "ACTIVE" | "PENDING" | "DUTY" | "AUTO_MESSAGES", subTab?: "ACCOUNTS" | "ACCESS") => {
+    setActiveTab(tab);
+    if (subTab) {
+      setPendingSubTab(subTab);
+    }
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (tab === "PENDING") {
+        url.searchParams.set("tab", "pending");
+        if (subTab) {
+          url.searchParams.set("sub", subTab.toLowerCase());
+        } else {
+          url.searchParams.delete("sub");
+        }
+      } else if (tab === "DUTY") {
+        url.searchParams.set("tab", "duty");
+        url.searchParams.delete("sub");
+      } else {
+        url.searchParams.delete("tab");
+        url.searchParams.delete("sub");
+      }
+      window.history.replaceState({}, "", url.toString());
+    }
+  };
+
   const swrStatus = useMemo(() => {
     if (activeTab === "PENDING") return "PENDING";
     return statusFilter === "ALL" ? "ACTIVE_OR_LOCKED" : statusFilter;
@@ -56,8 +81,8 @@ function StaffManagementContent() {
     `/api/admin/users?page=${currentPage}&limit=10&search=${searchQuery}&status=${swrStatus}&role=${roleFilter}`,
     fetcher,
     {
-      refreshInterval: 30000,
       dedupingInterval: 15000,
+      revalidateOnFocus: false,
     }
   );
 
@@ -65,7 +90,8 @@ function StaffManagementContent() {
     '/api/admin/users?all=true',
     fetcher,
     {
-      refreshInterval: 15000,
+      revalidateOnFocus: false,
+      dedupingInterval: 5000,
     }
   );
 
@@ -189,20 +215,29 @@ function StaffManagementContent() {
   // Handle tab from URL
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab ==="pending" && !isRestricted) {
+    const sub = searchParams.get("sub");
+    if (tab === "pending" && !isRestricted) {
       setActiveTab("PENDING");
-      setPendingSubTab("ACCOUNTS");
+      if (sub === "access") {
+        setPendingSubTab("ACCESS");
+      } else {
+        setPendingSubTab("ACCOUNTS");
+      }
+    } else if (tab === "duty" && canManageDuty) {
+      setActiveTab("DUTY");
+    } else {
+      setActiveTab("ACTIVE");
     }
-  }, [searchParams, isRestricted]);
+  }, [searchParams, isRestricted, canManageDuty]);
 
- // Force active tab to ACTIVE if restricted role tries to view PENDING
- useEffect(() => {
- if (currentUser) {
- if (isRestricted && activeTab ==="PENDING") {
- setActiveTab("ACTIVE");
- }
- }
- }, [currentUser, isRestricted, activeTab]);
+  // Force active tab to ACTIVE if restricted role tries to view PENDING
+  useEffect(() => {
+    if (currentUser) {
+      if (isRestricted && activeTab === "PENDING") {
+        handleTabChange("ACTIVE");
+      }
+    }
+  }, [currentUser, isRestricted, activeTab]);
 
   // === FETCH STAFF LIST TỪ API ===
   const reloadStaffList = async () => {
@@ -759,14 +794,14 @@ function StaffManagementContent() {
  </div>
  <div className="flex gap-4">
  <button 
- onClick={() => setActiveTab("ACTIVE")}
+ onClick={() => handleTabChange("ACTIVE")}
  className={`h-12 px-6 rounded-2xl font-bold uppercase text-sm tracking-wider flex items-center gap-2 transition-all ${activeTab ==="ACTIVE" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :" bg-white/5 text-gray-500 hover:bg-white/10"}`}
  >
  <Users size={18} /> Nhân viên ({stats.total})
  </button>
  {canManageDuty && (
  <button 
- onClick={() => setActiveTab("DUTY")}
+ onClick={() => handleTabChange("DUTY")}
  className={`h-12 px-6 rounded-2xl font-bold uppercase text-sm tracking-wider flex items-center gap-2 transition-all ${activeTab ==="DUTY" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :" bg-white/5 text-gray-500 hover:bg-white/10"}`}
  >
  <CalendarDays size={18} /> Lịch Trực Nhật
@@ -774,7 +809,7 @@ function StaffManagementContent() {
  )}
  {/* {!isRestricted && (
  <button 
- onClick={() => setActiveTab("AUTO_MESSAGES")}
+ onClick={() => handleTabChange("AUTO_MESSAGES")}
  className={`h-12 px-6 rounded-2xl font-bold uppercase text-sm tracking-wider flex items-center gap-2 transition-all ${activeTab ==="AUTO_MESSAGES" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :" bg-white/5 text-gray-500 hover:bg-white/10"}`}
  >
  <MessageSquare size={18} /> Tin nhắn tự động
@@ -783,13 +818,13 @@ function StaffManagementContent() {
  {!isRestricted && (
  <div className="flex items-center gap-2 p-1 bg-white/5 rounded-[24px] border border-white/0 shadow-inner">
  <button 
- onClick={() => { setActiveTab("PENDING"); setPendingSubTab("ACCOUNTS"); }}
+ onClick={() => handleTabChange("PENDING", "ACCOUNTS")}
  className={`h-10 px-6 rounded-2xl font-bold uppercase text-[10px] tracking-wider flex items-center gap-2 transition-all ${activeTab ==="PENDING" && pendingSubTab ==="ACCOUNTS" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :"text-gray-500 hover:text-white"}`}
  >
  Duyệt đăng ký ({stats.pending})
  </button>
  <button 
- onClick={() => { setActiveTab("PENDING"); setPendingSubTab("ACCESS"); }}
+ onClick={() => handleTabChange("PENDING", "ACCESS")}
  className={`h-10 px-6 rounded-2xl font-bold uppercase text-[10px] tracking-wider flex items-center gap-2 transition-all ${activeTab ==="PENDING" && pendingSubTab ==="ACCESS" ?"bg-gold text-sidebar shadow-lg shadow-gold/20" :"text-gray-500 hover:text-white"}`}
  >
  Duyệt truy cập ({(accessRequests || []).length})

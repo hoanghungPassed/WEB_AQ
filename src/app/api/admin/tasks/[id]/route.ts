@@ -161,6 +161,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   // Auto-update KPI & Mail status if transitioning to COMPLETED
   if (body.status === 'COMPLETED' && oldTask.status !== 'COMPLETED') {
     try {
+      try {
+        const { pusherServer } = await import("@/lib/pusher");
+        await pusherServer.trigger("system", "task-updated", {
+          taskId: task._id,
+          status: "COMPLETED",
+          assigneeId: task.assigneeId
+        });
+      } catch (pushErr) {
+        console.error("Task updated Pusher trigger error:", pushErr);
+      }
       // 1. Cập nhật Mail thành USED và Đã làm cho toàn bộ lô/dải
       try {
         let MailModel: any;
@@ -299,6 +309,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
  reason: `Hoàn thành trễ hạn Task: ${task.title || id}`,
  status: 'UNPAID'
  });
+
+  try {
+    const { pusherServer } = await import("@/lib/pusher");
+    await pusherServer.trigger("system", "new-fine", {
+      userId: task.assigneeId,
+      amount: 50000,
+      reason: `Hoàn thành trễ hạn Task: ${task.title || id}`
+    });
+  } catch (pushErr) {}
 
 // Send overdue fine email notification (fire-and-forget)
 try {

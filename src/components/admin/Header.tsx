@@ -19,8 +19,8 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
   const router = useRouter();
   const fetcher = (url: string) => fetch(url).then(res => res.json());
   const { data: messagesData } = useSWR('/api/messages', fetcher, {
-    refreshInterval: 10000, // Poll every 10 seconds
-    dedupingInterval: 5000  // Dedup requests within 5 seconds
+    dedupingInterval: 5000,  // Dedup requests within 5 seconds
+    revalidateOnFocus: false
   });
   const messagesArray: any[] = Array.isArray(messagesData?.data)
     ? messagesData.data
@@ -151,11 +151,26 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
       }
     });
 
+    const systemChannel = pusher.subscribe("system");
+    systemChannel.bind("new-fine", (data: any) => {
+      const roleUpper = String(user?.role || "").toUpperCase();
+      const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
+      if (isAdminOrManager) {
+        const audio = new Audio('/notification.mp3');
+        audio.play().catch(e => {});
+        mutate('/api/admin/notifications?type=SYSTEM');
+        mutate("admin-dashboard-stats-v2");
+        mutate("/api/admin/stats");
+      }
+    });
+
     return () => {
       pusher.unsubscribe("system-notifications");
+      pusher.unsubscribe("system");
       pusher.disconnect();
     };
   }, [user]);
+
 
   // Real-time Date and Time Widget
   useEffect(() => {
@@ -181,8 +196,8 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
 
   // Use SWR for notifications to optimize performance
   const { data: dbNotifs } = useSWR('/api/admin/notifications?type=SYSTEM', fetcher, {
-    refreshInterval: 30000,
-    dedupingInterval: 10000
+    dedupingInterval: 10000,
+    revalidateOnFocus: false
   });
 
   const loadLocalNotifs = React.useCallback(() => {

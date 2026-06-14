@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   }
  
  // 1. Get staff
- const staffs = await User.find({ role: { $in: ["04","05"] } });
+ const staffs = await User.find({ role: { $in: ["04","05"] } }).select("-password").lean();
  
  const now = new Date();
  const currentMins = now.getHours() * 60 + now.getMinutes();

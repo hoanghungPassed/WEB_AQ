@@ -120,8 +120,8 @@ export default function PhoneBatchesPage() {
     ).map((u: any) => ({ ...u, id: u.id || u._id?.toString() }));
  }, []);
 
- const { data: rawPhones, mutate: mutatePhones, isValidating: isPhonesLoading } = useSWR('phones-all', fetchPhones, { refreshInterval: 30000 });
- const { data: rawEmployees, mutate: mutateEmployees, isValidating: isEmployeesLoading } = useSWR('employees-staff', fetchEmployees, { refreshInterval: 60000 });
+ const { data: rawPhones, mutate: mutatePhones, isValidating: isPhonesLoading } = useSWR('phones-all', fetchPhones, { revalidateOnFocus: false, dedupingInterval: 5000 });
+ const { data: rawEmployees, mutate: mutateEmployees, isValidating: isEmployeesLoading } = useSWR('employees-staff', fetchEmployees, { revalidateOnFocus: false, dedupingInterval: 5000 });
 
  const phones = rawPhones || [];
  const employees = rawEmployees || [];

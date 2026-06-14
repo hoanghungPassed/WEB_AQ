@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search");
     
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "15");
+    const limit = parseInt(searchParams.get("limit") || "50");
     const sortBy = searchParams.get("sortBy") || "createdAt";
     const sortOrder = (searchParams.get("sortOrder") || "desc") as "asc" | "desc";
 
@@ -111,29 +111,36 @@ export async function GET(req: NextRequest) {
       lastBatchCacheTime = now;
     }
 
+    const skip = (page - 1) * limit;
+
     // Fallback: If no pagination requested OR all=true is specified, return full data
     if ((!searchParams.has("page") && !searchParams.has("limit")) || searchParams.get("all") === "true") {
       let mails: any[] = [];
-      const fallbackLimit = 500; // Safety limit for "ALL" without pagination
 
       if (!type || type === "ALL" || type === "ROOT") {
         const rootMails = await RootMail.find(query)
           .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
-          .limit(fallbackLimit)
+          .skip(skip)
+          .limit(limit)
+          .select("-htmlBody -textBody")
           .lean();
         mails = [...mails, ...rootMails];
       }
       if (!type || type === "ALL" || type === "SATELLITE") {
         const satelliteMails = await SatelliteMail.find(query)
           .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
-          .limit(fallbackLimit)
+          .skip(skip)
+          .limit(limit)
+          .select("-htmlBody -textBody")
           .lean();
         mails = [...mails, ...satelliteMails];
       }
       if (!type || type === "ALL" || type === "MONETIZED") {
         const monetizedMails = await MonetizedMail.find(query)
           .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
-          .limit(fallbackLimit)
+          .skip(skip)
+          .limit(limit)
+          .select("-htmlBody -textBody")
           .lean();
         mails = [...mails, ...monetizedMails];
       }
@@ -141,13 +148,13 @@ export async function GET(req: NextRequest) {
       if (!type || type === "ALL") {
         mails.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       }
-      return NextResponse.json({ success: true, data: mails.slice(0, 1000), batches: uniqueBatches });
+      return NextResponse.json({ success: true, data: mails.slice(0, limit), batches: uniqueBatches });
     }
 
     // Paged Query for specific type
     if (type && type !== "ALL") {
       const Model = getModel(type) as any;
-      const q = Model.find(query);
+      const q = Model.find(query).select("-htmlBody -textBody");
       const result = await paginate(q, page, limit, sortBy, sortOrder);
       return NextResponse.json({
         ...result,
@@ -156,14 +163,10 @@ export async function GET(req: NextRequest) {
     }
 
     // Paged Query for combined (ALL) collection
-    // To handle cross-collection pagination safely without a bomb, 
-    // we fetch a reasonable slice from each and combine.
-    const _skip = (page - 1) * limit;
-    const fetchLimit = _skip + limit;
     const [rootMails, satelliteMails, monetizedMails] = await Promise.all([
-      RootMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).limit(fetchLimit).lean(),
-      SatelliteMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).limit(fetchLimit).lean(),
-      MonetizedMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).limit(fetchLimit).lean()
+      RootMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).skip(skip).limit(limit).select("-htmlBody -textBody").lean(),
+      SatelliteMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).skip(skip).limit(limit).select("-htmlBody -textBody").lean(),
+      MonetizedMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).skip(skip).limit(limit).select("-htmlBody -textBody").lean()
     ]);
     const mails: any[] = [...rootMails, ...satelliteMails, ...monetizedMails];
 
@@ -177,7 +180,7 @@ export async function GET(req: NextRequest) {
     });
 
     const total = mails.length;
-    const paginatedData = mails.slice(_skip, _skip + limit);
+    const paginatedData = mails.slice(0, limit);
 
     return NextResponse.json({
       success: true,

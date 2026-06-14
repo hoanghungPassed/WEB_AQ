@@ -27,7 +27,8 @@ export async function GET(req: NextRequest) {
  .populate('author', 'name username role avatar')
  .populate('comments.userId', 'name username role avatar')
  .populate('comments.replies.userId', 'name username role avatar')
- .sort({ createdAt: -1 });
+ .sort({ createdAt: -1 })
+ .lean();
  return NextResponse.json(notifications || []);
  } catch (error: unknown) {
  console.error("Error fetching notifications:", error);

@@ -77,7 +77,7 @@ export default function ReportsPage() {
     return await res.json();
  }, [selectedMonth]);
 
- const { data: kpiData, mutate, isValidating } = useSWR(`kpi-report-data-${selectedMonth}`, fetchKpiData, { refreshInterval: 60000 });
+ const { data: kpiData, mutate, isValidating } = useSWR(`kpi-report-data-${selectedMonth}`, fetchKpiData, { revalidateOnFocus: false, dedupingInterval: 5000 });
  const isLoading = !kpiData && isValidating;
 
  const staffList = useMemo(() => kpiData?.staff || [], [kpiData]);

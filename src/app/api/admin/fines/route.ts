@@ -36,11 +36,14 @@ export async function GET(req: NextRequest) {
 
     // Fallback: If pagination parameters are omitted, return the legacy raw array format
     if (!searchParams.has("page") && !searchParams.has("limit") && searchParams.get("all") !== "true") {
-      const fines = await Fine.find(filter).populate("userId").sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 });
+      const fines = await Fine.find(filter)
+        .populate("userId", "name username role email")
+        .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
+        .lean();
       return NextResponse.json(fines || []);
     }
 
-    const query = Fine.find(filter).populate("userId");
+    const query = Fine.find(filter).populate("userId", "name username role email");
     const result = await paginate(query, page, limit, sortBy, sortOrder);
 
     return NextResponse.json(result);
@@ -87,6 +90,15 @@ export async function POST(req: NextRequest) {
   
   // Create new fine
   const newFine = await Fine.create(data);
+
+  try {
+    const { pusherServer } = await import("@/lib/pusher");
+    await pusherServer.trigger("system", "new-fine", {
+      userId: data.userId,
+      amount: data.amount,
+      reason: data.reason
+    });
+  } catch (pushErr) {}
 
   // Send fine notification email (fire-and-forget)
   try {

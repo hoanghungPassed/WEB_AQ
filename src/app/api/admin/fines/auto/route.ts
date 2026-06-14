@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   }
  
   // Auto-fining logic: Check staff KPI and fine if they didn't meet the target after offWorkTime
-  const staffs = await User.find({ role: { $in: ["04","05"] } });
+  const staffs = await User.find({ role: { $in: ["04","05"] } }).select("-password").lean();
   
   const now = new Date();
   const vnTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
@@ -68,6 +68,15 @@ export async function POST(req: NextRequest) {
   amount: 50000,
   status:"UNPAID"
   });
+
+  try {
+    const { pusherServer } = await import("@/lib/pusher");
+    await pusherServer.trigger("system", "new-fine", {
+      userId: staff._id,
+      amount: 50000,
+      reason: `Không hoàn thành task đúng hạn (sau ${offWorkStr})`
+    });
+  } catch (pushErr) {}
 
   // Send auto fine email notification (fire-and-forget)
   if (staff.email) {

@@ -1500,7 +1500,7 @@ interface RangeSelectionModalProps {
 
 function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelectionModalProps) {
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
-  const { data, error, mutate } = useSWR("/api/admin/mails/available-ranges", fetcher);
+  const { data, error, mutate } = useSWR("/api/admin/mails/available-ranges", fetcher, { revalidateOnFocus: false, dedupingInterval: 5000 });
   const [isAssigning, setIsAssigning] = useState(false);
 
   const ranges = Array.isArray(data) ? data : (data?.data || data?.chunks || []);

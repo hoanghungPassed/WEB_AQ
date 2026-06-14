@@ -56,11 +56,14 @@ export async function GET(req: NextRequest) {
 
     // Fallback: If no pagination params are provided, return the whole dataset (backward compatibility)
     if (!searchParams.has("page") && !searchParams.has("limit") && searchParams.get("all") !== "true") {
-      const tasks = await Task.find(filter).populate("assigneeId").sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 });
+      const tasks = await Task.find(filter)
+        .populate("assigneeId", "name username role email")
+        .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
+        .lean();
       return NextResponse.json({ success: true, data: tasks });
     }
 
-    const query = Task.find(filter).populate("assigneeId");
+    const query = Task.find(filter).populate("assigneeId", "name username role email");
     const result = await paginate(query, page, limit, sortBy, sortOrder);
 
     return NextResponse.json(result);
@@ -166,6 +169,13 @@ export async function POST(req: NextRequest) {
       await pusherServer.trigger("system-notifications", "new-notification", {
         ...newNotif.toObject(),
         time: new Date().toLocaleTimeString("vi-VN") + " - " + new Date().toLocaleDateString("vi-VN")
+      });
+
+      // Trigger new-task on private channel of the assignee
+      await pusherServer.trigger(`user-${data.assigneeId}`, "new-task", {
+        taskId: task._id,
+        title: "Nhiệm vụ mới",
+        message: `Bạn được giao một công việc mới: ${task.title}`
       });
     } catch (notifErr) {
       console.error("Task Notification error:", notifErr);

@@ -146,6 +146,15 @@ export async function POST(req: NextRequest) {
           canAppeal: true,
           monthYear: monthStart
         });
+
+        try {
+          const { pusherServer } = await import("@/lib/pusher");
+          await pusherServer.trigger("system", "new-fine", {
+            userId: user._id,
+            amount: 50000,
+            reason: `Đăng nhập ngoài giờ làm việc lúc ${timeString} (quy định ${openTime} - ${closeTime})`
+          });
+        } catch (pushErr) {}
       }
       }
 
@@ -297,6 +306,15 @@ export async function POST(req: NextRequest) {
               canAppeal: true,
               monthYear: monthStart
             });
+
+            try {
+              const { pusherServer } = await import("@/lib/pusher");
+              await pusherServer.trigger("system", "new-fine", {
+                userId: user._id,
+                amount: fineAmount,
+                reason: `Đi muộn ${lateMinutes} phút (${timeString}, qui định ${checkInLimitStr})`
+              });
+            } catch (pushErr) {}
 
             // Send fine notification email (fire-and-forget)
             try {

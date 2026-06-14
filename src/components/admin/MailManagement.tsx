@@ -66,7 +66,7 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
   const { data: apiData, mutate, isLoading } = useSWR(
     `/api/admin/mails?type=${activeTab}&all=true`,
     fetcher,
-    { refreshInterval: 60000 }
+    { revalidateOnFocus: false, dedupingInterval: 5000 }
   );
 
   const mails: MailData[] = apiData?.success ? apiData.data : [];
