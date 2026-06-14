@@ -21,6 +21,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const userUpdate: any = { isLateLocked: false, status: "ACTIVE" };
       if (type === "FINE_PAYMENT" || !type) userUpdate.finePaymentStatus = "APPROVED";
       if (type === "LATE_EXCUSE" || !type) userUpdate.lateExcuseStatus = "APPROVED";
+      if (type === "ACCESS") {
+        const now = new Date();
+        const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+        const vnTime = new Date(utc + 3600000 * 7); // Vietnam GMT+7
+        vnTime.setHours(23, 59, 59, 999);
+        userUpdate.accessApprovedUntil = new Date(vnTime.getTime() - 3600000 * 7);
+      }
       
       await User.findByIdAndUpdate(userId, userUpdate);
       

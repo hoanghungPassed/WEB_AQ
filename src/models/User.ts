@@ -31,6 +31,7 @@ export interface IUser extends Document {
  isLateLocked?: boolean;
  finePaymentStatus?: "PENDING_APPROVAL" | "APPROVED" | "DENIED" | null;
  lateExcuseStatus?: "PENDING_APPROVAL" | "APPROVED" | "DENIED" | null;
+ accessApprovedUntil?: Date | null;
 }
 
 const userSchema = new Schema<IUser>(
@@ -146,6 +147,10 @@ const userSchema = new Schema<IUser>(
  lateExcuseStatus: {
  type: String,
  enum: ["PENDING_APPROVAL", "APPROVED", "DENIED", null],
+ default: null,
+ },
+ accessApprovedUntil: {
+ type: Date,
  default: null,
  },
  },

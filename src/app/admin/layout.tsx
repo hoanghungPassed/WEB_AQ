@@ -1720,7 +1720,7 @@ const typingTimer = setInterval(checkTyping, 1000);
  userName={user?.name ||"Nhân viên"}
  onSendRequest={handleRequestAccess}
  onLogout={handleLogout}
- isPendingApproval={isPendingApproval}
+ isPendingApproval={isPendingApproval || statusData?.userStatus === "PENDING"}
  isDeniedApproval={statusData?.status === "REJECTED"}
  username={user?.username}
  userId={user?.id || user?._id}
@@ -1734,7 +1734,7 @@ const typingTimer = setInterval(checkTyping, 1000);
       userName={user?.name || "Nhân viên"}
       onSendRequest={() => {}}
       onLogout={handleLogout}
-      isPendingApproval={isPendingApproval}
+      isPendingApproval={isPendingApproval || statusData?.userStatus === "PENDING"}
       isLateLock={true}
       username={user?.username}
       userId={user?.id || user?._id}
