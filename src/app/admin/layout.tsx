@@ -662,8 +662,8 @@ const totalWorkingMins = overlap1 + overlap2;
  } else {
  setFinePaymentPending(false);
  }
- const isPending = userProfile ? (userProfile.finePaymentStatus ==="PENDING_APPROVAL" || userProfile.lateExcuseStatus ==="PENDING_APPROVAL") : false;
- setIsPendingApproval(isPending);
+  const isPending = (userProfile ? (userProfile.finePaymentStatus ==="PENDING_APPROVAL" || userProfile.lateExcuseStatus ==="PENDING_APPROVAL" || userProfile.status === "PENDING") : false) || statusData?.userStatus === "PENDING";
+  setIsPendingApproval(isPending);
 
  // Auto check-out based on global_work_config endTime
  const savedWorkConfigStr = localStorage.getItem("global_work_config");
@@ -1397,6 +1397,17 @@ const typingTimer = setInterval(checkTyping, 1000);
         const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
         const updatedRequests = [...currentRequests, newRequest];
         localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
+
+        // Update local global_users state immediately to prevent race reset
+        const savedUsers = localStorage.getItem("global_users");
+        if (savedUsers) {
+          const allUsers = JSON.parse(savedUsers);
+          const updated = (allUsers || []).map((u: any) =>
+            u.username === user.username ? { ...u, status: "PENDING" } : u
+          );
+          localStorage.setItem("global_users", JSON.stringify(updated));
+        }
+
         localStorage.setItem("request_trigger", Date.now().toString());
         window.dispatchEvent(new Event("storage"));
         
