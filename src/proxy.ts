@@ -16,9 +16,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // Bỏ qua xác thực cho các API công khai (Đăng nhập, Đăng ký, Xác thực 2FA lúc đăng nhập, Reset mật khẩu, và GET settings)
-  const isPublicApi = 
+  const isPublicApi =
     pathname.startsWith("/api/auth/login") ||
     pathname.startsWith("/api/auth/register") ||
+    pathname.startsWith("/api/auth/send-otp") ||
     pathname.startsWith("/api/auth/check-status") ||
     pathname.startsWith("/api/auth/check-username") ||
     pathname.startsWith("/api/admin/2fa/login") ||
@@ -93,10 +94,10 @@ export async function middleware(request: NextRequest) {
     const isApiRoute = pathname.startsWith("/api/");
 
     if (
-      isHighPrivilege && 
-      !payload.twoFAEnabled && 
-      !pathname.startsWith("/admin/settings") && 
-      !isApiRoute && 
+      isHighPrivilege &&
+      !payload.twoFAEnabled &&
+      !pathname.startsWith("/admin/settings") &&
+      !isApiRoute &&
       !isStaticAsset
     ) {
       if (isAdminPage) {
@@ -118,7 +119,7 @@ export async function middleware(request: NextRequest) {
         (path) => pathname === path || pathname.startsWith(path + "/")
       );
 
-      const isAllowedStaffPage = 
+      const isAllowedStaffPage =
         pathname === "/admin/mail/satellite" ||
         pathname === "/admin/phone/list" ||
         pathname === "/admin/settings";
@@ -178,7 +179,7 @@ export async function middleware(request: NextRequest) {
     }
 
     if (isApiCall && isStaff) {
-      const isAllowedEndpoint = 
+      const isAllowedEndpoint =
         pathname.startsWith("/api/auth/me") ||
         pathname.startsWith("/api/auth/change-password") ||
         pathname.startsWith("/api/admin/tasks") ||
@@ -204,7 +205,7 @@ export async function middleware(request: NextRequest) {
       }
 
       // Check if user is locked (LOCKED, isLateLocked, or PENDING) via internal API fetch
-      const isBypassLockEndpoint = 
+      const isBypassLockEndpoint =
         pathname.startsWith("/api/auth/check-status") ||
         pathname.startsWith("/api/admin/fines") ||
         pathname.startsWith("/api/admin/settings") ||
@@ -244,9 +245,9 @@ export async function middleware(request: NextRequest) {
   } catch (err) {
     const response = isApiCall
       ? NextResponse.json(
-          { error: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." },
-          { status: 401 }
-        )
+        { error: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." },
+        { status: 401 }
+      )
       : NextResponse.redirect(new URL("/login", request.url));
 
     response.cookies.delete(COOKIE_NAME);

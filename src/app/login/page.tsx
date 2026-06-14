@@ -100,9 +100,9 @@ function LoginForm() {
         const res = await fetch("/api/admin/2fa/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             userId: tempUserId,
-            token: totpCode, 
+            token: totpCode,
             backupCode: totpCode,
             overtimeBypass: overtimeAgreedOption || overtimeBypassFlag
           }),
@@ -121,8 +121,8 @@ function LoginForm() {
         const res = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            username: username.toLowerCase(), 
+          body: JSON.stringify({
+            username: username.toLowerCase(),
             password,
             overtimeAgreed: overtimeAgreedOption || overtimeBypassFlag
           }),
@@ -336,7 +336,7 @@ function LoginForm() {
                       Thời gian máy chủ hiện tại: <span className="text-gold">{(error.match(/\d{2}:\d{2}:\d{2}/) || [])[0]}</span>
                     </p>
                   )}
-                  <button type="button" onClick={() => {setRequire2FA(false); setTotpCode(""); setError("");}} className="text-xs font-bold text-gray-400 hover:text-white uppercase mt-2 block">← Quay lại</button>
+                  <button type="button" onClick={() => { setRequire2FA(false); setTotpCode(""); setError(""); }} className="text-xs font-bold text-gray-400 hover:text-white uppercase mt-2 block">← Quay lại</button>
                 </div>
               )}
 
