@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from"framer-motion";
 import { useRouter } from"next/navigation";
 import QRCodeDisplay from"@/components/admin/QRCodeDisplay";
 import TOTPDisplay from "@/components/admin/TOTPDisplay";
+import toast from "react-hot-toast";
 
 interface SystemSettings {
  agencyName: string;
@@ -154,12 +155,30 @@ export default function SettingsPage() {
   const [isActivating2FA, setIsActivating2FA] = useState(false);
   const [totpError, setTotpError] = useState("");
 
-  // Sync state for 2FA from loaded user
-  useEffect(() => {
-    if (user) {
-      setTwoFAEnabledState(!!user.twoFAEnabled);
-    }
-  }, [user]);
+  // Sync 2FA from loaded user
+   useEffect(() => {
+     if (user) {
+       setTwoFAEnabledState(!!user.twoFAEnabled);
+     }
+   }, [user]);
+
+   // Warn high-privilege users without 2FA enabled
+   const warned2FARef = React.useRef(false);
+   useEffect(() => {
+     if (user) {
+       const isHighPrivilege = user.role === "01" || user.role === "02";
+       const is2FADisabled = !user.twoFAEnabled && !user.isTwoFactorEnabled;
+
+       if (isHighPrivilege && is2FADisabled && !warned2FARef.current) {
+         warned2FARef.current = true;
+         toast('⚠️ Vui lòng bật Xác thực 2 bước (2FA) trong mục Bảo mật để bảo vệ tài khoản Admin', {
+           icon: '🛡️',
+           duration: 6000,
+           id: "admin-2fa-warning"
+         });
+       }
+     }
+   }, [user]);
 
   // Initiate 2FA Setup
   const handleInitiate2FA = async () => {

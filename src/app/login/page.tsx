@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Lock, User, Eye, EyeOff, Loader2, UserPlus, ShieldAlert, CheckCircle2, AlertCircle, Clock, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import toast from "react-hot-toast";
 
 function RealTimeClock() {
   const [timeStr, setTimeStr] = useState("");
@@ -111,6 +112,7 @@ function LoginForm() {
 
         if (res.ok) {
           login(data.user);
+          toast.success("Đăng nhập thành công!");
           router.push("/admin");
         } else {
           setError(data.error || "Mã xác thực 2FA/Backup không chính xác.");
@@ -138,7 +140,14 @@ function LoginForm() {
             setMessage("Tài khoản đã được bảo vệ bằng 2FA. Vui lòng nhập mã OTP để đăng nhập.");
           } else {
             login(data.user);
-            router.push("/admin");
+            toast.success("Đăng nhập thành công!");
+            const isHighPrivilege = data.user.role === "01" || data.user.role === "02";
+            const is2FADisabled = !data.user.twoFAEnabled && !data.user.isTwoFactorEnabled;
+            if (isHighPrivilege && is2FADisabled) {
+              router.push("/admin/settings");
+            } else {
+              router.push("/admin");
+            }
           }
         } else {
           if (data.error === "system_closed_fine_required") {
@@ -182,7 +191,16 @@ function LoginForm() {
             if (loginRes.ok) {
               const loginData = await loginRes.json();
               login(loginData.user);
-              setTimeout(() => router.push("/admin"), 2000);
+              toast.success("Đăng nhập thành công!");
+              setTimeout(() => {
+                const isHighPrivilege = loginData.user.role === "01" || loginData.user.role === "02";
+                const is2FADisabled = !loginData.user.twoFAEnabled && !loginData.user.isTwoFactorEnabled;
+                if (isHighPrivilege && is2FADisabled) {
+                  router.push("/admin/settings");
+                } else {
+                  router.push("/admin");
+                }
+              }, 2000);
             } else {
               setIsWaitingApproval(false);
               setError("Tự động đăng nhập thất bại sau khi duyệt");

@@ -17,6 +17,8 @@ export interface StaffData {
   allowance?: number;
   checkInTime?: string;
   createdAt?: string;
+  twoFAEnabled?: boolean;
+  isTwoFactorEnabled?: boolean;
 }
 
 export interface TaskAssignment {

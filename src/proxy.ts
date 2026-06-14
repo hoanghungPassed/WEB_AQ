@@ -87,10 +87,20 @@ export async function middleware(request: NextRequest) {
 
     const isStaff = role === "03" || role === "04" || role === "05";
 
-    // 0. BẮT BUỘC Admin (role 01) phải cài đặt 2FA nếu chưa có
-    if (role === "01" && !payload.twoFAEnabled && !pathname.startsWith("/admin/2fa") && !pathname.startsWith("/api/admin/2fa")) {
+    // 0. BẮT BUỘC Admin (role 01) và QL Công việc (role 02) phải cài đặt 2FA nếu chưa có
+    const isHighPrivilege = role === "01" || role === "02";
+    const isStaticAsset = pathname.includes(".") || pathname.startsWith("/_next/") || pathname.startsWith("/static/");
+    const isApiRoute = pathname.startsWith("/api/");
+
+    if (
+      isHighPrivilege && 
+      !payload.twoFAEnabled && 
+      !pathname.startsWith("/admin/settings") && 
+      !isApiRoute && 
+      !isStaticAsset
+    ) {
       if (isAdminPage) {
-        return NextResponse.redirect(new URL("/admin/2fa/setup", request.url));
+        return NextResponse.redirect(new URL("/admin/settings", request.url));
       }
     }
 
