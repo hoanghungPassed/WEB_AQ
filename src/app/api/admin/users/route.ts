@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
 
     // Fallback: If pagination parameters are omitted and not all=true, return full data
     if (!searchParams.has("page") && !searchParams.has("limit") && searchParams.get("all") !== "true") {
-      const users = await User.find(filter).select("-password").sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).lean();
+      const users = await User.find(filter).select("_id name email username avatar isOnline role status lastActive").sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).lean();
       const mappedUsers = users.map((u: any) => {
         const userObj = { ...u };
         delete userObj.password;
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: mappedUsers, users: mappedUsers });
     }
 
-    const query = User.find(filter).select("-password").lean();
+    const query = User.find(filter).select("_id name email username avatar isOnline role status lastActive").lean();
     const result = await paginate(query, page, limit, sortBy, sortOrder);
 
     // Add dynamic isOnline and format mapped response

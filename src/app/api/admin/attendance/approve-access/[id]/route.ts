@@ -18,7 +18,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { status, userId, type, username, staffName } = body; // APPROVED or DENIED
 
     if (status === "APPROVED" && userId) {
-      const userUpdate: any = { isLateLocked: false, status: "ACTIVE" };
+      const userUpdate: any = { isLateLocked: false, status: "ACTIVE", isOnline: true, lastActive: new Date() };
       if (type === "FINE_PAYMENT" || !type) userUpdate.finePaymentStatus = "APPROVED";
       if (type === "LATE_EXCUSE" || !type) userUpdate.lateExcuseStatus = "APPROVED";
       if (type === "ACCESS") {
@@ -29,7 +29,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         userUpdate.accessApprovedUntil = new Date(vnTime.getTime() - 3600000 * 7);
       }
       
-      await User.findByIdAndUpdate(userId, userUpdate);
+      const updatedUser = await User.findByIdAndUpdate(userId, userUpdate, { new: true });
+      if (updatedUser) {
+        try {
+          await pusherServer.trigger('system', 'user-status-changed', { 
+            userId: updatedUser._id.toString(), 
+            isOnline: true 
+          });
+          await pusherServer.trigger('system-users', 'status-changed', {
+            userId: updatedUser._id.toString(),
+            username: updatedUser.username,
+            isOnline: true,
+            lastActive: userUpdate.lastActive
+          });
+        } catch (pushErr) {
+          console.error("Pusher error in approve-access approval:", pushErr);
+        }
+      }
       
       // If it's fine payment, auto-mark today's late fine as PAID
       if (type === "FINE_PAYMENT" || !type) {
@@ -41,7 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
          );
       }
     } else if (status === "DENIED" && userId) {
-      const userUpdate: any = {};
+      const userUpdate: any = { isOnline: false };
       if (type === "ACCESS") {
         userUpdate.status = "LOCKED";
       } else if (type === "FINE_PAYMENT") {
@@ -53,7 +69,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         userUpdate.finePaymentStatus = "DENIED";
         userUpdate.lateExcuseStatus = "DENIED";
       }
-      await User.findByIdAndUpdate(userId, userUpdate);
+      const updatedUser = await User.findByIdAndUpdate(userId, userUpdate, { new: true });
+      if (updatedUser) {
+        try {
+          await pusherServer.trigger('system', 'user-status-changed', { 
+            userId: updatedUser._id.toString(), 
+            isOnline: false 
+          });
+          await pusherServer.trigger('system-users', 'status-changed', {
+            userId: updatedUser._id.toString(),
+            username: updatedUser.username,
+            isOnline: false,
+            lastActive: null
+          });
+        } catch (pushErr) {
+          console.error("Pusher error in approve-access denial:", pushErr);
+        }
+      }
     }
 
     // Update corresponding DB notification to isRead: true

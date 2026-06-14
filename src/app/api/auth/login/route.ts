@@ -162,23 +162,66 @@ export async function POST(req: NextRequest) {
     }
   }
 
+   // Check Sunday, working hours, and lateness locks
+   let shouldBeOnline = true;
+   if (user.status !== "ACTIVE") {
+     shouldBeOnline = false;
+   }
+   
+   let willBeLateLocked = false;
+   if (isStaff) {
+     const settings = await SystemSetting.findOne();
+     const openTime = settings?.openTime || "08:00";
+     const closeTime = settings?.closeTime || "18:00";
+     const [openHour, openMinute] = openTime.split(":").map(Number);
+     const [closeHour, closeMinute] = closeTime.split(":").map(Number);
+     const openMins = (openHour || 8) * 60 + (openMinute || 0);
+     const closeMins = (closeHour || 18) * 60 + (closeMinute || 0);
+
+     const isSunday = vnTime.getDay() === 0;
+     const isSundayLocked = isSunday;
+     const isWithinWorkingHours = currentMins >= (openMins - 10) && currentMins < closeMins;
+     const isOutsideHoursLocked = !isWithinWorkingHours;
+     const isLate = currentMins > openMins;
+
+     const attendanceCount = await Attendance.countDocuments({ userId: user._id });
+     const isFirstCheckIn = attendanceCount === 0;
+     willBeLateLocked = isLate && !isFirstCheckIn;
+
+     if (willBeLateLocked) {
+       user.isLateLocked = true;
+     }
+
+     const hasAccessApproval = user.accessApprovedUntil && new Date(user.accessApprovedUntil) > new Date();
+
+     if (user.isLateLocked || willBeLateLocked || (isSundayLocked && !hasAccessApproval) || (isOutsideHoursLocked && !hasAccessApproval)) {
+       shouldBeOnline = false;
+     }
+   }
+
    // Cập nhật trạng thái online và check-in
-   user.isOnline = true;
-   user.lastActive = now;
+   user.isOnline = shouldBeOnline;
+   user.lastActive = shouldBeOnline ? now : null;
    if (!user.checkInTime || !user.checkInTime.startsWith(now.toISOString().split("T")[0])) {
      user.checkInTime = now.toISOString();
      user.checkOutTime = undefined; // Reset checkout for new day
    }
    await user.save();
-   await User.findByIdAndUpdate(user._id, { lastActive: new Date() });
+   if (shouldBeOnline) {
+     await User.findByIdAndUpdate(user._id, { lastActive: new Date() });
+   }
 
    // Trigger Real-time status update
    try {
      await pusherServer.trigger("system-users", "status-changed", {
        userId: user._id.toString(),
        username: user.username,
-       isOnline: true,
-       lastActive: now
+       isOnline: shouldBeOnline,
+       lastActive: shouldBeOnline ? now : null
+     });
+     await pusherServer.trigger("system", "user-status-changed", {
+       userId: user._id.toString(),
+       isOnline: shouldBeOnline
      });
    } catch (pushErr) {}
 

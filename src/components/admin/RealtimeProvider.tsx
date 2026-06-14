@@ -77,19 +77,81 @@ export default function RealtimeProvider({
     // 4. Subscribe to User Status Changes (Legacy channel system-users status-changed)
     const statusChannel = pusher.subscribe("system-users");
     statusChannel.bind("status-changed", (data: any) => {
-      setChatUsers(prev => prev.map(u => 
-        (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline, lastActive: data.lastActive } : u
-      ));
+      // VÁ LỖ HỔNG: Nếu offline thì loại bỏ khỏi danh sách ngay lập tức
+      if (data.isOnline === false) {
+        setChatUsers(prev => prev.filter(u => u.id !== data.userId && u._id !== data.userId));
+      } else {
+        setChatUsers(prev => prev.map(u =>
+          (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline, lastActive: data.lastActive } : u
+        ));
+      }
+
+      try {
+        const storedUsers = localStorage.getItem("global_users");
+        if (storedUsers) {
+          const parsed = JSON.parse(storedUsers);
+          const updated = parsed.map((u: any) =>
+            (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline, lastActive: data.lastActive } : u
+          );
+          localStorage.setItem("global_users", JSON.stringify(updated));
+          window.dispatchEvent(new Event("storage"));
+        }
+      } catch (e) {}
+
+      try {
+        mutate(
+          (key: any) => typeof key === "string" && key.startsWith("/api/admin/users"),
+          (currentData: any) => {
+            if (!currentData) return currentData;
+            const users = currentData.users || currentData.data || (Array.isArray(currentData) ? currentData : null);
+            if (!users) return currentData;
+
+            const updatedUsers = users.map((u: any) =>
+              (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline, lastActive: data.lastActive } : u
+            );
+
+            if (Array.isArray(currentData)) return updatedUsers;
+            return {
+              ...currentData,
+              data: updatedUsers,
+              users: updatedUsers
+            };
+          },
+          { revalidate: false }
+        );
+      } catch (mutateErr) {}
     });
 
-    // 5. Subscribe to System channel for status changes, task-updated, and new-fine (Phase 1 & Phase 2)
+    // 5. Subscribe to System channel for status changes
     const systemChannel = pusher.subscribe("system");
-    
+
     // Phase 1: online status synchronization
     systemChannel.bind("user-status-changed", (data: any) => {
-      setChatUsers(prev => prev.map(u => 
-        (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline } : u
-      ));
+      // VÁ LỖ HỔNG: Nếu offline thì loại bỏ khỏi danh sách ngay lập tức (KHÔNG GỌI API LẠI)
+      if (data.isOnline === false) {
+        setChatUsers(prev => prev.filter(u => u.id !== data.userId && u._id !== data.userId));
+      } else {
+        setChatUsers(prev => {
+          const exists = prev.some(u => u.id === data.userId || u._id === data.userId);
+          if (data.isOnline) {
+            if (exists) {
+              return prev.map(u => (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: true } : u);
+            } else {
+              let newUser = { id: data.userId, _id: data.userId, isOnline: true, name: data.username || "Nhân viên", username: data.username || "user", role: "05", avatar: "" };
+              try {
+                const stored = localStorage.getItem("global_users");
+                if (stored) {
+                  const parsed = JSON.parse(stored);
+                  const found = parsed.find((u: any) => u.id === data.userId || u._id === data.userId);
+                  if (found) newUser = { ...found, isOnline: true };
+                }
+              } catch (e) {}
+              return [newUser, ...prev];
+            }
+          }
+          return prev;
+        });
+      }
 
       // Sync global_users in localStorage
       try {
@@ -103,36 +165,39 @@ export default function RealtimeProvider({
           window.dispatchEvent(new Event("storage"));
         }
       } catch (e) {}
+
+      // Sync local SWR query cache without network revalidation
+      try {
+        mutate(
+          (key: any) => typeof key === "string" && key.startsWith("/api/admin/users"),
+          (currentData: any) => {
+            if (!currentData) return currentData;
+            const users = currentData.users || currentData.data || (Array.isArray(currentData) ? currentData : null);
+            if (!users) return currentData;
+
+            const updatedUsers = users.map((u: any) =>
+              (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline } : u
+            );
+
+            if (Array.isArray(currentData)) return updatedUsers;
+            return {
+              ...currentData,
+              data: updatedUsers,
+              users: updatedUsers
+            };
+          },
+          { revalidate: false }
+        );
+      } catch (mutateErr) {}
     });
 
-    // Phase 2: task completion updates (safe mutate, only for ADMIN/MANAGER role === '01' || role === '02')
+    // Phase 2: task completion updates
     systemChannel.bind("task-updated", (data: any) => {
       const roleUpper = String(user.role || "").toUpperCase();
-      const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
-      
+      const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ";
       if (isAdminOrManager) {
-        // Safe mutate: only admins fetch layout & task lists
-        mutate("/api/admin/tasks");
         mutate((key: any) => typeof key === "string" && key.includes("/api/admin/tasks"));
-        mutate((key: any) => typeof key === "string" && key.includes("/api/admin/mails"));
-        mutate("admin-dashboard-stats-v2");
-        mutate("/api/admin/kpis");
-        mutate("/api/admin/stats");
-        router.refresh();
       }
-    });
-
-    // 6. Subscribe to assignee private channel for new tasks (Phase 2)
-    const userChannel = pusher.subscribe(`user-${user.id || user._id}`);
-    userChannel.bind("new-task", (data: any) => {
-      setRealtimeToast(data.message || `Bạn nhận được công việc mới: ${data.title}`);
-      setTimeout(() => setRealtimeToast(null), 5000);
-      playChatChime();
-      
-      // Mutate local/personal task query
-      mutate("/api/admin/tasks");
-      mutate((key: any) => typeof key === "string" && key.includes("/api/admin/tasks"));
-      router.refresh();
     });
 
     return () => {
@@ -141,10 +206,8 @@ export default function RealtimeProvider({
       pusher.unsubscribe("newsfeed");
       pusher.unsubscribe("system-users");
       pusher.unsubscribe("system");
-      pusher.unsubscribe(`user-${user.id || user._id}`);
-      pusher.disconnect();
     };
-  }, [user, setChatUsers, setCompanyMessages, setPrivateMessages, setUnreadCount, setRoleUpdateNotif, setRealtimeToast, playChatChime, scrollToBottom, router]);
+  }, [user, router, setChatUsers, setCompanyMessages, setPrivateMessages, setUnreadCount, setRoleUpdateNotif, setRealtimeToast, playChatChime, scrollToBottom]);
 
   return null;
 }

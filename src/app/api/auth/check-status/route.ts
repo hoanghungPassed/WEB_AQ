@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
+import { pusherServer } from "@/lib/pusher";
 
 export async function GET(req: NextRequest) {
   try {
@@ -70,17 +71,36 @@ export async function GET(req: NextRequest) {
     // LOCKED -> REJECTED
     let responseStatus: "PENDING" | "ACTIVE" | "REJECTED" = "PENDING";
 
-    if (isAccessGranted) {
-      responseStatus = "ACTIVE";
-      user.isOnline = true;
+    const shouldBeOnline = isAccessGranted;
+    if (user.isOnline !== shouldBeOnline) {
+      user.isOnline = shouldBeOnline;
+      if (shouldBeOnline) {
+        user.lastActive = new Date();
+      }
+      await user.save();
+
+      try {
+        await pusherServer.trigger("system", "user-status-changed", {
+          userId: user._id.toString(),
+          isOnline: shouldBeOnline
+        });
+        await pusherServer.trigger("system-users", "status-changed", {
+          userId: user._id.toString(),
+          username: user.username,
+          isOnline: shouldBeOnline,
+          lastActive: shouldBeOnline ? user.lastActive : null
+        });
+      } catch (pushErr) {
+        console.error("Pusher error in check-status:", pushErr);
+      }
+    } else if (shouldBeOnline) {
       user.lastActive = new Date();
       await user.save();
+    }
+
+    if (isAccessGranted) {
+      responseStatus = "ACTIVE";
     } else {
-      // Only save to DB if we need to transition isOnline to false, avoiding duplicate writes on polling
-      if (user.isOnline) {
-        user.isOnline = false;
-        await user.save();
-      }
       if (user.status === "LOCKED" || user.isLateLocked) {
         responseStatus = "REJECTED";
       }
