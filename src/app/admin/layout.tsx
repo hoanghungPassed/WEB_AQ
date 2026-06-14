@@ -1610,6 +1610,7 @@ const typingTimer = setInterval(checkTyping, 1000);
       setRealtimeToast={setRealtimeToast}
       playChatChime={playChatChime}
       scrollToBottom={scrollToBottom}
+      setPendingRequests={setPendingRequests}
     />
  {/* Sidebar */}
  <Sidebar isCollapsed={isCollapsed} user={user} windowWidth={windowWidth} />

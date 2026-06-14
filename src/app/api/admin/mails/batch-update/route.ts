@@ -53,6 +53,12 @@ export async function PUT(req: NextRequest) {
       } catch (_) {}
     }
 
+    // Trigger Pusher update for satellite batches
+    try {
+      const { pusherServer } = await import("@/lib/pusher");
+      await pusherServer.trigger("system", "satellite-batches-updated", {});
+    } catch (_) {}
+
     return NextResponse.json({ success: true, modifiedCount: totalModified });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";

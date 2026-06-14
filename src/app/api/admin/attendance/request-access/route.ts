@@ -71,6 +71,21 @@ export async function POST(req: NextRequest) {
       data: requestData
     });
 
+    // 2. Trigger access-request on the general 'system' channel for popups & chimes
+    try {
+      await pusherServer.trigger('system', 'access-request', {
+        id: requestData.id,
+        userId: user._id.toString(),
+        name: user.name,
+        username: user.username,
+        type: type || 'ACCESS',
+        reason: reason || "Xin phép truy cập hệ thống",
+        createdAt: new Date()
+      });
+    } catch (pushErr) {
+      console.error("Pusher trigger access-request error:", pushErr);
+    }
+
     return NextResponse.json({ success: true, data: requestData });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -54,9 +54,23 @@ export async function GET(req: NextRequest) {
     if (assignedTo) {
       filter.assignedTo = assignedTo;
     }
-    const batches = await Batch.find(filter).sort({ createdAt: 1 }); // Sort by creation time ascending to show Lo 1, 2, 3...
+    const batches = await Batch.find(filter).sort({ createdAt: 1 }).lean();
 
-    return NextResponse.json({ success: true, batches });
+    const batchesWithCounts = await Promise.all(
+      batches.map(async (batch) => {
+        const actualCount = await SatelliteMail.countDocuments({
+          batchId: String(batch._id),
+          isAssigned: true
+        });
+        if (batch.mailCount !== actualCount) {
+          await Batch.updateOne({ _id: batch._id }, { mailCount: actualCount });
+          batch.mailCount = actualCount;
+        }
+        return batch;
+      })
+    );
+
+    return NextResponse.json({ success: true, batches: batchesWithCounts });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("GET satellite batches error:", error);

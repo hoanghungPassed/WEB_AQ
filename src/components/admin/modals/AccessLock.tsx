@@ -56,6 +56,17 @@ export default function AccessLock({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [excuseReason, setExcuseReason] = useState("");
   
+  const [localPending, setLocalPending] = useState(isPendingApproval);
+  const [localDenied, setLocalDenied] = useState(isDeniedApproval);
+
+  useEffect(() => {
+    setLocalPending(isPendingApproval);
+  }, [isPendingApproval]);
+
+  useEffect(() => {
+    setLocalDenied(isDeniedApproval);
+  }, [isDeniedApproval]);
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -72,6 +83,8 @@ export default function AccessLock({
     const channel = pusher.subscribe(`user-${userId}`);
     channel.bind("access-response", (data: any) => {
       if (data.status === "APPROVED") {
+        setLocalPending(false);
+        setLocalDenied(false);
         toast.success("Yêu cầu của bạn đã được phê duyệt!");
         if (onApproved) {
           onApproved();
@@ -79,6 +92,8 @@ export default function AccessLock({
           window.location.reload();
         }
       } else if (data.status === "DENIED") {
+        setLocalPending(false);
+        setLocalDenied(true);
         toast.error("Yêu cầu của bạn đã bị từ chối!");
         if (onDenied) {
           onDenied();
@@ -99,11 +114,27 @@ export default function AccessLock({
     return rem > 0 ? `${hrs} giờ ${rem} phút` : `${hrs} giờ`;
   };
 
+  const handleSendRequestClick = () => {
+    setLocalPending(true);
+    setLocalDenied(false);
+    onSendRequest();
+  };
+
+  const handleReportPaymentClick = () => {
+    setLocalPending(true);
+    setLocalDenied(false);
+    if (onReportPayment) {
+      onReportPayment();
+    }
+  };
+
   const handleExcuseSubmit = () => {
     if (!excuseReason.trim()) {
       toast.error("Vui lòng nhập lý do giải trình trước khi gửi!");
       return;
     }
+    setLocalPending(true);
+    setLocalDenied(false);
     if (onSendExcuse) {
       onSendExcuse(excuseReason);
       setExcuseReason("");
@@ -121,7 +152,7 @@ export default function AccessLock({
       >
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-gold to-transparent opacity-50" />
 
-        {isPendingApproval && !isDeniedApproval ? (
+        {localPending && !localDenied ? (
           <div className="py-10 px-4 space-y-8 flex flex-col items-center justify-center animate-fade-in">
             {/* ... giữ nguyên phần loading ... */}
             <div className="relative flex items-center justify-center mb-2">
@@ -156,7 +187,7 @@ export default function AccessLock({
               </button>
             </div>
           </div>
-        ) : isDeniedApproval ? (
+        ) : localDenied ? (
           <div className="py-12 space-y-6">
             <div className="h-20 w-20 bg-red-500/10 border border-red-500/30 text-red-500 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-red-500/5">
               <ShieldAlert size={40} className="animate-pulse" />
@@ -200,7 +231,7 @@ export default function AccessLock({
 
             <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
               <button
-                onClick={onSendRequest}
+                onClick={handleSendRequestClick}
                 className="flex-1 h-14 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-sm tracking-widest rounded-2xl transition-all shadow-xl shadow-red-600/20 flex items-center justify-center gap-3"
               >
                 <Send size={20} /> Gửi yêu cầu mở khóa
@@ -280,7 +311,7 @@ export default function AccessLock({
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 disabled={finePaymentPending}
-                onClick={onReportPayment}
+                onClick={handleReportPaymentClick}
                 className={`flex-1 h-14 font-black text-base uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-lg ${finePaymentPending ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 cursor-not-allowed" : "bg-gold text-sidebar hover:bg-amber-700 bg-amber-600 hover:text-white shadow-gold/25"}`}
               >
                 {finePaymentPending ? "Chờ duyệt..." : "Đã chuyển khoản"}
@@ -324,7 +355,7 @@ export default function AccessLock({
             <div className="flex flex-col gap-6 items-center">
               <div className="flex flex-col sm:flex-row gap-4 justify-center w-full">
                 <button
-                  onClick={onSendRequest}
+                  onClick={handleSendRequestClick}
                   className="h-16 px-10 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-xl shadow-gold/20"
                 >
                   <Send size={24} /> Gửi yêu cầu truy cập

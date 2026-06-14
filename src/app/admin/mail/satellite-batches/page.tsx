@@ -18,10 +18,11 @@ import {
  UserCheck,
  RefreshCcw,
  Loader2
-} from"lucide-react";
-import { motion, AnimatePresence } from"framer-motion";
-import { useRouter } from"next/navigation";
-import useSWR from "swr";
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import useSWR, { mutate as globalMutate } from "swr";
+import { toast } from "react-hot-toast";
 
 interface BatchItem {
  _id?: string;
@@ -62,82 +63,83 @@ export default function SatelliteBatchesPage() {
  const [isAssigning, setIsAssigning] = useState(false);
  const [showRangeModal, setShowRangeModal] = useState(false);
 
+ const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+ const { data: batchesData, mutate: mutateBatches } = useSWR(
+   "/api/admin/mail/satellite-batches",
+   fetcher,
+   { revalidateOnFocus: false, dedupingInterval: 5000 }
+ );
+
  useEffect(() => {
- // Authenticate
- const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
- if (storedUser) {
- const parsed = JSON.parse(storedUser);
- setUser(parsed);
- const role = String(parsed.role ||"").toUpperCase();
- if (role !=="01" && role !=="02" && role !=="ADMIN" && role !=="QUẢN LÝ CÔNG VIỆC" && role !=="QL CÔNG VIỆC") {
- window.location.href ="/admin";
- }
- } else {
- window.location.href ="/login";
- }
+   if (batchesData && batchesData.success && batchesData.batches) {
+     setBatches(batchesData.batches);
+     localStorage.setItem("global_satellite_batches", JSON.stringify(batchesData.batches));
+   }
+ }, [batchesData]);
 
- const loadData = async () => {
-  try {
-    const [batchesRes, staffRes] = await Promise.all([
-      fetch("/api/admin/mail/satellite-batches"),
-      fetch("/api/admin/users")
-    ]);
-
-    let list: BatchItem[] = [];
-    if (batchesRes.ok) {
-      const data = await batchesRes.json();
-      list = data.batches || [];
-      localStorage.setItem("global_satellite_batches", JSON.stringify(list));
-    }
-
-    if (staffRes.ok) {
-      const staffData = await staffRes.json();
-      const allUsers = staffData.users || staffData.data || [];
-      const staffOnly = (allUsers || []).filter((u: any) => 
-        u.role ==="04" || u.role ==="05" || u.role ==="03" || u.role ==="NHÂN VIÊN" || u.role ==="NV THỬ VIỆC" || u.role ==="QUẢN LÝ NHÂN SỰ"
-      );
-      setStaffList(staffOnly);
-    }
-
-    const savedMails = localStorage.getItem("global_mails_data");
-    const mails = savedMails ? JSON.parse(savedMails) : [];
-
-    // Sync mail counts dynamically
-    const syncedList = (list || []).map(b => {
-      const count = (mails || []).filter((m: any) => m.type ==="SATELLITE" && m.batchName === b.name).length;
-      return { ...b, mailCount: count };
-    });
-    setBatches(syncedList);
-
-  } catch (err) {
-    console.error("Lỗi loadData satellite-batches:", err);
-    
-    // Fallback logic
-    const savedBatches = localStorage.getItem("global_satellite_batches");
-    const savedUsers = localStorage.getItem("global_users");
-    const savedMails = localStorage.getItem("global_mails_data");
-    const mails = savedMails ? JSON.parse(savedMails) : [];
-
-    const list = savedBatches ? JSON.parse(savedBatches) : [];
-    const users = savedUsers ? JSON.parse(savedUsers) : [];
-
-    const staffOnly = (users || []).filter((u: any) => 
-      u.role ==="04" || u.role ==="05" || u.role ==="03" || u.role ==="NHÂN VIÊN" || u.role ==="NV THỬ VIỆC" || u.role ==="QUẢN LÝ NHÂN SỰ"
-    );
-    setStaffList(staffOnly);
-
-    const syncedList = (list || []).map((b: any) => {
-      const count = (mails || []).filter((m: any) => m.type ==="SATELLITE" && m.batchName === b.name).length;
-      return { ...b, mailCount: count };
-    });
-    setBatches(syncedList);
+ useEffect(() => {
+  // Authenticate
+  const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
+  if (storedUser) {
+  const parsed = JSON.parse(storedUser);
+  setUser(parsed);
+  const role = String(parsed.role ||"").toUpperCase();
+  if (role !=="01" && role !=="02" && role !=="ADMIN" && role !=="QUẢN LÝ CÔNG VIỆC" && role !=="QL CÔNG VIỆC") {
+  window.location.href ="/admin";
   }
- };
+  } else {
+  window.location.href ="/login";
+  }
 
- loadData();
- window.addEventListener("storage", loadData);
- return () => window.removeEventListener("storage", loadData);
- }, []);
+  const loadData = async () => {
+   try {
+     const [batchesRes, staffRes] = await Promise.all([
+       fetch("/api/admin/mail/satellite-batches"),
+       fetch("/api/admin/users")
+     ]);
+
+     let list: BatchItem[] = [];
+     if (batchesRes.ok) {
+       const data = await batchesRes.json();
+       list = data.batches || [];
+       localStorage.setItem("global_satellite_batches", JSON.stringify(list));
+       mutateBatches(data, { revalidate: false });
+     }
+
+     if (staffRes.ok) {
+       const staffData = await staffRes.json();
+       const allUsers = staffData.users || staffData.data || [];
+       const staffOnly = (allUsers || []).filter((u: any) => 
+         u.role ==="04" || u.role ==="05" || u.role ==="03" || u.role ==="NHÂN VIÊN" || u.role ==="NV THỬ VIỆC" || u.role ==="QUẢN LÝ NHÂN SỰ"
+       );
+       setStaffList(staffOnly);
+     }
+
+     setBatches(list);
+
+   } catch (err) {
+     console.error("Lỗi loadData satellite-batches:", err);
+     
+     // Fallback logic
+     const savedBatches = localStorage.getItem("global_satellite_batches");
+     const savedUsers = localStorage.getItem("global_users");
+
+     const list = savedBatches ? JSON.parse(savedBatches) : [];
+     const users = savedUsers ? JSON.parse(savedUsers) : [];
+
+     const staffOnly = (users || []).filter((u: any) => 
+       u.role ==="04" || u.role ==="05" || u.role ==="03" || u.role ==="NHÂN VIÊN" || u.role ==="NV THỬ VIỆC" || u.role ==="QUẢN LÝ NHÂN SỰ"
+     );
+     setStaffList(staffOnly);
+     setBatches(list);
+   }
+  };
+
+  loadData();
+  window.addEventListener("storage", loadData);
+  return () => window.removeEventListener("storage", loadData);
+  }, []);
 
   useEffect(() => {
     if (!selectedStaff) return;
@@ -209,19 +211,7 @@ export default function SatelliteBatchesPage() {
         setShowCreateModal(false);
         setNewBatchName("");
 
-        // Cập nhật lại global_mails_data trong localStorage
-        try {
-          const mailRes = await fetch("/api/admin/mails?type=SATELLITE&all=true");
-          if (mailRes.ok) {
-            const mailData = await mailRes.json();
-            if (mailData.success && mailData.data) {
-              localStorage.setItem("global_mails_data", JSON.stringify(mailData.data));
-            }
-          }
-        } catch (_) {}
-
-        // Re-load to update list
-        // Note: loadData is defined inside useEffect, so we'd typically trigger a refresh logic here
+        mutateBatches();
         window.dispatchEvent(new Event("storage"));
       } else {
         triggerToast(data.error || "Không thể tạo lô mail!");
@@ -252,11 +242,16 @@ export default function SatelliteBatchesPage() {
       }
 
       try {
-        const savedMails = localStorage.getItem("global_mails_data");
-        const mails = savedMails ? JSON.parse(savedMails) : [];
-        const unassigned = (mails || []).filter((m: any) => m.type === "SATELLITE" && (!m.batchName || m.batchName === ""));
-        setUnassignedSats(unassigned);
-      } catch (_) {}
+        const res = await fetch("/api/admin/mails?type=SATELLITE&unassigned=true&limit=1000");
+        if (res.ok) {
+          const resData = await res.json();
+          if (resData.success && resData.data) {
+            setUnassignedSats(resData.data);
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi fetch unassigned mails:", err);
+      }
 
       // Pre-focus the assignee list on the selected staff member
       setSelectedStaffToAssign(selectedStaff.id);
@@ -337,72 +332,64 @@ export default function SatelliteBatchesPage() {
    }
  };
 
- // Unassign/Release all mails inside a batch for the current staff member
- const handleUnassignBatch = async () => {
- if (!selectedBatch || !selectedStaff || isAssigning) return;
+  // Unassign/Release all mails inside a batch for the current staff member
+  const handleUnassignBatch = async () => {
+    if (!selectedBatch || !selectedStaff || isAssigning) return;
 
- setIsAssigning(true);
- try {
-   const savedMails = localStorage.getItem("global_mails_data");
-   const mails = savedMails ? JSON.parse(savedMails) : [];
-   const now = new Date().toISOString();
+    setIsAssigning(true);
+    try {
+      const mailIds = (batchMails || []).map(m => m.id || m._id).filter(Boolean);
+      
+      if (mailIds.length > 0) {
+        // Cập nhật Database cho toàn bộ Mail thành unassigned
+        await fetch("/api/admin/mails/batch-update", {
+          method: "PUT",
+          headers: { 
+            "Content-Type": "application/json",
+            "x-user-id": user?.id || user?._id || "" 
+          },
+          body: JSON.stringify({
+            ids: mailIds,
+            updateData: {
+              isAssigned: false,
+              assigneeId: "",
+              assignedTo: "",
+              batchName: "",
+              batchId: "",
+              workStatus: "Chưa làm"
+            }
+          })
+        });
+      }
 
-   const updatedMails = (mails || []).map((m: any) => {
-   if (
-   m.type ==="SATELLITE" && 
-   m.batchName === selectedBatch.name && 
-   String(m.assigneeId) === String(selectedStaff.id)
-   ) {
-   return {
-   ...m,
-   assigneeId:"",
-   assignedTo:"",
-   batchName:"",
-   batchId:"",
-   lastUpdated: now,
-   updatedAt: now,
-   updatedBy: user?.name ||"Admin"
-   };
-   }
-   return m;
-   });
+      setBatchMails([]);
+      setSelectedStaffToAssign("");
 
-   localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
-   window.dispatchEvent(new Event("storage"));
+      // Trigger SWR mutation to fetch updated batch counts from backend
+      mutateBatches();
 
-   setBatchMails([]);
-   setSelectedStaffToAssign("");
+      // Log Activity
+      const existingLogs = localStorage.getItem("global_system_logs");
+      const logsList = existingLogs ? JSON.parse(existingLogs) : [];
+      const newLog = {
+        id: `log-${Date.now()}`,
+        user: user?.name || "Admin",
+        role: "ADMIN",
+        action: `Hủy gán / Giải phóng toàn bộ mail vệ tinh thuộc "${selectedBatch.name}"`,
+        type: "WARNING",
+        timestamp: new Date().toLocaleString("vi-VN")
+      };
+      localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
 
-   // Sync batches count
-   const savedBatches = localStorage.getItem("global_satellite_batches");
-   const list = savedBatches ? JSON.parse(savedBatches) : [];
-   const syncedList = (list || []).map((b: any) => {
-   if (b.name === selectedBatch.name) {
-   return { ...b, mailCount: 0 };
-   }
-   return b;
-   });
-   setBatches(syncedList);
-   localStorage.setItem("global_satellite_batches", JSON.stringify(syncedList));
-
-   // Log Activity
-   const existingLogs = localStorage.getItem("global_system_logs");
-   const logsList = existingLogs ? JSON.parse(existingLogs) : [];
-   const newLog = {
-   id: `log-${Date.now()}`,
-   user: user?.name ||"Admin",
-   role:"ADMIN",
-   action: `Hủy gán / Giải phóng toàn bộ mail vệ tinh thuộc"${selectedBatch.name}"`,
-   type:"WARNING",
-   timestamp: new Date().toLocaleString("vi-VN")
-   };
-   localStorage.setItem("global_system_logs", JSON.stringify([newLog, ...logsList]));
-
-   triggerToast(`Đã hủy gán & giải phóng toàn bộ mail trong Lô"${selectedBatch.name}"!`);
- } finally {
-   setIsAssigning(false);
- }
- };
+      triggerToast(`Đã hủy gán & giải phóng toàn bộ mail trong Lô "${selectedBatch.name}"!`);
+      setSelectedBatch(null);
+    } catch (error) {
+      console.error("Lỗi giải phóng lô mail:", error);
+      triggerToast("Lỗi hệ thống khi giải phóng lô mail!");
+    } finally {
+      setIsAssigning(false);
+    }
+  };
 
  // Trigger delete modal
  const handleDeleteBatch = (e: React.MouseEvent, batch: BatchItem) => {
@@ -427,33 +414,8 @@ export default function SatelliteBatchesPage() {
    if (res.ok) {
      const data = await res.json();
      if (data.success) {
-        // 1. Release mails in local storage for instant feedback
-        const savedMails = localStorage.getItem("global_mails_data");
-        const mails = savedMails ? JSON.parse(savedMails) : [];
-        const now = new Date().toISOString();
-        const updatedMails = (mails || []).map((m: any) => {
-        if (m.type ==="SATELLITE" && m.batchName === batchToDelete.name) {
-        return {
-        ...m,
-        assigneeId:"",
-        assignedTo:"",
-        batchName:"",
-        batchId:"",
-        lastUpdated: now,
-        updatedAt: now,
-        updatedBy: user?.name ||"Admin"
-        };
-        }
-        return m;
-        });
-        localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
-
-        // 2. Remove batch from list in state and local storage
-        const savedBatches = localStorage.getItem("global_satellite_batches");
-        const list = savedBatches ? JSON.parse(savedBatches) : [];
-        const updatedBatches = (list || []).filter((b: any) => (b._id || b.id) !== batchId);
-        localStorage.setItem("global_satellite_batches", JSON.stringify(updatedBatches));
-        setBatches(updatedBatches);
+        // 1. Refresh batches list
+        mutateBatches();
 
         triggerToast(`Đã xóa thành công ${batchToDelete.name} và dọn dẹp dữ liệu liên quan!`);
         window.dispatchEvent(new Event("storage"));
@@ -479,160 +441,143 @@ export default function SatelliteBatchesPage() {
  };
 
  // Perform actual reset
- const confirmResetBatchLinks = () => {
- if (!batchToReset) return;
- const savedMails = localStorage.getItem("global_mails_data");
- let mails = savedMails ? JSON.parse(savedMails) : [];
- let updated = false;
+  const confirmResetBatchLinks = async () => {
+    if (!batchToReset) return;
+    try {
+      const batchId = batchToReset._id || batchToReset.id;
+      const resMails = await fetch(`/api/admin/mails?batchId=${batchId}&all=true`);
+      if (resMails.ok) {
+        const mailsData = await resMails.json();
+        if (mailsData.success && mailsData.data) {
+          const mailIds = mailsData.data.map((m: any) => m.id || m._id).filter(Boolean);
+          if (mailIds.length > 0) {
+            await fetch("/api/admin/mails/batch-update", {
+              method: "PUT",
+              headers: { 
+                "Content-Type": "application/json",
+                "x-user-id": user?.id || user?._id || "" 
+              },
+              body: JSON.stringify({
+                ids: mailIds,
+                updateData: {
+                  links: ["", "", ""],
+                  channelNames: ["", "", ""],
+                  eligibleChannels: [false, false, false],
+                  workStatus: "Chưa làm"
+                }
+              })
+            });
+          }
+        }
+      }
+      triggerToast(`Đã reset toàn bộ link kênh trong lô "${batchToReset.name}"!`);
+      mutateBatches();
+    } catch (err) {
+      console.error(err);
+      triggerToast("Lỗi hệ thống khi reset link!");
+    } finally {
+      setBatchToReset(null);
+    }
+  };
 
- mails = (mails || []).map((m: any) => {
- if (m.type ==="SATELLITE" && m.batchName === batchToReset.name) {
- updated = true;
- return {
- ...m,
- links: ["","",""],
- channelNames: ["","",""],
- eligibleChannels: [false, false, false],
- workStatus:"Chưa làm",
- updatedAt: new Date().toISOString(),
- };
- }
- return m;
- });
+  const handleAddMailsToBatch = async () => {
+    if ((selectedMailsToAdd || []).length === 0 || !selectedBatch || !selectedStaff) return;
 
- if (updated) {
- localStorage.setItem("global_mails_data", JSON.stringify(mails));
- window.dispatchEvent(new Event("storage"));
- triggerToast(`Đã reset toàn bộ link kênh trong lô"${batchToReset.name}"!`);
- }
- setBatchToReset(null);
- };
+    setIsAssigning(true);
+    try {
+      await fetch("/api/admin/mails/batch-update", {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || user?._id || "" 
+        },
+        body: JSON.stringify({
+          ids: selectedMailsToAdd,
+          updateData: {
+            batchName: selectedBatch.name,
+            batchId: selectedBatch.id || selectedBatch._id,
+            assigneeId: selectedStaff.id || selectedStaff.username,
+            assignedTo: selectedStaff.name,
+            isAssigned: true
+          }
+        })
+      });
 
- // Add selected unassigned mails to this batch
- const handleAddMailsToBatch = () => {
- if ((selectedMailsToAdd || []).length === 0 || !selectedBatch || !selectedStaff) return;
+      const batchId = selectedBatch._id || selectedBatch.id;
+      const res = await fetch(`/api/admin/mails?batchId=${batchId}&all=true`);
+      if (res.ok) {
+        const resData = await res.json();
+        if (resData.success && resData.data) {
+          setBatchMails(resData.data);
+        }
+      }
 
- const savedMails = localStorage.getItem("global_mails_data");
- const mails = savedMails ? JSON.parse(savedMails) : [];
- const now = new Date().toISOString();
+      const resUnassigned = await fetch("/api/admin/mails?type=SATELLITE&unassigned=true&limit=1000");
+      if (resUnassigned.ok) {
+        const resData = await resUnassigned.json();
+        if (resData.success && resData.data) {
+          setUnassignedSats(resData.data);
+        }
+      }
 
- const updatedMails = (mails || []).map((m: any) => {
- if (selectedMailsToAdd.includes(m.id)) {
- return {
- ...m,
- batchName: selectedBatch.name,
- batchId: selectedBatch.id,
- assigneeId: selectedStaff.id || selectedStaff.username,
- assignedTo: selectedStaff.name,
- lastUpdated: now,
- updatedAt: now,
- updatedBy: user?.name ||"Admin"
- };
- }
- return m;
- });
+      mutateBatches();
 
- localStorage.setItem("global_mails_data", JSON.stringify(updatedMails));
- window.dispatchEvent(new Event("storage"));
+      const existingNotifs = localStorage.getItem("admin_notifications");
+      const notifList = existingNotifs ? JSON.parse(existingNotifs) : [];
+      const newNotif = {
+        id: `notif-${Date.now()}`,
+        title: "Giao thêm mail vệ tinh lẻ",
+        message: `Bạn đã được gán lẻ thêm ${(selectedMailsToAdd || []).length} mail vệ tinh vào Lô "${selectedBatch.name}".`,
+        time: new Date().toLocaleTimeString("vi-VN") + " - " + new Date().toLocaleDateString("vi-VN"),
+        type: "ASSIGNMENT",
+        read: false,
+        targetUsername: selectedStaff.username
+      };
+      localStorage.setItem("admin_notifications", JSON.stringify([newNotif, ...notifList]));
+      window.dispatchEvent(new Event("storage"));
 
- // Recalculate states for this specific staff member
- const inBatch = (updatedMails || []).filter((m: any) => 
- m.type ==="SATELLITE" && 
- m.batchName === selectedBatch.name && 
- String(m.assigneeId) === String(selectedStaff.id)
- );
- setBatchMails(inBatch);
+      setSelectedMailsToAdd([]);
+      setShowAddMailModal(false);
+      triggerToast(`Đã thêm thành công ${(selectedMailsToAdd || []).length} mail vào Lô!`);
+    } catch (err) {
+      console.error(err);
+      triggerToast("Lỗi hệ thống khi gán mail!");
+    } finally {
+      setIsAssigning(false);
+    }
+  };
 
- const unassigned = (updatedMails || []).filter((m: any) => m.type ==="SATELLITE" && (!m.batchName || m.batchName ===""));
- setUnassignedSats(unassigned);
+  // Sync mail counts dynamically for the selected staff
+  const syncedBatches = useMemo(() => {
+    if (!selectedStaff) return [];
+    return (batches || []).filter(b => String(b.assignedTo) === String(selectedStaff.id));
+  }, [batches, selectedStaff]);
 
- // Sync batches
- const savedBatches = localStorage.getItem("global_satellite_batches");
- const list = savedBatches ? JSON.parse(savedBatches) : [];
- const syncedList = (list || []).map((b: any) => {
- if (b.name === selectedBatch.name) {
- return { ...b, mailCount: (inBatch || []).length };
- }
- return b;
- });
- setBatches(syncedList);
- localStorage.setItem("global_satellite_batches", JSON.stringify(syncedList));
+  // Count how many satellite batches are currently unassigned (i.e. have no assigned mails)
+  const unassignedBatchesCount = useMemo(() => {
+    return (batches || []).filter(b => (b.mailCount || 0) === 0).length;
+  }, [batches]);
 
- // Push real-time notification for manual additions
- const existingNotifs = localStorage.getItem("admin_notifications");
- const notifList = existingNotifs ? JSON.parse(existingNotifs) : [];
- const newNotif = {
- id: `notif-${Date.now()}`,
- title:"Giao thêm mail vệ tinh lẻ",
- message: `Bạn đã được gán lẻ thêm ${(selectedMailsToAdd || []).length} mail vệ tinh vào Lô"${selectedBatch.name}".`,
- time: new Date().toLocaleTimeString("vi-VN") +" -" + new Date().toLocaleDateString("vi-VN"),
- type:"ASSIGNMENT",
- read: false,
- targetUsername: selectedStaff.username
- };
- localStorage.setItem("admin_notifications", JSON.stringify([newNotif, ...notifList]));
- window.dispatchEvent(new Event("storage"));
+  const renderStaffSelectionScreen = () => {
+    // Filter staff members based on search, online status, and assignment status
+    const filteredStaffList = (staffList || []).filter(staff => {
+      const staffBatches = (batches || []).filter((b: any) => String(b.assignedTo) === String(staff.id) || String(b.assignedTo) === String(staff.username));
+      const hasAssignment = staffBatches.some(b => (b.mailCount || 0) > 0);
+      
+      // Check online status
+      const isOnline = staff.lastActive ? (Date.now() - new Date(staff.lastActive).getTime() < 15 * 60000) : (staff.isOnline === true);
 
- setSelectedMailsToAdd([]);
- setShowAddMailModal(false);
- triggerToast(`Đã thêm thành công ${(selectedMailsToAdd || []).length} mail vào Lô!`);
- };
+      // Apply assignment filter
+      if (assignmentFilter === "ASSIGNED" && !hasAssignment) return false;
+      if (assignmentFilter === "UNASSIGNED" && hasAssignment) return false;
 
- // Sync mail counts dynamically for the selected staff
- const syncedBatches = useMemo(() => {
- if (!selectedStaff) return [];
- const savedMails = typeof window !=="undefined" ? localStorage.getItem("global_mails_data") : null;
- const mails = savedMails ? JSON.parse(savedMails) : [];
- 
- const staffBatches = (batches || []).filter(b => String(b.assignedTo) === String(selectedStaff.id));
- 
- return staffBatches.map(b => {
- const count = (mails || []).filter((m: any) => 
- m.type ==="SATELLITE" && 
- m.batchName === b.name && 
- String(m.assigneeId) === String(selectedStaff.id)
- ).length;
- return { ...b, mailCount: count };
- });
- }, [batches, selectedStaff]);
-
- // Count how many satellite batches are currently unassigned (i.e. have no assigned mails)
- const unassignedBatchesCount = useMemo(() => {
- const savedMails = typeof window !=="undefined" ? localStorage.getItem("global_mails_data") : null;
- const allMails = savedMails ? JSON.parse(savedMails) : [];
- const satelliteMails = (allMails || []).filter((m: any) => m.type ==="SATELLITE");
-
- // Filter batches that have no assigned mails or where mails have no assignee
- return (batches || []).filter(b => {
- const bMails = (satelliteMails || []).filter((m: any) => m.batchName === b.name);
- return (bMails || []).length === 0 || bMails.every((m: any) => !m.assigneeId);
- }).length;
- }, [batches]);
-
- const renderStaffSelectionScreen = () => {
- const savedMails = typeof window !=="undefined" ? localStorage.getItem("global_mails_data") : null;
- const allMails = savedMails ? JSON.parse(savedMails) : [];
- const satelliteMails = (allMails || []).filter((m: any) => m.type ==="SATELLITE");
-
- // Filter staff members based on search, online status, and assignment status
- const filteredStaffList = (staffList || []).filter(staff => {
- const staffMails = (satelliteMails || []).filter((m: any) => String(m.assigneeId) === String(staff.id));
- const hasAssignment = (staffMails || []).length > 0;
- 
- // Check online status
- const isOnline = staff.lastActive ? (Date.now() - new Date(staff.lastActive).getTime() < 15 * 60000) : (staff.isOnline === true);
-
- // Apply assignment filter
- if (assignmentFilter ==="ASSIGNED" && !hasAssignment) return false;
- if (assignmentFilter ==="UNASSIGNED" && hasAssignment) return false;
-
- // Apply search filter
- if (staffSearchTerm) {
-   const term = staffSearchTerm.toLowerCase();
-   if (!staff.name?.toLowerCase().includes(term) && !staff.username?.toLowerCase().includes(term)) {
-     return false;
-   }
- }
+      // Apply search filter
+      if (staffSearchTerm) {
+        const term = staffSearchTerm.toLowerCase();
+        if (!staff.name?.toLowerCase().includes(term) && !staff.username?.toLowerCase().includes(term)) {
+          return false;
+        }
+      }
 
  // Apply online filter
  if (onlineFilter === "ONLINE" && !isOnline) return false;

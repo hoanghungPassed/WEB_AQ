@@ -76,6 +76,15 @@ export async function PUT(
     
     await batch.save();
 
+    // Trigger Pusher events to update real-time screens
+    try {
+      const { pusherServer } = await import("@/lib/pusher");
+      await pusherServer.trigger("system", "task-updated", {});
+      await pusherServer.trigger("system", "satellite-batches-updated", {});
+    } catch (pe) {
+      console.error("Failed to trigger pusher event:", pe);
+    }
+
     // 3. Ghi log activity
     try {
       const { Log } = await import("@/models/Log");

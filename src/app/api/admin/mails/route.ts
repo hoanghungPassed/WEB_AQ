@@ -59,6 +59,20 @@ export async function GET(req: NextRequest) {
       query.$or = [{ batchId: batchId }, { batchName: batchId }];
     }
 
+    // Unassigned filter
+    const unassigned = searchParams.get("unassigned");
+    if (unassigned === "true") {
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { batchId: { $exists: false } },
+          { batchId: "" },
+          { batchName: { $exists: false } },
+          { batchName: "" }
+        ]
+      });
+    }
+
     // Assignee filter
     if (assigneeId) {
       query.assigneeId = assigneeId;

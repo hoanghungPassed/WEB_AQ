@@ -15,6 +15,7 @@ interface RealtimeProviderProps {
   setRealtimeToast: React.Dispatch<React.SetStateAction<string | null>>;
   playChatChime: () => void;
   scrollToBottom: () => void;
+  setPendingRequests?: React.Dispatch<React.SetStateAction<any[]>>;
 }
 
 export default function RealtimeProvider({
@@ -26,7 +27,8 @@ export default function RealtimeProvider({
   setRoleUpdateNotif,
   setRealtimeToast,
   playChatChime,
-  scrollToBottom
+  scrollToBottom,
+  setPendingRequests
 }: RealtimeProviderProps) {
   const router = useRouter();
 
@@ -194,9 +196,59 @@ export default function RealtimeProvider({
     // Phase 2: task completion updates
     systemChannel.bind("task-updated", (data: any) => {
       const roleUpper = String(user.role || "").toUpperCase();
-      const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ";
+      const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
       if (isAdminOrManager) {
         mutate((key: any) => typeof key === "string" && key.includes("/api/admin/tasks"));
+        mutate("/api/admin/mail/satellite-batches");
+      }
+    });
+
+    systemChannel.bind("satellite-batches-updated", (data: any) => {
+      const roleUpper = String(user.role || "").toUpperCase();
+      const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
+      if (isAdminOrManager) {
+        mutate("/api/admin/mail/satellite-batches");
+      }
+    });
+
+    // Phase 3: Bind access-request event
+    systemChannel.bind("access-request", (data: any) => {
+      const roleUpper = String(user?.role || "").toUpperCase();
+      const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC" || roleUpper.includes("QUẢN LÝ");
+      
+      if (isAdminOrManager) {
+        const newRequest = {
+          id: data.id || data.notificationId || String(Date.now()),
+          userId: data.userId,
+          staffName: data.name,
+          username: data.username || "",
+          time: new Date(data.createdAt || Date.now()).toLocaleTimeString("vi-VN"),
+          reason: data.reason,
+          type: data.type || "ACCESS",
+          status: "PENDING"
+        };
+
+        if (setPendingRequests) {
+          setPendingRequests(prev => {
+            const exists = prev.some(r => r.id === newRequest.id || (r.userId === newRequest.userId && r.type === newRequest.type && r.status === "PENDING"));
+            if (exists) return prev;
+            return [...prev, newRequest];
+          });
+        }
+
+        // Sync pending_access_requests in localStorage
+        try {
+          const savedRequests = localStorage.getItem("pending_access_requests");
+          const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+          if (!currentRequests.some((r: any) => r.id === newRequest.id || (r.userId === newRequest.userId && r.type === newRequest.type && r.status === "PENDING"))) {
+            const updatedRequests = [...currentRequests, newRequest];
+            localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
+            window.dispatchEvent(new Event("storage"));
+          }
+        } catch (e) {}
+
+        // Play sound chime
+        playChatChime();
       }
     });
 
@@ -207,7 +259,7 @@ export default function RealtimeProvider({
       pusher.unsubscribe("system-users");
       pusher.unsubscribe("system");
     };
-  }, [user, router, setChatUsers, setCompanyMessages, setPrivateMessages, setUnreadCount, setRoleUpdateNotif, setRealtimeToast, playChatChime, scrollToBottom]);
+  }, [user, router, setChatUsers, setCompanyMessages, setPrivateMessages, setUnreadCount, setRoleUpdateNotif, setRealtimeToast, playChatChime, scrollToBottom, setPendingRequests]);
 
   return null;
 }
