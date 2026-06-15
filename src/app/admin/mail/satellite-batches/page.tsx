@@ -709,7 +709,7 @@ export default function SatelliteBatchesPage() {
  <div className="flex-1 overflow-y-auto custom-scrollbar mt-4 space-y-2 pr-2">
  {(filteredStaffList || []).map((staff) => {
  const staffBatches = (batches || []).filter((b: any) => String(b.assignedTo) === String(staff.id) || String(b.assignedTo) === String(staff.username));
- const staffMails = (satelliteMails || []).filter((m: any) => String(m.assigneeId) === String(staff.id));
+ const totalMailsCount = staffBatches.reduce((acc: number, b: any) => acc + (b.mailCount || 0), 0);
  const isOnline = staff.lastActive ? (Date.now() - new Date(staff.lastActive).getTime() < 15 * 60000) : (staff.isOnline === true);
  const hasAssignment = staffBatches.length > 0;
  const unassignedCountForStaff = staffBatches.filter((b: any) => !b.mailCount || b.mailCount === 0).length;
@@ -731,7 +731,7 @@ export default function SatelliteBatchesPage() {
  <div className="truncate">
  <p className="text-base font-black text-white transition-colors truncate uppercase">{staff.name}</p>
  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
- @{staff.username} {hasAssignment ? `(${staffBatches.length} lô - ${(staffMails || []).length} mail)` :"(Chưa gán)"}
+ @{staff.username} {hasAssignment ? `(${staffBatches.length} lô - ${totalMailsCount} mail)` :"(Chưa gán)"}
  </p>
  </div>
  </div>
