@@ -77,19 +77,79 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
  await logAuditTrail(userId || "system", "UPDATE_MAIL_SUCCESS", "mails", { id, email: mail.email }, req);
 
- // If mail was assigned to a user, send notification email
- if (body.assigneeId) {
-   try {
-     const User = (await import("@/models/User")).default;
-     const assignee = await User.findById(body.assigneeId).select("name email");
-     if (assignee?.email) {
-       sendMailAssignedEmail(assignee.email, assignee.name || "Nhân viên", `Email: ${mail.email || "N/A"}`).catch(console.error);
-     }
-   } catch (_) {}
-   await logAuditTrail(userId || "system", "MAIL_ASSIGNED", "mails", { mailId: id, assigneeId: body.assigneeId, email: mail.email }, req);
- }
+  // If mail was assigned to a user, send notification email
+  if (body.assigneeId) {
+    try {
+      const User = (await import("@/models/User")).default;
+      const assignee = await User.findById(body.assigneeId).select("name email");
+      if (assignee?.email) {
+        sendMailAssignedEmail(assignee.email, assignee.name || "Nhân viên", `Email: ${mail.email || "N/A"}`).catch(console.error);
+      }
+    } catch (_) {}
+    await logAuditTrail(userId || "system", "MAIL_ASSIGNED", "mails", { mailId: id, assigneeId: body.assigneeId, email: mail.email }, req);
+  }
 
- return NextResponse.json({ success: true, data: mail });
+  // Phase 4: Auto-update Task Progress
+  try {
+    const { Task } = await import("@/models/Task");
+    const pendingTasks = await Task.find({ 
+      status: "PENDING", 
+      $or: [
+        { mailIds: id }, 
+        { batch: mail.batchId }, 
+        { batchName: mail.batchName },
+        { batch: mail.batchName },
+        { batchName: mail.batchId }
+      ] 
+    });
+
+    for (const task of pendingTasks) {
+      let allMailsInTask: any[] = [];
+      if (task.mailIds && task.mailIds.length > 0) {
+        const [satMails, rootMails, monMails] = await Promise.all([
+          SatelliteMail.find({ _id: { $in: task.mailIds } }).select("workStatus links").lean(),
+          RootMail.find({ _id: { $in: task.mailIds } }).select("workStatus").lean(),
+          MonetizedMail.find({ _id: { $in: task.mailIds } }).select("workStatus").lean()
+        ]);
+        allMailsInTask = [...satMails, ...rootMails, ...monMails];
+      } else if (task.batchName || task.batch) {
+        const term = task.batchName || task.batch;
+        const [satMails, rootMails, monMails] = await Promise.all([
+          SatelliteMail.find({ $or: [{ batchName: term }, { batchId: term }] }).select("workStatus links").lean(),
+          RootMail.find({ $or: [{ batchName: term }, { batchId: term }] }).select("workStatus").lean(),
+          MonetizedMail.find({ $or: [{ batchName: term }, { batchId: term }] }).select("workStatus").lean()
+        ]);
+        allMailsInTask = [...satMails, ...rootMails, ...monMails];
+      }
+
+      if (allMailsInTask.length > 0) {
+        const completedCount = allMailsInTask.filter((m: any) => {
+          if (m.workStatus === "Lỗi" || m.workStatus === "Đã làm") return true;
+          const links = m.links || [];
+          if (links.length >= 3 && links[0]?.trim() && links[1]?.trim() && links[2]?.trim()) return true;
+          return false;
+        }).length;
+
+        const newProgress = Math.round((completedCount / allMailsInTask.length) * 100);
+        task.progress = newProgress;
+
+        if (newProgress === 100) {
+          task.status = "COMPLETED";
+          task.progress = 100;
+        }
+        await task.save();
+
+        if (task.status === "COMPLETED") {
+          const { pusherServer } = await import("@/lib/pusher");
+          await pusherServer.trigger('system', 'task-list-updated', {});
+        }
+      }
+    }
+  } catch (taskErr) {
+    console.error("Task auto-update error:", taskErr);
+  }
+
+  return NextResponse.json({ success: true, data: mail });
  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
  return NextResponse.json({ success: false, error: errorMessage }, { status: 400 });

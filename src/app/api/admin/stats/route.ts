@@ -35,11 +35,13 @@ export async function GET(req: NextRequest) {
       
       const rootMailsToday = await RootMail.countDocuments({ 
         assignee: userId, 
-        updatedAt: { $gte: startOfDay } 
+        updatedAt: { $gte: startOfDay },
+        workStatus: { $in: ['Đã làm', 'Lỗi'] }
       });
       const satMailsToday = await SatelliteMail.countDocuments({ 
         assignee: userId, 
-        updatedAt: { $gte: startOfDay } 
+        updatedAt: { $gte: startOfDay },
+        workStatus: { $in: ['Đã làm', 'Lỗi'] }
       });
       const myMails = rootMailsToday + satMailsToday;
 

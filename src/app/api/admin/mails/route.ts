@@ -16,10 +16,12 @@ let lastBatchCacheTime = 0;
 export async function GET(req: NextRequest) {
   try {
     let userId = req.headers.get("x-user-id");
+    let userRole = req.headers.get("x-user-role");
     if (!userId) {
       const authUser = await getAuthUser();
       if (authUser) {
         userId = authUser.userId;
+        userRole = authUser.role;
       }
     }
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -76,6 +78,10 @@ export async function GET(req: NextRequest) {
     // Assignee filter
     if (assigneeId) {
       query.assigneeId = assigneeId;
+    }
+    const isStaffRole = userRole === "03" || userRole === "04" || userRole === "05";
+    if (isStaffRole) {
+      query.assigneeId = userId;
     }
 
     // Text search filter
