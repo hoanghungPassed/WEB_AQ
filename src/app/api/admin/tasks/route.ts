@@ -177,6 +177,9 @@ export async function POST(req: NextRequest) {
         title: "Nhiệm vụ mới",
         message: `Bạn được giao một công việc mới: ${task.title}`
       });
+      
+      // Luồng 2: Trigger for admin task list UI to update
+      await pusherServer.trigger('system', 'task-list-updated', {});
     } catch (notifErr) {
       console.error("Task Notification error:", notifErr);
     }

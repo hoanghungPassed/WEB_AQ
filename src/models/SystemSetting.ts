@@ -8,6 +8,7 @@ export interface ISystemSetting extends Document {
   breakStartTime: string;
   breakEndTime: string;
   rulesUrl?: string;
+  fund: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,7 +21,8 @@ const SystemSettingSchema: Schema = new Schema(
     checkInTime: { type: String, default: "17:30" }, // System close time
     breakStartTime: { type: String, default: "12:00" },
     breakEndTime: { type: String, default: "13:30" },
-    rulesUrl: { type: String, default: "" }
+    rulesUrl: { type: String, default: "" },
+    fund: { type: Number, default: 0 }
   },
   { timestamps: true }
 );

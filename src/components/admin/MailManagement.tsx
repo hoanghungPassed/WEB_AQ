@@ -600,9 +600,12 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
                     return (
                       <tr key={mail.id} className="group hover:bg-white/5 transition-all">
                         <td className="px-8 py-4 text-xs font-black text-gray-500">
-                          {activeTab === "SATELLITE" && selectedBatch
-                            ? (batchIndex * 17) + (currentPage - 1) * itemsPerPage + idx + 1
-                            : (currentPage - 1) * itemsPerPage + idx + 1}
+                          {(() => {
+                            const index = (currentPage - 1) * itemsPerPage + idx;
+                            return activeTab === "SATELLITE" && selectedBatch
+                              ? (batchIndex * 17) + index + 1
+                              : index + 1;
+                          })()}
                         </td>
                         <td className="px-6 py-4">
                           <div 

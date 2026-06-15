@@ -51,10 +51,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       if (type === "FINE_PAYMENT" || !type) {
          const today = new Date();
          today.setHours(0,0,0,0);
-         await Fine.findOneAndUpdate(
-           { userId, createdAt: { $gte: today }, status: { $ne: "PAID" } },
-           { status: "PAID" }
-         );
+         const fine = await Fine.findOne({ userId, createdAt: { $gte: today }, status: { $ne: "PAID" } });
+         if (fine && fine.status !== "PAID") {
+           fine.status = "PAID";
+           await fine.save();
+           
+           try {
+             const { SystemSetting } = await import("@/models/SystemSetting");
+             await SystemSetting.findOneAndUpdate(
+               {}, 
+               { $inc: { fund: fine.amount } }, 
+               { upsert: true, new: true }
+             );
+           } catch (sysErr) {
+             console.error("SystemSetting fund update error:", sysErr);
+           }
+         }
       }
     } else if (status === "DENIED" && userId) {
       const userUpdate: any = { isOnline: false };

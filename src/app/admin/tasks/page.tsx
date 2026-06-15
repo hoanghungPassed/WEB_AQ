@@ -1024,8 +1024,8 @@ export default function TaskManagementPage() {
                     <div className="space-y-4 mb-4 relative z-50">
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Tìm kiếm & Chọn nhân viên thực hiện (Chỉ hiển thị người online)</label>
-                        <div className="relative flex items-center">
-                          <Search className="absolute left-3 text-gray-500" size={16} />
+                        <div className="relative flex items-center w-full">
+                          <Search className="absolute left-4 text-gray-400 z-10" size={16} />
                           <input
                             type="text"
                             placeholder="Nhập tên nhân viên đang online..."
