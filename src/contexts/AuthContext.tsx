@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { StaffData } from "@/types/admin";
-import { mutate } from "swr";
 
 interface AuthContextType {
   user: StaffData | null;
@@ -119,7 +118,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sessionStorage.removeItem("user");
         localStorage.removeItem("user");
       }
-      mutate(() => true, undefined, { revalidate: false });
       router.push("/login");
     } catch (error) {
       console.error("Logout failed:", error);

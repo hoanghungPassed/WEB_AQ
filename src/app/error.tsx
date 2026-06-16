@@ -1,6 +1,6 @@
 "use client";
 
-export default function GlobalError({ error, reset }: { error: Error; reset: () => void }) {
+export default function AppError({ error, reset }: { error: Error; reset: () => void }) {
  return (
  <div className="p-10 text-red-500 flex flex-col items-center justify-center min-h-screen bg-black">
  <h2 className="text-2xl font-bold mb-4">Lỗi toàn cục: {error.message}</h2>

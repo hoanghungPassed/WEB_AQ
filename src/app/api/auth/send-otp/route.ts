@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import { rateLimit } from "@/lib/limiter";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || req.headers.get("x-real-ip") || "127.0.0.1";
+    const limitResult = rateLimit(ip, 5, 60000); // limit to 5 OTP requests per minute per IP
+    if (!limitResult.success) {
+      return NextResponse.json(
+        { error: "Bạn đã gửi quá nhiều yêu cầu OTP. Vui lòng thử lại sau 1 phút." },
+        { status: 429 }
+      );
+    }
     const { email, otp } = await req.json();
     if (!email || !otp) {
       return NextResponse.json({ error: "Email và OTP là bắt buộc" }, { status: 400 });

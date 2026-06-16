@@ -4,9 +4,18 @@ import User from "@/models/User";
 import { hashPassword } from "@/lib/auth";
 import { logAuditTrail } from "@/lib/permissions";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { rateLimit } from "@/lib/limiter";
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || req.headers.get("x-real-ip") || "127.0.0.1";
+    const limitResult = rateLimit(ip, 5, 60000); // limit to 5 password reset attempts per minute per IP
+    if (!limitResult.success) {
+      return NextResponse.json(
+        { error: "Bạn đã thử khôi phục mật khẩu quá nhiều lần. Vui lòng thử lại sau 1 phút." },
+        { status: 429 }
+      );
+    }
     await dbConnect();
     const { username, email, newPassword } = await req.json();
 

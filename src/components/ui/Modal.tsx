@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -36,23 +38,23 @@ export const Modal = ({
             initial={{ scale: 0.95, y: 20 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, y: 20 }}
-            className={`bg-sidebar border border-white/0 w-full ${maxWidth} rounded-[40px] p-8 md:p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col max-h-[90vh]`}
+            className={`bg-background-secondary border border-border w-full ${maxWidth} rounded-lg p-6 md:p-8 shadow-premium relative overflow-hidden flex flex-col max-h-[90vh]`}
           >
             <div className="absolute top-0 right-0 h-96 w-96 bg-gold/5 blur-[120px] -mr-48 -mt-48" />
 
-            <div className="flex items-center justify-between mb-8 relative z-10">
+            <div className="flex items-center justify-between mb-6 relative z-10">
               <div className="flex items-center gap-4">
                 {icon && (
-                  <div className="h-14 w-14 rounded-2xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 shadow-lg font-black">
+                  <div className="h-12 w-12 rounded-md bg-gold/10 text-gold flex items-center justify-center border border-gold/20 shadow-lg font-bold">
                     {icon}
                   </div>
                 )}
                 <div>
-                  <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
+                  <h2 className="text-xl font-bold text-foreground uppercase tracking-tight">
                     {title}
                   </h2>
                   {subtitle && (
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">
+                    <p className="text-[10px] text-foreground-secondary font-bold uppercase tracking-[0.2em]">
                       {subtitle}
                     </p>
                   )}
@@ -60,9 +62,9 @@ export const Modal = ({
               </div>
               <button
                 onClick={onClose}
-                className="h-10 w-10 bg-white/5 hover:bg-white/10 text-white rounded-full flex items-center justify-center border border-white/0 transition-all"
+                className="h-8 w-8 hover:bg-background-tertiary text-foreground-secondary hover:text-foreground rounded-sm flex items-center justify-center transition-all border border-transparent focus:outline-none"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
@@ -71,7 +73,7 @@ export const Modal = ({
             </div>
 
             {footer && (
-              <div className="grid grid-cols-2 gap-4 mt-8 relative z-10 pt-4 border-t border-white/0">
+              <div className="grid grid-cols-2 gap-4 mt-6 relative z-10 pt-4 border-t border-border">
                 {footer}
               </div>
             )}

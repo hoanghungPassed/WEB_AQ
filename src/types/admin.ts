@@ -1,9 +1,10 @@
 export interface StaffData {
+  _id?: string;
   id: string;
   name: string;
   username: string;
   email: string;
-  role?: "01" | "02" | "03" | "04" | "05";
+  role?: string;
   status: "ACTIVE" | "LOCKED" | "PENDING";
   isOnline: boolean;
   taskCount: number;
@@ -16,6 +17,7 @@ export interface StaffData {
   baseSalary?: number;
   allowance?: number;
   checkInTime?: string;
+  offWorkTime?: string;
   createdAt?: string;
   twoFAEnabled?: boolean;
   isTwoFactorEnabled?: boolean;

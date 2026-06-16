@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useSWR } from "@/lib/useSWR";
+import useSWR from "swr";
 import { LoadingOverlay } from "@/components/ui/Loading";
 import { Badge } from "@/components/ui/Badge";
 import type { StaffData, MailData } from "@/types/admin";

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from"next/server";
+import { rateLimit } from "@/lib/limiter";
 import dbConnect from"@/lib/mongodb";
 import User from"@/models/User";
 import { Attendance } from "@/models/Attendance";
@@ -18,6 +19,15 @@ import { pusherServer } from "@/lib/pusher";
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || req.headers.get("x-real-ip") || "127.0.0.1";
+    const limitResult = rateLimit(ip, 10, 60000); // limit to 10 login attempts per minute per IP
+    if (!limitResult.success) {
+      return NextResponse.json(
+        { error: "Bạn đã đăng nhập quá nhiều lần. Vui lòng thử lại sau 1 phút." },
+        { status: 429 }
+      );
+    }
+
     await dbConnect();
 
     const body = await req.json();

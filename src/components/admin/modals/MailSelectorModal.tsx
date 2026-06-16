@@ -1,7 +1,10 @@
+"use client";
+
 import React from 'react';
 import { MailData } from '@/types/admin';
-import { Search, Mail, X } from 'lucide-react';
+import { Search, Mail } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
+import { Badge } from '@/components/ui/Badge';
 
 interface MailSelectorModalProps {
   isOpen: boolean;
@@ -65,23 +68,23 @@ export const MailSelectorModal = ({
       footer={
         <>
           <div className="flex items-center">
-            <span className="text-base font-black text-gold uppercase tracking-wider">
+            <span className="text-sm font-bold text-gold uppercase tracking-wider">
               Đã chọn: {selectedMailIds.length} mail
             </span>
           </div>
-          <div className="flex gap-4 justify-end">
+          <div className="flex gap-3 justify-end">
             <button
               onClick={() => {
                 setSelectedMailIds([]);
                 onClose();
               }}
-              className="h-12 px-6 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-sm tracking-widest transition-all"
+              className="h-10 px-4 bg-background-tertiary hover:bg-background-tertiary/80 text-foreground border border-border rounded-sm font-bold uppercase text-xs tracking-widest transition-all"
             >
               Hủy
             </button>
             <button
               onClick={onClose}
-              className="h-12 px-6 bg-gold hover:bg-gold-hover text-sidebar rounded-2xl font-black uppercase text-sm tracking-widest transition-all shadow-xl shadow-gold/20"
+              className="h-10 px-4 bg-gold hover:bg-gold-dark text-background rounded-sm font-bold uppercase text-xs tracking-widest transition-all shadow-md shadow-gold/10"
             >
               Xác nhận
             </button>
@@ -90,23 +93,23 @@ export const MailSelectorModal = ({
       }
     >
       <div className="mb-6 relative z-10">
-        <div className="relative flex items-center bg-black/20 border border-white/0 rounded-2xl h-12 w-full focus-within:border-gold transition-all">
-          <Search size={16} className="absolute left-3 text-gray-500 shrink-0" />
+        <div className="relative flex items-center bg-background-secondary border border-border rounded-md h-10 w-full focus-within:border-gold transition-all">
+          <Search size={14} className="absolute left-3 text-foreground-secondary shrink-0" />
           <input
             type="text"
             placeholder="Tìm kiếm Email hoặc Mail KP..."
             value={modalSearchQuery}
             onChange={(e) => setModalSearchQuery(e.target.value)}
-            className="pl-10 bg-transparent border-none outline-none text-sm text-white w-full h-full"
+            className="pl-9 bg-transparent border-none outline-none text-xs text-foreground w-full h-full placeholder:text-foreground-secondary/40"
           />
         </div>
       </div>
 
-      <div className="min-h-[250px]">
-        <table className="w-full text-left text-base whitespace-nowrap">
-          <thead className="bg-[#0a0a0a] text-gray-500 border-b border-white/0 sticky top-0 z-20">
+      <div className="min-h-[250px] overflow-y-auto max-h-[40vh] custom-scrollbar">
+        <table className="w-full text-left text-xs whitespace-nowrap">
+          <thead className="bg-background-secondary text-foreground-secondary border-b border-border sticky top-0 z-20">
             <tr>
-              <th className="py-4 px-6 text-center w-12">
+              <th className="py-3 px-6 text-center w-12">
                 <input
                   type="checkbox"
                   checked={allSelected}
@@ -114,47 +117,47 @@ export const MailSelectorModal = ({
                     if (el) el.indeterminate = someSelected;
                   }}
                   onChange={handleSelectAll}
-                  className="rounded border-white/0 bg-white/5 text-gold focus:ring-0 cursor-pointer h-4 w-4"
+                  className="rounded border-border bg-background-secondary text-gold focus:ring-0 cursor-pointer h-4 w-4"
                 />
               </th>
-              <th className="py-4 px-6 font-black uppercase tracking-widest text-[9px]">STT</th>
-              <th className="py-4 px-6 font-black uppercase tracking-widest text-[9px]">STT Gốc</th>
-              <th className="py-4 px-6 font-black uppercase tracking-widest text-[9px]">Email</th>
-              <th className="py-4 px-6 font-black uppercase tracking-widest text-[9px]">Mail KP</th>
-              <th className="py-4 px-6 font-black uppercase tracking-widest text-[9px] text-center">Xác Minh</th>
+              <th className="py-3 px-6 font-bold uppercase tracking-wider text-[10px]">STT</th>
+              <th className="py-3 px-6 font-bold uppercase tracking-wider text-[10px]">STT Gốc</th>
+              <th className="py-3 px-6 font-bold uppercase tracking-wider text-[10px]">Email</th>
+              <th className="py-3 px-6 font-bold uppercase tracking-wider text-[10px]">Mail KP</th>
+              <th className="py-3 px-6 font-bold uppercase tracking-wider text-[10px] text-center">Xác Minh</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5 text-gray-300">
+          <tbody className="divide-y divide-border text-foreground-secondary">
             {availableMails.length > 0 ? (
               availableMails.map((mail, index) => {
                 const key = getMailKey(mail);
                 return (
-                  <tr key={key} className="hover:bg-zinc-800/50 bg-zinc-900/[0.02] transition-colors group">
-                    <td className="py-3 px-6 text-center">
+                  <tr key={key} className="hover:bg-background-tertiary/40 bg-transparent transition-colors group">
+                    <td className="py-2 px-6 text-center">
                       <input
                         type="checkbox"
                         checked={selectedMailIds.includes(key)}
                         onChange={() => handleToggleRow(key)}
-                        className="rounded border-white/0 bg-white/5 text-gold focus:ring-0 cursor-pointer h-4 w-4"
+                        className="rounded border-border bg-background-secondary text-gold focus:ring-0 cursor-pointer h-4 w-4"
                       />
                     </td>
-                    <td className="py-3 px-6 text-[10px] font-black text-gray-500">{index + 1}</td>
-                    <td className="py-3 px-6 text-[10px] font-black text-gold/80">
+                    <td className="py-2 px-6 text-xs text-foreground-secondary/70">{index + 1}</td>
+                    <td className="py-2 px-6 text-xs text-gold/90 font-bold">
                       {mail.stt || mail.id}
                     </td>
-                    <td className="py-3 px-6 font-bold text-white cursor-pointer" onClick={() => handleToggleRow(key)}>{mail.email}</td>
-                    <td className="py-3 px-6 text-sm text-gray-400 font-mono">{mail.recoveryMail || mail.recovery}</td>
-                    <td className="py-3 px-6 text-center">
-                      <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-green-500/10 text-green-500 border border-green-500/20">
+                    <td className="py-2 px-6 font-medium text-foreground cursor-pointer" onClick={() => handleToggleRow(key)}>{mail.email}</td>
+                    <td className="py-2 px-6 text-xs text-foreground-secondary font-mono">{mail.recoveryMail || mail.recovery}</td>
+                    <td className="py-2 px-6 text-center">
+                      <Badge variant="success">
                         {mail.verificationStatus}
-                      </span>
+                      </Badge>
                     </td>
                   </tr>
                 );
               })
             ) : (
               <tr>
-                <td colSpan={6} className="py-12 text-center font-bold uppercase tracking-widest text-sm">
+                <td colSpan={6} className="py-12 text-center font-bold uppercase tracking-widest text-xs">
                   Không tìm thấy mail gốc khả dụng nào
                 </td>
               </tr>

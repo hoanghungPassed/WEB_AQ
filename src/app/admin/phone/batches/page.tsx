@@ -27,7 +27,7 @@ import {
 import { motion, AnimatePresence } from"framer-motion";
 import { useRouter } from"next/navigation";
 import type { PhoneItem, PhoneStatus, StaffData } from"@/types/admin";
-import { useSWR } from "@/lib/useSWR";
+import useSWR from "swr";
 import { LoadingOverlay } from "@/components/ui/Loading";
 import { Badge } from "@/components/ui/Badge";
 import { ImportHistoryModal, type ImportHistoryItem } from "@/components/admin/modals/ImportHistoryModal";

@@ -1,40 +1,30 @@
-# Architecture Report: WEB_AQ
+# Architecture Report
 
-## Executive Summary
-The WEB_AQ system is a comprehensive Management System built to handle both domain-specific business logic (Mail Management, Phone Management, Batch operations) and internal HR/Employee operations (Attendance, Fines, Tasks, KPIs, Payroll). Built on the modern Next.js App Router paradigm, it leverages MongoDB as its primary datastore and Pusher for real-time interactivity.
+## 1. Overview
+The **WEB_AQ** platform is built on Next.js 16 (App Router) and React 19. It utilizes Tailwind CSS v4 for styling, MongoDB (via Mongoose) as the database, and Vitest for testing. The application is designed as an administrative dashboard with real-time features powered by Pusher.
 
-## Technology Stack
-- **Framework:** Next.js (App Router, v16.2.6)
-- **Language:** TypeScript
-- **Database:** MongoDB (via Mongoose v9.6.2)
-- **Realtime:** Pusher Server / Pusher JS
-- **Authentication:** Custom JWT-based Auth using `jose` and `jsonwebtoken`, alongside `bcryptjs`
-- **UI & Styling:** React 19, TailwindCSS v4, Framer Motion, dnd-kit, Lucide React
-- **Data Export/Import:** ExcelJS, xlsx
-- **Build/Tools:** Vitest (Testing), ESLint, pnpm
+## 2. Framework Utilization & App Router Paradigm
+Despite using the Next.js App Router (`src/app`), the application's architecture heavily mirrors a traditional Single Page Application (SPA). 
 
-## Repository Overview
-The repository follows standard Next.js conventions with a structured monolithic architecture:
-- `/src/app/api`: Serverless API routes acting as backend controllers.
-- `/src/app/(UI)`: React Server Components and Client Components for the frontend.
-- `/src/components`: Reusable UI elements (`admin` dashboard parts, `ui` primitives, `modals`).
-- `/src/models`: Mongoose schemas defining the domain entities.
-- `/src/lib`: Shared utilities (auth, MongoDB connection, pagination, permissions).
+### Server Components vs. Client Components
+- **Anti-Pattern Detected:** Virtually every route and layout under `src/app/admin` starts with `"use client"`. 
+- React Server Components (RSC) are entirely bypassed for the core application. Data fetching happens exclusively on the client side via REST APIs, resulting in "waterfall" network requests and missing the performance benefits of Next.js 16.
 
-## Domain Entities (Models)
-1. **Mail & Resource Models:** `RootMail`, `SatelliteMail`, `MonetizedMail`, `Batch`, `Phone` - Manage the core business assets.
-2. **HR Models:** `User`, `Attendance`, `Fine`, `Payroll`, `Task`, `Kpi` - Manage employee workflows.
-3. **System Models:** `Log`, `SystemSetting`, `SyncStore`, `Notification`, `Message`, `AutoMessage`.
+### Route Hierarchy
+- `/login`: Public route for authentication.
+- `/admin/*`: Protected routes for the dashboard.
+- `/api/*`: Backend API routes handling CRUD operations and business logic. They run in standard Node.js environments (no `edge` runtime configurations found).
 
-## High-Level Request Lifecycle
-1. **Client Request:** User accesses a UI component (e.g., `MailManagement.tsx`).
-2. **Data Fetching:** Component uses `useSWR` to fetch data from API routes (`/api/admin/mails`).
-3. **Middleware/Auth:** Requests are verified using `getAuthUser` inside API controllers (validating cookies/JWT).
-4. **Business Logic:** The API route performs necessary validations, role checks, and processes data using Mongoose models.
-5. **Real-time Trigger:** If a state changes (e.g., a Task is assigned or a Fine is issued), an event is dispatched to `pusherServer`.
-6. **Response:** Data is returned as JSON to the client.
+## 3. Data Fetching & State Management
+- **Custom SWR Implementation:** The project contains a custom `useSWR` hook (`src/lib/useSWR.ts`) that relies on a global `Map`, `setInterval`, and `localStorage` to mock SWR behavior. However, it also imports the official `swr` package in some components (e.g., `MailManagement.tsx`). This split strategy causes state desynchronization and unpredictable caching behaviors.
+- **Global State:** Handled primarily via `AuthContext` and pervasive reading/writing of `localStorage` / `sessionStorage` inside `useEffect` blocks.
 
-## Scaling Architecture
-- Currently, the architecture operates as a monolithic Next.js app connected to a shared MongoDB cluster.
-- **State Management:** Relies heavily on MongoDB for state (e.g., `SyncStore` for global variables).
-- **Caching:** Limited caching exists. In-memory caching (`cachedBatches`) is used but is an anti-pattern for serverless deployments.
+## 4. Database Layer
+- Mongoose is used within API routes to interact with MongoDB.
+- **Connection Management:** Connection strings are cached globally to prevent exhaustion in Serverless environments. However, direct heavy aggregations and unbounded `find()` queries pose a risk to MongoDB CPU and Next.js instance memory.
+
+## 5. Proposed Target Architecture
+To properly leverage Next.js 16:
+1. **Server-First Fetching:** Layouts and Pages should be Server Components (`async function Page()`) that fetch initial data via Mongoose directly or internal API wrappers, passing data down as props.
+2. **Interactive Islands:** Only small, interactive "islands" (like buttons, forms, or chat widgets) should use `"use client"`.
+3. **Unified Caching:** Replace the custom `useSWR` polling with Next.js Server Actions, Next.js `unstable_cache`, or standard SWR with WebSocket invalidation.

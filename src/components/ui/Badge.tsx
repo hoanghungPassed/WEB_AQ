@@ -12,18 +12,18 @@ interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const Badge = ({ className, variant = 'default', ...props }: BadgeProps) => {
   const variants = {
-    default: 'bg-gray-500/15 text-gray-300 border border-gray-500/30 shadow-sm hover:shadow-md',
-    success: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shadow-sm hover:shadow-emerald-500/20',
-    warning: 'bg-amber-500/10 text-amber-400 border border-amber-500/30 shadow-sm hover:shadow-amber-500/20',
-    danger: 'bg-red-500/10 text-red-400 border border-red-500/30 shadow-sm hover:shadow-red-500/20',
-    info: 'bg-blue-500/10 text-blue-400 border border-blue-500/30 shadow-sm hover:shadow-blue-500/20',
-    gold: 'bg-amber-500/10 text-amber-400 border border-amber-500/30 shadow-sm hover:shadow-amber-500/20',
+    default: 'bg-foreground-secondary/10 text-foreground-secondary border-border shadow-sm hover:shadow-md',
+    success: 'bg-success/10 text-success border-success/20 shadow-sm hover:shadow-success/20',
+    warning: 'bg-warning/10 text-warning border-warning/20 shadow-sm hover:shadow-warning/20',
+    danger: 'bg-danger/10 text-danger border-danger/20 shadow-sm hover:shadow-danger/20',
+    info: 'bg-info/10 text-info border-info/20 shadow-sm hover:shadow-info/20',
+    gold: 'bg-gold/10 text-gold border-gold/20 shadow-sm hover:shadow-gold/20',
   };
 
   return (
     <div
       className={cn(
-        'px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border inline-flex items-center gap-1.5 transition-all duration-200 hover:scale-105',
+        'px-3 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider border inline-flex items-center gap-1.5 transition-all duration-200 hover:scale-105',
         variants[variant],
         className
       )}

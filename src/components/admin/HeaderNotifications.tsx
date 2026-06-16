@@ -1,0 +1,189 @@
+"use client";
+
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Bell, UserPlus, ShieldAlert, CheckCircle2, X, UserSearch } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import useSWR, { mutate } from "swr";
+import Pusher from "pusher-js";
+import { StaffData } from "@/types/admin";
+
+interface HeaderNotificationsProps {
+  user: StaffData;
+}
+
+export default function HeaderNotifications({ user }: HeaderNotificationsProps) {
+  const router = useRouter();
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [pendingApproveUser, setPendingApproveUser] = useState<any | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string>("04");
+  const [isActionSubmitting, setIsActionSubmitting] = useState(false);
+
+  const fetcher = (url: string) => fetch(url).then(res => res.json());
+  const { data: dbNotifs } = useSWR('/api/admin/notifications?type=SYSTEM', fetcher, {
+    dedupingInterval: 10000,
+    revalidateOnFocus: false
+  });
+
+  const loadLocalNotifs = useCallback(() => {
+    let adminNotifs = [];
+    try {
+      adminNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
+    } catch (err) {}
+
+    const roleUpper = String(user?.role || "").toUpperCase();
+    const isAuthorizedManager = ["01", "02", "03", "ADMIN"].some(r => roleUpper.includes(r));
+    let accessNotifs: any[] = [];
+    
+    if (isAuthorizedManager) {
+      const accessReqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
+      accessNotifs = (accessReqs || []).map((req: any) => ({
+        id: `access-${req.id}`,
+        title: "Yêu cầu truy cập ngoài giờ",
+        message: `Nhân viên ${req.staffName} đang xin phép vào hệ thống.`,
+        time: req.time,
+        type: "ACCESS_REQUEST",
+        read: false,
+        data: req
+      }));
+    }
+
+    const dbRaw = Array.isArray(dbNotifs) ? dbNotifs : (dbNotifs?.data || []);
+    const normalizedDb = dbRaw.map((n: any) => ({ ...n, id: n.id || n._id, read: n.read || n.isRead || false }));
+    const normalizedAdmin = adminNotifs.map((n: any) => ({ ...n, id: n.id || n._id, read: n.read || n.isRead || false }));
+
+    setNotifications([...normalizedDb, ...normalizedAdmin, ...accessNotifs]);
+  }, [user?.role, dbNotifs]);
+
+  useEffect(() => {
+    loadLocalNotifs();
+    window.addEventListener("storage", loadLocalNotifs);
+    return () => window.removeEventListener("storage", loadLocalNotifs);
+  }, [loadLocalNotifs]);
+
+  useEffect(() => {
+    if (!user) return;
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || "", {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "ap1",
+    });
+
+    const notifChannel = pusher.subscribe("system-notifications");
+    notifChannel.bind("new-notification", (notif: any) => {
+      mutate('/api/admin/notifications?type=SYSTEM');
+      const audio = new Audio('/notification.mp3');
+      audio.play().catch(() => {});
+    });
+
+    return () => {
+      pusher.unsubscribe("system-notifications");
+      pusher.disconnect();
+    };
+  }, [user]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleApproveRegistration = async () => {
+    if (!pendingApproveUser || isActionSubmitting) return;
+    setIsActionSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/users/${pendingApproveUser._id || pendingApproveUser.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ACTIVE", role: selectedRole })
+      });
+      if (res.ok) {
+        setPendingApproveUser(null);
+        mutate('/api/admin/users');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsActionSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsNotifOpen(!isNotifOpen)}
+        className="h-12 w-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-gray-400 hover:text-gold hover:bg-white/10 transition-all relative group"
+      >
+        <Bell size={20} className="group-hover:rotate-12 transition-transform" />
+        {unreadCount > 0 && (
+          <span className="absolute top-2.5 right-2.5 h-4 w-4 rounded-full bg-red-500 text-[8px] font-black text-white flex items-center justify-center border-2 border-background shadow-lg animate-bounce">
+            {unreadCount}
+          </span>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {isNotifOpen && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setIsNotifOpen(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              className="absolute right-0 mt-3 w-80 max-h-[500px] overflow-hidden rounded-2xl bg-background-secondary border border-border shadow-premium z-20 flex flex-col"
+            >
+              <div className="p-4 bg-black/20 border-b border-border flex items-center justify-between">
+                <h3 className="text-xs font-black text-white uppercase tracking-widest">Thông báo</h3>
+                <button className="text-[10px] font-bold text-gold hover:underline">Đánh dấu đã xem</button>
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
+                {notifications.length > 0 ? (
+                  notifications.map((n, i) => (
+                    <div key={n.id || i} className={`p-4 border-b border-border/50 hover:bg-white/5 transition-all cursor-pointer ${!n.read ? 'bg-gold/5' : ''}`}>
+                      <p className="text-xs font-bold text-white mb-1">{n.title}</p>
+                      <p className="text-[10px] text-gray-500 line-clamp-2">{n.message}</p>
+                      <p className="text-[8px] text-gray-600 mt-2 font-black uppercase">{n.time || "Vừa xong"}</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-10 text-center opacity-20">
+                    <Bell size={32} className="mx-auto mb-2" />
+                    <p className="text-[10px] font-black uppercase tracking-widest">Không có thông báo</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Approval Modal */}
+      <AnimatePresence>
+        {pendingApproveUser && (
+          <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-background-secondary border border-border rounded-3xl p-8 max-w-md w-full shadow-premium">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Phê duyệt nhân sự</h3>
+                <button onClick={() => setPendingApproveUser(null)}><X size={24} className="text-gray-500" /></button>
+              </div>
+              <div className="space-y-4 mb-8">
+                <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                  <p className="text-[10px] font-black text-gray-500 uppercase mb-1">Họ tên</p>
+                  <p className="text-sm font-bold text-white">{pendingApproveUser.name}</p>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase mb-2 block ml-1">Phân quyền</label>
+                  <select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)} className="w-full h-12">
+                    <option value="04">Nhân viên chính thức</option>
+                    <option value="05">Nhân viên thử việc</option>
+                    <option value="03">Quản lý nhân sự</option>
+                    <option value="02">Quản lý công việc</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={handleApproveRegistration} disabled={isActionSubmitting} className="flex-1 h-12 bg-gold text-background rounded-xl font-black uppercase text-[10px] tracking-widest">Xác nhận</button>
+                <button onClick={() => setPendingApproveUser(null)} className="h-12 px-6 bg-white/5 text-white rounded-xl font-black uppercase text-[10px] tracking-widest">Hủy</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

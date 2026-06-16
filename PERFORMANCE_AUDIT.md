@@ -1,33 +1,25 @@
 # Performance Audit Report
 
-## 1. Executive Summary
-The performance audit identified severe bottlenecks in database querying, particularly related to the "Fetch All" feature in the admin dashboard, which poses a significant risk of Out-Of-Memory (OOM) errors and database exhaustion.
+## 1. Rendering Bottlenecks
+- **Excessive Client Components:** By making every page a Client Component, Next.js cannot stream HTML from the server. The user downloads a massive JavaScript bundle before the application even begins to render the layout shell.
+- **Client-Side Waterfalls:** Because data fetching is done via `useEffect` and `useSWR` in Client Components, the browser must: 
+  1. Download HTML/JS 
+  2. Boot React 
+  3. Render the shell 
+  4. Fetch data from APIs 
+  5. Render the data.
+  *This results in severe loading spinners and slow LCP (Largest Contentful Paint).*
 
-## 2. Findings
+## 2. Bundle Size Optimization Opportunities
+- **Lucide Icons:** Importing icons globally or heavily can bloat the bundle. Ensure dynamic imports or proper tree-shaking is active.
+- **Framer Motion:** Heavy use of `AnimatePresence` and `motion` across large lists (like chat messages or tables) causes CPU spikes and layout thrashing.
+- **XLSX & ExcelJS:** These are massive libraries. They should be dynamically imported (`next/dynamic`) only when the user clicks an "Export" or "Import" button, rather than being bundled into the main page load.
 
-### [CRITICAL] Massive Over-Fetching (`all=true`)
-- **File:** `src/app/api/admin/mails/route.ts`, `src/components/admin/MailManagement.tsx`
-- **Description:** When the client requests `?all=true`, the API bypasses pagination and executes:
-  ```typescript
-  const rootMails = await RootMail.find(query);
-  ```
-- **Impact:** As the `mails` collections grow to tens of thousands of records, fetching and serializing the entire collection in one request will crash the Next.js API instance (OOM) and cause a massive spike in MongoDB CPU.
-- **Remediation:** Strictly enforce server-side pagination. Never allow the client to request the entire dataset. If bulk operations are needed, process them using streams or background jobs.
+## 3. Network & Data Fetching Performance
+- **Aggressive Polling:** The custom `useSWR.ts` hook uses `setInterval` to poll data constantly, combined with Pusher websocket events. This redundant architecture drains mobile batteries and causes unnecessary backend API load.
+- **Over-fetching:** API calls (like `/api/admin/users?all=true`) fetch entire database collections without pagination, risking Out-Of-Memory (OOM) crashes on the server and freezing the browser thread during JSON parsing.
 
-### [HIGH] N+1 Query Problem during Mail Assignment
-- **File:** `src/app/api/admin/tasks/route.ts`
-- **Description:** When creating a task, the system iterates and updates assigned mails. Although it attempts to use `updateMany`, it also fetches individual batch documents iteratively or performs deep populations without proper indexing.
-- **Impact:** Slower response times during bulk task assignment.
-- **Remediation:** Ensure indexes exist on `_id`, `batchName`, and `batchId`.
-
-### [MEDIUM] Synchronous External Calls in Core Flows
-- **File:** `src/app/api/auth/login/route.ts`
-- **Description:** Upon login, the system runs multiple heavy checks: calculates attendance, handles late fines, checks settings, triggers multiple Pusher events, and sends emails (`sendFineEmail`).
-- **Impact:** The login request can take several seconds to resolve, causing a poor user experience.
-- **Remediation:** Move non-critical post-login actions (like sending emails and calculating fines) to background queues or decoupled event handlers.
-
-### [MEDIUM] Database Connection Global Cache
-- **File:** `src/lib/mongodb.ts`
-- **Description:** The system relies on a `global.mongooseCache`.
-- **Impact:** During high concurrency cold-starts in Vercel/Serverless, multiple concurrent requests might still attempt simultaneous initializations.
-- **Remediation:** Adopt connection pooling explicitly optimized for serverless, or migrate to Edge-compatible databases/drivers.
+## 4. Recommendations for Next.js Optimization
+1. **Server-Side Rendering (SSR):** Shift `src/app/admin/page.tsx` to a Server Component. Fetch KPI and Dashboard statistics on the server and pass them down as initial props to a smaller interactive client component.
+2. **Lazy Loading Libraries:** Use `next/dynamic` for heavy client components (like Modals or Excel parsers).
+3. **Optimized Images:** Replace raw `<img>` tags with `next/image` to automatically compress and cache external avatars and chat images.

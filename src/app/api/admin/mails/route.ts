@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 // Global cache for batches to prevent slow distinct queries on every request
 let cachedBatches: string[] = [];
+let cachedBatchStats: any[] = [];
 let lastBatchCacheTime = 0;
 
 export async function GET(req: NextRequest) {
@@ -117,59 +118,48 @@ export async function GET(req: NextRequest) {
       return MonetizedMail;
     };
 
-    // Use cached batches if less than 60 seconds old to prevent heavy DB load
-    let uniqueBatches = cachedBatches;
+    // Use cached batch stats if less than 30 seconds old to prevent heavy DB load
+    let batchStats = cachedBatchStats;
     const now = Date.now();
-    if (now - lastBatchCacheTime > 60000 || cachedBatches.length === 0) {
-      const [distinctRoot, distinctSatellite, distinctMonetized] = await Promise.all([
-        RootMail.distinct("batchName").catch(() => []),
-        SatelliteMail.distinct("batchName").catch(() => []),
-        MonetizedMail.distinct("batchName").catch(() => [])
+    if (now - lastBatchCacheTime > 30000 || cachedBatchStats.length === 0) {
+      const [rootBatches, satBatches, monBatches] = await Promise.all([
+        RootMail.aggregate([
+          { $group: { _id: "$batchName", count: { $sum: 1 }, type: { $first: "$type" }, createdAt: { $first: "$createdAt" } } }
+        ]).catch(() => []),
+        SatelliteMail.aggregate([
+          { $group: { _id: "$batchName", count: { $sum: 1 }, type: { $first: "$type" }, createdAt: { $first: "$createdAt" } } }
+        ]).catch(() => []),
+        MonetizedMail.aggregate([
+          { $group: { _id: "$batchName", count: { $sum: 1 }, type: { $first: "$type" }, createdAt: { $first: "$createdAt" } } }
+        ]).catch(() => [])
       ]);
-      uniqueBatches = Array.from(new Set([...distinctRoot, ...distinctSatellite, ...distinctMonetized])).filter(Boolean) as string[];
-      cachedBatches = uniqueBatches;
+
+      const combined = [...rootBatches, ...satBatches, ...monBatches];
+      const map = new Map<string, { count: number, type: string, createdAt: Date }>();
+      
+      for (const b of combined) {
+        if (!b._id) continue;
+        const existing = map.get(b._id);
+        if (existing) {
+          existing.count += b.count;
+        } else {
+          map.set(b._id, { count: b.count, type: b.type || "ROOT", createdAt: b.createdAt || new Date() });
+        }
+      }
+      
+      batchStats = Array.from(map.entries()).map(([name, data]) => ({
+        name,
+        count: data.count,
+        type: data.type,
+        createdAt: data.createdAt
+      }));
+      cachedBatchStats = batchStats;
+      cachedBatches = batchStats.map(b => b.name);
       lastBatchCacheTime = now;
     }
 
+    let uniqueBatches = cachedBatches;
     const skip = (page - 1) * limit;
-
-    // Fallback: If no pagination requested OR all=true is specified, return full data
-    if ((!searchParams.has("page") && !searchParams.has("limit")) || searchParams.get("all") === "true") {
-      let mails: any[] = [];
-
-      if (!type || type === "ALL" || type === "ROOT") {
-        const rootMails = await RootMail.find(query)
-          .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
-          .skip(skip)
-          .limit(limit)
-          .select("-htmlBody -textBody")
-          .lean();
-        mails = [...mails, ...rootMails];
-      }
-      if (!type || type === "ALL" || type === "SATELLITE") {
-        const satelliteMails = await SatelliteMail.find(query)
-          .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
-          .skip(skip)
-          .limit(limit)
-          .select("-htmlBody -textBody")
-          .lean();
-        mails = [...mails, ...satelliteMails];
-      }
-      if (!type || type === "ALL" || type === "MONETIZED") {
-        const monetizedMails = await MonetizedMail.find(query)
-          .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
-          .skip(skip)
-          .limit(limit)
-          .select("-htmlBody -textBody")
-          .lean();
-        mails = [...mails, ...monetizedMails];
-      }
-      // Only sort combined array if type was "ALL" or not specified
-      if (!type || type === "ALL") {
-        mails.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      }
-      return NextResponse.json({ success: true, data: mails.slice(0, limit), batches: uniqueBatches });
-    }
 
     // Paged Query for specific type
     if (type && type !== "ALL") {
@@ -178,15 +168,19 @@ export async function GET(req: NextRequest) {
       const result = await paginate(q, page, limit, sortBy, sortOrder);
       return NextResponse.json({
         ...result,
-        batches: uniqueBatches
+        batches: uniqueBatches,
+        batchStats
       });
     }
 
     // Paged Query for combined (ALL) collection
-    const [rootMails, satelliteMails, monetizedMails] = await Promise.all([
+    const [rootMails, satelliteMails, monetizedMails, totalRoot, totalSat, totalMon] = await Promise.all([
       RootMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).skip(skip).limit(limit).select("-htmlBody -textBody").lean(),
       SatelliteMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).skip(skip).limit(limit).select("-htmlBody -textBody").lean(),
-      MonetizedMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).skip(skip).limit(limit).select("-htmlBody -textBody").lean()
+      MonetizedMail.find(query).sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).skip(skip).limit(limit).select("-htmlBody -textBody").lean(),
+      RootMail.countDocuments(query),
+      SatelliteMail.countDocuments(query),
+      MonetizedMail.countDocuments(query)
     ]);
     const mails: any[] = [...rootMails, ...satelliteMails, ...monetizedMails];
 
@@ -199,7 +193,7 @@ export async function GET(req: NextRequest) {
         : new Date(valB).getTime() - new Date(valA).getTime();
     });
 
-    const total = mails.length;
+    const total = totalRoot + totalSat + totalMon;
     const paginatedData = mails.slice(0, limit);
 
     return NextResponse.json({
@@ -211,7 +205,8 @@ export async function GET(req: NextRequest) {
         total,
         pages: Math.ceil(total / limit) || 1
       },
-      batches: uniqueBatches
+      batches: uniqueBatches,
+      batchStats
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";

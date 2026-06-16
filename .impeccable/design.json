@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-16T11:31:00Z",
+  "title": "Design System: AQ Media",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Cyberpunk Gold",
+        "canonical": "oklch(80% 0.15 85)",
+        "tonalRamp": [
+          "#452f00",
+          "#785300",
+          "#ab7900",
+          "#d99f0c",
+          "#fbbf24",
+          "#fcd34d",
+          "#fde68a",
+          "#fef3c7"
+        ]
+      },
+      "neutral-bg": {
+        "role": "neutral",
+        "displayName": "Zinc Background",
+        "canonical": "oklch(10% 0.002 240)",
+        "tonalRamp": [
+          "#09090b",
+          "#18181b",
+          "#27272a",
+          "#3f3f46",
+          "#52525b",
+          "#71717a",
+          "#d4d4d8",
+          "#fafafa"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display Title",
+        "purpose": "Dashboard statistics and major screen titles."
+      },
+      "body": {
+        "displayName": "Body Sans",
+        "purpose": "Standard reading text and data records."
+      },
+      "label": {
+        "displayName": "Label Mono",
+        "purpose": "Table headers, database identifiers, and status pill badges."
+      }
+    },
+    "shadows": [
+      {
+        "name": "hover-glow",
+        "value": "0 0 15px rgba(251, 191, 36, 0.15)",
+        "purpose": "Ambient glow highlighting active state inputs and buttons."
+      },
+      {
+        "name": "modal-shadow",
+        "value": "0 0 20px rgba(0, 0, 0, 0.5)",
+        "purpose": "Deep shadow to isolate overlays and popup dialogues."
+      }
+    ],
+    "motion": [
+      {
+        "name": "smooth-ease",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default easing curves for tab transitions and hover updates."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Standard action button with cyberpunk gold fill and black text.",
+      "html": "<button class=\"ds-btn-primary\">SUBMIT REQUEST</button>",
+      "css": ".ds-btn-primary { background-color: #fbbf24; color: #09090b; font-family: system-ui, sans-serif; font-size: 0.75rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-primary:hover { background-color: #d97706; box-shadow: 0 0 15px rgba(251, 191, 36, 0.3); } .ds-btn-primary:active { transform: scale(0.97); }"
+    },
+    {
+      "name": "Form Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Form input field with gold focus outline state.",
+      "html": "<input type=\"text\" class=\"ds-form-input\" placeholder=\"Enter username...\" />",
+      "css": ".ds-form-input { width: 100%; background-color: #18181b; color: #fafafa; border: 1px solid #27272a; border-radius: 12px; padding: 10px 16px; font-family: system-ui, sans-serif; font-size: 0.875rem; transition: all 0.2s ease; } .ds-form-input:focus { outline: none; border-color: #fbbf24; box-shadow: 0 0 0 1px #fbbf24; }"
+    },
+    {
+      "name": "Card Container",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Content panel with opaque zinc background and subtle border.",
+      "html": "<div class=\"ds-card-container\"><h3 class=\"ds-card-title\">System Logs</h3><p class=\"ds-card-body\">All subsystems operational.</p></div>",
+      "css": ".ds-card-container { background-color: #18181b; border: 1px solid #27272a; border-radius: 16px; padding: 24px; max-width: 300px; } .ds-card-title { color: #fafafa; font-family: system-ui, sans-serif; font-size: 1.25rem; font-weight: 700; margin: 0 0 8px 0; } .ds-card-body { color: #a1a1aa; font-family: system-ui, sans-serif; font-size: 0.875rem; line-height: 1.5; margin: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Cyberpunk Control Center",
+    "overview": "AQ Media’s interface is designed as a high-density, real-time administrative control center. It leverages a modern dark dashboard paradigm to present high volumes of channels data, timekeeping logs, and transaction approvals clearly. By contrasting deep neutral surfaces (Zinc 900/950) with active status lights (Amber/Gold), the interface guides user attention to critical events immediately.",
+    "keyCharacteristics": [
+      "High information density with compact spacing",
+      "High-contrast, accessibility-first typography",
+      "Functional status colors (Gold, Emerald, Red) acting as status lights"
+    ],
+    "rules": [
+      {
+        "name": "The 10% Accent Rule",
+        "body": "The primary gold accent must never cover more than 10% of any screen. It is an indicator, not a fill.",
+        "section": "colors"
+      },
+      {
+        "name": "The No-Glass Rule",
+        "body": "Do not use frosted glass backgrounds for primary content containers; content surfaces must remain solid and opaque.",
+        "section": "colors"
+      },
+      {
+        "name": "The Balance Rule",
+        "body": "Always apply text-wrap: balance to displays and headlines to avoid uneven orphans.",
+        "section": "typography"
+      },
+      {
+        "name": "The Hover Glow Rule",
+        "body": "Shadows must not be baked into static elements. Elements are flat at rest; shadows appear as responsive glows only when hovered or focused.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use strict solid backgrounds for all modals and dialog popups to ensure legible text.",
+      "Do keep spacing compact using the 8px layout grid.",
+      "Do ensure all data table cells are vertical-aligned center.",
+      "Do use uppercase monospace text for all table headers and numeric IDs."
+    ],
+    "donts": [
+      "Don't use border-left/border-right greater than 1px as an accent stripe.",
+      "Don't use gradient text under any circumstances.",
+      "Don't use card radii larger than 16px.",
+      "Don't place low-contrast gray text on near-black backgrounds (ensure contrast >= 4.5:1)."
+    ]
+  }
+}

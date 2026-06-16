@@ -11,8 +11,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Không tìm thấy file tải lên." }, { status: 400 });
     }
 
+    // Safety Lock: Prevent Path Traversal
+    const safeName = path.basename(file.name);
+
+    // Safety Lock: File Extension Whitelist
+    const ext = path.extname(safeName).toLowerCase();
+    const whitelist = [".jpg", ".jpeg", ".png", ".gif", ".pdf", ".txt", ".csv", ".xlsx", ".xls"];
+    const blacklist = [".php", ".sh", ".exe", ".js", ".html", ".htm", ".bat", ".cmd", ".msi", ".jar", ".py", ".pl"];
+
+    if (!whitelist.includes(ext) || blacklist.includes(ext)) {
+      return NextResponse.json(
+        { error: "Định dạng file không được phép. Chỉ cho phép các định dạng ảnh, pdf, txt, csv, excel." },
+        { status: 400 }
+      );
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
-    const filename = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+    const filename = `${Date.now()}-${safeName.replace(/\s+/g, "_")}`;
     const uploadDir = path.join(process.cwd(), "public", "uploads");
 
     // Tạo thư mục public/uploads nếu chưa tồn tại

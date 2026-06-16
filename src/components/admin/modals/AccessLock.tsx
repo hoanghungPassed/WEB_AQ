@@ -142,89 +142,88 @@ export default function AccessLock({
   };
 
   return (
-    <div className="fixed inset-0 z-[500] bg-[#070707]/75 backdrop-blur-md text-white flex flex-col items-center justify-center p-6 overflow-y-auto custom-scrollbar">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.05)_0%,transparent_70%)] pointer-events-none" />
+    <div className="fixed inset-0 z-[500] bg-background/80 backdrop-blur-md text-foreground flex flex-col items-center justify-center p-6 overflow-y-auto custom-scrollbar">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.02)_0%,transparent_70%)] pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-2xl bg-sidebar/85 backdrop-blur-lg border border-gold/20 rounded-[32px] p-8 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] shadow-gold/5 relative overflow-hidden text-center my-auto"
+        className="w-full max-w-2xl bg-background-secondary border border-border rounded-lg p-6 md:p-8 shadow-premium relative overflow-hidden text-center my-auto"
       >
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-gold to-transparent opacity-50" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gold to-transparent opacity-50" />
 
         {localPending && !localDenied ? (
-          <div className="py-10 px-4 space-y-8 flex flex-col items-center justify-center animate-fade-in">
-            {/* ... giữ nguyên phần loading ... */}
+          <div className="py-8 px-4 space-y-6 flex flex-col items-center justify-center animate-fade-in">
             <div className="relative flex items-center justify-center mb-2">
-              <div className="absolute inset-0 rounded-full bg-amber-500/10 blur-xl animate-pulse" />
-              <div className="h-24 w-24 rounded-full border border-amber-500/20 border-dashed animate-[spin_25s_linear_infinite] absolute" />
-              <div className="h-20 w-20 rounded-full border border-amber-500/30 animate-[spin_12s_linear_infinite_reverse] absolute" />
-              <div className="h-16 w-16 bg-gradient-to-b from-amber-500/10 to-amber-950/30 border border-amber-500/30 text-amber-400 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.15)] relative z-10">
-                <Loader2 size={36} className="animate-spin text-gold" style={{ animationDuration: '3s' }} />
+              <div className="absolute inset-0 rounded-full bg-gold/10 blur-xl animate-pulse" />
+              <div className="h-20 w-20 rounded-full border border-gold/20 border-dashed animate-[spin_25s_linear_infinite] absolute" />
+              <div className="h-16 w-16 rounded-full border border-gold/30 animate-[spin_12s_linear_infinite_reverse] absolute" />
+              <div className="h-12 w-12 bg-background-tertiary border border-border text-gold rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(251,191,36,0.15)] relative z-10">
+                <Loader2 size={24} className="animate-spin text-gold" style={{ animationDuration: '3s' }} />
               </div>
             </div>
 
-            <div className="space-y-3 text-center">
-              <h2 className="text-3xl font-extrabold uppercase tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500">
+            <div className="space-y-2 text-center">
+              <h2 className="text-xl font-bold uppercase tracking-wider text-gold">
                 Đang chờ phê duyệt...
               </h2>
-              <div className="w-16 h-1 bg-gradient-to-r from-amber-400 to-amber-600 mx-auto rounded-full" />
+              <div className="w-12 h-0.5 bg-gold mx-auto rounded-full" />
             </div>
 
-            <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden backdrop-blur-sm">
-              <div className="absolute top-0 left-0 w-1 h-full bg-amber-500 animate-pulse" />
-              <p className="text-gray-300 text-sm font-medium leading-relaxed text-left">
+            <div className="w-full max-w-md bg-background-tertiary border border-border rounded-md p-6 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-gold animate-pulse" />
+              <p className="text-foreground-secondary text-sm font-medium leading-relaxed text-left">
                 Yêu cầu của bạn đã được gửi tới Ban quản trị. Vui lòng giữ nguyên màn hình này, hệ thống sẽ tự động mở khóa ngay khi Admin phê duyệt!
               </p>
             </div>
 
-            <div className="pt-4 flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
+            <div className="pt-2 flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
               <button
                 onClick={onLogout}
-                className="px-8 h-12 bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/20 text-gray-300 hover:text-red-400 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
+                className="px-6 h-10 bg-background-tertiary hover:bg-danger/10 border border-border hover:border-danger/20 text-foreground-secondary hover:text-danger font-bold text-xs uppercase tracking-widest rounded-sm transition-all duration-200 flex items-center justify-center gap-2"
               >
                 Đăng xuất
               </button>
             </div>
           </div>
         ) : localDenied ? (
-          <div className="py-12 space-y-6">
-            <div className="h-20 w-20 bg-red-500/10 border border-red-500/30 text-red-500 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-red-500/5">
-              <ShieldAlert size={40} className="animate-pulse" />
+          <div className="py-8 space-y-6">
+            <div className="h-16 w-16 bg-danger/10 border border-danger/20 text-danger rounded-md flex items-center justify-center mx-auto shadow-md">
+              <ShieldAlert size={32} className="animate-pulse" />
             </div>
-            <h2 className="text-3xl font-bold uppercase tracking-tight text-red-500">Yêu cầu bị từ chối</h2>
-            <p className="text-gray-300 text-base font-medium max-w-md mx-auto leading-relaxed">
+            <h2 className="text-xl font-bold uppercase tracking-tight text-danger">Yêu cầu bị từ chối</h2>
+            <p className="text-foreground-secondary text-sm font-medium max-w-md mx-auto leading-relaxed">
               Yêu cầu của bạn đã bị Admin từ chối. Vui lòng kiểm tra lại lý do giải trình hoặc bằng chứng chuyển khoản và thử lại.
             </p>
-            <div className="pt-6 flex gap-3 justify-center">
+            <div className="pt-4 flex gap-3 justify-center">
               <button
                 onClick={onRetry}
-                className="px-8 h-12 bg-gold text-sidebar font-black text-sm uppercase tracking-widest rounded-xl hover:bg-gold-hover transition-all shadow-lg shadow-gold/20"
+                className="px-6 h-10 bg-gold text-background font-bold text-xs uppercase tracking-widest rounded-sm hover:bg-gold-dark transition-all shadow-md shadow-gold/10"
               >
                 Thử gửi lại
               </button>
               <button
                 onClick={onLogout}
-                className="px-8 h-12 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg"
+                className="px-6 h-10 bg-danger/10 border border-danger/20 hover:bg-danger hover:text-white text-danger font-bold text-xs uppercase tracking-widest rounded-sm transition-all duration-200 shadow-md"
               >
                 Đăng xuất
               </button>
             </div>
           </div>
         ) : message.toLowerCase().includes("khóa") ? (
-          <div className="py-10 space-y-8 flex flex-col items-center">
-            <div className="h-24 w-24 bg-red-500/10 border border-red-500/30 text-red-500 rounded-[32px] flex items-center justify-center shadow-2xl shadow-red-500/5">
-              <Lock size={48} className="animate-pulse" />
+          <div className="py-8 space-y-6 flex flex-col items-center">
+            <div className="h-16 w-16 bg-danger/10 border border-danger/20 text-danger rounded-md flex items-center justify-center shadow-lg">
+              <Lock size={32} className="animate-pulse" />
             </div>
 
-            <div className="space-y-2">
-              <h2 className="text-4xl font-black text-white tracking-tighter uppercase">Tài khoản đã bị khóa</h2>
-              <p className="text-gray-500 font-bold uppercase tracking-[0.2em] text-xs">Liên hệ Admin để được hỗ trợ</p>
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold text-foreground tracking-tight uppercase">Tài khoản đã bị khóa</h2>
+              <p className="text-foreground-secondary/70 font-bold uppercase tracking-[0.2em] text-[10px]">Liên hệ Admin để được hỗ trợ</p>
             </div>
 
-            <div className="w-full max-w-md bg-red-500/5 border border-red-500/10 rounded-2xl p-6 text-left relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-red-500/50" />
-              <p className="text-gray-300 text-sm font-medium leading-relaxed italic">
+            <div className="w-full max-w-md bg-danger/5 border border-danger/10 rounded-md p-6 text-left relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-danger/30" />
+              <p className="text-foreground-secondary text-sm font-medium leading-relaxed italic">
                 "{message}"
               </p>
             </div>
@@ -232,13 +231,13 @@ export default function AccessLock({
             <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
               <button
                 onClick={handleSendRequestClick}
-                className="flex-1 h-14 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-sm tracking-widest rounded-2xl transition-all shadow-xl shadow-red-600/20 flex items-center justify-center gap-3"
+                className="flex-1 h-12 bg-danger hover:bg-danger/90 text-white font-bold uppercase text-xs tracking-widest rounded-sm transition-all shadow-md shadow-danger/20 flex items-center justify-center gap-3"
               >
-                <Send size={20} /> Gửi yêu cầu mở khóa
+                <Send size={16} /> Gửi yêu cầu mở khóa
               </button>
               <button
                 onClick={onLogout}
-                className="h-14 px-8 bg-white/5 border border-white/0 text-gray-400 font-black uppercase text-sm tracking-widest rounded-2xl hover:bg-white/10 transition-all"
+                className="h-12 px-6 bg-background-tertiary border border-border text-foreground-secondary font-bold uppercase text-xs tracking-widest rounded-sm hover:text-foreground transition-all"
               >
                 Đăng xuất
               </button>
@@ -246,87 +245,88 @@ export default function AccessLock({
           </div>
         ) : isLateLock ? (
           <>
-            <div className="h-16 w-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-500/5">
-              <Clock size={32} className="animate-pulse" />
+            <div className="h-12 w-12 bg-danger/10 border border-danger/20 text-danger rounded-md flex items-center justify-center mx-auto mb-4 shadow-md">
+              <Clock size={24} className="animate-pulse" />
             </div>
 
-            <h2 className="text-3xl font-bold uppercase tracking-tight text-white mb-2">Báo cáo đi muộn</h2>
-            <p className="text-gray-400 text-base font-medium max-w-md mx-auto leading-relaxed mb-6">
-              Hôm nay bạn check-in lúc <span className="text-red-400 font-bold font-mono">
+            <h2 className="text-2xl font-bold uppercase tracking-tight text-foreground mb-1">Báo cáo đi muộn</h2>
+            <p className="text-foreground-secondary text-sm font-medium max-w-md mx-auto leading-relaxed mb-6">
+              Hôm nay bạn check-in lúc <span className="text-danger font-bold font-mono">
                 {currentTime.toLocaleTimeString("vi-VN")}
-              </span>, đi muộn <span className="text-red-400 font-bold font-mono">{formatLateMins(lateMins)}</span> so với giờ quy định (8:00 AM).
+              </span>, đi muộn <span className="text-danger font-bold font-mono">{formatLateMins(lateMins)}</span> so với giờ quy định (8:00 AM).
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center border-t border-b border-white/0 py-8 my-6 text-left">
-              <div className="flex flex-col items-center justify-center border-r border-white/0 pr-0 md:pr-6 pb-6 md:pb-0">
-                <div className="bg-zinc-900 p-6 rounded-2xl shadow-xl border-2 border-white/0 relative">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center border-t border-b border-border py-6 my-4 text-left">
+              <div className="flex flex-col items-center justify-center pr-0 md:pr-6 pb-6 md:pb-0">
+                {/* VietQR Protected Container: strict white background with border */}
+                <div className="bg-white p-3 rounded-md border border-border shadow-md relative">
                   <img
                     src={`https://img.vietqr.io/image/${bankConfig?.bankBin || bankConfig?.bankName || "MB"}-${bankConfig?.accountNumber || "686820388888"}-compact2.png?amount=${fineAmount}&addInfo=${username || 'Guest'}_Nop_Phat&accountName=${encodeURIComponent(bankConfig?.accountHolder || "CÔNG TY TNHH AQ MEDIA")}`}
                     alt="VietQR Fine Code"
-                    className="h-[180px] w-[180px] object-contain rounded-xl"
+                    className="h-[180px] w-[180px] object-contain rounded-sm"
                   />
                 </div>
-                <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black mt-3 text-center">Quét mã nộp phạt qua Ngân hàng</p>
+                <p className="text-[10px] text-foreground-secondary/70 uppercase tracking-widest font-bold mt-3 text-center">Quét mã nộp phạt qua Ngân hàng</p>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Ngân hàng thụ hưởng</span>
-                  <span className="text-base font-black text-white">{bankConfig?.bankFullName || `${bankConfig?.bankName || "MB"} Bank`}</span>
+                  <span className="text-[9px] font-bold text-foreground-secondary uppercase tracking-wider block">Ngân hàng thụ hưởng</span>
+                  <span className="text-sm font-bold text-foreground">{bankConfig?.bankFullName || `${bankConfig?.bankName || "MB"} Bank`}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Số tài khoản</span>
-                  <span className="text-base font-black text-gold font-mono">{bankConfig?.accountNumber || "686820388888"}</span>
+                  <span className="text-[9px] font-bold text-foreground-secondary uppercase tracking-wider block">Số tài khoản</span>
+                  <span className="text-sm font-bold text-gold font-mono">{bankConfig?.accountNumber || "686820388888"}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Tên người nhận</span>
-                  <span className="text-base font-black text-white">{bankConfig?.accountHolder || "CÔNG TY TNHH AQ MEDIA"}</span>
+                  <span className="text-[9px] font-bold text-foreground-secondary uppercase tracking-wider block">Tên người nhận</span>
+                  <span className="text-sm font-bold text-foreground">{bankConfig?.accountHolder || "CÔNG TY TNHH AQ MEDIA"}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Số tiền nộp phạt</span>
-                  <span className="text-lg font-black text-red-400 font-mono">
+                  <span className="text-[9px] font-bold text-foreground-secondary uppercase tracking-wider block">Số tiền nộp phạt</span>
+                  <span className="text-base font-bold text-danger font-mono">
                     {fineAmount.toLocaleString("vi-VN")} VND
                   </span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Nội dung chuyển khoản</span>
-                  <span className="text-sm font-bold text-gray-300 font-mono bg-white/5 border border-white/0 px-3 py-1.5 rounded-lg block overflow-hidden text-ellipsis whitespace-nowrap">
+                  <span className="text-[9px] font-bold text-foreground-secondary uppercase tracking-wider block">Nội dung chuyển khoản</span>
+                  <span className="text-xs font-bold text-foreground font-mono bg-background-tertiary border border-border px-3 py-1.5 rounded-md block overflow-hidden text-ellipsis whitespace-nowrap">
                     {username.toUpperCase()}_NOP_PHAT
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-white/0 pt-6 my-6 text-left">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-2">Hoặc gửi lý do giải trình đi muộn (Mở khóa lập tức)</label>
+            <div className="pt-4 my-4 text-left">
+              <label className="text-[10px] font-bold text-foreground-secondary uppercase tracking-wider block mb-2">Hoặc gửi lý do giải trình đi muộn (Mở khóa lập tức)</label>
               <textarea
                 value={excuseReason}
                 onChange={(e) => setExcuseReason(e.target.value)}
                 placeholder="Nhập lý do đi muộn của bạn tại đây (ví dụ: tắc đường, hỏng xe, việc gia đình đột xuất...)"
-                className="w-full bg-white/5 border border-white/0 rounded-2xl p-6 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/5 focus:ring-1 focus:ring-gold/5 transition-all resize-none"
+                className="w-full bg-background-secondary border border-border rounded-md p-4 text-sm text-foreground placeholder:text-foreground-secondary/40 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all resize-none"
                 rows={3}
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               <button
                 disabled={finePaymentPending}
                 onClick={handleReportPaymentClick}
-                className={`flex-1 h-14 font-black text-base uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-lg ${finePaymentPending ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 cursor-not-allowed" : "bg-gold text-sidebar hover:bg-amber-700 bg-amber-600 hover:text-white shadow-gold/25"}`}
+                className={`flex-1 h-12 font-bold text-xs uppercase tracking-widest rounded-sm transition-all duration-200 shadow-md ${finePaymentPending ? "bg-warning/10 border border-warning/20 text-warning cursor-not-allowed" : "bg-gold text-background hover:bg-gold-dark hover:shadow-gold/10"}`}
               >
                 {finePaymentPending ? "Chờ duyệt..." : "Đã chuyển khoản"}
               </button>
 
               <button
                 onClick={handleExcuseSubmit}
-                className="flex-1 h-14 bg-white/5 border border-white/0 hover:border-white/5 text-white font-black text-base uppercase tracking-widest rounded-2xl transition-all duration-300"
+                className="flex-1 h-12 bg-background-tertiary border border-border text-foreground hover:border-border-light font-bold text-xs uppercase tracking-widest rounded-sm transition-all duration-200"
               >
                 Gửi yêu cầu
               </button>
 
               <button
                 onClick={onLogout}
-                className="h-14 px-6 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 font-black text-base uppercase tracking-widest rounded-2xl transition-all duration-300"
+                className="h-12 px-4 bg-danger/10 border border-danger/20 hover:bg-danger hover:text-white text-danger font-bold text-xs uppercase tracking-widest rounded-sm transition-all duration-200"
               >
                 Đăng xuất
               </button>
@@ -334,21 +334,21 @@ export default function AccessLock({
           </>
         ) : (
           <>
-            <div className="mx-auto w-24 h-24 bg-gold/10 rounded-[30px] flex items-center justify-center text-gold mb-8 border border-gold/20">
-              <Lock size={48} />
+            <div className="mx-auto w-16 h-16 bg-gold/10 rounded-md flex items-center justify-center text-gold mb-6 border border-gold/20">
+              <Lock size={32} />
             </div>
 
-            <h1 className="text-4xl font-black text-white tracking-tighter mb-4 uppercase">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight mb-4 uppercase">
               Hệ thống đã khóa
             </h1>
-            <div className="bg-white/5 border border-white/0 rounded-2xl py-4 px-8 mb-8 inline-flex items-center gap-4">
-              <Clock className="text-gold" size={24} />
-              <span className="text-2xl font-mono font-black text-white">
+            <div className="bg-background-tertiary border border-border rounded-md py-3 px-6 mb-6 inline-flex items-center gap-4">
+              <Clock className="text-gold" size={20} />
+              <span className="text-xl font-mono font-bold text-foreground">
                 {currentTime.toLocaleTimeString("vi-VN")}
               </span>
             </div>
 
-            <p className="text-xl text-gray-400 font-medium mb-10 leading-relaxed">
+            <p className="text-base text-foreground-secondary font-medium mb-8 leading-relaxed">
               {message}
             </p>
 
@@ -356,22 +356,22 @@ export default function AccessLock({
               <div className="flex flex-col sm:flex-row gap-4 justify-center w-full">
                 <button
                   onClick={handleSendRequestClick}
-                  className="h-16 px-10 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-xl shadow-gold/20"
+                  className="h-12 px-6 rounded-sm bg-gold text-background font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:bg-gold-dark transition-all shadow-md shadow-gold/10"
                 >
-                  <Send size={24} /> Gửi yêu cầu truy cập
+                  <Send size={16} /> Gửi yêu cầu truy cập
                 </button>
                 <button
                   onClick={onLogout}
-                  className="h-16 px-10 rounded-2xl bg-white/5 border border-white/0 text-gray-400 font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 transition-all"
+                  className="h-12 px-6 rounded-sm bg-background-tertiary border border-border text-foreground-secondary font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:text-foreground transition-all"
                 >
-                  <LogOut size={24} /> Đăng xuất
+                  <LogOut size={16} /> Đăng xuất
                 </button>
               </div>
             </div>
           </>
         )}
 
-        <p className="mt-12 text-sm font-bold uppercase tracking-widest text-gray-500">
+        <p className="mt-8 text-xs font-bold uppercase tracking-widest text-foreground-secondary/70">
           AQ MEDIA Management System &copy; 2026
         </p>
       </motion.div>

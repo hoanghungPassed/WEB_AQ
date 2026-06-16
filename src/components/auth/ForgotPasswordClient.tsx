@@ -7,7 +7,7 @@ import { Mail, Lock, ArrowLeft, Loader2, CheckCircle2, ShieldCheck, AlertCircle 
 import Link from "next/link";
 import toast from "react-hot-toast";
 
-export default function ForgotPasswordPage() {
+export default function ForgotPasswordClient() {
   const router = useRouter();
   const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: New Pass, 4: Success
   const [email, setEmail] = useState("");

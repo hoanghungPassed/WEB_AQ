@@ -17,11 +17,10 @@ import {
   Calendar,
   Loader2
 } from "lucide-react";
-import * as XLSX from "xlsx";
 import useSWR from "swr";
 import toast from "react-hot-toast";
 
-import { MailData } from "@/types/admin";
+import { MailData, StaffData } from "@/types/admin";
 import MailDetailModal from "@/components/admin/MailDetailModal";
 import { ImportHistoryModal, ImportHistoryItem } from "@/components/admin/modals/ImportHistoryModal";
 import BatchNameModal from "@/components/admin/modals/BatchNameModal";
@@ -31,11 +30,11 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 interface MailManagementProps {
   type?: string;
-  user?: any;
+  user?: StaffData;
 }
 
 export default function MailManagement({ type, user: initialUser }: MailManagementProps) {
-  const [user, setUser] = useState<any>(initialUser || null);
+  const [user, setUser] = useState<StaffData | null>(initialUser || null);
   const [activeTab, setActiveTab] = useState<"ROOT" | "SATELLITE" | "MONETIZED" | "ALL">(
     (type === "ROOT" || type === "SATELLITE" || type === "MONETIZED" || type === "ALL") ? (type as any) : "ROOT"
   );
@@ -64,13 +63,14 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
     roleUpper === "QUẢN LÝ CÔNG VIỆC";
 
   const { data: apiData, mutate, isLoading } = useSWR(
-    `/api/admin/mails?type=${activeTab}&all=true`,
+    `/api/admin/mails?type=${activeTab}&page=${currentPage}&limit=${itemsPerPage}&search=${searchQuery}&status=${statusFilter}${selectedBatch ? `&batch=${encodeURIComponent(selectedBatch)}` : ""}`,
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 5000 }
   );
 
   const mails: MailData[] = apiData?.success ? apiData.data : [];
   const batches: string[] = apiData?.batches || [];
+  const apiBatchStats = apiData?.batchStats || [];
 
   const [notification, setNotification] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
@@ -120,52 +120,45 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
     }
   };
 
-  const filteredMails = useMemo(() => {
-    return mails.filter((mail) => {
-      const recoveryVal = mail.recoveryMail || mail.recovery || "";
-      const matchesSearch =
-        mail.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        recoveryVal.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesBatch = !selectedBatch || mail.batchName === selectedBatch;
-      const matchesStatus = statusFilter === "ALL" || mail.verificationStatus === statusFilter;
-      return matchesSearch && matchesBatch && matchesStatus;
-    });
-  }, [mails, searchQuery, selectedBatch, statusFilter]);
+  // Reset page to 1 when filters or tabs change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, activeTab, selectedBatch]);
+
+  const filteredMails = mails;
 
   // Aggregate Batch Statistics
   const batchStats = useMemo(() => {
-  const stats: Record<string, { count: number, importedAt: string, type: string }> = {};
+    const stats: Record<string, { count: number, importedAt: string, type: string }> = {};
 
-  // We can also extract info from importHistory if available
-  const historyMap: Record<string, ImportHistoryItem> = {};
-  importHistory.forEach((item: ImportHistoryItem) => {
-    historyMap[item.fileName] = item;
-  });
-  mails.forEach((m: MailData) => {
-    const bName = m.batchName || "Không rõ lô";
+    // We can also extract info from importHistory if available
+    const historyMap: Record<string, ImportHistoryItem> = {};
+    importHistory.forEach((item: ImportHistoryItem) => {
+      historyMap[item.fileName] = item;
+    });
 
-    if (!stats[bName]) {
+    apiBatchStats.forEach((b: any) => {
+      if (activeTab !== "ALL" && b.type !== activeTab) return;
+      const bName = b.name || "Không rõ lô";
       stats[bName] = { 
-        count: 0, 
-        importedAt: historyMap[bName]?.importedAt || (m.createdAt ? new Date(m.createdAt).toISOString().split("T")[0] : "---"), 
-        type: m.type 
+        count: b.count, 
+        importedAt: historyMap[bName]?.importedAt || (b.createdAt ? new Date(b.createdAt).toISOString().split("T")[0] : "---"), 
+        type: b.type 
       };
-    }
-    stats[bName].count++;
-  });
+    });
 
-  // Also include empty batches from history if they match current tab type
-  importHistory.forEach((item: ImportHistoryItem) => {
-    if ((activeTab === "ALL" || item.type === activeTab) && !stats[item.fileName]) {
-      stats[item.fileName] = { count: 0, importedAt: item.importedAt, type: item.type };
-    }
-  });
+    // Also include empty batches from history if they match current tab type
+    importHistory.forEach((item: ImportHistoryItem) => {
+      if ((activeTab === "ALL" || item.type === activeTab) && !stats[item.fileName]) {
+        stats[item.fileName] = { count: 0, importedAt: item.importedAt, type: item.type };
+      }
+    });
 
     return Object.entries(stats).map(([name, info]) => ({
       name,
       ...info
     })).sort((a, b) => b.importedAt.localeCompare(a.importedAt));
-  }, [mails, importHistory, activeTab]);
+  }, [apiBatchStats, importHistory, activeTab]);
 
   const batchIndex = useMemo(() => {
     if (!selectedBatch || !batchStats) return 0;
@@ -174,20 +167,18 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
     return sorted.findIndex(b => b.name === selectedBatch);
   }, [batchStats, selectedBatch]);
 
-  const totalPages = Math.ceil(filteredMails.length / itemsPerPage);
-  const paginatedMails = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredMails.slice(start, start + itemsPerPage);
-  }, [filteredMails, currentPage]);
+  const totalPages = apiData?.pagination?.pages || 1;
+  const paginatedMails = mails;
 
-  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsImporting(true);
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
+        const XLSX = await import("xlsx");
         const data = new Uint8Array(event.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
@@ -744,7 +735,7 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
             {/* Pagination */}
             <div className="p-6 bg-black/20 border-t border-white/5 flex items-center justify-between">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                Hiển thị <span className="text-white">{paginatedMails.length}</span> / <span className="text-white">{filteredMails.length}</span> mail
+                Hiển thị <span className="text-white">{paginatedMails.length}</span> / <span className="text-white">{apiData?.pagination?.total || paginatedMails.length}</span> mail
               </p>
               <div className="flex items-center gap-2">
                 <button
