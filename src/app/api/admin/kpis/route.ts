@@ -87,8 +87,11 @@ export async function GET(req: NextRequest) {
     // Fetch required metadata
     const [staff, payrollRecords, syncKpi] = await Promise.all([
       User.find({ role: { $in: ["04", "05"] } }).select("name username role status").lean(),
-      Payroll.find({ month: monthParam }).sort({ createdAt: -1 }).lean(),
-      SyncStore.findOne({ key: 'global_kpi_data' }).lean()
+      Payroll.find({ month: monthParam })
+        .sort({ createdAt: -1 })
+        .select("name username role baseSalary attendanceDays allowance totalReceived netPay timestamp createdAt month")
+        .lean(),
+      SyncStore.findOne({ key: 'global_kpi_data' }).select("value").lean()
     ]);
 
     return NextResponse.json({

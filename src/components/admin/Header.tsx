@@ -121,19 +121,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
           });
         }
       } else if (notif.type === "ACCESS_REQUEST") {
-        const roleUpper = String(user?.role || "").toUpperCase();
-        if (roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC") {
-          const audio = new Audio('/notification.mp3');
-          audio.play().catch(e => {});
-
-          const accessReqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
-          if (!accessReqs.some((r: any) => r.id === notif.data.id)) {
-            const updated = [...accessReqs, notif.data];
-            localStorage.setItem("pending_access_requests", JSON.stringify(updated));
-            window.dispatchEvent(new Event("storage"));
-            loadLocalNotifsRef.current();
-          }
-        }
+        // Ignored here because access-request popup and sound are handled centrally in RealtimeProvider.tsx to prevent double chimes and popups.
       } else if ((!notif.targetUsername && !notif.recipientId) || 
                  (notif.targetUsername && notif.targetUsername.toLowerCase() === user?.username?.toLowerCase()) || 
                  (notif.recipientId && (notif.recipientId === user?.id || notif.recipientId === user?._id))) {
@@ -209,7 +197,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
     } catch (err) {}
 
     const roleUpper = String(user?.role || "").toUpperCase();
-    const isAuthorizedManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
+    const isAuthorizedManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "03" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC" || roleUpper.includes("QUẢN LÝ");
     let accessNotifs: any[] = [];
     if (isAuthorizedManager) {
       const accessReqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");

@@ -218,7 +218,7 @@ export default function RealtimeProvider({
     // Phase 3: Bind access-request event
     systemChannel.bind("access-request", (data: any) => {
       const roleUpper = String(user?.role || "").toUpperCase();
-      const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC" || roleUpper.includes("QUẢN LÝ");
+      const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "03" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC" || roleUpper.includes("QUẢN LÝ");
       
       if (isAdminOrManager) {
         const newRequest = {

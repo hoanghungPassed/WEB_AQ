@@ -548,10 +548,10 @@ export default function AdminLayout({
  setRoleUpdateNotif({ title: latest.title, message: latest.message });
  setTimeout(() => setRoleUpdateNotif(null), 5000);
  }
- lastNotifCountRef.current = (myNotifs || []).length;
+  lastNotifCountRef.current = (myNotifs || []).length;
 
- const isAuthorized = currentUser?.role ==="ADMIN" || currentUser?.role ==="01" || currentUser?.role ==="02";
- if (isAuthorized) {
+  const isAuthorized = currentUser?.role ==="ADMIN" || currentUser?.role ==="01" || currentUser?.role ==="02" || currentUser?.role ==="03" || String(currentUser?.role).toUpperCase().includes("QUẢN LÝ");
+  if (isAuthorized) {
  const savedRequests = localStorage.getItem("pending_access_requests");
  if (savedRequests) {
  setPendingRequests(JSON.parse(savedRequests));
@@ -758,7 +758,7 @@ const totalWorkingMins = overlap1 + overlap2;
  const activeUserStr = getActiveUserStr();
  if (activeUserStr) {
  const currentUser = JSON.parse(activeUserStr);
- const isAuthorized = currentUser?.role ==="ADMIN" || currentUser?.role ==="01" || currentUser?.role ==="02";
+ const isAuthorized = currentUser?.role ==="ADMIN" || currentUser?.role ==="01" || currentUser?.role ==="02" || currentUser?.role ==="03" || String(currentUser?.role).toUpperCase().includes("QUẢN LÝ");
  if (isAuthorized) {
  setPendingRequests(JSON.parse(e.newValue ||"[]"));
  } else {

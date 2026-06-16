@@ -72,16 +72,20 @@ export async function POST(req: NextRequest) {
     });
 
     // 2. Trigger access-request on the general 'system' channel for popups & chimes
+    const triggerPayload = {
+      id: requestData.id,
+      userId: user._id.toString(),
+      name: user.name,
+      username: user.username,
+      type: type || 'ACCESS',
+      reason: reason || "Xin phép truy cập hệ thống",
+      amount: body.amount,
+      createdAt: new Date()
+    };
+    console.log("Triggering Pusher access-request event to channel 'system' with payload:", triggerPayload);
+
     try {
-      await pusherServer.trigger('system', 'access-request', {
-        id: requestData.id,
-        userId: user._id.toString(),
-        name: user.name,
-        username: user.username,
-        type: type || 'ACCESS',
-        reason: reason || "Xin phép truy cập hệ thống",
-        createdAt: new Date()
-      });
+      await pusherServer.trigger('system', 'access-request', triggerPayload);
     } catch (pushErr) {
       console.error("Pusher trigger access-request error:", pushErr);
     }

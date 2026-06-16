@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
       // VN 00:00 today is UTC yesterday 17:00
       const startOfDay = new Date(Date.UTC(vnNow.getUTCFullYear(), vnNow.getUTCMonth(), vnNow.getUTCDate(), -7, 0, 0, 0));
 
-      const attendance = await Attendance.findOne({ userId, date: todayStr });
+      const attendance = await Attendance.findOne({ userId, date: todayStr }).select("checkInTime checkOutTime").lean();
       
       const myTasks = await Task.countDocuments({ 
         assigneeId: userId, 

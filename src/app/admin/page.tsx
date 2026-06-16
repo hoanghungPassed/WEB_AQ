@@ -132,7 +132,7 @@ export default function AdminDashboard() {
     }
  }, []);
 
- const { isValidating: isLoadingData } = useSWR('admin-dashboard-stats-v2', refreshStats, { revalidateOnFocus: false, dedupingInterval: 5000 });
+  const { isValidating: isLoadingData } = useSWR('admin-dashboard-stats-v2', refreshStats, { revalidateOnFocus: false, dedupingInterval: 60000 });
 
  useEffect(() => {
   const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
