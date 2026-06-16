@@ -134,7 +134,9 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user, windowWidth }: Hea
             loadLocalNotifsRef.current();
           }
         }
-      } else if (!notif.targetUsername || notif.targetUsername?.toLowerCase() === user?.username?.toLowerCase()) {
+      } else if ((!notif.targetUsername && !notif.recipientId) || 
+                 (notif.targetUsername && notif.targetUsername.toLowerCase() === user?.username?.toLowerCase()) || 
+                 (notif.recipientId && (notif.recipientId === user?.id || notif.recipientId === user?._id))) {
         mutate('/api/admin/notifications?type=SYSTEM');
         setNotifications(prev => {
           const targetId = notif.id || notif._id;
