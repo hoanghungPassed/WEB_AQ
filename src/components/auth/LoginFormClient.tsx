@@ -128,15 +128,15 @@ export default function LoginFormClient() {
                 >
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-foreground-secondary uppercase tracking-widest ml-1">Tài khoản</label>
-                    <div className="relative group">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary group-focus-within:text-gold transition-colors" size={18} />
+                    <div className="flex items-center w-full bg-background border border-border focus-within:border-gold focus-within:ring-1 focus-within:ring-gold rounded-md h-14 transition-all group">
+                      <User className="ml-4 text-foreground-secondary group-focus-within:text-gold transition-colors shrink-0" size={18} />
                       <input 
                         type="text" 
                         required 
                         value={username} 
                         onChange={(e) => setUsername(e.target.value)} 
                         placeholder="Username" 
-                        className="w-full pl-12 h-14 bg-background border border-border focus:border-gold focus:ring-1 focus:ring-gold outline-none rounded-xl text-white transition-all placeholder-zinc-600"
+                        className="flex-1 bg-transparent border-none outline-none text-white h-full px-3 placeholder-zinc-600"
                         disabled={isLoading}
                       />
                     </div>
@@ -147,15 +147,15 @@ export default function LoginFormClient() {
                       <label className="text-[10px] font-black text-foreground-secondary uppercase tracking-widest">Mật khẩu</label>
                       <Link href="/forgot-password" className="text-[8px] font-black text-gold hover:underline uppercase tracking-widest transition-all">Quên mật khẩu?</Link>
                     </div>
-                    <div className="relative group">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary group-focus-within:text-gold transition-colors" size={18} />
+                    <div className="flex items-center w-full bg-background border border-border focus-within:border-gold focus-within:ring-1 focus-within:ring-gold rounded-md h-14 transition-all group relative">
+                      <Lock className="ml-4 text-foreground-secondary group-focus-within:text-gold transition-colors shrink-0" size={18} />
                       <input 
                         type={showPassword ? "text" : "password"} 
                         required 
                         value={password} 
                         onChange={(e) => setPassword(e.target.value)} 
                         placeholder="••••••••" 
-                        className="w-full pl-12 h-14 bg-background border border-border focus:border-gold focus:ring-1 focus:ring-gold outline-none rounded-xl text-white transition-all placeholder-zinc-600"
+                        className="flex-1 bg-transparent border-none outline-none text-white h-full pl-3 pr-12 placeholder-zinc-600"
                         disabled={isLoading}
                       />
                       <button 
