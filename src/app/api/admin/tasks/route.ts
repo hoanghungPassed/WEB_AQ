@@ -133,6 +133,11 @@ export async function POST(req: NextRequest) {
         const assigneeUser = await User.findById(data.assigneeId);
         const staffName = assigneeUser ? assigneeUser.name : "Nhân viên";
 
+        const BatchModel = (await import("@/models/Batch")).default;
+        const batchDoc = data.batch ? await BatchModel.findOne({ name: data.batch }).lean() : null;
+        const finalBatchId = batchDoc ? batchDoc._id : undefined;
+        const finalBatchName = batchDoc ? batchDoc.name : (data.batch || undefined);
+
         await MailModel.updateMany(
           { _id: { $in: data.mailIds } },
           {
@@ -141,8 +146,8 @@ export async function POST(req: NextRequest) {
               assignedTo: staffName,
               assigneeId: data.assigneeId,
               assignee: data.assigneeId,
-              batchId: data.batch || undefined,
-              batchName: data.batch || undefined
+              batchId: finalBatchId,
+              batchName: finalBatchName
             }
           }
         );

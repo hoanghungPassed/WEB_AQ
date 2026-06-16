@@ -58,6 +58,9 @@ TaskSchema.index({ assigneeId: 1, status: 1 });
 TaskSchema.index({ deadline: 1 });
 TaskSchema.index({ status: 1 });
 TaskSchema.index({ assigneeId: 1 });
+TaskSchema.index({ mailIds: 1 });
+TaskSchema.index({ batch: 1 });
+TaskSchema.index({ batchName: 1 });
 
 if (mongoose.models.Task) {
   delete mongoose.models.Task;

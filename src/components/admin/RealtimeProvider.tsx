@@ -200,6 +200,10 @@ export default function RealtimeProvider({
       if (isAdminOrManager) {
         mutate((key: any) => typeof key === "string" && key.includes("/api/admin/tasks"));
         mutate("/api/admin/mail/satellite-batches");
+        if (user?.role === '01' || user?.role === '02') {
+          mutate('/api/admin/stats');
+          mutate('/api/admin/kpis');
+        }
       }
     });
 

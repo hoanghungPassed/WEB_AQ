@@ -57,6 +57,12 @@ const SatelliteMailSchema: Schema = new Schema(
  { timestamps: true }
 );
 
+SatelliteMailSchema.index({ email: 1 });
+SatelliteMailSchema.index({ batchId: 1, batchName: 1 });
+SatelliteMailSchema.index({ assigneeId: 1 });
+SatelliteMailSchema.index({ status: 1 });
+SatelliteMailSchema.index({ workStatus: 1 });
+
 if (mongoose.models.SatelliteMail) {
  delete mongoose.models.SatelliteMail;
 }

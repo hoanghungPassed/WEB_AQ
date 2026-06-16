@@ -68,9 +68,10 @@ export async function PUT(
       }
     );
 
-    // 2. Cập nhật thông tin lô
-    batch.totalMails = mailIds.length;
-    batch.mailCount = mailIds.length;
+    // 2. Cập nhật thông tin lô bằng cách đếm thực tế trong database
+    const actualCount = await SatelliteMail.countDocuments({ batchId: String(batch._id) });
+    batch.totalMails = actualCount;
+    batch.mailCount = actualCount;
     if (startIndex !== undefined) batch.startIndex = startIndex;
     if (endIndex !== undefined) batch.endIndex = endIndex;
     

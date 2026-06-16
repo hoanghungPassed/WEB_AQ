@@ -30,15 +30,28 @@ export async function GET(req: NextRequest) {
     const endOfMonth = new Date(Date.UTC(year, month, 0, 16, 59, 59, 999));
 
     // 1. Calculate Monthly Summary Stats
-    const stats = await SatelliteMail.aggregate([
-      { $match: { updatedAt: { $gte: startOfMonth, $lte: endOfMonth }, type: "SATELLITE" } },
-      { $group: {
-          _id: null,
-          totalEligibleChannels: { $sum: { $size: { $ifNull: ["$links", []] } } },
-          totalDone: { $sum: { $cond: [{ $eq: ["$workStatus", "Đã làm"] }, 1, 0] } }
+    const [satStats, rootStats, monStats] = await Promise.all([
+      SatelliteMail.aggregate([
+        { $match: { updatedAt: { $gte: startOfMonth, $lte: endOfMonth }, type: "SATELLITE" } },
+        { $group: {
+            _id: null,
+            totalEligibleChannels: { $sum: { $size: { $ifNull: ["$links", []] } } },
+            totalDone: { $sum: { $cond: [{ $in: ["$workStatus", ["Đã làm", "Lỗi"]] }, 1, 0] } }
+          }
         }
-      }
+      ]),
+      RootMail.aggregate([
+        { $match: { updatedAt: { $gte: startOfMonth, $lte: endOfMonth }, type: "ROOT", workStatus: { $in: ["Đã làm", "Lỗi"] } } },
+        { $count: "count" }
+      ]),
+      MonetizedMail.aggregate([
+        { $match: { updatedAt: { $gte: startOfMonth, $lte: endOfMonth }, type: "MONETIZED", workStatus: { $in: ["Đã làm", "Lỗi"] } } },
+        { $count: "count" }
+      ])
     ]);
+
+    const finalTotalDone = (satStats[0]?.totalDone || 0) + (rootStats[0]?.count || 0) + (monStats[0]?.count || 0);
+    const finalTotalEligibleChannels = satStats[0]?.totalEligibleChannels || 0;
 
     const mailCounts = await Promise.all([
       RootMail.countDocuments({}),
@@ -53,7 +66,7 @@ export async function GET(req: NextRequest) {
       { $group: {
           _id: "$assigneeId",
           monthlyChannels: { $sum: { $size: { $ifNull: ["$links", []] } } },
-          completedTasks: { $sum: { $cond: [{ $eq: ["$workStatus", "Đã làm"] }, 1, 0] } }
+          completedTasks: { $sum: { $cond: [{ $in: ["$workStatus", ["Đã làm", "Lỗi"]] }, 1, 0] } }
         }
       },
       { $sort: { monthlyChannels: -1 } }
@@ -85,8 +98,8 @@ export async function GET(req: NextRequest) {
         rootCount: mailCounts[0],
         satelliteCount: mailCounts[1],
         monetizedCount: mailCounts[2],
-        totalDone: stats[0]?.totalDone || 0,
-        totalEligibleChannels: stats[0]?.totalEligibleChannels || 0,
+        totalDone: finalTotalDone,
+        totalEligibleChannels: finalTotalEligibleChannels,
         dieMails: mailCounts[3]
       },
       leaderboard,

@@ -53,6 +53,12 @@ const MonetizedMailSchema: Schema = new Schema(
  { timestamps: true }
 );
 
+MonetizedMailSchema.index({ email: 1 });
+MonetizedMailSchema.index({ batchId: 1, batchName: 1 });
+MonetizedMailSchema.index({ assigneeId: 1 });
+MonetizedMailSchema.index({ status: 1 });
+MonetizedMailSchema.index({ workStatus: 1 });
+
 if (mongoose.models.MonetizedMail) {
  delete mongoose.models.MonetizedMail;
 }

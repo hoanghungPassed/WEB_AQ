@@ -51,6 +51,12 @@ const RootMailSchema: Schema = new Schema(
  { timestamps: true }
 );
 
+RootMailSchema.index({ email: 1 });
+RootMailSchema.index({ batchId: 1, batchName: 1 });
+RootMailSchema.index({ assigneeId: 1 });
+RootMailSchema.index({ status: 1 });
+RootMailSchema.index({ workStatus: 1 });
+
 if (mongoose.models.RootMail) {
  delete mongoose.models.RootMail;
 }

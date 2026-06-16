@@ -92,8 +92,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   // Phase 4: Auto-update Task Progress
   try {
     const { Task } = await import("@/models/Task");
-    const pendingTasks = await Task.find({ 
-      status: "PENDING", 
+    const activeTasks = await Task.find({ 
+      status: { $ne: "COMPLETED" }, 
       $or: [
         { mailIds: id }, 
         { batch: mail.batchId }, 
@@ -103,35 +103,67 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       ] 
     });
 
-    for (const task of pendingTasks) {
-      let allMailsInTask: any[] = [];
+    for (const task of activeTasks) {
+      let totalCount = 0;
+      let completedCount = 0;
+
       if (task.mailIds && task.mailIds.length > 0) {
-        const [satMails, rootMails, monMails] = await Promise.all([
-          SatelliteMail.find({ _id: { $in: task.mailIds } }).select("workStatus links").lean(),
-          RootMail.find({ _id: { $in: task.mailIds } }).select("workStatus").lean(),
-          MonetizedMail.find({ _id: { $in: task.mailIds } }).select("workStatus").lean()
+        totalCount = task.mailIds.length;
+        
+        const [satCompleted, rootCompleted, monCompleted] = await Promise.all([
+          SatelliteMail.countDocuments({
+            _id: { $in: task.mailIds },
+            $or: [
+              { workStatus: { $in: ["Đã làm", "Lỗi"] } },
+              { "links.2": { $exists: true, $ne: "" } }
+            ]
+          }),
+          RootMail.countDocuments({
+            _id: { $in: task.mailIds },
+            workStatus: { $in: ["Đã làm", "Lỗi"] }
+          }),
+          MonetizedMail.countDocuments({
+            _id: { $in: task.mailIds },
+            workStatus: { $in: ["Đã làm", "Lỗi"] }
+          })
         ]);
-        allMailsInTask = [...satMails, ...rootMails, ...monMails];
+        completedCount = satCompleted + rootCompleted + monCompleted;
       } else if (task.batchName || task.batch) {
         const term = task.batchName || task.batch;
-        const [satMails, rootMails, monMails] = await Promise.all([
-          SatelliteMail.find({ $or: [{ batchName: term }, { batchId: term }] }).select("workStatus links").lean(),
-          RootMail.find({ $or: [{ batchName: term }, { batchId: term }] }).select("workStatus").lean(),
-          MonetizedMail.find({ $or: [{ batchName: term }, { batchId: term }] }).select("workStatus").lean()
+        const [satTotal, rootTotal, monTotal, satCompleted, rootCompleted, monCompleted] = await Promise.all([
+          SatelliteMail.countDocuments({ $or: [{ batchName: term }, { batchId: term }] }),
+          RootMail.countDocuments({ $or: [{ batchName: term }, { batchId: term }] }),
+          MonetizedMail.countDocuments({ $or: [{ batchName: term }, { batchId: term }] }),
+          SatelliteMail.countDocuments({
+            $and: [
+              { $or: [{ batchName: term }, { batchId: term }] },
+              {
+                $or: [
+                  { workStatus: { $in: ["Đã làm", "Lỗi"] } },
+                  { "links.2": { $exists: true, $ne: "" } }
+                ]
+              }
+            ]
+          }),
+          RootMail.countDocuments({
+            $or: [{ batchName: term }, { batchId: term }],
+            workStatus: { $in: ["Đã làm", "Lỗi"] }
+          }),
+          MonetizedMail.countDocuments({
+            $or: [{ batchName: term }, { batchId: term }],
+            workStatus: { $in: ["Đã làm", "Lỗi"] }
+          })
         ]);
-        allMailsInTask = [...satMails, ...rootMails, ...monMails];
+        
+        totalCount = satTotal + rootTotal + monTotal;
+        completedCount = satCompleted + rootCompleted + monCompleted;
       }
 
-      if (allMailsInTask.length > 0) {
-        const completedCount = allMailsInTask.filter((m: any) => {
-          if (m.workStatus === "Lỗi" || m.workStatus === "Đã làm") return true;
-          const links = m.links || [];
-          if (links.length >= 3 && links[0]?.trim() && links[1]?.trim() && links[2]?.trim()) return true;
-          return false;
-        }).length;
-
-        const newProgress = Math.round((completedCount / allMailsInTask.length) * 100);
+      if (totalCount > 0) {
+        const newProgress = Math.round((completedCount / totalCount) * 100);
         task.progress = newProgress;
+
+        const isTransitioningToCompleted = newProgress === 100 && task.status !== "COMPLETED";
 
         if (newProgress === 100) {
           task.status = "COMPLETED";
@@ -139,8 +171,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         }
         await task.save();
 
-        if (task.status === "COMPLETED") {
+        if (isTransitioningToCompleted) {
           const { pusherServer } = await import("@/lib/pusher");
+          await pusherServer.trigger('system', 'task-updated', {
+            taskId: task._id,
+            status: "COMPLETED",
+            assigneeId: task.assigneeId
+          });
+          await pusherServer.trigger('system', 'satellite-batches-updated', {});
           await pusherServer.trigger('system', 'task-list-updated', {});
         }
       }
