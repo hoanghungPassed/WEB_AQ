@@ -406,8 +406,16 @@ export default function AdminLayoutClient({
  const [isAccessGranted, setIsAccessGranted] = useState(false);
  const [accessStatus, setAccessStatus] = useState<string | null>(null);
  const [isChecking, setIsChecking] = useState(true);
- const [pendingRequests, setPendingRequests] = useState<any[]>([]);
- const [showManagerNotif, setShowManagerNotif] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [showManagerNotif, setShowManagerNotif] = useState(false);
+
+  useEffect(() => {
+    if ((pendingRequests || []).length > 0) {
+      setShowManagerNotif(true);
+    } else {
+      setShowManagerNotif(false);
+    }
+  }, [pendingRequests]);
  const [roleUpdateNotif, setRoleUpdateNotif] = useState<{ title: string, message: string } | null>(null);
  const lastNotifCountRef = React.useRef(0);
  const isNotifInitializedRef = React.useRef(false);
@@ -1638,7 +1646,7 @@ const typingTimer = setInterval(checkTyping, 1000);
  </AnimatePresence>
 
  {/* Manager Approval Notification */}
-  {(user?.role ==="ADMIN" || user?.role ==="01" || user?.role ==="02" || user?.role ==="03" || String(user?.role).toUpperCase().includes("QUẢN LÝ")) && (pendingRequests || []).length > 0 && (() => {
+  {(user?.role ==="ADMIN" || user?.role ==="01" || user?.role ==="02" || user?.role ==="03" || String(user?.role).toUpperCase().includes("QUẢN LÝ")) && (pendingRequests || []).length > 0 && showManagerNotif && (() => {
     const request = pendingRequests[0];
    const isLateRequest = request?.type === "FINE_PAYMENT" || request?.type === "LATE_EXCUSE";
    return (
