@@ -51,11 +51,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       if (type === "FINE_PAYMENT" || !type) {
          const today = new Date();
          today.setHours(0,0,0,0);
-         const fine = await Fine.findOne({ userId, createdAt: { $gte: today }, status: { $ne: "PAID" } });
+         
+         // Atomically find a fine that is NOT PAID, and mark it as PAID in one operation.
+         // This prevents race conditions/double-approvals from incrementing the fund multiple times.
+         const fine = await Fine.findOneAndUpdate(
+           { userId, createdAt: { $gte: today }, status: { $ne: "PAID" } },
+           { $set: { status: "PAID" } },
+           { new: false } // returns the document *before* update
+         );
+
          if (fine && fine.status !== "PAID") {
-           fine.status = "PAID";
-           await fine.save();
-           
            try {
              const { SystemSetting } = await import("@/models/SystemSetting");
              await SystemSetting.findOneAndUpdate(

@@ -72,6 +72,21 @@ export async function POST(req: NextRequest) {
     });
 
     // 2. Trigger access-request on the general 'system' channel for popups & chimes
+    let amount = body.amount;
+    if (type === "FINE_PAYMENT" && (amount === undefined || amount === null)) {
+      try {
+        const { Fine } = await import("@/models/Fine");
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayFine = await Fine.findOne({ userId, createdAt: { $gte: today }, status: { $ne: "PAID" } });
+        if (todayFine) {
+          amount = todayFine.amount;
+        }
+      } catch (err) {
+        console.error("Error finding today's fine for payload:", err);
+      }
+    }
+
     const triggerPayload = {
       id: requestData.id,
       userId: user._id.toString(),
@@ -79,7 +94,7 @@ export async function POST(req: NextRequest) {
       username: user.username,
       type: type || 'ACCESS',
       reason: reason || "Xin phép truy cập hệ thống",
-      amount: body.amount,
+      amount: amount,
       createdAt: new Date()
     };
     console.log("Triggering Pusher access-request event to channel 'system' with payload:", triggerPayload);

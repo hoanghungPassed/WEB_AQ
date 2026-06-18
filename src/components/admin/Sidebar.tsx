@@ -107,22 +107,20 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
     });
   } else {
     dynamicMenuItems.push({
-      title: "Kho mail & SĐT",
+      title: "Kho mail & SDT",
       icon: <Inbox size={20} />,
       subItems: [
         { title: "Mail gốc", href: "/admin/mail/root" },
+        { title: "Mail vệ tinh", href: "/admin/mail/satellite" },
         { title: "Mail bật kiếm tiền", href: "/admin/mail/monetized" },
         { title: "Quản lý Lô", href: "/admin/mail/batches" },
         { title: "Lô SĐT", href: "/admin/phone/batches" },
       ],
     });
     dynamicMenuItems.push({
-      title: "Lô Mail Vệ Tinh",
+      title: "Quản lý phân lô",
       icon: <Layers size={20} />,
-      subItems: [
-        { title: "Danh sách", href: "/admin/mail/satellite" },
-        { title: "Lô mail", href: "/admin/mail/satellite-batches" },
-      ],
+      href: "/admin/mail/satellite-batches"
     });
   }
 

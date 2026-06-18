@@ -1436,91 +1436,41 @@ const typingTimer = setInterval(checkTyping, 1000);
     localStorage.setItem(`access_response_${request.staffName}`, "APPROVED");
     localStorage.setItem(`access_${getStableDateString()}_${request.staffName}`, "true");
 
+    try {
+      await fetch(`/api/admin/attendance/approve-access/${request.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || user?._id || "",
+          "x-user-role": user?.role || ""
+        },
+        body: JSON.stringify({
+          status: "APPROVED",
+          userId: request.userId,
+          type: request.type,
+          username: request.username,
+          staffName: request.staffName
+        })
+      });
+    } catch (err) {
+      console.error("Failed to approve access request:", err);
+    }
+
     if (request.type === "FINE_PAYMENT" || request.type === "LATE_EXCUSE") {
       const savedUsersStr = localStorage.getItem("global_users");
       const allUsers = savedUsersStr ? JSON.parse(savedUsersStr) : [];
-      const targetUser = allUsers.find(
-        (u: any) => u.username === request.username || u.name === request.staffName
-      );
-
-      if (targetUser) {
-        const userId = targetUser.id || targetUser._id;
-        const userUpdateData: any = { isLateLocked: false };
-        if (request.type === "FINE_PAYMENT") {
-          userUpdateData.finePaymentStatus = "APPROVED";
-        } else if (request.type === "LATE_EXCUSE") {
-          userUpdateData.lateExcuseStatus = "APPROVED";
-        }
-
-        try {
-          await fetch(`/api/admin/users/${userId}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              "x-user-id": user?.id || user?._id || "",
-              "x-user-role": user?.role || ""
-            },
-            body: JSON.stringify(userUpdateData)
-          });
-        } catch (err) {
-          console.error("Failed to update user database:", err);
-        }
-
-        try {
-          let targetFineId = request.fineId;
-          if (!targetFineId) {
-            const finesRes = await fetch("/api/admin/fines", {
-              headers: {
-                "x-user-id": user?.id || user?._id || "",
-                "x-user-role": user?.role || ""
-              }
-            });
-            if (finesRes.ok) {
-              const allFines = await finesRes.json();
-              const userFine = (allFines || []).find((f: any) => {
-                const fUserId = f.userId?._id || f.userId?.id || f.userId;
-                return (
-                  String(fUserId) === String(userId) &&
-                  (f.status === "UNPAID" || f.status === "PENDING_APPROVAL") &&
-                  (f.type === "LATE" || (f.reason && (f.reason.includes("Đi muộn") || f.reason.includes("đăng nhập ngoài giờ"))))
-                );
-              });
-              if (userFine) {
-                targetFineId = userFine._id || userFine.id;
-              }
+      const updatedUsers = (allUsers || []).map((u: any) =>
+        u.username === request.username || u.name === request.staffName
+          ? { 
+              ...u, 
+              isLateLocked: false, 
+              finePaymentStatus: request.type === "FINE_PAYMENT" ? "APPROVED" : u.finePaymentStatus,
+              lateExcuseStatus: request.type === "LATE_EXCUSE" ? "APPROVED" : u.lateExcuseStatus
             }
-          }
-
-          if (targetFineId) {
-            await fetch("/api/admin/fines", {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                "x-user-id": user?.id || user?._id || "",
-                "x-user-role": user?.role || ""
-              },
-              body: JSON.stringify({
-                id: targetFineId,
-                status: "PAID"
-              })
-            });
-          }
-        } catch (err) {
-          console.error("Failed to update fine database:", err);
-        }
-
-        const updatedUsers = (allUsers || []).map((u: any) =>
-          u.username === request.username || u.name === request.staffName
-            ? { 
-                ...u, 
-                isLateLocked: false, 
-                finePaymentStatus: request.type === "FINE_PAYMENT" ? "APPROVED" : u.finePaymentStatus,
-                lateExcuseStatus: request.type === "LATE_EXCUSE" ? "APPROVED" : u.lateExcuseStatus
-              }
-            : u
-        );
-        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
-      }
+          : u
+      );
+      localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+      window.dispatchEvent(new Event("storage"));
     }
 
     setAccessSuccessMsg(`Đã duyệt yêu cầu cho ${request.staffName}`);
@@ -1532,47 +1482,40 @@ const typingTimer = setInterval(checkTyping, 1000);
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
     localStorage.setItem(`access_response_${request.staffName}`, "DENIED");
 
+    try {
+      await fetch(`/api/admin/attendance/approve-access/${request.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || user?._id || "",
+          "x-user-role": user?.role || ""
+        },
+        body: JSON.stringify({
+          status: "DENIED",
+          userId: request.userId,
+          type: request.type,
+          username: request.username,
+          staffName: request.staffName
+        })
+      });
+    } catch (err) {
+      console.error("Failed to deny access request:", err);
+    }
+
     if (request.type === "FINE_PAYMENT" || request.type === "LATE_EXCUSE") {
       const savedUsersStr = localStorage.getItem("global_users");
       const allUsers = savedUsersStr ? JSON.parse(savedUsersStr) : [];
-      const targetUser = allUsers.find(
-        (u: any) => u.username === request.username || u.name === request.staffName
+      const updatedUsers = (allUsers || []).map((u: any) =>
+        u.username === request.username || u.name === request.staffName
+          ? { 
+              ...u, 
+              finePaymentStatus: request.type === "FINE_PAYMENT" ? "DENIED" : u.finePaymentStatus,
+              lateExcuseStatus: request.type === "LATE_EXCUSE" ? "DENIED" : u.lateExcuseStatus
+            }
+          : u
       );
-
-      if (targetUser) {
-        const userId = targetUser.id || targetUser._id;
-        const userUpdateData: any = {};
-        if (request.type === "FINE_PAYMENT") {
-          userUpdateData.finePaymentStatus = "DENIED";
-        } else if (request.type === "LATE_EXCUSE") {
-          userUpdateData.lateExcuseStatus = "DENIED";
-        }
-
-        try {
-          await fetch(`/api/admin/users/${userId}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              "x-user-id": user?.id || user?._id || "",
-              "x-user-role": user?.role || ""
-            },
-            body: JSON.stringify(userUpdateData)
-          });
-        } catch (err) {
-          console.error("Failed to deny user database update:", err);
-        }
-
-        const updatedUsers = (allUsers || []).map((u: any) =>
-          u.username === request.username || u.name === request.staffName
-            ? { 
-                ...u, 
-                finePaymentStatus: request.type === "FINE_PAYMENT" ? "DENIED" : u.finePaymentStatus,
-                lateExcuseStatus: request.type === "LATE_EXCUSE" ? "DENIED" : u.lateExcuseStatus
-              }
-            : u
-        );
-        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
-      }
+      localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+      window.dispatchEvent(new Event("storage"));
     }
   };
 
@@ -1695,8 +1638,8 @@ const typingTimer = setInterval(checkTyping, 1000);
  </AnimatePresence>
 
  {/* Manager Approval Notification */}
- {(user?.role ==="ADMIN" || user?.role ==="01" || user?.role ==="02" || String(user?.role).toUpperCase().includes("QUẢN LÝ")) && (pendingRequests || []).length > 0 && (() => {
-   const request = pendingRequests[0];
+  {(user?.role ==="ADMIN" || user?.role ==="01" || user?.role ==="02" || user?.role ==="03" || String(user?.role).toUpperCase().includes("QUẢN LÝ")) && (pendingRequests || []).length > 0 && (() => {
+    const request = pendingRequests[0];
    const isLateRequest = request?.type === "FINE_PAYMENT" || request?.type === "LATE_EXCUSE";
    return (
      <div className="fixed bottom-10 right-10 z-50">

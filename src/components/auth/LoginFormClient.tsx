@@ -128,7 +128,7 @@ export default function LoginFormClient() {
                 >
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-foreground-secondary uppercase tracking-widest ml-1">Tài khoản</label>
-                    <div className="flex items-center w-full bg-background border border-border focus-within:border-gold focus-within:ring-1 focus-within:ring-gold rounded-md h-14 transition-all group">
+                    <div className="flex items-center w-full bg-background-secondary border border-border focus-within:border-gold focus-within:ring-1 focus-within:ring-gold rounded-md h-14 transition-all group">
                       <User className="ml-4 text-foreground-secondary group-focus-within:text-gold transition-colors shrink-0" size={18} />
                       <input 
                         type="text" 
@@ -136,7 +136,7 @@ export default function LoginFormClient() {
                         value={username} 
                         onChange={(e) => setUsername(e.target.value)} 
                         placeholder="Username" 
-                        className="flex-1 bg-transparent border-none outline-none text-white h-full px-3 placeholder-zinc-600"
+                        className="flex-1 bg-transparent border-none outline-none text-foreground h-full px-3 placeholder-foreground-secondary/40"
                         disabled={isLoading}
                       />
                     </div>
@@ -147,7 +147,7 @@ export default function LoginFormClient() {
                       <label className="text-[10px] font-black text-foreground-secondary uppercase tracking-widest">Mật khẩu</label>
                       <Link href="/forgot-password" className="text-[8px] font-black text-gold hover:underline uppercase tracking-widest transition-all">Quên mật khẩu?</Link>
                     </div>
-                    <div className="flex items-center w-full bg-background border border-border focus-within:border-gold focus-within:ring-1 focus-within:ring-gold rounded-md h-14 transition-all group relative">
+                    <div className="flex items-center w-full bg-background-secondary border border-border focus-within:border-gold focus-within:ring-1 focus-within:ring-gold rounded-md h-14 transition-all group relative">
                       <Lock className="ml-4 text-foreground-secondary group-focus-within:text-gold transition-colors shrink-0" size={18} />
                       <input 
                         type={showPassword ? "text" : "password"} 
@@ -155,13 +155,13 @@ export default function LoginFormClient() {
                         value={password} 
                         onChange={(e) => setPassword(e.target.value)} 
                         placeholder="••••••••" 
-                        className="flex-1 bg-transparent border-none outline-none text-white h-full pl-3 pr-12 placeholder-zinc-600"
+                        className="flex-1 bg-transparent border-none outline-none text-foreground h-full pl-3 pr-12 placeholder-foreground-secondary/40"
                         disabled={isLoading}
                       />
                       <button 
                         type="button" 
                         onClick={() => setShowPassword(!showPassword)} 
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground-secondary hover:text-white transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground-secondary hover:text-foreground transition-colors"
                         tabIndex={-1}
                       >
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -185,14 +185,14 @@ export default function LoginFormClient() {
                     value={totpCode} 
                     onChange={(e) => setTotpCode(e.target.value)} 
                     placeholder="000000" 
-                    className="w-full h-16 text-2xl font-black text-gold text-center tracking-[0.5em] focus:border-gold focus:ring-1 focus:ring-gold outline-none bg-background border border-border rounded-xl transition-all"
+                    className="w-full h-16 text-2xl font-black text-gold text-center tracking-[0.5em] focus:border-gold focus:ring-1 focus:ring-gold outline-none bg-background-secondary border border-border rounded-md transition-all"
                     disabled={isLoading}
                     autoFocus
                   />
                   <button 
                     type="button" 
                     onClick={() => setRequire2FA(false)} 
-                    className="text-[10px] font-black text-foreground-secondary hover:text-white uppercase mx-auto block mt-4 transition-all"
+                    className="text-[10px] font-black text-foreground-secondary hover:text-foreground uppercase mx-auto block mt-4 transition-all"
                   >
                     ← Quay lại
                   </button>
