@@ -54,12 +54,12 @@ export async function GET(req: NextRequest) {
 
     // Batch filter
     if (batch && batch !== "ALL") {
-      query.$or = [{ batchId: batch }, { batchName: batch }];
+      query.$or = [{ batch: batch }, { batchId: batch }, { batchName: batch }];
     }
 
     const batchId = searchParams.get("batchId");
     if (batchId && batchId !== "ALL") {
-      query.$or = [{ batchId: batchId }, { batchName: batchId }];
+      query.$or = [{ batch: batchId }, { batchId: batchId }, { batchName: batchId }];
     }
 
     // Unassigned filter
@@ -363,8 +363,11 @@ export async function DELETE(req: NextRequest) {
   }
 
   const query: any = {};
-  if (batchId) query.batchId = batchId;
-  else if (batchName) query.batchName = batchName;
+  if (batchId) {
+    query.$or = [{ batchId }, { batch: batchId }];
+  } else if (batchName) {
+    query.$or = [{ batchName }, { batch: batchName }];
+  }
 
   // Phase 2: Integrity Check - Prevent deletion if tasks are pending
   const activeTask = await (await import("@/models/Task")).Task.findOne({

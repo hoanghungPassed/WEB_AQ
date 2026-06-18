@@ -547,37 +547,91 @@ export default function AdminLayoutClient({
  }
  };
 
- const checkNewNotifications = () => {
- const activeUserStr = getActiveUserStr();
- if (!activeUserStr) return;
- const currentUser = JSON.parse(activeUserStr);
+  const checkNewNotifications = () => {
+    const activeUserStr = getActiveUserStr();
+    if (!activeUserStr) return;
+    const currentUser = JSON.parse(activeUserStr);
 
- const allNotifs = JSON.parse(localStorage.getItem("admin_notifications") ||"[]");
- const myNotifs = (allNotifs || []).filter((n: any) => n.targetUsername === currentUser?.username);
+    const allNotifs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
+    const myNotifs = (allNotifs || []).filter((n: any) => n.targetUsername === currentUser?.username);
 
- if (!isNotifInitializedRef.current) {
- lastNotifCountRef.current = (myNotifs || []).length;
- isNotifInitializedRef.current = true;
- return;
- }
+    if (!isNotifInitializedRef.current) {
+      lastNotifCountRef.current = (myNotifs || []).length;
+      isNotifInitializedRef.current = true;
+    } else if ((myNotifs || []).length > lastNotifCountRef.current) {
+      const latest = myNotifs[0];
+      setRoleUpdateNotif({ title: latest.title, message: latest.message });
+      setTimeout(() => setRoleUpdateNotif(null), 5000);
+    }
+    lastNotifCountRef.current = (myNotifs || []).length;
 
- if ((myNotifs || []).length > lastNotifCountRef.current) {
- const latest = myNotifs[0];
- setRoleUpdateNotif({ title: latest.title, message: latest.message });
- setTimeout(() => setRoleUpdateNotif(null), 5000);
- }
-  lastNotifCountRef.current = (myNotifs || []).length;
+    const isAuthorized = currentUser?.role === "ADMIN" || currentUser?.role === "01" || currentUser?.role === "02" || currentUser?.role === "03" || String(currentUser?.role).toUpperCase().includes("QUẢN LÝ");
+    if (isAuthorized) {
+      // 1. Sync from local storage first for immediate UI responsiveness
+      const savedRequests = localStorage.getItem("pending_access_requests");
+      if (savedRequests) {
+        try {
+          setPendingRequests(JSON.parse(savedRequests));
+        } catch (e) {}
+      }
 
-  const isAuthorized = currentUser?.role ==="ADMIN" || currentUser?.role ==="01" || currentUser?.role ==="02" || currentUser?.role ==="03" || String(currentUser?.role).toUpperCase().includes("QUẢN LÝ");
-  if (isAuthorized) {
- const savedRequests = localStorage.getItem("pending_access_requests");
- if (savedRequests) {
- setPendingRequests(JSON.parse(savedRequests));
- }
- } else {
- setPendingRequests([]);
- }
- };
+      // 2. Fetch from DB for robust ground-truth synchronization
+      fetch("/api/admin/notifications?type=SYSTEM", {
+        headers: {
+          "x-user-id": currentUser.id || currentUser._id || ""
+        }
+      })
+        .then(res => {
+          if (!res.ok) throw new Error("Fetch failed");
+          return res.json();
+        })
+        .then(data => {
+          const dbNotifs = Array.isArray(data) ? data : (data?.data || []);
+          
+          const mappedRequests = dbNotifs
+            .filter((n: any) => n.type === "ACCESS_REQUEST" && !n.isRead)
+            .map((n: any) => {
+              const author = n.author || {};
+              const messageParts = (n.message || "").split(": ");
+              const reason = messageParts.slice(1).join(": ") || "Xin phép truy cập hệ thống";
+              
+              let subType = "ACCESS";
+              if (n.title === "Báo cáo nộp phạt") {
+                subType = "FINE_PAYMENT";
+              } else if (n.title === "Giải trình đi muộn") {
+                subType = "LATE_EXCUSE";
+              }
+              
+              return {
+                id: n._id?.toString() || n.id,
+                userId: author._id?.toString() || author.id || n.recipientId || "",
+                staffName: author.name || "Nhân viên",
+                username: author.username || "",
+                time: new Date(n.createdAt).toLocaleTimeString("vi-VN"),
+                reason: reason,
+                type: subType,
+                status: "PENDING"
+              };
+            });
+
+          // Check if there are new requests to play the chime sound
+          setPendingRequests(prev => {
+            const hasNew = mappedRequests.some((newReq: any) => 
+              !prev.some((oldReq: any) => oldReq.id === newReq.id)
+            );
+            if (hasNew) {
+              playChatChime();
+            }
+            return mappedRequests;
+          });
+
+          localStorage.setItem("pending_access_requests", JSON.stringify(mappedRequests));
+        })
+        .catch(err => console.error("Error syncing pending access requests from DB:", err));
+    } else {
+      setPendingRequests([]);
+    }
+  };
 
  const calculateWorkedHours = (checkInISO: string, checkOutISO: string, startTimeStr: string, endTimeStr: string) => {
  const dIn = new Date(checkInISO);

@@ -1,0 +1,44 @@
+Query 'interface BatchItem {':
+  Line: 'interface BatchItem {'
+  Next lines: [' id: string;', ' name: string;', ' type:"ROOT" |"SATELLITE" |"MONETIZED";']
+
+Query 'const loadBatches = async () =>':
+  Line: ' const loadBatches = async () => {'
+  Next lines: [' try {', ' const res = await fetch("/api/admin/mails");', ' const data = await res.json();']
+
+Query 'if (showAssignModal) {':
+  Line: ' if (showAssignModal) {'
+  Next lines: [' fetch("/api/admin/mails").then(res => res.json()).then(data => {', ' if (data.success) setAllMailsForPreview(data.data || []);', ' }).catch(console.error);']
+
+Query 'const assignmentPreview = useMemo':
+  Line: ' const assignmentPreview = useMemo(() => {'
+  Next lines: [' if (!showAssignModal) return null;', ' const satelliteMails = allMailsForPreview.filter((m: any) => m.type ==="SATELLITE");', ' ']
+
+Query 'const handleAssignBatch = async () =>':
+  Line: ' const handleAssignBatch = async () => {'
+  Next lines: [' if (!selectedStaffForAssign) {', ' triggerToast("Vui lòng chọn nhân viên nhận việc trước!");', ' return;']
+
+Query 'if (!selectedBatchForDetail) return;':
+  Line: ' if (!selectedBatchForDetail) return;'
+  Next lines: [' const loadDetailMails = async () => {', ' try {', ' const res = await fetch("/api/admin/mails");']
+
+Query 'const handleConfirmDelete = async () =>':
+  Line: ' const handleConfirmDelete = async () => {'
+  Next lines: [' if (!batchToDelete) return;', '', ' try {']
+
+Query '{/* Dynamic Graphic Counter */}':
+  Line: ' {/* Dynamic Graphic Counter */}'
+  Next lines: [' <div className="flex items-baseline gap-1.5 my-3 bg-black/10 rounded-xl p-3 border border-white/0">', ' <span className="text-3xl font-black text-gold tracking-tighter leading-none">{batch.mailCount}</span>', ' <span className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Tài khoản Mail</span>']
+
+Query '<th className="py-3 px-4 font-black':
+  Line: ' <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px]">STT</th>'
+  Next lines: [' <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px]">Email</th>', ' <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px]">Recovery (KP)</th>', ' <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px]">Pass</th>']
+
+Query 'mail.otpLink ? (':
+  Line: ' {mail.otpLink ? ('
+  Next lines: [' <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Link OTP</a>', ' ) : <span className="">---</span>}', ' </td>']
+
+Query 'detailMails || []).length === 0':
+  Line: ' {(detailMails || []).length === 0 && ('
+  Next lines: [' <tr>', ' <td colSpan={9} className="py-10 text-center font-bold uppercase tracking-widest">Không có mail nào trong lô này</td>', ' </tr>']
+

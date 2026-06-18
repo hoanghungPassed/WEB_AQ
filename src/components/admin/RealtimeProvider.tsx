@@ -36,8 +36,17 @@ export default function RealtimeProvider({
     if (!user) return;
 
     // Initialize Pusher Client
+    console.log("[Pusher] Initializing client key:", process.env.NEXT_PUBLIC_PUSHER_KEY, "cluster:", process.env.NEXT_PUBLIC_PUSHER_CLUSTER);
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || "", {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "ap1",
+    });
+
+    pusher.connection.bind("state_change", (states: any) => {
+      console.log(`[Pusher Connection State Change]: ${states.previous} -> ${states.current}`);
+    });
+
+    pusher.connection.bind("error", (err: any) => {
+      console.error("[Pusher Connection Error]:", err);
     });
 
     // 1. Subscribe to Company Chat
@@ -217,17 +226,19 @@ export default function RealtimeProvider({
 
     // Phase 3: Bind access-request event
     systemChannel.bind("access-request", (data: any) => {
+      console.log("[Pusher Event] Received access-request on 'system' channel. Payload:", data);
       const roleUpper = String(user?.role || "").toUpperCase();
       const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "03" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC" || roleUpper.includes("QUẢN LÝ");
+      console.log("[Pusher Event] Checking auth for event notification. Role:", roleUpper, "isAdminOrManager:", isAdminOrManager);
       
       if (isAdminOrManager) {
         const newRequest = {
           id: data.id || data.notificationId || String(Date.now()),
-          userId: data.userId,
-          staffName: data.name,
+          userId: data.userId || data.id || "",
+          staffName: data.name || "Nhân viên",
           username: data.username || "",
           time: new Date(data.createdAt || Date.now()).toLocaleTimeString("vi-VN"),
-          reason: data.reason,
+          reason: data.reason || "Xin phép truy cập hệ thống",
           type: data.type || "ACCESS",
           status: "PENDING"
         };
@@ -247,7 +258,14 @@ export default function RealtimeProvider({
           if (!currentRequests.some((r: any) => r.id === newRequest.id || (r.userId === newRequest.userId && r.type === newRequest.type && r.status === "PENDING"))) {
             const updatedRequests = [...currentRequests, newRequest];
             localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
-            window.dispatchEvent(new Event("storage"));
+            
+            // Dispatch standard StorageEvent so that storage event listeners in other layout components are fired
+            const storageEvent = new StorageEvent("storage", {
+              key: "pending_access_requests",
+              newValue: JSON.stringify(updatedRequests),
+              storageArea: localStorage
+            });
+            window.dispatchEvent(storageEvent);
           }
         } catch (e) {}
 

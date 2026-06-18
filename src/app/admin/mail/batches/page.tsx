@@ -27,6 +27,8 @@ interface BatchItem {
  mailCount: number;
  importedBy: string;
  assignedTo?: string;
+ assignedCount?: number;
+ unassignedCount?: number;
 }
 
 export default function BatchesManagementPage() {
@@ -53,48 +55,52 @@ export default function BatchesManagementPage() {
  const [selectedBatchNameForAssign, setSelectedBatchNameForAssign] = useState("Lô 1");
  const [staffList, setStaffList] = useState<any[]>([]);
 
- useEffect(() => {
- // Authenticate Roles
- const storedUser = sessionStorage.getItem("user");
- if (storedUser) {
- const parsedUser = JSON.parse(storedUser);
- setUser(parsedUser);
- const role = String(parsedUser.role ||"").toUpperCase();
- if (role !=="01" && role !=="02" && role !=="ADMIN" && role !=="QUẢN LÝ CÔNG VIỆC" && role !=="QL CÔNG VIỆC") {
- window.location.href ="/admin";
- }
- } else {
- window.location.href ="/login";
- }
-
  const loadBatches = async () => {
  try {
- const res = await fetch("/api/admin/mails");
+ const res = await fetch("/api/admin/mails?limit=10000");
  const data = await res.json();
  const mails = data.success && data.data ? data.data : [];
 
- const batchesMap: Record<string, BatchItem> = {};
+ const batchesMap: Record<string, { item: BatchItem; assignees: Set<string>; assignedCount: number; unassignedCount: number }> = {};
  mails.forEach((m: any) => {
- if (m.batchName) {
- const key = m.batchId || `${m.type}-${m.batchName}`;
+ const originalBatchName = m.batch || m.batchName;
+ if (originalBatchName) {
+ const key = `${m.type}-${originalBatchName}`;
  if (!batchesMap[key]) {
  batchesMap[key] = {
- id: m.batchId || `batch-seed-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
- name: m.batchName,
+ item: {
+ id: key,
+ name: originalBatchName,
  type: m.type as any,
  importedAt: m.createdAt || new Date().toISOString().split("T")[0],
  mailCount: 0,
- importedBy: m.importedBy || m.updatedBy ||"Admin",
- assignedTo: m.assignedTo ||"Chưa phân công"
+ importedBy: m.importedBy || m.updatedBy || "Admin",
+ assignedTo: "Chưa phân công"
+ },
+ assignees: new Set<string>(),
+ assignedCount: 0,
+ unassignedCount: 0
  };
  }
- batchesMap[key].mailCount++;
- if (m.assignedTo && batchesMap[key].assignedTo ==="Chưa phân công") {
- batchesMap[key].assignedTo = m.assignedTo;
+ batchesMap[key].item.mailCount++;
+ if (m.assignedTo) {
+ batchesMap[key].assignees.add(m.assignedTo);
+ batchesMap[key].assignedCount++;
+ } else {
+ batchesMap[key].unassignedCount++;
  }
  }
  });
- const derivedBatches = Object.values(batchesMap);
+ const derivedBatches = Object.values(batchesMap).map(({ item, assignees, assignedCount, unassignedCount }) => {
+ if (assignees.size > 0) {
+ item.assignedTo = Array.from(assignees).join(", ");
+ } else {
+ item.assignedTo = "Chưa phân công";
+ }
+ item.assignedCount = assignedCount;
+ item.unassignedCount = unassignedCount;
+ return item;
+ });
  setBatches(derivedBatches);
 
  const userRes = await fetch("/api/admin/users");
@@ -109,6 +115,20 @@ export default function BatchesManagementPage() {
  }
  };
 
+ useEffect(() => {
+ // Authenticate Roles
+ const storedUser = sessionStorage.getItem("user");
+ if (storedUser) {
+ const parsedUser = JSON.parse(storedUser);
+ setUser(parsedUser);
+ const role = String(parsedUser.role ||"").toUpperCase();
+ if (role !=="01" && role !=="02" && role !=="ADMIN" && role !=="QUẢN LÝ CÔNG VIỆC" && role !=="QL CÔNG VIỆC") {
+ window.location.href ="/admin";
+ }
+ } else {
+ window.location.href ="/login";
+ }
+
  loadBatches();
  }, []);
 
@@ -116,7 +136,7 @@ export default function BatchesManagementPage() {
 
  useEffect(() => {
  if (showAssignModal) {
- fetch("/api/admin/mails").then(res => res.json()).then(data => {
+ fetch("/api/admin/mails?limit=10000").then(res => res.json()).then(data => {
  if (data.success) setAllMailsForPreview(data.data || []);
  }).catch(console.error);
  }
@@ -124,7 +144,7 @@ export default function BatchesManagementPage() {
 
  const assignmentPreview = useMemo(() => {
  if (!showAssignModal) return null;
- const satelliteMails = allMailsForPreview.filter((m: any) => m.type ==="SATELLITE");
+ const satelliteMails = allMailsForPreview.filter((m: any) => m.type === "SATELLITE");
  
  // Find first block of 17 unassigned mails
  const unassigned = (satelliteMails || []).filter((m: any) => !m.assigneeId);
@@ -134,20 +154,20 @@ export default function BatchesManagementPage() {
  if ((range || []).length === 0) {
  return {
  mailsToAssign: [],
- displayText:"Kho mail vệ tinh không còn mail nào trống!",
+ displayText: "Kho mail vệ tinh không còn mail nào trống!",
  count: 0
  };
  }
  
- const firstSTT = range[0].id - 1000;
- const lastSTT = range[(range || []).length - 1].id - 1000;
+ const firstSTT = range[0].stt || range[0].id || range[0]._id || 0;
+ const lastSTT = range[(range || []).length - 1].stt || range[(range || []).length - 1].id || range[(range || []).length - 1]._id || 0;
  
  return {
  mailsToAssign: range,
- displayText: `Chọn mail: ${(range || []).length} mail (${firstSTT} đến ${lastSTT})`,
+ displayText: `Chọn mail: ${(range || []).length} mail (STT ${firstSTT} đến ${lastSTT})`,
  count: (range || []).length
  };
- }, [showAssignModal, batches]);
+ }, [showAssignModal, allMailsForPreview]);
 
  const handleAssignBatch = async () => {
  if (!selectedStaffForAssign) {
@@ -165,8 +185,7 @@ export default function BatchesManagementPage() {
  return;
  }
  
- const targetIds = Array.from(new Set((assignmentPreview.mailsToAssign || []).map((m: any) => m.id)));
- const now = new Date().toISOString();
+ const targetIds = Array.from(new Set((assignmentPreview.mailsToAssign || []).map((m: any) => m._id || m.id)));
  
  // Call batch update API
  try {
@@ -180,7 +199,7 @@ export default function BatchesManagementPage() {
  assignedTo: staff.name,
  batchName: selectedBatchNameForAssign,
  batchId: `batch-${selectedBatchNameForAssign.replace(/\s+/g, '-').toLowerCase()}`,
- updatedBy: user?.name ||"Admin"
+ updatedBy: user?.name || "Admin"
  }
  })
  });
@@ -188,6 +207,7 @@ export default function BatchesManagementPage() {
  if (res.ok) {
  setShowAssignModal(false);
  triggerToast(`Gán thành công ${assignmentPreview.count} mail cho ${staff.name}!`);
+ loadBatches(); // Refresh UI state immediately!
  } else {
  const errData = await res.json().catch(() => ({}));
  triggerToast(errData.error ||"Gán thất bại");
@@ -217,14 +237,13 @@ export default function BatchesManagementPage() {
  if (!selectedBatchForDetail) return;
  const loadDetailMails = async () => {
  try {
- const res = await fetch("/api/admin/mails");
+ const res = await fetch(`/api/admin/mails?batch=${encodeURIComponent(selectedBatchForDetail.name)}&limit=10000`);
  const data = await res.json();
- const mails = data.success && data.data ? data.data : [];
- const filtered = mails.filter((m: any) => m.batchId === selectedBatchForDetail.id || m.batchName === selectedBatchForDetail.name);
+ const filtered = data.success && data.data ? data.data : [];
  // Sort by STT
  filtered.sort((a: any, b: any) => {
- const aStt = a.stt || a.id || 0;
- const bStt = b.stt || b.id || 0;
+ const aStt = a.stt || 0;
+ const bStt = b.stt || 0;
  return aStt - bStt;
  });
  setDetailMails(filtered);
@@ -248,7 +267,7 @@ export default function BatchesManagementPage() {
 
  try {
  const queryParams = new URLSearchParams();
- if (batchToDelete.id && !batchToDelete.id.startsWith("batch-seed-")) {
+ if (batchToDelete.id && !batchToDelete.id.startsWith("batch-seed-") && !batchToDelete.id.includes("-")) {
  queryParams.append("batchId", batchToDelete.id);
  } else {
  queryParams.append("batchName", batchToDelete.name);
@@ -500,9 +519,15 @@ export default function BatchesManagementPage() {
  </h3>
 
  {/* Dynamic Graphic Counter */}
- <div className="flex items-baseline gap-1.5 my-3 bg-black/10 rounded-xl p-3 border border-white/0">
+ <div className="flex flex-col gap-2 my-3 bg-black/10 rounded-xl p-3 border border-white/0">
+ <div className="flex items-baseline gap-1.5">
  <span className="text-3xl font-black text-gold tracking-tighter leading-none">{batch.mailCount}</span>
- <span className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Tài khoản Mail</span>
+ <span className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Tổng số Mail</span>
+ </div>
+ <div className="flex justify-between items-center text-[10px] text-gray-400 font-bold border-t border-white/5 pt-2">
+ <span className="text-green-400">Đã giao: {batch.assignedCount || 0}</span>
+ <span className="text-yellow-500">Tồn kho: {batch.unassignedCount || 0}</span>
+ </div>
  </div>
  </div>
 
@@ -622,6 +647,7 @@ export default function BatchesManagementPage() {
  <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px]">2FA</th>
  <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px]">SĐT</th>
  <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px]">Link OTP</th>
+ <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px] text-center">Người nhận / Lô gán</th>
  <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px] text-center">Hệ thống</th>
  <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px] text-center">Công việc</th>
  </tr>
@@ -649,6 +675,9 @@ export default function BatchesManagementPage() {
  <a href={mail.otpLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Link OTP</a>
  ) : <span className="">---</span>}
  </td>
+ <td className="py-3 px-4 text-center text-xs font-bold text-gray-400">
+ {mail.assignedTo ? `${mail.assignedTo} (${mail.batchName || 'Không rõ'})` : 'Chưa phân công'}
+ </td>
  <td className="py-3 px-4 text-center">
  <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${mail.status ==="LIVE" ?"bg-green-500/10 text-green-500 border border-green-500/20" :"bg-red-500/10 text-red-500 border border-red-500/20"}`}>
  {mail.status ||"LIVE"}
@@ -664,7 +693,7 @@ export default function BatchesManagementPage() {
  })}
  {(detailMails || []).length === 0 && (
  <tr>
- <td colSpan={9} className="py-10 text-center font-bold uppercase tracking-widest">Không có mail nào trong lô này</td>
+ <td colSpan={10} className="py-10 text-center font-bold uppercase tracking-widest">Không có mail nào trong lô này</td>
  </tr>
  )}
  </tbody>
