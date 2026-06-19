@@ -237,6 +237,11 @@ export default function RealtimeProvider({
         playChatChime();
         mutate((key: any) => typeof key === "string" && key.includes("/api/admin/fines"));
         mutate("/api/admin/stats");
+
+        // Dispatch CustomEvent so HeaderNotifications can update bell without duplicate Pusher
+        try {
+          window.dispatchEvent(new CustomEvent("pusher-new-fine", { detail: data }));
+        } catch (e) {}
       });
 
       systemChannel.bind("task-list-updated", (data: any) => {
@@ -296,9 +301,25 @@ export default function RealtimeProvider({
             }
           } catch (e) {}
 
+          // Dispatch CustomEvent so HeaderNotifications can update bell without duplicate Pusher
+          try {
+            window.dispatchEvent(new CustomEvent("pusher-access-request", { detail: data }));
+          } catch (e) {}
+
           // Play sound chime
           playChatChime();
         }
+      });
+
+      // Phase 5: Bind register-request event and dispatch to HeaderNotifications
+      systemChannel.bind("register-request", (data: any) => {
+        console.log("[Pusher system] Received register-request event:", data);
+        playChatChime();
+
+        // Dispatch CustomEvent so HeaderNotifications can show registration modal
+        try {
+          window.dispatchEvent(new CustomEvent("pusher-register-request", { detail: data }));
+        } catch (e) {}
       });
     }
 

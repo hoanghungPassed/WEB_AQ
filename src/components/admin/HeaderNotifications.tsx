@@ -63,12 +63,20 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
     return () => window.removeEventListener("storage", loadLocalNotifs);
   }, [loadLocalNotifs]);
 
+  // Single Pusher instance ONLY for system-notifications channel (bell counter)
+  // The 'system' channel is already handled by RealtimeProvider - NO DUPLICATE
   useEffect(() => {
     if (!user) return;
+
+    const roleUpper = String(user?.role || "").toUpperCase();
+    const isAuthorizedManager = ["01", "02", "03", "ADMIN"].some(r => roleUpper.includes(r));
+    if (!isAuthorizedManager) return; // Only managers/admins get real-time notifications
+
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || "", {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "ap1",
     });
 
+    // ONLY subscribe to system-notifications for the bell counter
     const notifChannel = pusher.subscribe("system-notifications");
     notifChannel.bind("new-notification", (notif: any) => {
       console.log("[Pusher HeaderNotifications] Received new-notification:", notif);
@@ -95,29 +103,23 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
       mutate('/api/admin/notifications?type=SYSTEM');
     });
 
-    const systemChannel = pusher.subscribe("system");
+    return () => {
+      pusher.unsubscribe("system-notifications");
+      pusher.disconnect();
+    };
+  }, [user]);
 
-    // Bind new-fine event to show warning notification
-    systemChannel.bind("new-fine", (data: any) => {
-      console.log("[Pusher HeaderNotifications] Received new-fine:", data);
-      const newNotif = {
-        id: `fine-${Date.now()}`,
-        title: "Thông báo xử phạt",
-        message: `Nhân viên bị phạt ${data.amount ? data.amount.toLocaleString("vi-VN") : "50.000"}đ lý do: ${data.reason}`,
-        time: new Date().toLocaleTimeString("vi-VN"),
-        type: "WARNING",
-        read: false,
-        data: data
-      };
-      setNotifications(prev => [newNotif, ...prev]);
-      const audio = new Audio('/notification.mp3');
-      audio.play().catch(() => {});
-    });
-    
-    // Bind access-request event to pop up modal immediately
-    systemChannel.bind("access-request", (data: any) => {
-      console.log("[Pusher HeaderNotifications] Received access-request:", data);
-      
+  // Listen for custom DOM events dispatched by RealtimeProvider (no duplicate Pusher)
+  useEffect(() => {
+    const roleUpper = String(user?.role || "").toUpperCase();
+    const isAuthorizedManager = ["01", "02", "03", "ADMIN"].some(r => roleUpper.includes(r));
+    if (!isAuthorizedManager) return;
+
+    // Handle access-request events from RealtimeProvider
+    const handleAccessRequest = (e: Event) => {
+      const data = (e as CustomEvent).detail;
+      console.log("[HeaderNotifications] Received access-request via CustomEvent:", data);
+
       const reqId = data.id || data.notificationId || String(Date.now());
       const title = data.type === "FINE_PAYMENT" 
         ? "Báo cáo nộp phạt" 
@@ -156,12 +158,31 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
 
       const audio = new Audio('/notification.mp3');
       audio.play().catch(() => {});
-    });
+    };
 
-    // Bind register-request event to pop up registration modal immediately
-    systemChannel.bind("register-request", (data: any) => {
-      console.log("[Pusher HeaderNotifications] Received register-request:", data);
-      
+    // Handle new-fine events from RealtimeProvider
+    const handleNewFine = (e: Event) => {
+      const data = (e as CustomEvent).detail;
+      console.log("[HeaderNotifications] Received new-fine via CustomEvent:", data);
+      const newNotif = {
+        id: `fine-${Date.now()}`,
+        title: "Thông báo xử phạt",
+        message: `Nhân viên bị phạt ${data.amount ? data.amount.toLocaleString("vi-VN") : "50.000"}đ lý do: ${data.reason}`,
+        time: new Date().toLocaleTimeString("vi-VN"),
+        type: "WARNING",
+        read: false,
+        data: data
+      };
+      setNotifications(prev => [newNotif, ...prev]);
+      const audio = new Audio('/notification.mp3');
+      audio.play().catch(() => {});
+    };
+
+    // Handle register-request events from RealtimeProvider
+    const handleRegisterRequest = (e: Event) => {
+      const data = (e as CustomEvent).detail;
+      console.log("[HeaderNotifications] Received register-request via CustomEvent:", data);
+
       const newNotif = {
         id: data.id || String(Date.now()),
         title: "Yêu cầu đăng ký mới",
@@ -186,14 +207,18 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
 
       const audio = new Audio('/notification.mp3');
       audio.play().catch(() => {});
-    });
+    };
+
+    window.addEventListener("pusher-access-request", handleAccessRequest);
+    window.addEventListener("pusher-new-fine", handleNewFine);
+    window.addEventListener("pusher-register-request", handleRegisterRequest);
 
     return () => {
-      pusher.unsubscribe("system-notifications");
-      pusher.unsubscribe("system");
-      pusher.disconnect();
+      window.removeEventListener("pusher-access-request", handleAccessRequest);
+      window.removeEventListener("pusher-new-fine", handleNewFine);
+      window.removeEventListener("pusher-register-request", handleRegisterRequest);
     };
-  }, [user]);
+  }, [user, onOpenAccessModal]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
