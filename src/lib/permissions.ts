@@ -14,7 +14,15 @@ export async function checkPermission(
   requiredLevel: number,
   requiredAccess: string[]
 ): Promise<boolean> {
-  const roleInfo = ROLE_HIERARCHY[userRole as keyof typeof ROLE_HIERARCHY];
+  let mappedRole = userRole;
+  const upper = String(userRole || "").toUpperCase();
+  if (upper === "ADMIN") mappedRole = "01";
+  else if (upper.includes("CÔNG VIỆC") || upper === "QLCV") mappedRole = "02";
+  else if (upper.includes("NHÂN SỰ") || upper === "QLNS") mappedRole = "03";
+  else if (upper === "NHÂN VIÊN" || upper === "NHÂN VIÊN CHÍNH THỨC") mappedRole = "04";
+  else if (upper === "NV THỬ VIỆC" || upper === "NHÂN VIÊN THỬ VIỆC") mappedRole = "05";
+
+  const roleInfo = ROLE_HIERARCHY[mappedRole as keyof typeof ROLE_HIERARCHY];
   
   if (!roleInfo) return false;
   if (roleInfo.level < requiredLevel) return false;

@@ -161,7 +161,7 @@ export default function AdminLayoutClient({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-id': user?.id || user?._id || ''
+            'x-user-id': user?.id || user?._id || (user as any)?.userId || ''
           },
           body: JSON.stringify({ partnerId })
         });
@@ -374,7 +374,7 @@ export default function AdminLayoutClient({
         try {
           const finesRes = await fetch('/api/admin/fines', {
             headers: {
-              'x-user-id': currentUser?.id || currentUser?._id || '',
+              'x-user-id': currentUser?.id || currentUser?._id || (currentUser as any)?.userId || '',
               'x-user-role': currentUser?.role || ''
             }
           }).then(r => r.json());
@@ -467,7 +467,7 @@ export default function AdminLayoutClient({
    method: "PUT",
    headers: { 
      "Content-Type": "application/json",
-     "x-user-id": user?.id || user?._id || ""
+     "x-user-id": user?.id || user?._id || (user as any)?.userId || ""
    },
    body: JSON.stringify({ id: phoneId, status: newStatus }),
  }).catch(() => {});
@@ -580,7 +580,7 @@ export default function AdminLayoutClient({
       // 2. Fetch from DB for robust ground-truth synchronization
       fetch("/api/admin/notifications?type=SYSTEM", {
         headers: {
-          "x-user-id": currentUser.id || currentUser._id || ""
+          "x-user-id": currentUser.id || currentUser._id || currentUser.userId || ""
         }
       })
         .then(res => {
@@ -904,7 +904,7 @@ const totalWorkingMins = overlap1 + overlap2;
    try {
      // Fetch Company Chat
      const compRes = await fetch("/api/messages?isCompanyChat=true", {
-       headers: { "x-user-id": user.id || user._id || "" }
+       headers: { "x-user-id": user.id || user._id || (user as any).userId || "" }
      });
      if (compRes.ok) {
        const compData = await compRes.json();
@@ -915,7 +915,7 @@ const totalWorkingMins = overlap1 + overlap2;
      // but for now let's just fetch if there's an active chat user)
      if (activeChatUser) {
        const privRes = await fetch(`/api/messages?partnerId=${activeChatUser.id || activeChatUser._id}`, {
-         headers: { "x-user-id": user.id || user._id || "" }
+         headers: { "x-user-id": user.id || user._id || (user as any).userId || "" }
        });
        if (privRes.ok) {
          const privData = await privRes.json();
@@ -1199,7 +1199,7 @@ const typingTimer = setInterval(checkTyping, 1000);
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
-            "x-user-id": user?.id || user?._id || ""
+            "x-user-id": user?.id || user?._id || (user as any)?.userId || ""
           },
           body: JSON.stringify({ partnerId })
         }).then(() => {
@@ -1333,7 +1333,7 @@ const typingTimer = setInterval(checkTyping, 1000);
    method: "POST",
    headers: {
      "Content-Type": "application/json",
-     "x-user-id": user?.id || user?._id || ""
+     "x-user-id": user?.id || user?._id || (user as any)?.userId || ""
    },
    body: JSON.stringify({
      content,
@@ -1356,7 +1356,7 @@ const typingTimer = setInterval(checkTyping, 1000);
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-user-id": user?.id || user?._id || ""
+      "x-user-id": user?.id || user?._id || (user as any)?.userId || ""
     },
     body: JSON.stringify({
       content,
@@ -1459,7 +1459,7 @@ const typingTimer = setInterval(checkTyping, 1000);
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-user-id": user.id || user._id || ""
+          "x-user-id": user.id || user._id || (user as any).userId || ""
         },
         body: JSON.stringify(requestBody)
       });
@@ -1509,7 +1509,7 @@ const typingTimer = setInterval(checkTyping, 1000);
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-user-id": user?.id || user?._id || "",
+          "x-user-id": user?.id || user?._id || (user as any)?.userId || "",
           "x-user-role": user?.role || ""
         },
         body: JSON.stringify({
@@ -1559,7 +1559,7 @@ const typingTimer = setInterval(checkTyping, 1000);
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-user-id": user?.id || user?._id || "",
+          "x-user-id": user?.id || user?._id || (user as any)?.userId || "",
           "x-user-role": user?.role || ""
         },
         body: JSON.stringify({
@@ -1763,14 +1763,14 @@ const typingTimer = setInterval(checkTyping, 1000);
  {/* Access Lock Screen */}
  {shouldLock && (
  <AccessLock
- message={getLockMessage()}
- userName={user?.name ||"Nhân viên"}
- onSendRequest={handleRequestAccess}
- onLogout={handleLogout}
- isPendingApproval={isPendingApproval || statusData?.userStatus === "PENDING"}
- isDeniedApproval={statusData?.status === "REJECTED"}
- username={user?.username}
- userId={user?.id || user?._id}
+  message={getLockMessage()}
+  userName={user?.name ||"Nhân viên"}
+  onSendRequest={handleRequestAccess}
+  onLogout={handleLogout}
+  isPendingApproval={isPendingApproval || statusData?.userStatus === "PENDING"}
+  isDeniedApproval={statusData?.status === "REJECTED"}
+  username={user?.username}
+  userId={user?.id || user?._id || (user as any)?.userId}
  />
  )}
 
@@ -1784,7 +1784,7 @@ const typingTimer = setInterval(checkTyping, 1000);
       isPendingApproval={isPendingApproval || statusData?.userStatus === "PENDING"}
       isLateLock={true}
       username={user?.username}
-      userId={user?.id || user?._id}
+      userId={user?.id || user?._id || (user as any)?.userId}
       fineAmount={fineAmount}
       bankConfig={bankConfig}
       lateMins={lateMins}
@@ -1801,7 +1801,7 @@ const typingTimer = setInterval(checkTyping, 1000);
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "x-user-id": user.id || user._id || ""
+              "x-user-id": user.id || user._id || (user as any).userId || ""
             },
             body: JSON.stringify(requestBody)
           });
@@ -1848,7 +1848,7 @@ const typingTimer = setInterval(checkTyping, 1000);
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "x-user-id": user.id || user._id || ""
+              "x-user-id": user.id || user._id || (user as any).userId || ""
             },
             body: JSON.stringify(requestBody)
           });

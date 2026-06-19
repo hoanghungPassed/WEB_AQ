@@ -26,26 +26,27 @@ export async function GET(req: NextRequest) {
    }
  }
 
- const isStaff = !["01", "02", "03"].includes(userRole || "");
- if (isStaff) {
-   if (type === "INFO") {
-     filter.type = "INFO";
-   } else if (type === "SYSTEM") {
-     filter.type = { $ne: "INFO" };
-     filter.recipientId = userId;
-   } else {
-     filter.$or = [
-       { recipientId: userId },
-       { type: "INFO" }
-     ];
-   }
- } else {
-   if (type === "INFO") {
-     filter.type = "INFO";
-   } else if (type === "SYSTEM") {
-     filter.type = { $ne: "INFO" };
-   }
- }
+  const roleUpper = String(userRole || "").toUpperCase();
+  const isStaff = !["01", "02", "03"].includes(userRole || "") && roleUpper !== "ADMIN" && !roleUpper.includes("QUẢN LÝ") && roleUpper !== "QL CÔNG VIỆC";
+  if (isStaff) {
+    if (type === "INFO") {
+      filter.type = "INFO";
+    } else if (type === "SYSTEM") {
+      filter.type = { $ne: "INFO" };
+      filter.recipientId = userId;
+    } else {
+      filter.$or = [
+        { recipientId: userId },
+        { type: "INFO" }
+      ];
+    }
+  } else {
+    if (type === "INFO") {
+      filter.type = "INFO";
+    } else if (type === "SYSTEM") {
+      filter.type = { $ne: "INFO" };
+    }
+  }
 
  const notifications = await Notification.find(filter)
  .populate('author', 'name username role avatar')

@@ -21,11 +21,20 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
   const [selectedRole, setSelectedRole] = useState<string>("04");
   const [isActionSubmitting, setIsActionSubmitting] = useState(false);
 
-  const fetcher = (url: string) => fetch(url).then(res => res.json());
-  const { data: dbNotifs } = useSWR('/api/admin/notifications?type=SYSTEM', fetcher, {
-    dedupingInterval: 10000,
-    revalidateOnFocus: false
-  });
+  const fetcher = (url: string) => fetch(url, {
+    headers: {
+      'x-user-id': user?.id || user?._id || (user as any)?.userId || '',
+      'x-user-role': user?.role || ''
+    }
+  }).then(res => res.json());
+  const { data: dbNotifs } = useSWR(
+    user ? '/api/admin/notifications?type=SYSTEM' : null,
+    fetcher,
+    {
+      dedupingInterval: 10000,
+      revalidateOnFocus: false
+    }
+  );
 
   const loadLocalNotifs = useCallback(() => {
     let adminNotifs = [];
@@ -152,9 +161,11 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
       });
 
       // BẮT BUỘC nổi popup ngay lập tức khi nhận được yêu cầu
-      if (onOpenAccessModal) {
-        onOpenAccessModal(newNotif.data);
-      }
+      setTimeout(() => {
+        if (onOpenAccessModal) {
+          onOpenAccessModal(newNotif.data);
+        }
+      }, 100);
 
       const audio = new Audio('/notification.mp3');
       audio.play().catch(() => {});
@@ -286,7 +297,7 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
                               method: 'PUT',
                               headers: {
                                 'Content-Type': 'application/json',
-                                'x-user-id': user.id || user._id || ''
+                                'x-user-id': user.id || user._id || (user as any)?.userId || ''
                               },
                               body: JSON.stringify({ isRead: true })
                             });

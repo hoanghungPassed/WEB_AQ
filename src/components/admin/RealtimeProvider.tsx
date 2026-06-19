@@ -68,7 +68,7 @@ export default function RealtimeProvider({
     });
 
     // 2. Subscribe to Private Chat
-    const privateChannel = pusher.subscribe(`private-chat-${user.id || user._id}`);
+    const privateChannel = pusher.subscribe(`private-chat-${user.id || user._id || user.userId}`);
     privateChannel.bind("new-message", (msg: any) => {
       setPrivateMessages(prev => {
         if (prev.some(m => m.id === msg.id || m._id === msg._id)) return prev;
@@ -137,7 +137,8 @@ export default function RealtimeProvider({
       } catch (mutateErr) {}
     });
 
-    const isManager = ["01", "02", "03"].includes(user?.role || "");
+    const roleUpper = String(user?.role || "").toUpperCase();
+    const isManager = ["01", "02", "03"].includes(user?.role || "") || roleUpper === "ADMIN" || roleUpper.includes("QUẢN LÝ") || user?.username === "01";
 
     // 5. Subscribe to System channel for status changes (ONLY FOR MANAGERS/ADMIN)
     let systemChannel: any = null;
@@ -276,12 +277,15 @@ export default function RealtimeProvider({
             });
           }
 
-          if (setIsAccessModalOpen) {
-            setIsAccessModalOpen(true);
-          }
-          if (setSelectedAccessRequest) {
-            setSelectedAccessRequest(newRequest);
-          }
+          // Defer layout modal state updates slightly to prevent synchronous React batching conflict with custom event triggers
+          setTimeout(() => {
+            if (setIsAccessModalOpen) {
+              setIsAccessModalOpen(true);
+            }
+            if (setSelectedAccessRequest) {
+              setSelectedAccessRequest(newRequest);
+            }
+          }, 50);
 
           // Sync pending_access_requests in localStorage
           try {
@@ -324,7 +328,7 @@ export default function RealtimeProvider({
     }
 
     // 6. Subscribe to personal channel 'user-' + user._id (FOR EVERYONE)
-    const personalChannel = pusher.subscribe(`user-${user.id || user._id}`);
+    const personalChannel = pusher.subscribe(`user-${user.id || user._id || user.userId}`);
     
     personalChannel.bind("new-task", (data: any) => {
       setRoleUpdateNotif({ title: data.title || "Nhiệm vụ mới", message: data.message });
@@ -386,13 +390,13 @@ export default function RealtimeProvider({
 
     return () => {
       pusher.unsubscribe("company-chat");
-      pusher.unsubscribe(`private-chat-${user.id || user._id}`);
+      pusher.unsubscribe(`private-chat-${user.id || user._id || user.userId}`);
       pusher.unsubscribe("newsfeed");
       pusher.unsubscribe("system-users");
       if (isManager) {
         pusher.unsubscribe("system");
       }
-      pusher.unsubscribe(`user-${user.id || user._id}`);
+      pusher.unsubscribe(`user-${user.id || user._id || user.userId}`);
       pusher.unsubscribe("chat");
     };
   }, [user, router, setChatUsers, setCompanyMessages, setPrivateMessages, setUnreadCount, setRoleUpdateNotif, setRealtimeToast, playChatChime, scrollToBottom, setPendingRequests, setIsAccessModalOpen, setSelectedAccessRequest]);
