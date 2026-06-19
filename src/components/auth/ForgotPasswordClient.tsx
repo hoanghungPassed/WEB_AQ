@@ -143,16 +143,16 @@ export default function ForgotPasswordClient() {
         animate={{ opacity: 1, y: 0 }}
         className="z-10 w-full max-w-[550px]"
       >
-        <div className="rounded-[50px] border border-white/0 bg-white/5 p-12 md:p-16 backdrop-blur-3xl shadow-2xl">
+        <div className="rounded-lg border border-border bg-background-secondary p-12 md:p-16 shadow-premium">
           {/* Header */}
           <div className="mb-10 text-center">
-            <div className="mx-auto mb-8 flex h-32 w-32 items-center justify-center rounded-[40px] bg-gold/5 border border-gold/10 overflow-hidden shadow-2xl">
+            <div className="mx-auto mb-8 flex h-32 w-32 items-center justify-center rounded-lg bg-gold/5 border border-border overflow-hidden shadow-inner">
               <img src="/logo.png" alt="AQ MEDIA" className="h-full w-full object-contain p-2" onError={(e) => e.currentTarget.src = "https://via.placeholder.com/150/d4af37/000000?text=AQ"} />
             </div>
             <h1 className="text-3xl font-black tracking-tighter text-white uppercase">
               {step === 4 ? "Thành công!" : "Quên mật khẩu"}
             </h1>
-            <p className="mt-3 text-sm font-bold text-gray-500 uppercase tracking-[0.2em]">
+            <p className="mt-3 text-sm font-bold text-foreground-secondary uppercase tracking-[0.2em]">
               {step === 1 && "Nhập Email để nhận mã OTP"}
               {step === 2 && `Mã OTP đã gửi tới email ${email}`}
               {step === 3 && "Thiết lập mật khẩu mới cho tài khoản"}
@@ -171,9 +171,9 @@ export default function ForgotPasswordClient() {
                 className="space-y-6"
               >
                 <div className="space-y-4">
-                  <label className="text-sm font-black uppercase tracking-widest text-gray-500 ml-1">Email của bạn</label>
+                  <label className="text-sm font-black uppercase tracking-widest text-foreground-secondary ml-1">Email của bạn</label>
                   <div className="group relative">
-                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
+                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-foreground-secondary group-focus-within:text-gold transition-colors" size={18} />
                     <input
                       type="email"
                       required
@@ -181,7 +181,7 @@ export default function ForgotPasswordClient() {
                       onChange={handleEmailChange}
                       placeholder="username@gmail.com"
                       style={{ paddingLeft: "3.5rem" }}
-                      className="h-16 w-full rounded-2xl border border-white/0 bg-white/5 pl-14 pr-6 text-lg text-white focus:border-white/5 focus:outline-none focus:ring-4 focus:ring-gold/5 transition-all"
+                      className="h-16 w-full rounded-md border border-border bg-background-tertiary pl-14 pr-6 text-lg text-white focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold transition-all"
                     />
                   </div>
                   {emailError && (
@@ -194,7 +194,7 @@ export default function ForgotPasswordClient() {
                 <button
                   type="submit"
                   disabled={isLoading || !isEmailValid}
-                  className="relative h-18 w-full overflow-hidden rounded-2xl bg-gold font-black uppercase tracking-[0.2em] text-[#0a0a0a] text-lg transition-all hover:bg-gold-hover shadow-2xl disabled:opacity-50"
+                  className="relative h-18 w-full overflow-hidden rounded-sm bg-gold font-black uppercase tracking-[0.2em] text-background text-lg transition-all hover:bg-gold/90 shadow-lg disabled:opacity-50"
                 >
                   {isLoading ? <Loader2 className="animate-spin mx-auto" /> : "Gửi mã OTP"}
                 </button>
@@ -211,9 +211,9 @@ export default function ForgotPasswordClient() {
                 className="space-y-6"
               >
                 <div className="space-y-4">
-                  <label className="text-sm font-black uppercase tracking-widest text-gray-500 ml-1">Mã xác thực OTP</label>
+                  <label className="text-sm font-black uppercase tracking-widest text-foreground-secondary ml-1">Mã xác thực OTP</label>
                   <div className="group relative">
-                    <ShieldCheck className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
+                    <ShieldCheck className="absolute left-5 top-1/2 -translate-y-1/2 text-foreground-secondary group-focus-within:text-gold transition-colors" size={18} />
                     <input
                       type="text"
                       required
@@ -221,12 +221,12 @@ export default function ForgotPasswordClient() {
                       onChange={(e) => setOtp(e.target.value)}
                       placeholder="Nhập 6 số OTP"
                       style={{ paddingLeft: "3.5rem" }}
-                      className="h-16 w-full rounded-2xl border border-white/0 bg-white/5 pl-14 pr-6 text-center text-2xl tracking-[0.5em] text-white focus:border-white/5 focus:outline-none transition-all"
+                      className="h-16 w-full rounded-md border border-border bg-background-tertiary pl-14 pr-6 text-center text-2xl tracking-[0.5em] text-white focus:border-gold focus:outline-none transition-all"
                     />
                   </div>
                   {error && <p className="text-center text-xs font-bold text-red-500 uppercase tracking-widest">{error}</p>}
                 </div>
-                <button type="submit" disabled={isLoading || otp.length < 6} className="relative h-18 w-full overflow-hidden rounded-2xl bg-gold font-black uppercase tracking-[0.2em] text-[#0a0a0a] text-lg transition-all hover:bg-gold-hover shadow-2xl disabled:opacity-50">
+                <button type="submit" disabled={isLoading || otp.length < 6} className="relative h-18 w-full overflow-hidden rounded-sm bg-gold font-black uppercase tracking-[0.2em] text-background text-lg transition-all hover:bg-gold/90 shadow-lg disabled:opacity-50">
                   {isLoading ? <Loader2 className="animate-spin mx-auto" /> : "Xác nhận mã"}
                 </button>
               </motion.form>
@@ -242,9 +242,9 @@ export default function ForgotPasswordClient() {
                 className="space-y-6"
               >
                 <div className="space-y-4">
-                  <label className="text-sm font-black uppercase tracking-widest text-gray-500 ml-1">Mật khẩu mới</label>
+                  <label className="text-sm font-black uppercase tracking-widest text-foreground-secondary ml-1">Mật khẩu mới</label>
                   <div className="group relative">
-                    <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
+                    <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-foreground-secondary group-focus-within:text-gold transition-colors" size={18} />
                     <input
                       type="password"
                       required
@@ -252,7 +252,7 @@ export default function ForgotPasswordClient() {
                       onChange={handlePasswordChange}
                       placeholder="••••••••"
                       style={{ paddingLeft: "3.5rem" }}
-                      className="h-16 w-full rounded-2xl border border-white/0 bg-white/5 pl-14 pr-6 text-lg text-white focus:border-white/5 focus:outline-none transition-all"
+                      className="h-16 w-full rounded-md border border-border bg-background-tertiary pl-14 pr-6 text-lg text-white focus:border-gold focus:outline-none transition-all"
                     />
                   </div>
                   {passwordError && (
@@ -262,7 +262,7 @@ export default function ForgotPasswordClient() {
                     <p className="text-red-500 text-xs font-bold uppercase tracking-widest text-center">{error}</p>
                   )}
                 </div>
-                <button type="submit" disabled={isLoading || !isPasswordValid} className="relative h-18 w-full overflow-hidden rounded-2xl bg-gold font-black uppercase tracking-[0.2em] text-[#0a0a0a] text-lg transition-all hover:bg-gold-hover shadow-2xl disabled:opacity-50">
+                <button type="submit" disabled={isLoading || !isPasswordValid} className="relative h-18 w-full overflow-hidden rounded-sm bg-gold font-black uppercase tracking-[0.2em] text-background text-lg transition-all hover:bg-gold/90 shadow-lg disabled:opacity-50">
                   {isLoading ? <Loader2 className="animate-spin mx-auto" /> : "Đổi mật khẩu"}
                 </button>
               </motion.form>
@@ -279,13 +279,13 @@ export default function ForgotPasswordClient() {
                   <CheckCircle2 size={48} />
                 </div>
                 <h2 className="text-2xl font-bold text-white">Xác nhận thành công!</h2>
-                <p className="text-gray-400">Bạn sẽ được chuyển về trang đăng nhập sau vài giây.</p>
+                <p className="text-foreground-secondary">Bạn sẽ được chuyển về trang đăng nhập sau vài giây.</p>
               </motion.div>
             )}
           </AnimatePresence>
 
           <div className="mt-10 text-center">
-            <Link href="/login" className="text-sm font-bold text-gray-500 hover:text-gold transition-colors flex items-center justify-center gap-2 uppercase tracking-widest">
+            <Link href="/login" className="text-sm font-bold text-foreground-secondary hover:text-gold transition-colors flex items-center justify-center gap-2 uppercase tracking-widest">
               <ArrowLeft size={16} /> Quay lại đăng nhập
             </Link>
           </div>

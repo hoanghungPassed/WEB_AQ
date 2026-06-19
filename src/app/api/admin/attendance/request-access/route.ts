@@ -62,15 +62,19 @@ export async function POST(req: NextRequest) {
     };
 
     // 1. Notify all admins via Pusher
-    await pusherServer.trigger("system-notifications", "new-notification", {
-      id: requestData.id,
-      type: "ACCESS_REQUEST",
-      title: title,
-      message: `${requestData.staffName} (@${requestData.username}): ${requestData.reason}`,
-      time: requestData.time,
-      author: userId,
-      data: requestData
-    });
+    try {
+      await pusherServer.trigger("system-notifications", "new-notification", {
+        id: requestData.id,
+        type: "ACCESS_REQUEST",
+        title: title,
+        message: `${requestData.staffName} (@${requestData.username}): ${requestData.reason}`,
+        time: requestData.time,
+        author: userId,
+        data: requestData
+      });
+    } catch (pushErr) {
+      console.error("Pusher trigger system-notifications error:", pushErr);
+    }
 
     // 2. Trigger access-request on the general 'system' channel for popups & chimes
     let amount = body.amount;

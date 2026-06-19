@@ -135,13 +135,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     // Notify the specific user
-    await pusherServer.trigger(`user-${userId}`, "access-response", {
-      status,
-      message: status === "APPROVED" 
-        ? "Yêu cầu của bạn đã được phê duyệt. Hệ thống đã mở khóa!" 
-        : "Yêu cầu của bạn đã bị từ chối. Vui lòng liên hệ Admin.",
-      type
-    });
+    try {
+      await pusherServer.trigger(`user-${userId}`, "access-response", {
+        status,
+        message: status === "APPROVED" 
+          ? "Yêu cầu của bạn đã được phê duyệt. Hệ thống đã mở khóa!" 
+          : "Yêu cầu của bạn đã bị từ chối. Vui lòng liên hệ Admin.",
+        type
+      });
+    } catch (pushErr) {
+      console.error("Pusher trigger access-response error:", pushErr);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
