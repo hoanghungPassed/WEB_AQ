@@ -77,6 +77,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const data = parsed.data;
 
+    // Prevent self-privilege escalation
+    const isEditingSelf = reqUserId === id;
+    if (!hasPermission && isEditingSelf) {
+      delete data.role;
+      delete data.status;
+      delete data.isLateLocked;
+      delete data.finePaymentStatus;
+      delete data.lateExcuseStatus;
+      delete (data as any).baseSalary;
+      delete (data as any).allowance;
+      delete (data as any).checkInTime;
+      delete (data as any).checkOutTime;
+      delete (data as any).offWorkTime;
+    }
+
     // Sanitize string inputs to prevent XSS
     if (data.name) data.name = sanitizeXSS(data.name);
     if (data.address) data.address = sanitizeXSS(data.address);
@@ -172,6 +187,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const data = parsed.data;
+
+    // Prevent self-privilege escalation
+    const isEditingSelf = reqUserId === id;
+    if (!hasPermission && isEditingSelf) {
+      delete data.role;
+      delete data.status;
+      delete data.isLateLocked;
+      delete data.finePaymentStatus;
+      delete data.lateExcuseStatus;
+      delete (data as any).baseSalary;
+      delete (data as any).allowance;
+      delete (data as any).checkInTime;
+      delete (data as any).checkOutTime;
+      delete (data as any).offWorkTime;
+    }
 
     // Sanitize string inputs to prevent XSS
     if (data.name) data.name = sanitizeXSS(data.name);

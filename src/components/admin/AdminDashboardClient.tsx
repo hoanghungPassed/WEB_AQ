@@ -129,7 +129,7 @@ export default function AdminDashboardClient({ user: initialUser }: { user: any 
     } catch (e) { console.error(e); }
   }, [user]);
 
-  useSWR(user ? 'admin-dashboard-data' : null, refreshStats, { revalidateOnFocus: false });
+  useSWR(user ? 'admin-dashboard-data' : null, refreshStats, { revalidateOnFocus: false, dedupingInterval: 5000 });
 
   const filteredItems = useMemo(() => {
     const list = selectedViewType === "STAFF" ? [] : mails; // Staff logic simplified for brevity

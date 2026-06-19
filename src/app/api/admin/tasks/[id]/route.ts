@@ -143,16 +143,43 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
- // If assignee changed, notify new assignee via email
- if (data.assigneeId && data.assigneeId.toString() !== oldTask.assigneeId?.toString()) {
-   try {
-     const User = (await import("@/models/User")).default;
-     const newAssignee = await User.findById(data.assigneeId).select("name email");
-     if (newAssignee?.email) {
-       sendTaskEmail(newAssignee.email, newAssignee.name || "Nhân viên", task.title || "", task.deadline || new Date(), task.note || "").catch(console.error);
-     }
-   } catch (_) {}
- }
+  // If assignee changed, notify new assignee via email and update associated email documents
+  if (data.assigneeId && data.assigneeId.toString() !== oldTask.assigneeId?.toString()) {
+    try {
+      const User = (await import("@/models/User")).default;
+      const newAssignee = await User.findById(data.assigneeId);
+      if (newAssignee) {
+        if (newAssignee.email) {
+          sendTaskEmail(newAssignee.email, newAssignee.name || "Nhân viên", task.title || "", task.deadline || new Date(), task.note || "").catch(console.error);
+        }
+        
+        // Sync associated mail documents with the new assignee
+        if (task.mailIds && task.mailIds.length > 0) {
+          let MailModel: any;
+          if (task.type === 'MAIL_GOC') {
+            MailModel = (await import('@/models/RootMail')).RootMail;
+          } else if (task.type === 'MAIL_MONETIZED') {
+            MailModel = (await import('@/models/MonetizedMail')).MonetizedMail;
+          } else {
+            MailModel = (await import('@/models/SatelliteMail')).SatelliteMail;
+          }
+
+          await MailModel.updateMany(
+            { _id: { $in: task.mailIds } },
+            {
+              $set: {
+                assignedTo: newAssignee.name,
+                assigneeId: data.assigneeId,
+                assignee: data.assigneeId
+              }
+            }
+          );
+        }
+      }
+    } catch (syncErr) {
+      console.error("Failed to sync new assignee and emails:", syncErr);
+    }
+  }
 
  try {
  const { logAction } = await import('@/lib/logger');
@@ -364,7 +391,37 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   await dbConnect();
   const task = await Task.findByIdAndDelete(id);
   if (!task) {
-  return NextResponse.json({ success: false, error:"Task not found" }, { status: 404 });
+    return NextResponse.json({ success: false, error:"Task not found" }, { status: 404 });
+  }
+
+  // Revert mail assignment status back to false
+  if (task.mailIds && task.mailIds.length > 0) {
+    try {
+      let MailModel: any;
+      if (task.type === 'MAIL_GOC') {
+        MailModel = (await import('@/models/RootMail')).RootMail;
+      } else if (task.type === 'MAIL_MONETIZED') {
+        MailModel = (await import('@/models/MonetizedMail')).MonetizedMail;
+      } else {
+        MailModel = (await import('@/models/SatelliteMail')).SatelliteMail;
+      }
+
+      await MailModel.updateMany(
+        { _id: { $in: task.mailIds } },
+        {
+          $set: {
+            isAssigned: false,
+            assignedTo: null,
+            assigneeId: null,
+            assignee: null,
+            batchId: null,
+            batchName: null
+          }
+        }
+      );
+    } catch (mailRevertErr) {
+      console.error("Failed to unassign mails on task deletion:", mailRevertErr);
+    }
   }
   try {
   const { logAction } = await import('@/lib/logger');
