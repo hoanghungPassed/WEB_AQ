@@ -22,6 +22,16 @@ export async function GET(req: NextRequest) {
  return NextResponse.json({ error:"User not found" }, { status: 404 });
  }
 
+ const url = new URL(req.url);
+ const history = url.searchParams.get("history");
+ if (history === "true") {
+   const list = await Attendance.find({ userId })
+     .sort({ date: -1 })
+     .limit(30)
+     .lean();
+   return NextResponse.json({ success: true, data: list });
+ }
+
  // Also try to find today's attendance record
  const now = new Date();
  const utc = now.getTime() + now.getTimezoneOffset() * 60000;

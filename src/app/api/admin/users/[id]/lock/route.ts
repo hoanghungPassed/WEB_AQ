@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import { checkPermission, logAuditTrail } from "@/lib/permissions";
+import { pusherServer } from "@/lib/pusher";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -42,6 +43,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
     
     await user.save();
+
+    // Trigger pusher alert to the locked/unlocked user channel
+    try {
+      await pusherServer.trigger(`user-${user._id.toString()}`, "status-update", {
+        status: newStatus
+      });
+    } catch (pushErr) {
+      console.error("Pusher error in user lock toggle:", pushErr);
+    }
 
     // Remove password from response
     const userObj = user.toObject();

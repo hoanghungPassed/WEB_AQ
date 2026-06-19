@@ -75,8 +75,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Không tìm thấy người gửi" }, { status: 404 });
     }
 
+    const mongoose = (await import("mongoose")).default;
+
     let receiverUsername = "";
-    if (!isCompanyChat && receiverId) {
+    const isValidReceiver = !isCompanyChat && receiverId && mongoose.isValidObjectId(receiverId);
+    if (isValidReceiver) {
       const receiverUser = await User.findById(receiverId);
       if (receiverUser) {
         receiverUsername = receiverUser.username;
@@ -87,7 +90,7 @@ export async function POST(req: Request) {
       senderId,
       senderName: senderUser.name,
       senderUsername: senderUser.username,
-      receiverId: isCompanyChat ? undefined : receiverId,
+      receiverId: isValidReceiver ? receiverId : undefined,
       receiverUsername: isCompanyChat ? undefined : receiverUsername,
       isCompanyChat: !!isCompanyChat,
       content: content.trim(),
@@ -98,12 +101,19 @@ export async function POST(req: Request) {
 
     // Trigger Real-time update via Pusher
     try {
-      const channel = isCompanyChat ? "company-chat" : `private-chat-${receiverId}`;
-      const channel2 = isCompanyChat ? null : `private-chat-${senderId}`;
-      
-      await pusherServer.trigger(channel, "new-message", newMessage);
-      if (channel2) {
-        await pusherServer.trigger(channel2, "new-message", newMessage);
+      if (isCompanyChat) {
+        // 1. Trigger general 'chat' channel for company chat
+        await pusherServer.trigger("chat", "new-message", newMessage);
+        // 2. Legacy channel for company chat
+        await pusherServer.trigger("company-chat", "new-message", newMessage);
+      } else {
+        // Direct message - trigger ONLY to recipient and sender private user channels (Lock 1)
+        await pusherServer.trigger(`user-${receiverId}`, "new-message", newMessage);
+        await pusherServer.trigger(`user-${senderId}`, "new-message", newMessage);
+        
+        // Legacy channels for DMs
+        await pusherServer.trigger(`private-chat-${receiverId}`, "new-message", newMessage);
+        await pusherServer.trigger(`private-chat-${senderId}`, "new-message", newMessage);
       }
     } catch (pushErr) {
       console.error("Pusher trigger error:", pushErr);

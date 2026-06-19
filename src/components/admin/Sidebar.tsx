@@ -75,16 +75,17 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
   }, []);
 
   const roleUpper = String(user?.role || "").toUpperCase();
+  const isManager = ["01", "02", "03"].includes(user?.role || "");
   const isAdminOrManager = ["01", "02", "ADMIN"].some(r => roleUpper.includes(r));
   const isStaffOnly = roleUpper === "03" || roleUpper === "04";
   const isMinimalRole = isStaffOnly || ["05", "NHÂN VIÊN", "NV THỬ VIỆC"].some(r => roleUpper.includes(r));
 
-  const dynamicMenuItems: any[] = [
-    { title: "Dashboard", icon: <Gauge size={20} />, href: "/admin" },
-    { title: "Bảng Tin", icon: <MessageSquare size={20} />, href: "/admin/newsfeed" },
-  ];
+  const dynamicMenuItems: any[] = [];
 
-  if (!isStaffOnly) {
+  if (isManager) {
+    dynamicMenuItems.push({ title: "Dashboard", icon: <Gauge size={20} />, href: "/admin" });
+    dynamicMenuItems.push({ title: "Bảng Tin", icon: <MessageSquare size={20} />, href: "/admin/newsfeed" });
+    
     dynamicMenuItems.push({
       title: "Ứng dụng",
       icon: <Blocks size={20} />,
@@ -94,18 +95,7 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
         { title: "Gmail", href: "https://mail.google.com/", isExternal: true, icon: <Mail size={14} className="text-gold shrink-0" /> }
       ]
     });
-  }
 
-  if (isMinimalRole) {
-    dynamicMenuItems.push({
-      title: "Quản lý mail",
-      icon: <Mail size={20} />,
-      subItems: [
-        { title: "Mail Vệ Tinh", href: "/admin/mail/satellite" },
-        { title: "SĐT", href: "/admin/phone/list" }
-      ]
-    });
-  } else {
     dynamicMenuItems.push({
       title: "Kho mail & SDT",
       icon: <Inbox size={20} />,
@@ -117,38 +107,52 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
         { title: "Lô SĐT", href: "/admin/phone/batches" },
       ],
     });
+
     dynamicMenuItems.push({
       title: "Quản lý phân lô",
       icon: <Layers size={20} />,
       href: "/admin/mail/satellite-batches"
     });
-  }
 
-  if (isAdminOrManager || isStaffOnly) {
     dynamicMenuItems.push({ title: "Phân công", icon: <ClipboardList size={20} />, href: "/admin/tasks" });
-  }
-
-  if (!isStaffOnly) {
     dynamicMenuItems.push({ title: "Nhân sự", icon: <Users size={20} />, href: "/admin/staff" });
-  }
 
-  if (isAdminOrManager) {
-    dynamicMenuItems.push({ title: "Báo cáo đi muộn", icon: <FileText size={20} />, href: "/admin/fines-report" });
+    if (isAdminOrManager || user?.role === "03") {
+      dynamicMenuItems.push({ title: "Báo cáo đi muộn", icon: <FileText size={20} />, href: "/admin/fines-report" });
+      dynamicMenuItems.push({
+        title: "Thống kê",
+        icon: <BarChart3 size={20} />,
+        subItems: [
+          { title: "Nhật ký", href: "/admin/stats/logs" },
+          { title: "Nhân sự", href: "/admin/stats/report" },
+        ],
+      });
+    }
+
+    if (rulesUrl) {
+      dynamicMenuItems.push({ title: "Nội quy", icon: <FileText size={20} />, href: rulesUrl, isExternal: true });
+    }
+
+    dynamicMenuItems.push({ title: "Hệ thống", icon: <Settings size={20} />, href: "/admin/settings" });
+  } else {
+    // Staff menus
+    dynamicMenuItems.push({ title: "Bảng điều khiển cá nhân", icon: <Gauge size={20} />, href: "/admin" });
+    
     dynamicMenuItems.push({
-      title: "Thống kê",
-      icon: <BarChart3 size={20} />,
+      title: "Kho Mail của tôi",
+      icon: <Mail size={20} />,
       subItems: [
-        { title: "Nhật ký", href: "/admin/stats/logs" },
-        { title: "Nhân sự", href: "/admin/stats/report" },
-      ],
+        { title: "Mail Vệ Tinh", href: "/admin/mail/satellite" },
+        { title: "SĐT", href: "/admin/phone/list" }
+      ]
     });
-  }
 
-  if (rulesUrl) {
-    dynamicMenuItems.push({ title: "Nội quy", icon: <FileText size={20} />, href: rulesUrl, isExternal: true });
-  }
+    dynamicMenuItems.push({ title: "Thông báo", icon: <MessageSquare size={20} />, href: "/admin/newsfeed" });
 
-  dynamicMenuItems.push({ title: "Hệ thống", icon: <Settings size={20} />, href: "/admin/settings" });
+    if (rulesUrl) {
+      dynamicMenuItems.push({ title: "Nội quy", icon: <FileText size={20} />, href: rulesUrl, isExternal: true });
+    }
+  }
 
   const toggleMenu = (title: string) => {
     if (isCollapsed) return;

@@ -1,0 +1,233 @@
+=== API Audit Discovery ===
+
+Discovered 60 API routes:
+- /api/admin/2fa/login (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\2fa\login\route.ts)
+- /api/admin/2fa/setup (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\2fa\setup\route.ts)
+- /api/admin/2fa/verify (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\2fa\verify\route.ts)
+- /api/admin/attendance (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\attendance\route.ts)
+- /api/admin/attendance/approve-access/[id] (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\attendance\approve-access\[id]\route.ts)
+- /api/admin/attendance/auto-checkout (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\attendance\auto-checkout\route.ts)
+- /api/admin/attendance/request-access (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\attendance\request-access\route.ts)
+- /api/admin/auto-messages (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\auto-messages\route.ts)
+- /api/admin/auto-messages/[id] (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\auto-messages\[id]\route.ts)
+- /api/admin/db-stats (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\db-stats\route.ts)
+- /api/admin/fines (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\fines\route.ts)
+- /api/admin/fines/auto (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\fines\auto\route.ts)
+- /api/admin/kpis (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\kpis\route.ts)
+- /api/admin/logs (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\logs\route.ts)
+- /api/admin/mail/satellite-batches (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\mail\satellite-batches\route.ts)
+- /api/admin/mail/satellite-batches/[id] (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\mail\satellite-batches\[id]\route.ts)
+- /api/admin/mail/satellite-batches/[id]/assign-range (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\mail\satellite-batches\[id]\assign-range\route.ts)
+- /api/admin/mails (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\mails\route.ts)
+- /api/admin/mails/available-ranges (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\mails\available-ranges\route.ts)
+- /api/admin/mails/batch-update (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\mails\batch-update\route.ts)
+- /api/admin/mails/import (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\mails\import\route.ts)
+- /api/admin/mails/[id] (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\mails\[id]\route.ts)
+- /api/admin/notifications (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\notifications\route.ts)
+- /api/admin/notifications/[id] (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\notifications\[id]\route.ts)
+- /api/admin/payroll (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\payroll\route.ts)
+- /api/admin/payroll/[month] (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\payroll\[month]\route.ts)
+- /api/admin/phones (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\phones\route.ts)
+- /api/admin/phones/batches/[id] (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\phones\batches\[id]\route.ts)
+- /api/admin/phones/import (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\phones\import\route.ts)
+- /api/admin/reset-db (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\reset-db\route.ts)
+- /api/admin/settings (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\settings\route.ts)
+- /api/admin/stats (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\stats\route.ts)
+- /api/admin/stats/export (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\stats\export\route.ts)
+- /api/admin/tasks (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\tasks\route.ts)
+- /api/admin/tasks/reclaim (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\tasks\reclaim\route.ts)
+- /api/admin/tasks/reminders (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\tasks\reminders\route.ts)
+- /api/admin/tasks/[id] (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\tasks\[id]\route.ts)
+- /api/admin/users (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\users\route.ts)
+- /api/admin/users/activity (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\users\activity\route.ts)
+- /api/admin/users/cleanup-online (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\users\cleanup-online\route.ts)
+- /api/admin/users/[id] (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\users\[id]\route.ts)
+- /api/admin/users/[id]/lock (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\admin\users\[id]\lock\route.ts)
+- /api/auth/change-password (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\auth\change-password\route.ts)
+- /api/auth/check-status (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\auth\check-status\route.ts)
+- /api/auth/check-username (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\auth\check-username\route.ts)
+- /api/auth/login (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\auth\login\route.ts)
+- /api/auth/logout (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\auth\logout\route.ts)
+- /api/auth/me (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\auth\me\route.ts)
+- /api/auth/offline (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\auth\offline\route.ts)
+- /api/auth/register (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\auth\register\route.ts)
+- /api/auth/reset-password (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\auth\reset-password\route.ts)
+- /api/auth/send-otp (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\auth\send-otp\route.ts)
+- /api/messages (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\messages\route.ts)
+- /api/messages/mark-read (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\messages\mark-read\route.ts)
+- /api/messages/[id] (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\messages\[id]\route.ts)
+- /api/seed (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\seed\route.ts)
+- /api/sync (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\sync\route.ts)
+- /api/test-env (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\test-env\route.ts)
+- /api/upload (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\upload\route.ts)
+- /api/youtube (c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\api\youtube\route.ts)
+
+Detected 18 SWR calls.
+Detected 155 Fetch calls.
+Detected 21 Pusher binds.
+Detected 47 Pusher triggers.
+Detected 26 Lean violations.
+Detected 8 Count violations.
+Detected 7 RBAC leaks.
+Detected 47 Pagination/N+1 issues.
+
+=== SWR Safety Violations ===
+
+=== Pusher Binds ===
+- src/app/register/page.tsx:L340 binds to event 'status-update'
+- src/components/admin/AdminChat.tsx:L242 binds to event 'new-message'
+- src/components/admin/AdminChat.tsx:L254 binds to event 'new-message'
+- src/components/admin/HeaderNotifications.tsx:L73 binds to event 'new-notification'
+- src/components/admin/HeaderNotifications.tsx:L101 binds to event 'access-request'
+- src/components/admin/HeaderNotifications.tsx:L145 binds to event 'register-request'
+- src/components/admin/RealtimeProvider.tsx:L48 binds to event 'state_change'
+- src/components/admin/RealtimeProvider.tsx:L52 binds to event 'error'
+- src/components/admin/RealtimeProvider.tsx:L58 binds to event 'new-message'
+- src/components/admin/RealtimeProvider.tsx:L72 binds to event 'new-message'
+- src/components/admin/RealtimeProvider.tsx:L86 binds to event 'new-post'
+- src/components/admin/RealtimeProvider.tsx:L94 binds to event 'status-changed'
+- src/components/admin/RealtimeProvider.tsx:L148 binds to event 'user-status-changed'
+- src/components/admin/RealtimeProvider.tsx:L214 binds to event 'task-updated'
+- src/components/admin/RealtimeProvider.tsx:L227 binds to event 'satellite-batches-updated'
+- src/components/admin/RealtimeProvider.tsx:L236 binds to event 'access-request'
+- src/components/admin/RealtimeProvider.tsx:L296 binds to event 'new-task'
+- src/components/admin/RealtimeProvider.tsx:L304 binds to event 'status-update'
+- src/components/admin/RealtimeProvider.tsx:L310 binds to event 'new-message'
+- src/components/admin/RealtimeProvider.tsx:L327 binds to event 'new-message'
+- src/components/admin/modals/AccessLock.tsx:L84 binds to event 'access-response'
+
+=== Pusher Triggers ===
+- src/app/api/admin/attendance/route.ts:L133 triggers event 'status-changed' on channel "system-users"
+- src/app/api/admin/attendance/route.ts:L187 triggers event 'status-changed' on channel "system-users"
+- src/app/api/admin/attendance/approve-access/[id]/route.ts:L35 triggers event 'user-status-changed' on channel 'system'
+- src/app/api/admin/attendance/approve-access/[id]/route.ts:L39 triggers event 'status-changed' on channel 'system-users'
+- src/app/api/admin/attendance/approve-access/[id]/route.ts:L94 triggers event 'user-status-changed' on channel 'system'
+- src/app/api/admin/attendance/approve-access/[id]/route.ts:L98 triggers event 'status-changed' on channel 'system-users'
+- src/app/api/admin/attendance/approve-access/[id]/route.ts:L128 triggers event 'access-response' on channel `user-${userId}`
+- src/app/api/admin/attendance/auto-checkout/route.ts:L179 triggers event 'status-changed' on channel "system-users"
+- src/app/api/admin/attendance/request-access/route.ts:L65 triggers event 'new-notification' on channel "system-notifications"
+- src/app/api/admin/attendance/request-access/route.ts:L104 triggers event 'access-request' on channel 'system'
+- src/app/api/admin/fines/route.ts:L96 triggers event 'new-fine' on channel "system"
+- src/app/api/admin/fines/auto/route.ts:L74 triggers event 'new-fine' on channel "system"
+- src/app/api/admin/mail/satellite-batches/[id]/assign-range/route.ts:L83 triggers event 'task-updated' on channel "system"
+- src/app/api/admin/mail/satellite-batches/[id]/assign-range/route.ts:L84 triggers event 'satellite-batches-updated' on channel "system"
+- src/app/api/admin/mails/batch-update/route.ts:L59 triggers event 'satellite-batches-updated' on channel "system"
+- src/app/api/admin/mails/[id]/route.ts:L176 triggers event 'task-updated' on channel 'system'
+- src/app/api/admin/mails/[id]/route.ts:L181 triggers event 'satellite-batches-updated' on channel 'system'
+- src/app/api/admin/mails/[id]/route.ts:L182 triggers event 'task-list-updated' on channel 'system'
+- src/app/api/admin/notifications/route.ts:L77 triggers event 'new-post' on channel "newsfeed"
+- src/app/api/admin/notifications/route.ts:L140 triggers event 'update-post' on channel "newsfeed"
+- src/app/api/admin/notifications/route.ts:L170 triggers event 'delete-post' on channel "newsfeed"
+- src/app/api/admin/tasks/route.ts:L174 triggers event 'new-notification' on channel "system-notifications"
+- src/app/api/admin/tasks/route.ts:L180 triggers event 'new-task' on channel `user-${data.assigneeId}`
+- src/app/api/admin/tasks/route.ts:L187 triggers event 'task-list-updated' on channel 'system'
+- src/app/api/admin/tasks/[id]/route.ts:L166 triggers event 'task-updated' on channel "system"
+- src/app/api/admin/tasks/[id]/route.ts:L315 triggers event 'new-fine' on channel "system"
+- src/app/api/admin/users/[id]/route.ts:L126 triggers event 'status-update' on channel `user-${updatedUser.username.toLowerCase()}`
+- src/app/api/admin/users/[id]/route.ts:L221 triggers event 'status-update' on channel `user-${updatedUser.username.toLowerCase()}`
+- src/app/api/admin/users/[id]/route.ts:L317 triggers event 'status-update' on channel `user-${archivedUser.username.toLowerCase()}`
+- src/app/api/auth/check-status/route.ts:L83 triggers event 'user-status-changed' on channel "system"
+- src/app/api/auth/check-status/route.ts:L87 triggers event 'status-changed' on channel "system-users"
+- src/app/api/auth/login/route.ts:L162 triggers event 'new-fine' on channel "system"
+- src/app/api/auth/login/route.ts:L226 triggers event 'status-changed' on channel "system-users"
+- src/app/api/auth/login/route.ts:L232 triggers event 'user-status-changed' on channel "system"
+- src/app/api/auth/login/route.ts:L365 triggers event 'new-fine' on channel "system"
+- src/app/api/auth/logout/route.ts:L27 triggers event 'user-status-changed' on channel "system"
+- src/app/api/auth/logout/route.ts:L33 triggers event 'status-changed' on channel "system-users"
+- src/app/api/auth/offline/route.ts:L21 triggers event 'user-status-changed' on channel "system"
+- src/app/api/auth/offline/route.ts:L27 triggers event 'status-changed' on channel "system-users"
+- src/app/api/auth/register/route.ts:L62 triggers event 'new-notification' on channel "system-notifications"
+- src/app/api/auth/register/route.ts:L67 triggers event 'register-request' on channel "system"
+- src/app/api/messages/route.ts:L106 triggers event 'new-message' on channel "chat"
+- src/app/api/messages/route.ts:L108 triggers event 'new-message' on channel "company-chat"
+- src/app/api/messages/route.ts:L111 triggers event 'new-message' on channel `user-${receiverId}`
+- src/app/api/messages/route.ts:L112 triggers event 'new-message' on channel `user-${senderId}`
+- src/app/api/messages/route.ts:L115 triggers event 'new-message' on channel `private-chat-${receiverId}`
+- src/app/api/messages/route.ts:L116 triggers event 'new-message' on channel `private-chat-${senderId}`
+
+=== Lean Violations ===
+- src/app/api/admin/2fa/login/route.ts:L27 - const sessionPair = pairs.find(p => p[0] === 'session');
+- src/app/api/admin/attendance/route.ts:L28 - const list = await Attendance.find({ userId })
+- src/app/api/admin/attendance/auto-checkout/route.ts:L89 - const incompleteAttendance = await Attendance.find({
+- src/app/api/admin/fines/route.ts:L39 - const fines = await Fine.find(filter)
+- src/app/api/admin/fines/route.ts:L46 - const query = Fine.find(filter).populate("userId", "name username role email");
+- src/app/api/admin/fines/auto/route.ts:L43 - const incompleteTasks = await Task.find({
+- src/app/api/admin/kpis/route.ts:L90 - Payroll.find({ month: monthParam })
+- src/app/api/admin/logs/route.ts:L26 - Log.find({})
+- src/app/api/admin/mails/route.ts:L167 - const q = Model.find(query).select("-htmlBody -textBody");
+- src/app/api/admin/mails/available-ranges/route.ts:L35 - const availableMails = await SatelliteMail.find({
+- src/app/api/admin/mails/[id]/route.ts:L95 - const activeTasks = await Task.find({
+- src/app/api/admin/notifications/route.ts:L50 - const notifications = await Notification.find(filter)
+- src/app/api/admin/notifications/route.ts:L115 - const comment = post.comments.find(c => String((c as any)._id) === commentId);
+- src/app/api/admin/payroll/route.ts:L29 - const records = await Payroll.find(filter)
+- src/app/api/admin/payroll/route.ts:L95 - const users = await User.find({ status: "ACTIVE" }).select("-password");
+- src/app/api/admin/payroll/[month]/route.ts:L26 - const records = await Payroll.find({ month })
+- src/app/api/admin/tasks/route.ts:L59 - const tasks = await Task.find(filter)
+- src/app/api/admin/tasks/route.ts:L66 - const query = Task.find(filter).populate("assigneeId", "name username role email");
+- src/app/api/admin/tasks/reclaim/route.ts:L44 - const abandonedTasks = await Task.find({
+- src/app/api/admin/tasks/reminders/route.ts:L34 - const incompleteTasks = await Task.find({
+- src/app/api/admin/tasks/[id]/route.ts:L92 - mailsToCheck = await MailModel.find({
+- src/app/api/admin/tasks/[id]/route.ts:L96 - mailsToCheck = await MailModel.find({ _id: { $in: oldTask.mailIds } });
+- src/app/api/admin/tasks/[id]/route.ts:L271 - const admins = await User.find({ role: { $in: ['01', '02'] } }).select('_id');
+- src/app/api/admin/users/activity/route.ts:L35 - const logs = await Log.find(filter)
+- src/app/api/admin/users/cleanup-online/route.ts:L38 - const staleUsers = await User.find({
+- src/app/api/messages/route.ts:L45 - const messages = await Message.find(query)
+
+=== Pagination / Unbounded Array Violations ===
+- src/app/api/admin/2fa/login/route.ts:L27 - const sessionPair = pairs.find(p => p[0] === 'session');
+- src/app/api/admin/attendance/route.ts:L28 - const list = await Attendance.find({ userId })
+- src/app/api/admin/attendance/auto-checkout/route.ts:L89 - const incompleteAttendance = await Attendance.find({
+- src/app/api/admin/auto-messages/route.ts:L20 - const messages = await AutoMessage.find().sort({ createdAt: -1 }).lean();
+- src/app/api/admin/fines/route.ts:L39 - const fines = await Fine.find(filter)
+- src/app/api/admin/fines/route.ts:L46 - const query = Fine.find(filter).populate("userId", "name username role email");
+- src/app/api/admin/fines/auto/route.ts:L27 - const staffs = await User.find({ role: { $in: ["04","05"] } }).select("-password").lean();
+- src/app/api/admin/fines/auto/route.ts:L43 - const incompleteTasks = await Task.find({
+- src/app/api/admin/kpis/route.ts:L89 - User.find({ role: { $in: ["04", "05"] } }).select("name username role status").lean(),
+- src/app/api/admin/kpis/route.ts:L90 - Payroll.find({ month: monthParam })
+- src/app/api/admin/logs/route.ts:L26 - Log.find({})
+- src/app/api/admin/mail/satellite-batches/route.ts:L57 - const batches = await Batch.find(filter).sort({ createdAt: 1 }).lean();
+- src/app/api/admin/mails/route.ts:L167 - const q = Model.find(query).select("-htmlBody -textBody");
+- src/app/api/admin/mails/route.ts:L282 - RootMail.find({ email: { $in: emailsToTest } }).select("email").lean(),
+- src/app/api/admin/mails/route.ts:L283 - SatelliteMail.find({ email: { $in: emailsToTest } }).select("email").lean(),
+- src/app/api/admin/mails/route.ts:L284 - MonetizedMail.find({ email: { $in: emailsToTest } }).select("email").lean()
+- src/app/api/admin/mails/available-ranges/route.ts:L35 - const availableMails = await SatelliteMail.find({
+- src/app/api/admin/mails/import/route.ts:L259 - RootMail.find({ email: { $in: uniqueEmailsToTest } }).select("email").lean(),
+- src/app/api/admin/mails/import/route.ts:L260 - SatelliteMail.find({ email: { $in: uniqueEmailsToTest } }).select("email").lean(),
+- src/app/api/admin/mails/import/route.ts:L261 - MonetizedMail.find({ email: { $in: uniqueEmailsToTest } }).select("email").lean()
+- src/app/api/admin/mails/[id]/route.ts:L95 - const activeTasks = await Task.find({
+- src/app/api/admin/notifications/route.ts:L50 - const notifications = await Notification.find(filter)
+- src/app/api/admin/notifications/route.ts:L115 - const comment = post.comments.find(c => String((c as any)._id) === commentId);
+- src/app/api/admin/payroll/route.ts:L29 - const records = await Payroll.find(filter)
+- src/app/api/admin/payroll/route.ts:L95 - const users = await User.find({ status: "ACTIVE" }).select("-password");
+- src/app/api/admin/payroll/[month]/route.ts:L26 - const records = await Payroll.find({ month })
+- src/app/api/admin/phones/route.ts:L71 - const phones = await Phone.find(query).sort({ createdAt: -1 }).lean();
+- src/app/api/admin/phones/route.ts:L110 - const existingPhones = (await Phone.find({ number: { $in: numbersToImport } }).lean()) as PhoneNumberOnly[];
+- src/app/api/admin/phones/import/route.ts:L81 - const existingPhones = await Phone.find({ number: { $in: numbersToImport } }).lean();
+- src/app/api/admin/stats/export/route.ts:L28 - RootMail.find().lean(),
+- src/app/api/admin/stats/export/route.ts:L29 - SatelliteMail.find().lean(),
+- src/app/api/admin/stats/export/route.ts:L30 - MonetizedMail.find().lean(),
+- src/app/api/admin/stats/export/route.ts:L31 - User.find({ role: { $in: ["04", "05", "NHÂN VIÊN", "NV THỬ VIỆC"] } } as any).select("-password").lean(),
+- src/app/api/admin/tasks/route.ts:L59 - const tasks = await Task.find(filter)
+- src/app/api/admin/tasks/route.ts:L66 - const query = Task.find(filter).populate("assigneeId", "name username role email");
+- src/app/api/admin/tasks/reclaim/route.ts:L44 - const abandonedTasks = await Task.find({
+- src/app/api/admin/tasks/reminders/route.ts:L25 - const staffs = await User.find({ role: { $in: ["04","05"] } }).select("-password").lean();
+- src/app/api/admin/tasks/reminders/route.ts:L34 - const incompleteTasks = await Task.find({
+- src/app/api/admin/tasks/[id]/route.ts:L92 - mailsToCheck = await MailModel.find({
+- src/app/api/admin/tasks/[id]/route.ts:L96 - mailsToCheck = await MailModel.find({ _id: { $in: oldTask.mailIds } });
+- src/app/api/admin/tasks/[id]/route.ts:L271 - const admins = await User.find({ role: { $in: ['01', '02'] } }).select('_id');
+- src/app/api/admin/users/route.ts:L66 - const users = await User.find(filter).select("_id name username avatar role isOnline status").sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).lean();
+- src/app/api/admin/users/route.ts:L77 - const query = User.find(filter).select("_id name username avatar role isOnline status").lean();
+- src/app/api/admin/users/activity/route.ts:L35 - const logs = await Log.find(filter)
+- src/app/api/admin/users/cleanup-online/route.ts:L38 - const staleUsers = await User.find({
+- src/app/api/messages/route.ts:L45 - const messages = await Message.find(query)
+- src/app/api/sync/route.ts:L12 - const docs = await SyncStore.find({}).lean();
+
+=== RBAC Leaks ===
+- src/app/api/admin/2fa/login/route.ts: No role validation detected in route file.
+- src/app/api/admin/2fa/setup/route.ts: No role validation detected in route file.
+- src/app/api/admin/2fa/verify/route.ts: No role validation detected in route file.
+- src/app/api/admin/attendance/route.ts: No role validation detected in route file.
+- src/app/api/admin/attendance/approve-access/[id]/route.ts: No role validation detected in route file.
+- src/app/api/admin/attendance/request-access/route.ts: No role validation detected in route file.
+- src/app/api/admin/notifications/[id]/route.ts: No role validation detected in route file.
+

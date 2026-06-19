@@ -17,8 +17,9 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
 
-    // Specific logic for staff roles (03, 04, and 05)
-    if (userRole === "03" || userRole === "04" || userRole === "05") {
+    // Specific logic for staff roles (excluding 01, 02, 03 managers)
+    const isStaff = !["01", "02", "03"].includes(userRole || "");
+    if (isStaff) {
       const now = new Date();
       const vnNow = new Date(now.getTime() + 7 * 3600000);
       const todayStr = vnNow.toISOString().split('T')[0];
@@ -30,33 +31,42 @@ export async function GET(req: NextRequest) {
       
       const myTasks = await Task.countDocuments({ 
         assigneeId: userId, 
-        createdAt: { $gte: startOfDay } 
+        status: { $in: ["PENDING", "IN_PROGRESS", "OVERDUE"] }
       });
+
+      // Aggregate unpaid fines
+      const mongoose = (await import("mongoose")).default;
+      const unpaidFinesResult = await Fine.aggregate([
+        { $match: { userId: new mongoose.Types.ObjectId(userId || ""), status: "UNPAID" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } }
+      ]);
+      const myFines = unpaidFinesResult[0]?.total || 0;
       
       const rootMailsToday = await RootMail.countDocuments({ 
-        assignee: userId, 
+        $or: [{ assignee: userId }, { assigneeId: userId }], 
         updatedAt: { $gte: startOfDay },
         workStatus: { $in: ['Đã làm', 'Lỗi'] }
       });
       const satMailsToday = await SatelliteMail.countDocuments({ 
-        assignee: userId, 
+        $or: [{ assignee: userId }, { assigneeId: userId }], 
         updatedAt: { $gte: startOfDay },
         workStatus: { $in: ['Đã làm', 'Lỗi'] }
       });
       const myMails = rootMailsToday + satMailsToday;
 
-      const liveRoot = await RootMail.countDocuments({ assignee: userId, status: 'LIVE' });
-      const liveSat = await SatelliteMail.countDocuments({ assignee: userId, status: 'LIVE' });
+      const liveRoot = await RootMail.countDocuments({ $or: [{ assignee: userId }, { assigneeId: userId }], status: 'LIVE' });
+      const liveSat = await SatelliteMail.countDocuments({ $or: [{ assignee: userId }, { assigneeId: userId }], status: 'LIVE' });
       const liveMails = liveRoot + liveSat;
 
-      const dieRoot = await RootMail.countDocuments({ assignee: userId, status: 'DIE' });
-      const dieSat = await SatelliteMail.countDocuments({ assignee: userId, status: 'DIE' });
+      const dieRoot = await RootMail.countDocuments({ $or: [{ assignee: userId }, { assigneeId: userId }], status: 'DIE' });
+      const dieSat = await SatelliteMail.countDocuments({ $or: [{ assignee: userId }, { assigneeId: userId }], status: 'DIE' });
       const dieMails = dieRoot + dieSat;
 
       return NextResponse.json({
         success: true,
         data: {
           myTasks,
+          myFines,
           myMails,
           liveMails,
           dieMails,

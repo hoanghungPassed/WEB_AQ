@@ -137,151 +137,229 @@ export default function RealtimeProvider({
       } catch (mutateErr) {}
     });
 
-    // 5. Subscribe to System channel for status changes
-    const systemChannel = pusher.subscribe("system");
+    const isManager = ["01", "02", "03"].includes(user?.role || "");
 
-    // Phase 1: online status synchronization
-    systemChannel.bind("user-status-changed", (data: any) => {
-      // VÁ LỖ HỔNG: Nếu offline thì loại bỏ khỏi danh sách ngay lập tức (KHÔNG GỌI API LẠI)
-      if (data.isOnline === false) {
-        setChatUsers(prev => prev.filter(u => u.id !== data.userId && u._id !== data.userId));
-      } else {
-        setChatUsers(prev => {
-          const exists = prev.some(u => u.id === data.userId || u._id === data.userId);
-          if (data.isOnline) {
-            if (exists) {
-              return prev.map(u => (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: true } : u);
-            } else {
-              let newUser = { id: data.userId, _id: data.userId, isOnline: true, name: data.username || "Nhân viên", username: data.username || "user", role: "05", avatar: "" };
-              try {
-                const stored = localStorage.getItem("global_users");
-                if (stored) {
-                  const parsed = JSON.parse(stored);
-                  const found = parsed.find((u: any) => u.id === data.userId || u._id === data.userId);
-                  if (found) newUser = { ...found, isOnline: true };
-                }
-              } catch (e) {}
-              return [newUser, ...prev];
+    // 5. Subscribe to System channel for status changes (ONLY FOR MANAGERS/ADMIN)
+    let systemChannel: any = null;
+    if (isManager) {
+      systemChannel = pusher.subscribe("system");
+
+      // Phase 1: online status synchronization
+      systemChannel.bind("user-status-changed", (data: any) => {
+        // VÁ LỖ HỔNG: Nếu offline thì loại bỏ khỏi danh sách ngay lập tức (KHÔNG GỌI API LẠI)
+        if (data.isOnline === false) {
+          setChatUsers(prev => prev.filter(u => u.id !== data.userId && u._id !== data.userId));
+        } else {
+          setChatUsers(prev => {
+            const exists = prev.some(u => u.id === data.userId || u._id === data.userId);
+            if (data.isOnline) {
+              if (exists) {
+                return prev.map(u => (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: true } : u);
+              } else {
+                let newUser = { id: data.userId, _id: data.userId, isOnline: true, name: data.username || "Nhân viên", username: data.username || "user", role: "05", avatar: "" };
+                try {
+                  const stored = localStorage.getItem("global_users");
+                  if (stored) {
+                    const parsed = JSON.parse(stored);
+                    const found = parsed.find((u: any) => u.id === data.userId || u._id === data.userId);
+                    if (found) newUser = { ...found, isOnline: true };
+                  }
+                } catch (e) {}
+                return [newUser, ...prev];
+              }
             }
-          }
-          return prev;
-        });
-      }
-
-      // Sync global_users in localStorage
-      try {
-        const storedUsers = localStorage.getItem("global_users");
-        if (storedUsers) {
-          const parsed = JSON.parse(storedUsers);
-          const updated = parsed.map((u: any) =>
-            (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline } : u
-          );
-          localStorage.setItem("global_users", JSON.stringify(updated));
-          window.dispatchEvent(new Event("storage"));
-        }
-      } catch (e) {}
-
-      // Sync local SWR query cache without network revalidation
-      try {
-        mutate(
-          (key: any) => typeof key === "string" && key.startsWith("/api/admin/users"),
-          (currentData: any) => {
-            if (!currentData) return currentData;
-            const users = currentData.users || currentData.data || (Array.isArray(currentData) ? currentData : null);
-            if (!users) return currentData;
-
-            const updatedUsers = users.map((u: any) =>
-              (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline } : u
-            );
-
-            if (Array.isArray(currentData)) return updatedUsers;
-            return {
-              ...currentData,
-              data: updatedUsers,
-              users: updatedUsers
-            };
-          },
-          { revalidate: false }
-        );
-      } catch (mutateErr) {}
-    });
-
-    // Phase 2: task completion updates
-    systemChannel.bind("task-updated", (data: any) => {
-      const roleUpper = String(user.role || "").toUpperCase();
-      const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
-      if (isAdminOrManager) {
-        mutate((key: any) => typeof key === "string" && key.includes("/api/admin/tasks"));
-        mutate("/api/admin/mail/satellite-batches");
-        if (user?.role === '01' || user?.role === '02') {
-          mutate('/api/admin/stats');
-          mutate('/api/admin/kpis');
-        }
-      }
-    });
-
-    systemChannel.bind("satellite-batches-updated", (data: any) => {
-      const roleUpper = String(user.role || "").toUpperCase();
-      const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
-      if (isAdminOrManager) {
-        mutate("/api/admin/mail/satellite-batches");
-      }
-    });
-
-    // Phase 3: Bind access-request event
-    systemChannel.bind("access-request", (data: any) => {
-      console.log("[Pusher Event] Received access-request on 'system' channel. Payload:", data);
-      const roleUpper = String(user?.role || "").toUpperCase();
-      const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "03" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC" || roleUpper.includes("QUẢN LÝ");
-      console.log("[Pusher Event] Checking auth for event notification. Role:", roleUpper, "isAdminOrManager:", isAdminOrManager);
-      
-      if (isAdminOrManager) {
-        const newRequest = {
-          id: data.id || data.notificationId || String(Date.now()),
-          userId: data.userId || data.id || "",
-          staffName: data.name || "Nhân viên",
-          username: data.username || "",
-          time: new Date(data.createdAt || Date.now()).toLocaleTimeString("vi-VN"),
-          reason: data.reason || "Xin phép truy cập hệ thống",
-          type: data.type || "ACCESS",
-          status: "PENDING"
-        };
-
-        if (setPendingRequests) {
-          setPendingRequests(prev => {
-            const exists = prev.some(r => r.id === newRequest.id || (r.userId === newRequest.userId && r.type === newRequest.type && r.status === "PENDING"));
-            if (exists) return prev;
-            return [...prev, newRequest];
+            return prev;
           });
         }
 
-        if (setIsAccessModalOpen) {
-          setIsAccessModalOpen(true);
-        }
-        if (setSelectedAccessRequest) {
-          setSelectedAccessRequest(newRequest);
-        }
-
-        // Sync pending_access_requests in localStorage
+        // Sync global_users in localStorage
         try {
-          const savedRequests = localStorage.getItem("pending_access_requests");
-          const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
-          if (!currentRequests.some((r: any) => r.id === newRequest.id || (r.userId === newRequest.userId && r.type === newRequest.type && r.status === "PENDING"))) {
-            const updatedRequests = [...currentRequests, newRequest];
-            localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
-            
-            // Dispatch standard StorageEvent so that storage event listeners in other layout components are fired
-            const storageEvent = new StorageEvent("storage", {
-              key: "pending_access_requests",
-              newValue: JSON.stringify(updatedRequests),
-              storageArea: localStorage
-            });
-            window.dispatchEvent(storageEvent);
+          const storedUsers = localStorage.getItem("global_users");
+          if (storedUsers) {
+            const parsed = JSON.parse(storedUsers);
+            const updated = parsed.map((u: any) =>
+              (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline } : u
+            );
+            localStorage.setItem("global_users", JSON.stringify(updated));
+            window.dispatchEvent(new Event("storage"));
           }
         } catch (e) {}
 
-        // Play sound chime
+        // Sync local SWR query cache without network revalidation
+        try {
+          mutate(
+            (key: any) => typeof key === "string" && key.startsWith("/api/admin/users"),
+            (currentData: any) => {
+              if (!currentData) return currentData;
+              const users = currentData.users || currentData.data || (Array.isArray(currentData) ? currentData : null);
+              if (!users) return currentData;
+
+              const updatedUsers = users.map((u: any) =>
+                (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline } : u
+              );
+
+              if (Array.isArray(currentData)) return updatedUsers;
+              return {
+                ...currentData,
+                data: updatedUsers,
+                users: updatedUsers
+              };
+            },
+            { revalidate: false }
+          );
+        } catch (mutateErr) {}
+      });
+
+      // Phase 2: task completion updates
+      systemChannel.bind("task-updated", (data: any) => {
+        const roleUpper = String(user.role || "").toUpperCase();
+        const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
+        if (isAdminOrManager) {
+          mutate((key: any) => typeof key === "string" && key.includes("/api/admin/tasks"));
+          mutate("/api/admin/mail/satellite-batches");
+          if (user?.role === '01' || user?.role === '02') {
+            mutate('/api/admin/stats');
+            mutate('/api/admin/kpis');
+          }
+        }
+      });
+
+      systemChannel.bind("satellite-batches-updated", (data: any) => {
+        const roleUpper = String(user.role || "").toUpperCase();
+        const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC";
+        if (isAdminOrManager) {
+          mutate("/api/admin/mail/satellite-batches");
+        }
+      });
+
+      systemChannel.bind("new-fine", (data: any) => {
+        console.log("[Pusher system] Received new-fine event:", data);
         playChatChime();
+        mutate((key: any) => typeof key === "string" && key.includes("/api/admin/fines"));
+        mutate("/api/admin/stats");
+      });
+
+      systemChannel.bind("task-list-updated", (data: any) => {
+        console.log("[Pusher system] Received task-list-updated event:", data);
+        mutate((key: any) => typeof key === "string" && key.includes("/api/admin/tasks"));
+      });
+
+      // Phase 3: Bind access-request event
+      systemChannel.bind("access-request", (data: any) => {
+        console.log("[Pusher Event] Received access-request on 'system' channel. Payload:", data);
+        const roleUpper = String(user?.role || "").toUpperCase();
+        const isAdminOrManager = roleUpper === "01" || roleUpper === "02" || roleUpper === "03" || roleUpper === "ADMIN" || roleUpper === "QUẢN LÝ CÔNG VIỆC" || roleUpper === "QL CÔNG VIỆC" || roleUpper.includes("QUẢN LÝ");
+        console.log("[Pusher Event] Checking auth for event notification. Role:", roleUpper, "isAdminOrManager:", isAdminOrManager);
+        
+        if (isAdminOrManager) {
+          const newRequest = {
+            id: data.id || data.notificationId || String(Date.now()),
+            userId: data.userId || data.id || "",
+            staffName: data.name || "Nhân viên",
+            username: data.username || "",
+            time: new Date(data.createdAt || Date.now()).toLocaleTimeString("vi-VN"),
+            reason: data.reason || "Xin phép truy cập hệ thống",
+            type: data.type || "ACCESS",
+            status: "PENDING"
+          };
+
+          if (setPendingRequests) {
+            setPendingRequests(prev => {
+              const exists = prev.some(r => r.id === newRequest.id || (r.userId === newRequest.userId && r.type === newRequest.type && r.status === "PENDING"));
+              if (exists) return prev;
+              return [...prev, newRequest];
+            });
+          }
+
+          if (setIsAccessModalOpen) {
+            setIsAccessModalOpen(true);
+          }
+          if (setSelectedAccessRequest) {
+            setSelectedAccessRequest(newRequest);
+          }
+
+          // Sync pending_access_requests in localStorage
+          try {
+            const savedRequests = localStorage.getItem("pending_access_requests");
+            const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+            if (!currentRequests.some((r: any) => r.id === newRequest.id || (r.userId === newRequest.userId && r.type === newRequest.type && r.status === "PENDING"))) {
+              const updatedRequests = [...currentRequests, newRequest];
+              localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
+              
+              // Dispatch standard StorageEvent so that storage event listeners in other layout components are fired
+              const storageEvent = new StorageEvent("storage", {
+                key: "pending_access_requests",
+                newValue: JSON.stringify(updatedRequests),
+                storageArea: localStorage
+              });
+              window.dispatchEvent(storageEvent);
+            }
+          } catch (e) {}
+
+          // Play sound chime
+          playChatChime();
+        }
+      });
+    }
+
+    // 6. Subscribe to personal channel 'user-' + user._id (FOR EVERYONE)
+    const personalChannel = pusher.subscribe(`user-${user.id || user._id}`);
+    
+    personalChannel.bind("new-task", (data: any) => {
+      setRoleUpdateNotif({ title: data.title || "Nhiệm vụ mới", message: data.message });
+      setTimeout(() => setRoleUpdateNotif(null), 5000);
+      router.refresh();
+      mutate("/api/admin/tasks");
+      mutate("/api/admin/stats");
+    });
+
+    personalChannel.bind("status-update", (data: any) => {
+      router.refresh();
+      mutate("/api/admin/stats");
+    });
+
+    personalChannel.bind("new-fine", (data: any) => {
+      console.log("[Pusher personal] Received new-fine event:", data);
+      playChatChime();
+      setRoleUpdateNotif({
+        title: "Báo cáo xử phạt mới",
+        message: `Bạn bị phạt ${data.amount ? data.amount.toLocaleString("vi-VN") : "50.000"}đ lý do: ${data.reason || "Không hoàn thành task đúng hạn"}`
+      });
+      setTimeout(() => setRoleUpdateNotif(null), 8000);
+      mutate((key: any) => typeof key === "string" && key.includes("/api/admin/fines"));
+      mutate("/api/admin/stats");
+    });
+
+    // Securely listen to private direct messages only on this user's personal channel
+    personalChannel.bind("new-message", (msg: any) => {
+      console.log("[Pusher personal] Received new-message on personal channel:", msg);
+      if (!msg.isCompanyChat) {
+        setPrivateMessages(prev => {
+          if (prev.some(m => m.id === msg.id || m._id === msg._id)) return prev;
+          return [...prev, msg];
+        });
+        if (msg.senderUsername !== user.username) {
+          playChatChime();
+          setUnreadCount(prev => prev + 1);
+        }
+        scrollToBottom();
+      }
+    });
+
+    // 7. Subscribe to general 'chat' channel for company chat messages (FOR EVERYONE)
+    const chatChannel = pusher.subscribe("chat");
+    chatChannel.bind("new-message", (msg: any) => {
+      console.log("[Pusher chat] Received new-message on 'chat' channel:", msg);
+      if (msg.isCompanyChat) {
+        setCompanyMessages(prev => {
+          if (prev.some(m => m.id === msg.id || m._id === msg._id)) return prev;
+          return [...prev, msg];
+        });
+        if (msg.senderUsername !== user.username) {
+          playChatChime();
+          setUnreadCount(prev => prev + 1);
+        }
+        scrollToBottom();
       }
     });
 
@@ -290,7 +368,11 @@ export default function RealtimeProvider({
       pusher.unsubscribe(`private-chat-${user.id || user._id}`);
       pusher.unsubscribe("newsfeed");
       pusher.unsubscribe("system-users");
-      pusher.unsubscribe("system");
+      if (isManager) {
+        pusher.unsubscribe("system");
+      }
+      pusher.unsubscribe(`user-${user.id || user._id}`);
+      pusher.unsubscribe("chat");
     };
   }, [user, router, setChatUsers, setCompanyMessages, setPrivateMessages, setUnreadCount, setRoleUpdateNotif, setRealtimeToast, playChatChime, scrollToBottom, setPendingRequests, setIsAccessModalOpen, setSelectedAccessRequest]);
 

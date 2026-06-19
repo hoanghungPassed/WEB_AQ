@@ -61,6 +61,21 @@ export async function POST(req: NextRequest) {
       try {
         await pusherServer.trigger("system-notifications", "new-notification", newNotif);
       } catch (pushErr) {}
+
+      // Trigger register-request on 'system' channel for chimes & modals
+      try {
+        await pusherServer.trigger("system", "register-request", {
+          id: newNotif._id.toString(),
+          userId: newUser._id.toString(),
+          name: newUser.name,
+          username: newUser.username,
+          createdAt: newNotif.createdAt,
+          type: "REGISTRATION",
+          message: newNotif.message
+        });
+      } catch (pushErr) {
+        console.error("Pusher register-request trigger error:", pushErr);
+      }
     } catch (notifErr) {
       console.error("Lỗi tự động tạo thông báo đăng ký:", notifErr);
     }

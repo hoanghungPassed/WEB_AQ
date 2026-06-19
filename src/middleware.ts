@@ -46,10 +46,11 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    // Xác thực JWT token (Edge-compatible)
-    const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || "aq_media_jwt_secret_2026_xKp9mNvQ3rT8wZ"
-    );
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error("JWT_SECRET is not defined in environment variables");
+    }
+    const secret = new TextEncoder().encode(jwtSecret);
     const { payload } = await jwtVerify(token, secret);
 
     const userId = String(payload.userId || "");
@@ -261,8 +262,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/admin/:path*',
-    '/api/:path*'
-  ],
+  matcher: ['/((?!api/public|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)']
 };

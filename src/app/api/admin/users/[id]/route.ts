@@ -123,7 +123,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     try {
-      await pusherServer.trigger(`user-${updatedUser.username.toLowerCase()}`, "status-update", {
+      await pusherServer.trigger(`user-${updatedUser._id.toString()}`, "status-update", {
         status: updatedUser.status
       });
     } catch (pushErr) {}
@@ -218,7 +218,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     try {
-      await pusherServer.trigger(`user-${updatedUser.username.toLowerCase()}`, "status-update", {
+      await pusherServer.trigger(`user-${updatedUser._id.toString()}`, "status-update", {
         status: updatedUser.status
       });
     } catch (pushErr) {}
@@ -314,7 +314,7 @@ export async function DELETE(req: NextRequest, { params: paramsPromise }: { para
     await logAuditTrail(reqUserId || "system", "DELETE_USER_SUCCESS", "users", { targetUserId: id, username: archivedUser.username }, req);
 
     try {
-      await pusherServer.trigger(`user-${archivedUser.username.toLowerCase()}`, "status-update", {
+      await pusherServer.trigger(`user-${archivedUser._id.toString()}`, "status-update", {
         status: "LOCKED"
       });
     } catch (pushErr) {}

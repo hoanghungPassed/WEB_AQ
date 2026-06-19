@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, Send, X, Plus, FileText, Paperclip, Check, CheckCircle2, Copy, ExternalLink, Search, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { StaffData } from "@/types/admin";
+import Pusher from "pusher-js";
 
 const TypingBubble = ({ senderName }: { senderName?: string }) => {
   return (
@@ -229,6 +230,44 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
       clearInterval(interval);
     };
   }, [user, loadChatData, syncRealUsersFromDB]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || "", {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "ap1",
+    });
+
+    const chatChannel = pusher.subscribe("chat");
+    chatChannel.bind("new-message", (msg: any) => {
+      console.log("[AdminChat Pusher chat] Received new-message:", msg);
+      if (msg.isCompanyChat) {
+        setCompanyMessages(prev => {
+          if (prev.some(m => m.id === msg.id || m._id === msg._id)) return prev;
+          return [...prev, msg];
+        });
+        scrollToBottom();
+      }
+    });
+
+    const personalChannel = pusher.subscribe(`user-${user.id || user._id}`);
+    personalChannel.bind("new-message", (msg: any) => {
+      console.log("[AdminChat Pusher personal] Received new-message:", msg);
+      if (!msg.isCompanyChat) {
+        setPrivateMessages(prev => {
+          if (prev.some(m => m.id === msg.id || m._id === msg._id)) return prev;
+          return [...prev, msg];
+        });
+        scrollToBottom();
+      }
+    });
+
+    return () => {
+      pusher.unsubscribe("chat");
+      pusher.unsubscribe(`user-${user.id || user._id}`);
+      pusher.disconnect();
+    };
+  }, [user, scrollToBottom]);
 
   useEffect(() => {
     if (!user) return;

@@ -23,8 +23,8 @@ export async function GET(req: NextRequest) {
     const sortOrder = (searchParams.get("sortOrder") || "desc") as "asc" | "desc";
 
     const userRole = req.headers.get("x-user-role");
-    // Strictly scope tasks for Staff (03, 04, 05)
-    const isStaff = userRole === "03" || userRole === "04" || userRole === "05";
+    // Strictly scope tasks for Staff (role other than 01, 02, 03)
+    const isStaff = !["01", "02", "03"].includes(userRole || "");
 
     const filter: any = {};
     if (isStaff) {

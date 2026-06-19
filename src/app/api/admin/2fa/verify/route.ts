@@ -1,9 +1,10 @@
-import { NextResponse, NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { User } from '@/models/User';
 import { verifyTokenAny } from '@/lib/2fa';
 import { decrypt, encrypt } from '@/lib/crypto';
 import { logAuditTrail } from '@/lib/permissions';
 import dbConnect from '@/lib/mongodb';
+import { getAuthUser } from '@/lib/auth';
 
 /**
  * POST /api/admin/2fa/verify
@@ -14,9 +15,10 @@ export async function POST(request: Request) {
   await dbConnect();
   const { token, userId } = await request.json();
 
-  const sessionUserId = request.headers.get('x-user-id') || request.headers.get('x-session-user-id') || '';
+  const authUser = await getAuthUser();
+  const sessionUserId = authUser?.userId || '';
   // Users can only verify their own account (or admins can verify others via admin UI – not needed here)
-  if (sessionUserId !== userId) {
+  if (!sessionUserId || sessionUserId !== userId) {
     await logAuditTrail(sessionUserId, 'VERIFY_2FA', 'User', { success: false, reason: 'unauthorized' }, request);
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }

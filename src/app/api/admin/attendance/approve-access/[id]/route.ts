@@ -4,6 +4,7 @@ import { User } from "@/models/User";
 import { Fine } from "@/models/Fine";
 import { Notification } from "@/models/Notification";
 import { pusherServer } from "@/lib/pusher";
+import { checkPermission, logAuditTrail } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     await dbConnect();
     const { id } = await params; // Request ID (MongoDB Notification ID or Date.now string)
+    
+    const userRole = req.headers.get("x-user-role");
+    const sessionUserId = req.headers.get("x-user-id") || "unknown";
+    const hasPermission = await checkPermission(userRole || "", 3, ["all", "attendance"]);
+    if (!hasPermission) {
+      await logAuditTrail(sessionUserId, "UNAUTHORIZED_ACCESS_APPROVAL_ATTEMPT", "attendance", { id }, req);
+      return NextResponse.json({ error: "Không có quyền thực hiện thao tác này" }, { status: 403 });
+    }
+
     const body = await req.json();
     const { status, userId, type, username, staffName } = body; // APPROVED or DENIED
 

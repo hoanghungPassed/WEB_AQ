@@ -96,6 +96,25 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
     });
 
     const systemChannel = pusher.subscribe("system");
+
+    // Bind new-fine event to show warning notification
+    systemChannel.bind("new-fine", (data: any) => {
+      console.log("[Pusher HeaderNotifications] Received new-fine:", data);
+      const newNotif = {
+        id: `fine-${Date.now()}`,
+        title: "Thông báo xử phạt",
+        message: `Nhân viên bị phạt ${data.amount ? data.amount.toLocaleString("vi-VN") : "50.000"}đ lý do: ${data.reason}`,
+        time: new Date().toLocaleTimeString("vi-VN"),
+        type: "WARNING",
+        read: false,
+        data: data
+      };
+      setNotifications(prev => [newNotif, ...prev]);
+      const audio = new Audio('/notification.mp3');
+      audio.play().catch(() => {});
+    });
+    
+    // Bind access-request event to pop up modal immediately
     systemChannel.bind("access-request", (data: any) => {
       console.log("[Pusher HeaderNotifications] Received access-request:", data);
       
@@ -128,6 +147,41 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
       setNotifications(prev => {
         if (prev.some(n => n.id === newNotif.id)) return prev;
         return [newNotif, ...prev];
+      });
+
+      // BẮT BUỘC nổi popup ngay lập tức khi nhận được yêu cầu
+      if (onOpenAccessModal) {
+        onOpenAccessModal(newNotif.data);
+      }
+
+      const audio = new Audio('/notification.mp3');
+      audio.play().catch(() => {});
+    });
+
+    // Bind register-request event to pop up registration modal immediately
+    systemChannel.bind("register-request", (data: any) => {
+      console.log("[Pusher HeaderNotifications] Received register-request:", data);
+      
+      const newNotif = {
+        id: data.id || String(Date.now()),
+        title: "Yêu cầu đăng ký mới",
+        message: `Tài khoản ${data.username} đang chờ duyệt.`,
+        time: new Date(data.createdAt || Date.now()).toLocaleTimeString("vi-VN"),
+        type: "REGISTRATION",
+        read: false,
+        data: data
+      };
+
+      setNotifications(prev => {
+        if (prev.some(n => n.id === newNotif.id)) return prev;
+        return [newNotif, ...prev];
+      });
+
+      // Mở modal duyệt đăng ký ngay lập tức
+      setPendingApproveUser({
+        _id: data.userId,
+        name: data.name,
+        username: data.username
       });
 
       const audio = new Audio('/notification.mp3');
@@ -218,20 +272,38 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
                         }
 
                         if (n.type === "ACCESS_REQUEST" || n.link === "#approval-modal") {
+                          const authorObj = typeof n.author === 'object' ? n.author : null;
+                          const authorId = authorObj ? (authorObj._id || authorObj.id || "") : (n.userId || n.author || "");
+                          const authorName = authorObj ? authorObj.name : "Nhân viên";
+                          const authorUsername = authorObj ? authorObj.username : "";
+                          
+                          // Determine type of request from title/message
+                          let reqType = "ACCESS";
+                          if (n.title?.includes("phạt") || n.message?.includes("phạt")) reqType = "FINE_PAYMENT";
+                          else if (n.title?.includes("muộn") || n.message?.includes("muộn")) reqType = "LATE_EXCUSE";
+
                           const requestData = n.data || {
                             id: String(n.id || "").replace("access-", ""),
-                            userId: n.userId || n.author || "",
-                            staffName: n.title?.includes("Nhân viên") ? n.title.replace("Yêu cầu truy cập từ ", "") : n.message?.replace("Nhân viên ", "")?.split(" đang xin")[0] || "Nhân viên",
-                            username: n.username || "",
+                            userId: authorId,
+                            staffName: authorName,
+                            username: authorUsername,
                             time: n.time || new Date(n.createdAt || Date.now()).toLocaleTimeString("vi-VN"),
                             reason: n.message || "Xin phép truy cập hệ thống",
-                            type: n.type || "ACCESS",
+                            type: reqType,
                             status: "PENDING"
                           };
 
                           if (onOpenAccessModal) {
                             onOpenAccessModal(requestData);
                           }
+                          setIsNotifOpen(false);
+                        } else if (n.type === "REGISTRATION") {
+                          const authorObj = typeof n.author === 'object' ? n.author : null;
+                          setPendingApproveUser(authorObj || {
+                            _id: n.userId || n.author || "",
+                            name: n.title?.includes("đăng ký") ? n.message?.split("Tài khoản ")[1]?.split(" đang chờ duyệt")[0] || "Tài khoản mới" : "Tài khoản mới",
+                            username: n.title?.includes("đăng ký") ? n.message?.split("Tài khoản ")[1]?.split(" đang chờ duyệt")[0] || "" : ""
+                          });
                           setIsNotifOpen(false);
                         } else if (n.link && n.link !== "#" && n.link !== "#approval-modal") {
                           router.push(n.link);
