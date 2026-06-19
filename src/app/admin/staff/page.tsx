@@ -951,44 +951,44 @@ function StaffManagementContent() {
  {/* Toolbar */}
  <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-sidebar/50 border border-white/0 p-6 rounded-[32px] backdrop-blur-xl">
  <div className="flex flex-1 gap-4 w-full">
- <div className="relative flex-1 group flex items-center">
- <Search className="absolute left-5 text-gray-500 group-focus-within:text-gold transition-colors" size={20} />
+ <div className="relative flex-1">
+ <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary w-5 h-5 pointer-events-none" />
  <input
  type="text"
  placeholder="Tìm kiếm tên hoặc username..."
  value={searchQuery}
  onChange={(e) => setSearchQuery(e.target.value)}
- className="h-12 w-full bg-black/20 border border-white/0 rounded-2xl pl-14 pr-6 text-base text-white focus:outline-none focus:border-white/5 transition-all shadow-inner"
+ className="w-full pl-12 pr-4 h-12 bg-background-secondary border border-border rounded-md text-base text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
  />
  </div>
  
  {activeTab ==="ACTIVE" && (
  <>
- <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-2xl px-4 h-12 min-w-[180px]">
- <Filter size={16} className="text-gold" />
+ <div className="relative min-w-[180px]">
+ <Filter size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gold w-4 h-4 pointer-events-none" />
  <select
- className="bg-black/20 border border-white/10 rounded-xl px-4 py-2 outline-none text-sm text-white font-bold uppercase tracking-widest cursor-pointer w-full focus:border-gold transition-colors"
+ className="w-full pl-11 pr-4 h-12 bg-background-secondary border border-border rounded-md text-sm text-foreground font-bold uppercase tracking-widest cursor-pointer focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all appearance-none"
  value={roleFilter}
  onChange={(e) => setRoleFilter(e.target.value)}
  >
- <option value="ALL" className="bg-zinc-900 text-white hover:bg-zinc-700">Tất cả Role</option>
- <option value="01" className="bg-zinc-900 text-white hover:bg-zinc-700">ADMIN</option>
- <option value="02" className="bg-zinc-900 text-white hover:bg-zinc-700">QL CÔNG VIỆC</option>
- <option value="03" className="bg-zinc-900 text-white hover:bg-zinc-700">QL NHÂN SỰ</option>
- <option value="04" className="bg-zinc-900 text-white hover:bg-zinc-700">NHÂN VIÊN</option>
- <option value="05" className="bg-zinc-900 text-white hover:bg-zinc-700">NV THỬ VIỆC</option>
+ <option value="ALL" className="bg-background-secondary text-foreground">Tất cả Role</option>
+ <option value="01" className="bg-background-secondary text-foreground">ADMIN</option>
+ <option value="02" className="bg-background-secondary text-foreground">QL CÔNG VIỆC</option>
+ <option value="03" className="bg-background-secondary text-foreground">QL NHÂN SỰ</option>
+ <option value="04" className="bg-background-secondary text-foreground">NHÂN VIÊN</option>
+ <option value="05" className="bg-background-secondary text-foreground">NV THỬ VIỆC</option>
  </select>
  </div>
- <div className="flex items-center gap-2 bg-black/20 border border-white/0 rounded-2xl px-4 h-12 min-w-[180px]">
- <Activity size={16} className="text-gold" />
+ <div className="relative min-w-[180px]">
+ <Activity size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gold w-4 h-4 pointer-events-none" />
  <select
- className="bg-black/20 border border-white/10 rounded-xl px-4 py-2 outline-none text-sm text-white font-bold uppercase tracking-widest cursor-pointer w-full focus:border-gold transition-colors"
+ className="w-full pl-11 pr-4 h-12 bg-background-secondary border border-border rounded-md text-sm text-foreground font-bold uppercase tracking-widest cursor-pointer focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all appearance-none"
  value={statusFilter}
  onChange={(e) => setStatusFilter(e.target.value)}
  >
- <option value="ALL" className="bg-zinc-900 text-white hover:bg-zinc-700">Trạng thái</option>
- <option value="ACTIVE" className="bg-zinc-900 text-white hover:bg-zinc-700">Hoạt động</option>
- <option value="LOCKED" className="bg-zinc-900 text-white hover:bg-zinc-700">Đã khóa</option>
+ <option value="ALL" className="bg-background-secondary text-foreground">Trạng thái</option>
+ <option value="ACTIVE" className="bg-background-secondary text-foreground">Hoạt động</option>
+ <option value="LOCKED" className="bg-background-secondary text-foreground">Đã khóa</option>
  </select>
  </div>
  </>

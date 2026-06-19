@@ -1024,8 +1024,8 @@ export default function TaskManagementPage() {
                     <div className="space-y-4 mb-4 relative z-50">
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Tìm kiếm & Chọn nhân viên thực hiện (Chỉ hiển thị người online)</label>
-                        <div className="flex items-center w-full bg-background-secondary border border-border focus-within:border-gold focus-within:ring-1 focus-within:ring-gold rounded-md h-14 transition-all">
-                          <Search className="ml-4 text-foreground-secondary shrink-0 w-5 h-5" />
+                        <div className="relative w-full">
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary w-5 h-5 pointer-events-none" />
                           <input
                             type="text"
                             placeholder="Nhập tên nhân viên đang online..."
@@ -1035,7 +1035,7 @@ export default function TaskManagementPage() {
                               setShowStaffDropdown(true);
                             }}
                             onFocus={() => setShowStaffDropdown(true)}
-                            className="flex-1 bg-transparent border-none outline-none text-foreground text-base px-3 h-full"
+                            className="w-full pl-12 pr-4 h-14 bg-background-secondary border border-border rounded-md text-foreground text-base placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
                           />
                         </div>
 

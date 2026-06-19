@@ -16,6 +16,8 @@ interface RealtimeProviderProps {
   playChatChime: () => void;
   scrollToBottom: () => void;
   setPendingRequests?: React.Dispatch<React.SetStateAction<any[]>>;
+  setIsAccessModalOpen?: React.Dispatch<React.SetStateAction<boolean>>;
+  setSelectedAccessRequest?: React.Dispatch<React.SetStateAction<any>>;
 }
 
 export default function RealtimeProvider({
@@ -28,7 +30,9 @@ export default function RealtimeProvider({
   setRealtimeToast,
   playChatChime,
   scrollToBottom,
-  setPendingRequests
+  setPendingRequests,
+  setIsAccessModalOpen,
+  setSelectedAccessRequest
 }: RealtimeProviderProps) {
   const router = useRouter();
 
@@ -251,6 +255,13 @@ export default function RealtimeProvider({
           });
         }
 
+        if (setIsAccessModalOpen) {
+          setIsAccessModalOpen(true);
+        }
+        if (setSelectedAccessRequest) {
+          setSelectedAccessRequest(newRequest);
+        }
+
         // Sync pending_access_requests in localStorage
         try {
           const savedRequests = localStorage.getItem("pending_access_requests");
@@ -281,7 +292,7 @@ export default function RealtimeProvider({
       pusher.unsubscribe("system-users");
       pusher.unsubscribe("system");
     };
-  }, [user, router, setChatUsers, setCompanyMessages, setPrivateMessages, setUnreadCount, setRoleUpdateNotif, setRealtimeToast, playChatChime, scrollToBottom, setPendingRequests]);
+  }, [user, router, setChatUsers, setCompanyMessages, setPrivateMessages, setUnreadCount, setRoleUpdateNotif, setRealtimeToast, playChatChime, scrollToBottom, setPendingRequests, setIsAccessModalOpen, setSelectedAccessRequest]);
 
   return null;
 }

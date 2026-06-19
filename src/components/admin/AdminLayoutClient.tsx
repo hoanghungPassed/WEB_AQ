@@ -408,6 +408,8 @@ export default function AdminLayoutClient({
  const [isChecking, setIsChecking] = useState(true);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [showManagerNotif, setShowManagerNotif] = useState(false);
+  const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
+  const [selectedAccessRequest, setSelectedAccessRequest] = useState<any>(null);
 
   useEffect(() => {
     if ((pendingRequests || []).length > 0) {
@@ -1492,6 +1494,10 @@ const typingTimer = setInterval(checkTyping, 1000);
   };
 
   const handleApprove = async (request: any) => {
+    if (selectedAccessRequest?.id === request.id) {
+      setIsAccessModalOpen(false);
+      setSelectedAccessRequest(null);
+    }
     const updated = (pendingRequests || []).filter((r: any) => r.id !== request.id);
     setPendingRequests(updated);
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
@@ -1539,6 +1545,10 @@ const typingTimer = setInterval(checkTyping, 1000);
   };
 
   const handleDeny = async (request: any) => {
+    if (selectedAccessRequest?.id === request.id) {
+      setIsAccessModalOpen(false);
+      setSelectedAccessRequest(null);
+    }
     const updated = (pendingRequests || []).filter((r: any) => r.id !== request.id);
     setPendingRequests(updated);
     localStorage.setItem("pending_access_requests", JSON.stringify(updated));
@@ -1632,6 +1642,8 @@ const typingTimer = setInterval(checkTyping, 1000);
       playChatChime={playChatChime}
       scrollToBottom={scrollToBottom}
       setPendingRequests={setPendingRequests}
+      setIsAccessModalOpen={setIsAccessModalOpen}
+      setSelectedAccessRequest={setSelectedAccessRequest}
     />
  {/* Sidebar */}
  <Sidebar isCollapsed={isCollapsed} user={user} />
@@ -1645,6 +1657,10 @@ const typingTimer = setInterval(checkTyping, 1000);
  isCollapsed={isCollapsed}
  onToggle={() => setIsCollapsed(!isCollapsed)}
  onOpenProfile={() => setIsModalOpen(true)}
+ onOpenAccessModal={(request) => {
+   setSelectedAccessRequest(request);
+   setIsAccessModalOpen(true);
+ }}
  user={user}
  />
 
@@ -1930,17 +1946,106 @@ const typingTimer = setInterval(checkTyping, 1000);
  )}
  </AnimatePresence>
 
- {/* Profile Modal - Highest level for perfect centering */}
- <ProfileModal
- key={`profile_${user?.id}_${user?.role}`}
- isOpen={isModalOpen}
- onClose={() => setIsModalOpen(false)}
- userData={{
- ...displayUser,
- phone: displayUser.phone ||"0987654321",
- address: displayUser.address ||"Hà Nội, Việt Nam"
- }}
- />
+  {/* Profile Modal - Highest level for perfect centering */}
+  <ProfileModal
+  key={`profile_${user?.id}_${user?.role}`}
+  isOpen={isModalOpen}
+  onClose={() => setIsModalOpen(false)}
+  userData={{
+  ...displayUser,
+  phone: displayUser.phone ||"0987654321",
+  address: displayUser.address ||"Hà Nội, Việt Nam"
+  }}
+  />
+
+  {/* Access Request Approval Modal */}
+  <AnimatePresence>
+    {isAccessModalOpen && selectedAccessRequest && (
+      <div className="fixed inset-0 z-[600] bg-black/80 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="relative w-full max-w-md overflow-hidden rounded-lg border border-border bg-background-secondary p-6 shadow-2xl"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+            <h3 className="text-lg font-black text-white flex items-center gap-2 uppercase tracking-tighter">
+              <span className="h-5 w-1 rounded-full bg-gold shadow-[0_0_10px_rgba(251,191,36,0.5)]" />
+              Phê duyệt yêu cầu
+            </h3>
+            <button
+              onClick={() => {
+                setIsAccessModalOpen(false);
+                setSelectedAccessRequest(null);
+              }}
+              className="rounded-lg p-1 text-foreground-secondary hover:bg-background-tertiary hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="space-y-4 mb-6">
+            <div className="p-4 bg-background rounded-md border border-border/50">
+              <p className="text-[10px] font-black text-foreground-secondary uppercase mb-1 tracking-wider">Họ tên nhân viên</p>
+              <p className="text-sm font-bold text-white">
+                {selectedAccessRequest.staffName} (@{selectedAccessRequest.username})
+              </p>
+            </div>
+
+            <div className="p-4 bg-background rounded-md border border-border/50">
+              <p className="text-[10px] font-black text-foreground-secondary uppercase mb-1 tracking-wider">Loại yêu cầu</p>
+              <p className="text-sm font-bold text-gold uppercase tracking-widest">
+                {selectedAccessRequest.type === "FINE_PAYMENT" 
+                  ? "Báo cáo nộp phạt" 
+                  : selectedAccessRequest.type === "LATE_EXCUSE" 
+                    ? "Giải trình đi muộn" 
+                    : "Yêu cầu truy cập ngoài giờ"}
+              </p>
+            </div>
+
+            <div className="p-4 bg-background rounded-md border border-border/50">
+              <p className="text-[10px] font-black text-foreground-secondary uppercase mb-1 tracking-wider">Thời gian gửi</p>
+              <p className="text-sm font-bold text-white">{selectedAccessRequest.time}</p>
+            </div>
+
+            <div className="p-4 bg-background rounded-md border border-border/50">
+              <p className="text-[10px] font-black text-foreground-secondary uppercase mb-1 tracking-wider">Lý do / Nội dung</p>
+              <p className="text-sm font-medium text-gray-300 whitespace-pre-wrap">
+                {selectedAccessRequest.reason}
+              </p>
+            </div>
+          </div>
+
+          {/* Footer/Actions */}
+          <div className="flex gap-3">
+            <button
+              onClick={async () => {
+                await handleApprove(selectedAccessRequest);
+                setIsAccessModalOpen(false);
+                setSelectedAccessRequest(null);
+              }}
+              className="flex-1 h-12 bg-green-600 hover:bg-green-700 text-white font-bold rounded-sm flex items-center justify-center gap-2 transition-all"
+            >
+              <Check size={18} /> Đồng ý / Duyệt
+            </button>
+            <button
+              onClick={async () => {
+                await handleDeny(selectedAccessRequest);
+                setIsAccessModalOpen(false);
+                setSelectedAccessRequest(null);
+              }}
+              className="flex-1 h-12 bg-red-600/15 hover:bg-red-600/25 border border-red-600/30 text-red-500 font-bold rounded-sm flex items-center justify-center gap-2 transition-all"
+            >
+              <X size={18} /> Từ chối
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    )}
+  </AnimatePresence>
+
  {/* Success Access Approval Modal */}
  <AnimatePresence>
  {accessSuccessMsg && (
@@ -2143,14 +2248,16 @@ const typingTimer = setInterval(checkTyping, 1000);
  
  {/* Chat Search Input */}
  <div className="p-2 mb-2 relative">
-    <Search size={14} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500" />
-    <input 
-      type="text" 
-      placeholder="Tìm tên hoặc username..."
-      value={chatSearchTerm}
-      onChange={(e) => setChatSearchTerm(e.target.value)}
-      className="w-full h-10 bg-white/5 border border-white/0 rounded-xl pl-10 pr-4 text-xs text-white outline-none focus:border-gold/30 transition-all"
-    />
+    <div className="relative w-full">
+      <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary w-3.5 h-3.5 pointer-events-none" />
+      <input 
+        type="text" 
+        placeholder="Tìm tên hoặc username..."
+        value={chatSearchTerm}
+        onChange={(e) => setChatSearchTerm(e.target.value)}
+        className="w-full pl-10 pr-4 h-10 bg-background-secondary border border-border rounded-md text-xs text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+      />
+    </div>
  </div>
 
  {(filteredChatUsers || []).length > 0 ? (

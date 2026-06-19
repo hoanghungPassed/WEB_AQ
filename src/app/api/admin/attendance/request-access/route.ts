@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
       title: title,
       message: `${staffName || user.name} (@${username || user.username}): ${reason || "Xin phép truy cập hệ thống"}`,
       type: "ACCESS_REQUEST",
+      link: "#approval-modal",
       author: userId,
       isRead: false
     });

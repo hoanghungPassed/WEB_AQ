@@ -52,24 +52,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
          const today = new Date();
          today.setHours(0,0,0,0);
          
-         // Atomically find a fine that is NOT PAID, and mark it as PAID in one operation.
-         // This prevents race conditions/double-approvals from incrementing the fund multiple times.
-         const fine = await Fine.findOneAndUpdate(
-           { userId, createdAt: { $gte: today }, status: { $ne: "PAID" } },
-           { $set: { status: "PAID" } },
-           { new: false } // returns the document *before* update
-         );
+         const fine = await Fine.findOne({ userId, createdAt: { $gte: today } });
+         if (fine && fine.status !== 'PAID' && status === 'APPROVED') {
+           // Atomically update status to PAID to prevent race condition
+           const updatedFine = await Fine.findOneAndUpdate(
+             { _id: fine._id, status: { $ne: "PAID" } },
+             { $set: { status: "PAID" } },
+             { new: false }
+           );
 
-         if (fine && fine.status !== "PAID") {
-           try {
-             const { SystemSetting } = await import("@/models/SystemSetting");
-             await SystemSetting.findOneAndUpdate(
-               {}, 
-               { $inc: { fund: fine.amount } }, 
-               { upsert: true, new: true }
-             );
-           } catch (sysErr) {
-             console.error("SystemSetting fund update error:", sysErr);
+           if (updatedFine && updatedFine.status !== "PAID") {
+             try {
+               const { SystemSetting } = await import("@/models/SystemSetting");
+               await SystemSetting.findOneAndUpdate(
+                 {}, 
+                 { $inc: { fund: fine.amount } }, 
+                 { upsert: true }
+               );
+             } catch (sysErr) {
+               console.error("SystemSetting fund update error:", sysErr);
+             }
            }
          }
       }

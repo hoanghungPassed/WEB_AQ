@@ -10,9 +10,10 @@ import { StaffData } from "@/types/admin";
 
 interface HeaderNotificationsProps {
   user: StaffData;
+  onOpenAccessModal?: (request: any) => void;
 }
 
-export default function HeaderNotifications({ user }: HeaderNotificationsProps) {
+export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderNotificationsProps) {
   const router = useRouter();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -70,13 +71,72 @@ export default function HeaderNotifications({ user }: HeaderNotificationsProps) 
 
     const notifChannel = pusher.subscribe("system-notifications");
     notifChannel.bind("new-notification", (notif: any) => {
+      console.log("[Pusher HeaderNotifications] Received new-notification:", notif);
+      
+      const newNotif = {
+        id: notif.id || notif._id || String(Date.now()),
+        title: notif.title || "Thông báo hệ thống",
+        message: notif.message || "",
+        time: notif.time || new Date().toLocaleTimeString("vi-VN"),
+        type: notif.type || "SYSTEM",
+        read: notif.isRead || false,
+        link: notif.link || "",
+        data: notif.data
+      };
+
+      setNotifications(prev => {
+        if (prev.some(n => n.id === newNotif.id)) return prev;
+        return [newNotif, ...prev];
+      });
+
+      const audio = new Audio('/notification.mp3');
+      audio.play().catch(() => {});
+
       mutate('/api/admin/notifications?type=SYSTEM');
+    });
+
+    const systemChannel = pusher.subscribe("system");
+    systemChannel.bind("access-request", (data: any) => {
+      console.log("[Pusher HeaderNotifications] Received access-request:", data);
+      
+      const reqId = data.id || data.notificationId || String(Date.now());
+      const title = data.type === "FINE_PAYMENT" 
+        ? "Báo cáo nộp phạt" 
+        : data.type === "LATE_EXCUSE" 
+          ? "Giải trình đi muộn" 
+          : "Yêu cầu truy cập ngoài giờ";
+
+      const newNotif = {
+        id: `access-${reqId}`,
+        title: title,
+        message: `Nhân viên ${data.name || data.staffName || "Nhân viên"} (@${data.username || "user"}) đang xin phép vào hệ thống.`,
+        time: new Date(data.createdAt || Date.now()).toLocaleTimeString("vi-VN"),
+        type: "ACCESS_REQUEST",
+        read: false,
+        data: {
+          id: reqId,
+          userId: data.userId || "",
+          staffName: data.name || data.staffName || "Nhân viên",
+          username: data.username || "",
+          time: new Date(data.createdAt || Date.now()).toLocaleTimeString("vi-VN"),
+          reason: data.reason || "Xin phép truy cập hệ thống",
+          type: data.type || "ACCESS",
+          status: "PENDING"
+        }
+      };
+
+      setNotifications(prev => {
+        if (prev.some(n => n.id === newNotif.id)) return prev;
+        return [newNotif, ...prev];
+      });
+
       const audio = new Audio('/notification.mp3');
       audio.play().catch(() => {});
     });
 
     return () => {
       pusher.unsubscribe("system-notifications");
+      pusher.unsubscribe("system");
       pusher.disconnect();
     };
   }, [user]);
@@ -134,7 +194,52 @@ export default function HeaderNotifications({ user }: HeaderNotificationsProps) 
               <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {notifications.length > 0 ? (
                   notifications.map((n, i) => (
-                    <div key={n.id || i} className={`p-4 border-b border-border/50 hover:bg-white/5 transition-all cursor-pointer ${!n.read ? 'bg-gold/5' : ''}`}>
+                    <div
+                      key={n.id || i}
+                      onClick={async () => {
+                        // Mark as read in local state
+                        setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item));
+
+                        // Mark as read in DB if it's a DB notification
+                        if (n.id && !String(n.id).startsWith("access-")) {
+                          try {
+                            await fetch(`/api/admin/notifications/${n.id}`, {
+                              method: 'PUT',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'x-user-id': user.id || user._id || ''
+                              },
+                              body: JSON.stringify({ isRead: true })
+                            });
+                          } catch (err) {
+                            console.error("Failed to mark notification as read:", err);
+                          }
+                          mutate('/api/admin/notifications?type=SYSTEM');
+                        }
+
+                        if (n.type === "ACCESS_REQUEST" || n.link === "#approval-modal") {
+                          const requestData = n.data || {
+                            id: String(n.id || "").replace("access-", ""),
+                            userId: n.userId || n.author || "",
+                            staffName: n.title?.includes("Nhân viên") ? n.title.replace("Yêu cầu truy cập từ ", "") : n.message?.replace("Nhân viên ", "")?.split(" đang xin")[0] || "Nhân viên",
+                            username: n.username || "",
+                            time: n.time || new Date(n.createdAt || Date.now()).toLocaleTimeString("vi-VN"),
+                            reason: n.message || "Xin phép truy cập hệ thống",
+                            type: n.type || "ACCESS",
+                            status: "PENDING"
+                          };
+
+                          if (onOpenAccessModal) {
+                            onOpenAccessModal(requestData);
+                          }
+                          setIsNotifOpen(false);
+                        } else if (n.link && n.link !== "#" && n.link !== "#approval-modal") {
+                          router.push(n.link);
+                          setIsNotifOpen(false);
+                        }
+                      }}
+                      className={`p-4 border-b border-border/50 hover:bg-white/5 transition-all cursor-pointer ${!n.read ? 'bg-gold/5 border-l-2 border-l-gold' : ''}`}
+                    >
                       <p className="text-xs font-bold text-white mb-1">{n.title}</p>
                       <p className="text-[10px] text-gray-500 line-clamp-2">{n.message}</p>
                       <p className="text-[8px] text-gray-600 mt-2 font-black uppercase">{n.time || "Vừa xong"}</p>

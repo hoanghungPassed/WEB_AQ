@@ -12,9 +12,10 @@ interface HeaderProps {
   onToggle: () => void;
   onOpenProfile: () => void;
   user: StaffData;
+  onOpenAccessModal?: (request: any) => void;
 }
 
-const Header = ({ isCollapsed, onToggle, onOpenProfile, user }: HeaderProps) => {
+const Header = ({ isCollapsed, onToggle, onOpenProfile, user, onOpenAccessModal }: HeaderProps) => {
   return (
     <header className="sticky top-0 z-40 h-20 w-full bg-background/80 backdrop-blur-xl border-b border-border px-8 flex items-center justify-between shadow-sm">
       <div className="flex items-center gap-6">
@@ -34,7 +35,7 @@ const Header = ({ isCollapsed, onToggle, onOpenProfile, user }: HeaderProps) => 
       </div>
 
       <div className="flex items-center gap-4">
-        <HeaderNotifications user={user} />
+        <HeaderNotifications user={user} onOpenAccessModal={onOpenAccessModal} />
         
         <div className="h-8 w-px bg-border mx-2 hidden sm:block" />
         
