@@ -248,19 +248,69 @@ function StaffManagementContent() {
     }
   };
 
- const loadAccessRequests = async () => {
- try {
- const res = await fetch("/api/sync");
- if (res.ok) {
- const data = await res.json();
- if (data.pending_access_requests) {
- setAccessRequests(JSON.parse(data.pending_access_requests));
- }
- }
- } catch (err) {
- console.error("Error loading access requests:", err);
- }
- };
+  const loadAccessRequests = async () => {
+    // 1. Synchronize from local storage first for immediate responsiveness
+    const saved = localStorage.getItem("pending_access_requests");
+    if (saved) {
+      try {
+        setAccessRequests(JSON.parse(saved));
+      } catch (e) {}
+    }
+
+    if (!currentUser) return;
+
+    // 2. Fetch from ground truth notifications database
+    try {
+      const res = await fetch("/api/admin/notifications?type=SYSTEM", {
+        headers: {
+          "x-user-id": currentUser.id || currentUser._id || ""
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const dbNotifs = Array.isArray(data) ? data : (data?.data || []);
+        
+        const mapped = dbNotifs
+          .filter((n: any) => n.type === "ACCESS_REQUEST" && !n.isRead)
+          .map((n: any) => {
+            const author = n.author || {};
+            const messageParts = (n.message || "").split(": ");
+            const reason = messageParts.slice(1).join(": ") || "Xin phép truy cập hệ thống";
+            
+            let subType = "ACCESS";
+            if (n.title === "Báo cáo nộp phạt") {
+              subType = "FINE_PAYMENT";
+            } else if (n.title === "Giải trình đi muộn") {
+              subType = "LATE_EXCUSE";
+            }
+            
+            return {
+              id: n._id?.toString() || n.id,
+              userId: author._id?.toString() || author.id || n.recipientId || "",
+              staffName: author.name || "Nhân viên",
+              username: author.username || "",
+              time: new Date(n.createdAt).toLocaleTimeString("vi-VN"),
+              reason: reason,
+              type: subType,
+              status: "PENDING"
+            };
+          });
+
+        setAccessRequests(mapped);
+        localStorage.setItem("pending_access_requests", JSON.stringify(mapped));
+        
+        // Dispatch storage event to keep other tabs/components in sync
+        const storageEvent = new StorageEvent("storage", {
+          key: "pending_access_requests",
+          newValue: JSON.stringify(mapped),
+          storageArea: localStorage
+        });
+        window.dispatchEvent(storageEvent);
+      }
+    } catch (err) {
+      console.error("Error loading access requests in staff page:", err);
+    }
+  };
 
  const loadDutyRoster = async () => {
  try {
@@ -545,72 +595,89 @@ function StaffManagementContent() {
  });
  };
 
- const handleDenyAccess = async (id: number, name: string) => {
- const updated = (accessRequests || []).filter(r => r.id !== id);
- const reqItem = accessRequests.find(r => r.id === id);
- setAccessRequests(updated);
+  const handleDenyAccess = async (id: any, name: string) => {
+    const reqItem = accessRequests.find(r => r.id === id);
+    if (!reqItem) return;
 
- const syncPayload: Record<string, string> = {
- pending_access_requests: JSON.stringify(updated),
- [`access_response_${name}`]:"DENIED"
- };
+    const updated = (accessRequests || []).filter(r => r.id !== id);
+    setAccessRequests(updated);
+    localStorage.setItem("pending_access_requests", JSON.stringify(updated));
 
- // Nếu là yêu cầu nộp phạt hoặc giải trình đi muộn → cập nhật user qua API
- if (reqItem && (reqItem.type ==="FINE_PAYMENT" || reqItem.type ==="LATE_EXCUSE")) {
- const matchUser = staffList.find(u => u.username === reqItem.username || u.name === reqItem.staffName);
- if (matchUser) {
- const updateData: any = {};
- if (reqItem.type ==="FINE_PAYMENT") updateData.finePaymentStatus ="DENIED";
- if (reqItem.type ==="LATE_EXCUSE") updateData.lateExcuseStatus ="DENIED";
- try {
- await fetch(`/api/admin/users/${matchUser.id}`, {
- method:"PUT",
- headers: {"Content-Type":"application/json" },
- body: JSON.stringify(updateData)
- });
- } catch (e) { console.error(e); }
- }
- }
+    // Dispatch storage event to keep layout/header in sync
+    const storageEvent = new StorageEvent("storage", {
+      key: "pending_access_requests",
+      newValue: JSON.stringify(updated),
+      storageArea: localStorage
+    });
+    window.dispatchEvent(storageEvent);
 
- await pushToSync(syncPayload);
- setToastMsg(`Đã từ chối truy cập cho ${name}`);
- setShowToast(true);
- setTimeout(() => setShowToast(false), 3000);
- };
+    try {
+      await fetch(`/api/admin/attendance/approve-access/${id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": currentUser?.id || currentUser?._id || "",
+          "x-user-role": currentUser?.role || ""
+        },
+        body: JSON.stringify({
+          status: "DENIED",
+          userId: reqItem.userId,
+          type: reqItem.type,
+          username: reqItem.username,
+          staffName: reqItem.staffName
+        })
+      });
+      await reloadStaffList();
+    } catch (err) {
+      console.error("Failed to deny access request:", err);
+    }
 
- const handleApproveAccess = async (id: number, name: string) => {
- const updated = (accessRequests || []).filter(r => r.id !== id);
- const reqItem = accessRequests.find(r => r.id === id);
- setAccessRequests(updated);
+    setToastMsg(`Đã từ chối truy cập cho ${name}`);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
 
- const syncPayload: Record<string, string> = {
- pending_access_requests: JSON.stringify(updated),
- [`access_response_${name}`]:"APPROVED",
- [`access_${getStableDateString()}_${name}`]:"true"
- };
+  const handleApproveAccess = async (id: any, name: string) => {
+    const reqItem = accessRequests.find(r => r.id === id);
+    if (!reqItem) return;
 
- // Nếu là yêu cầu nộp phạt hoặc giải trình đi muộn → cập nhật user qua API
- if (reqItem && (reqItem.type ==="FINE_PAYMENT" || reqItem.type ==="LATE_EXCUSE")) {
- const matchUser = staffList.find(u => u.username === reqItem.username || u.name === reqItem.staffName);
- if (matchUser) {
- const updateData: any = { isLateLocked: false };
- if (reqItem.type ==="FINE_PAYMENT") updateData.finePaymentStatus ="APPROVED";
- if (reqItem.type ==="LATE_EXCUSE") updateData.lateExcuseStatus ="APPROVED";
- try {
- await fetch(`/api/admin/users/${matchUser.id}`, {
- method:"PUT",
- headers: {"Content-Type":"application/json" },
- body: JSON.stringify(updateData)
- });
- } catch (e) { console.error(e); }
- }
- }
+    const updated = (accessRequests || []).filter(r => r.id !== id);
+    setAccessRequests(updated);
+    localStorage.setItem("pending_access_requests", JSON.stringify(updated));
 
- await pushToSync(syncPayload);
- setToastMsg(`Đã cấp quyền truy cập cho ${name}`);
- setShowToast(true);
- setTimeout(() => setShowToast(false), 3000);
- };
+    // Dispatch storage event to keep layout/header in sync
+    const storageEvent = new StorageEvent("storage", {
+      key: "pending_access_requests",
+      newValue: JSON.stringify(updated),
+      storageArea: localStorage
+    });
+    window.dispatchEvent(storageEvent);
+
+    try {
+      await fetch(`/api/admin/attendance/approve-access/${id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": currentUser?.id || currentUser?._id || "",
+          "x-user-role": currentUser?.role || ""
+        },
+        body: JSON.stringify({
+          status: "APPROVED",
+          userId: reqItem.userId,
+          type: reqItem.type,
+          username: reqItem.username,
+          staffName: reqItem.staffName
+        })
+      });
+      await reloadStaffList();
+    } catch (err) {
+      console.error("Failed to approve access request:", err);
+    }
+
+    setToastMsg(`Đã cấp quyền truy cập cho ${name}`);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
 
  const handleResetDB = () => {
  showConfirm("Cảnh báo hệ thống","Bạn có chắc chắn muốn xóa toàn bộ dữ liệu và reset về mặc định?", async () => {

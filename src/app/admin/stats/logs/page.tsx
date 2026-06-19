@@ -220,10 +220,10 @@ export default function SystemLogsPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-amber-500 transition-colors" size={14} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-amber-500 transition-colors" size={14} />
             <input 
               placeholder="Tìm kiếm tác vụ, tài khoản..."
-              className="bg-zinc-900 border border-white/0 rounded-xl pl-9 pr-4 h-10 text-sm text-zinc-100 outline-none focus:border-amber-500/50 transition-all w-60"
+              className="bg-zinc-900 border border-border rounded-md pl-12 pr-4 h-10 text-sm text-zinc-100 outline-none focus:border-amber-500/50 transition-all w-60"
               type="text" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
