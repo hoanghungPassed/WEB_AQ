@@ -108,13 +108,24 @@ export async function middleware(request: NextRequest) {
 
     // 1. KIỂM TRA PHÂN QUYỀN TRÊN GIAO DIỆN UI /admin/* (Sử dụng Blacklist & Whitelist đúng đắn)
     if (isAdminPage && isStaff) {
-      // Blacklist các trang quản trị cấp cao
       const blacklist = [
-        "/admin/staff",
         "/admin/payroll",
-        "/admin/mail",
         "/admin/phone"
       ];
+      
+      // Nhân viên chính thức (04) & thử việc (05) bị cấm vào trang nhân sự và các hòm mail admin
+      if (role === "04" || role === "05") {
+        blacklist.push("/admin/staff");
+        blacklist.push("/admin/mail/root");
+        blacklist.push("/admin/mail/monetized");
+        blacklist.push("/admin/mail/batches");
+      }
+      
+      // HR Manager (03) bị cấm vào hòm mail kiếm tiền & danh mục lô
+      if (role === "03") {
+        blacklist.push("/admin/mail/monetized");
+        blacklist.push("/admin/mail/batches");
+      }
 
       const isBlacklisted = blacklist.some(
         (path) => pathname === path || pathname.startsWith(path + "/")
@@ -123,9 +134,10 @@ export async function middleware(request: NextRequest) {
       const isAllowedStaffPage =
         pathname === "/admin/mail/satellite" ||
         pathname === "/admin/phone/list" ||
-        pathname === "/admin/settings";
+        pathname === "/admin/settings" ||
+        (role === "03" && pathname.startsWith("/admin/staff")) ||
+        (role === "03" && pathname === "/admin/mail/root");
 
-      // Nếu nằm trong blacklist và không thuộc whitelist được phép, chặn truy cập và redirect về /admin/tasks
       if (isBlacklisted && !isAllowedStaffPage) {
         return NextResponse.redirect(new URL("/admin/tasks", request.url));
       }

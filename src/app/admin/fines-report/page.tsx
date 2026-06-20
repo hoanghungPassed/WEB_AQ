@@ -24,12 +24,15 @@ export default function FinesReportPage() {
  const [filterStatus, setFilterStatus] = useState<"ALL" |"PENDING" |"PAID" |"OVERDUE">("ALL");
  const [toastMsg, setToastMsg] = useState("");
 
+ const [currentUser, setCurrentUser] = useState<any>(null);
+
  useEffect(() => {
  const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
  if (!storedUser) {
  window.location.href ="/login";
  return;
  }
+ setCurrentUser(JSON.parse(storedUser));
 
  const fetchFines = async () => {
  try {
@@ -446,6 +449,8 @@ export default function FinesReportPage() {
  </td>
  <td className="px-6 py-4 text-center">
  <div className="flex items-center justify-center gap-2">
+ {currentUser && ["01", "02", "03", "ADMIN"].includes(currentUser.role) && (
+ <>
  {report.status !=="PAID" && (
  <button
  onClick={() => handleMarkAsPaid(report.id)}
@@ -462,6 +467,8 @@ export default function FinesReportPage() {
  >
  Xóa
  </button>
+ </>
+ )}
  </div>
  </td>
  </motion.tr>

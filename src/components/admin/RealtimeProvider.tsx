@@ -36,6 +36,29 @@ export default function RealtimeProvider({
 }: RealtimeProviderProps) {
   const router = useRouter();
 
+  // Heartbeat chạy mỗi 60 giây để cập nhật trạng thái hoạt động (lastActive)
+  useEffect(() => {
+    if (!user) return;
+
+    const sendHeartbeat = async () => {
+      try {
+        await fetch("/api/auth/me", {
+          headers: {
+            "x-user-id": user.id || user._id || (user as any)?.userId || "",
+            "x-user-role": user.role || ""
+          }
+        });
+      } catch (err) {
+        console.error("Heartbeat error:", err);
+      }
+    };
+
+    sendHeartbeat(); // Send immediately on load
+
+    const interval = setInterval(sendHeartbeat, 60000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   useEffect(() => {
     if (!user) return;
 
@@ -277,15 +300,7 @@ export default function RealtimeProvider({
             });
           }
 
-          // Defer layout modal state updates slightly to prevent synchronous React batching conflict with custom event triggers
-          setTimeout(() => {
-            if (setIsAccessModalOpen) {
-              setIsAccessModalOpen(true);
-            }
-            if (setSelectedAccessRequest) {
-              setSelectedAccessRequest(newRequest);
-            }
-          }, 50);
+
 
           // Sync pending_access_requests in localStorage
           try {

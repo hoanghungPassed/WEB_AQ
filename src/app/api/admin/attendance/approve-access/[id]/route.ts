@@ -57,33 +57,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         }
       }
       
-      // If it's fine payment, auto-mark today's late fine as PAID
-      if (type === "FINE_PAYMENT" || !type) {
-         const today = new Date();
-         today.setHours(0,0,0,0);
-         
-         const fine = await Fine.findOne({ userId, createdAt: { $gte: today } });
-         if (fine && fine.status !== 'PAID' && status === 'APPROVED') {
-           // Atomically update status to PAID to prevent race condition
-           const updatedFine = await Fine.findOneAndUpdate(
-             { _id: fine._id, status: { $ne: "PAID" } },
-             { $set: { status: "PAID" } },
-             { new: false }
-           );
+      // BẮT BUỘC tìm khoản phạt (Fine) tương ứng của nhân viên đó trong ngày hôm đó
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-           if (updatedFine && updatedFine.status !== "PAID") {
-             try {
-               const { SystemSetting } = await import("@/models/SystemSetting");
-               await SystemSetting.findOneAndUpdate(
-                 {}, 
-                 { $inc: { fund: fine.amount } }, 
-                 { upsert: true }
-               );
-             } catch (sysErr) {
-               console.error("SystemSetting fund update error:", sysErr);
-             }
-           }
-         }
+      // Sử dụng findOneAndUpdate nguyên tử (atomic) để tránh tình trạng race condition 
+      // khi nhiều Admin bấm duyệt đồng thời (chỉ cộng quỹ 1 lần duy nhất).
+      const fine = await Fine.findOneAndUpdate(
+        { userId, createdAt: { $gte: today }, status: { $ne: "PAID" } },
+        { status: "PAID" },
+        { new: true }
+      );
+      if (fine) {
+        try {
+          const { SystemSetting } = await import("@/models/SystemSetting");
+          await SystemSetting.findOneAndUpdate(
+            {},
+            { $inc: { fund: fine.amount } },
+            { upsert: true }
+          );
+        } catch (sysErr) {
+          console.error("SystemSetting fund update error:", sysErr);
+        }
       }
     } else if (status === "DENIED" && userId) {
       const userUpdate: any = { isOnline: false };

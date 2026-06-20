@@ -243,8 +243,11 @@ export default function TaskManagementPage() {
     roleUpper === "ADMIN" || 
     roleUpper === "02" || 
     roleUpper === "QL CÔNG VIỆC" || 
-    roleUpper === "QUẢN LÝ CÔNG VIỆC";
-  const isStaff = roleUpper === "03" || roleUpper === "04" || roleUpper === "05" || roleUpper === "NHÂN VIÊN" || roleUpper === "NV THỬ VIỆC";
+    roleUpper === "QUẢN LÝ CÔNG VIỆC" ||
+    roleUpper === "03" ||
+    roleUpper === "QL NHÂN SỰ" ||
+    roleUpper === "QUẢN LÝ NHÂN SỰ";
+  const isStaff = roleUpper === "04" || roleUpper === "05" || roleUpper === "NHÂN VIÊN" || roleUpper === "NV THỬ VIỆC";
 
   useEffect(() => {
     if (isStaff && adminTab === "ASSIGN") {
@@ -348,6 +351,7 @@ export default function TaskManagementPage() {
     if (!user) return [];
     const is01 = user?.role === "01" || user?.role === "ADMIN";
     const is02 = user?.role === "02" || user?.role === "QUẢN LÝ CÔNG VIỆC";
+    const is03 = user?.role === "03" || user?.role === "QL NHÂN SỰ" || user?.role === "QUẢN LÝ NHÂN SỰ";
 
     return (staffList || []).filter((s: StaffData) => {
       // Chỉ chọn nhân viên có trạng thái đang online
@@ -365,7 +369,7 @@ export default function TaskManagementPage() {
         return s.role === "02";
       }
 
-      if (is01) {
+      if (is01 || is03) {
         return s.role === "02" || s.role === "03" || s.role === "04" || s.role === "05";
       }
       if (is02) {

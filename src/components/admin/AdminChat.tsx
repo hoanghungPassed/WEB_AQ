@@ -488,26 +488,36 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
           <div className="flex-1 overflow-hidden flex flex-col relative bg-zinc-950/20">
             {chatTab === "COMPANY" ? (
               <>
-                <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar scroll-smooth">
-                  {companyMessages.map((msg, idx) => {
-                    const isMe = msg.senderName === (user?.name || user?.username);
-                    return (
-                      <div key={msg.id || idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                        {!isMe && (
-                          <span className="text-[8px] font-bold uppercase tracking-wider text-gray-500 mb-1 ml-1">{msg.senderName}</span>
-                        )}
-                        <div className={`p-4 rounded-2xl max-w-[85%] text-sm font-medium shadow-lg transition-all ${isMe ? 'bg-gold text-background rounded-tr-none' : 'bg-white/5 text-white border border-white/5 rounded-tl-none'}`}>
-                          {msg.content}
-                          {msg.imageUrl && (
-                            <img src={msg.imageUrl} alt="chat" className="mt-2 rounded-lg cursor-pointer" onClick={() => setActiveLightboxImage(msg.imageUrl)} />
+                <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar scroll-smooth flex flex-col">
+                  {companyMessages.length > 0 ? (
+                    companyMessages.map((msg, idx) => {
+                      const isMe = msg.senderName === (user?.name || user?.username);
+                      return (
+                        <div key={msg.id || idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                          {!isMe && (
+                            <span className="text-[8px] font-bold uppercase tracking-wider text-gray-500 mb-1 ml-1">{msg.senderName}</span>
                           )}
+                          <div className={`p-4 rounded-2xl max-w-[85%] text-sm font-medium shadow-lg transition-all ${isMe ? 'bg-gold text-background rounded-tr-none' : 'bg-white/5 text-white border border-white/5 rounded-tl-none'}`}>
+                            {msg.content}
+                            {msg.imageUrl && (
+                              <img src={msg.imageUrl} alt="chat" className="mt-2 rounded-lg cursor-pointer" onClick={() => setActiveLightboxImage(msg.imageUrl)} />
+                            )}
+                          </div>
+                          <span className="text-[8px] text-gray-600 font-bold mt-1 px-1">
+                            {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : ""}
+                          </span>
                         </div>
-                        <span className="text-[8px] text-gray-600 font-bold mt-1 px-1">
-                          {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : ""}
-                        </span>
+                      );
+                    })
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center my-auto">
+                      <div className="h-16 w-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mb-4 text-zinc-600 shadow-lg">
+                        <MessageSquare size={28} className="text-foreground-secondary/30" />
                       </div>
-                    );
-                  })}
+                      <p className="text-sm font-bold text-gray-400">Chưa có tin nhắn nào</p>
+                      <p className="text-xs text-gray-500 mt-1">Bắt đầu cuộc trò chuyện chung của toàn công ty.</p>
+                    </div>
+                  )}
                   {companyTypingUsers.length > 0 && <TypingBubble senderName={companyTypingUsers.join(", ")} />}
                   <div ref={companyMessagesEndRef} />
                 </div>
@@ -568,22 +578,32 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
                 <div className="flex-1 flex flex-col bg-zinc-950/30">
                   {activeChatUser ? (
                     <>
-                      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar scroll-smooth">
-                        {privateMessages.map((msg, idx) => {
-                          const isMe = msg.sender === user?.username || msg.senderUsername === user?.username;
-                          return (
-                            <div key={msg.id || idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                              <div className={`p-3.5 rounded-2xl max-w-[90%] text-sm font-medium shadow-lg transition-all ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white/5 text-white border border-white/5 rounded-tl-none'}`}>
-                                {msg.content}
-                                {isMe && (
-                                  <div className="mt-1 flex justify-end">
-                                    {getMessageStatus(msg, user)}
-                                  </div>
-                                )}
+                      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar scroll-smooth flex flex-col">
+                        {privateMessages.length > 0 ? (
+                          privateMessages.map((msg, idx) => {
+                            const isMe = msg.sender === user?.username || msg.senderUsername === user?.username;
+                            return (
+                              <div key={msg.id || idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                                <div className={`p-3.5 rounded-2xl max-w-[90%] text-sm font-medium shadow-lg transition-all ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white/5 text-white border border-white/5 rounded-tl-none'}`}>
+                                  {msg.content}
+                                  {isMe && (
+                                    <div className="mt-1 flex justify-end">
+                                      {getMessageStatus(msg, user)}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
+                            );
+                          })
+                        ) : (
+                          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center my-auto">
+                            <div className="h-16 w-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mb-4 text-zinc-600 shadow-lg">
+                              <MessageSquare size={28} className="text-foreground-secondary/30" />
                             </div>
-                          );
-                        })}
+                            <p className="text-sm font-bold text-gray-400">Chưa có tin nhắn nào</p>
+                            <p className="text-xs text-gray-500 mt-1">Hãy gửi tin nhắn đầu tiên để bắt đầu cuộc trò chuyện.</p>
+                          </div>
+                        )}
                         {isPartnerTyping && <TypingBubble />}
                         <div ref={privateMessagesEndRef} />
                       </div>
@@ -600,9 +620,11 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
                       </form>
                     </>
                   ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center opacity-20 p-10 text-center">
-                      <MessageSquare size={48} className="mb-4" />
-                      <p className="text-xs font-black uppercase tracking-widest">Chọn một người để bắt đầu trò chuyện</p>
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-zinc-950/20">
+                      <div className="h-16 w-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mb-4 text-zinc-600 shadow-lg">
+                        <MessageSquare size={28} className="text-foreground-secondary/30" />
+                      </div>
+                      <p className="text-sm font-bold text-gray-400">Chọn một nhân viên để bắt đầu cuộc trò chuyện</p>
                     </div>
                   )}
                 </div>

@@ -11,11 +11,11 @@ export async function GET(req: NextRequest) {
   try {
     await dbConnect();
 
-    // Automatically sweep stale online statuses (inactive for > 15 mins)
+    // Automatically sweep stale online statuses (inactive for > 5 mins)
     try {
-      const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
       await User.updateMany(
-        { isOnline: true, lastActive: { $lt: fifteenMinutesAgo } },
+        { isOnline: true, lastActive: { $lt: fiveMinutesAgo } },
         { $set: { isOnline: false } }
       );
     } catch (_) {}
@@ -38,8 +38,8 @@ export async function GET(req: NextRequest) {
     
     // Status Filter (Online state uses dynamic time calculations)
     if (statusParam === "online") {
-      const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
-      filter.lastActive = { $gte: fifteenMinutesAgo };
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      filter.lastActive = { $gte: fiveMinutesAgo };
       filter.status = "ACTIVE";
     } else if (statusParam === "PENDING") {
       filter.status = "PENDING";

@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from"react";
-import Sidebar from"@/components/admin/Sidebar";
-import Header from"@/components/admin/Header";
-import ProfileModal from"@/components/admin/ProfileModal";
-import AccessLock from"@/components/admin/modals/AccessLock";
-import { useRouter } from"next/navigation";
+import React, { useState, useEffect, useMemo } from "react";
+import Sidebar from "@/components/admin/Sidebar";
+import Header from "@/components/admin/Header";
+import ProfileModal from "@/components/admin/ProfileModal";
+import AccessLock from "@/components/admin/modals/AccessLock";
+import { useRouter } from "next/navigation";
 import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle, Plus, FileText, Download, Paperclip, Phone, Minus, Copy, ExternalLink, ShieldAlert, Loader2, Search, UserSearch } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import RealtimeProvider from "@/components/admin/RealtimeProvider";
+import { toast } from "react-hot-toast";
 
 const lastSyncedCache: Record<string, string | null> = {};
 
@@ -93,6 +94,7 @@ export default function AdminLayoutClient({
 
  const [isModalOpen, setIsModalOpen] = useState(false);
  const [user, setUser] = useState<StaffData | null>(initialUser);
+ const [isAdminSubmitting, setIsAdminSubmitting] = useState(false);
 
  useEffect(() => {
    if (initialUser) {
@@ -1463,49 +1465,16 @@ const typingTimer = setInterval(checkTyping, 1000);
         },
         body: JSON.stringify(requestBody)
       });
-      if (res.ok) {
-        setIsPendingApproval(true);
-        const json = await res.json();
-        const newRequest = json.data;
-        const savedRequests = localStorage.getItem("pending_access_requests");
-        const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
-        const updatedRequests = [...currentRequests, newRequest];
-        localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
-
-        // Update local global_users state immediately to prevent race reset
-        const savedUsers = localStorage.getItem("global_users");
-        if (savedUsers) {
-          const allUsers = JSON.parse(savedUsers);
-          const updated = (allUsers || []).map((u: any) =>
-            u.username === user.username ? { ...u, status: "PENDING" } : u
-          );
-          localStorage.setItem("global_users", JSON.stringify(updated));
-        }
-
-        localStorage.setItem("request_trigger", Date.now().toString());
-        window.dispatchEvent(new Event("storage"));
-        
-        setFineSuccessToast("Yêu cầu truy cập của bạn đã được gửi tới Admin!");
-        setTimeout(() => setFineSuccessToast(null), 5000);
-      }
     } catch (e) {
       console.error("Request access error:", e);
     }
   };
 
   const handleApprove = async (request: any) => {
-    if (selectedAccessRequest?.id === request.id) {
-      setIsAccessModalOpen(false);
-      setSelectedAccessRequest(null);
-    }
-    const updated = (pendingRequests || []).filter((r: any) => r.id !== request.id);
-    setPendingRequests(updated);
-    localStorage.setItem("pending_access_requests", JSON.stringify(updated));
-    localStorage.setItem(`access_response_${request.staffName}`, "APPROVED");
-    localStorage.setItem(`access_${getStableDateString()}_${request.staffName}`, "true");
-
+    if (!request) return;
+    setIsAdminSubmitting(true);
     try {
-      await fetch(`/api/admin/attendance/approve-access/${request.id}`, {
+      const res = await fetch(`/api/admin/attendance/approve-access/${request.id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1520,42 +1489,55 @@ const typingTimer = setInterval(checkTyping, 1000);
           staffName: request.staffName
         })
       });
+
+      if (!res.ok) {
+        throw new Error("Duyệt thất bại, vui lòng thử lại");
+      }
+
+      mutate((key: any) => typeof key === "string" && key.startsWith("/api/admin/"));
+
+      if (selectedAccessRequest?.id === request.id) {
+        setIsAccessModalOpen(false);
+        setSelectedAccessRequest(null);
+      }
+      const updated = (pendingRequests || []).filter((r: any) => r.id !== request.id);
+      setPendingRequests(updated);
+      localStorage.setItem("pending_access_requests", JSON.stringify(updated));
+      localStorage.setItem(`access_response_${request.staffName}`, "APPROVED");
+      localStorage.setItem(`access_${getStableDateString()}_${request.staffName}`, "true");
+
+      if (request.type === "FINE_PAYMENT" || request.type === "LATE_EXCUSE") {
+        const savedUsersStr = localStorage.getItem("global_users");
+        const allUsers = savedUsersStr ? JSON.parse(savedUsersStr) : [];
+        const updatedUsers = (allUsers || []).map((u: any) =>
+          u.username === request.username || u.name === request.staffName
+            ? { 
+                ...u, 
+                isLateLocked: false, 
+                finePaymentStatus: request.type === "FINE_PAYMENT" ? "APPROVED" : u.finePaymentStatus,
+                lateExcuseStatus: request.type === "LATE_EXCUSE" ? "APPROVED" : u.lateExcuseStatus
+              }
+            : u
+        );
+        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+        window.dispatchEvent(new Event("storage"));
+      }
+
+      toast.success(`Đã duyệt yêu cầu cho ${request.staffName}`);
+      mutate("admin-dashboard-data");
     } catch (err) {
       console.error("Failed to approve access request:", err);
+      toast.error("Duyệt thất bại, vui lòng thử lại");
+    } finally {
+      setIsAdminSubmitting(false);
     }
-
-    if (request.type === "FINE_PAYMENT" || request.type === "LATE_EXCUSE") {
-      const savedUsersStr = localStorage.getItem("global_users");
-      const allUsers = savedUsersStr ? JSON.parse(savedUsersStr) : [];
-      const updatedUsers = (allUsers || []).map((u: any) =>
-        u.username === request.username || u.name === request.staffName
-          ? { 
-              ...u, 
-              isLateLocked: false, 
-              finePaymentStatus: request.type === "FINE_PAYMENT" ? "APPROVED" : u.finePaymentStatus,
-              lateExcuseStatus: request.type === "LATE_EXCUSE" ? "APPROVED" : u.lateExcuseStatus
-            }
-          : u
-      );
-      localStorage.setItem("global_users", JSON.stringify(updatedUsers));
-      window.dispatchEvent(new Event("storage"));
-    }
-
-    setAccessSuccessMsg(`Đã duyệt yêu cầu cho ${request.staffName}`);
   };
 
   const handleDeny = async (request: any) => {
-    if (selectedAccessRequest?.id === request.id) {
-      setIsAccessModalOpen(false);
-      setSelectedAccessRequest(null);
-    }
-    const updated = (pendingRequests || []).filter((r: any) => r.id !== request.id);
-    setPendingRequests(updated);
-    localStorage.setItem("pending_access_requests", JSON.stringify(updated));
-    localStorage.setItem(`access_response_${request.staffName}`, "DENIED");
-
+    if (!request) return;
+    setIsAdminSubmitting(true);
     try {
-      await fetch(`/api/admin/attendance/approve-access/${request.id}`, {
+      const res = await fetch(`/api/admin/attendance/approve-access/${request.id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1570,24 +1552,45 @@ const typingTimer = setInterval(checkTyping, 1000);
           staffName: request.staffName
         })
       });
+
+      if (!res.ok) {
+        throw new Error("Từ chối thất bại, vui lòng thử lại");
+      }
+
+      mutate((key: any) => typeof key === "string" && key.startsWith("/api/admin/"));
+
+      if (selectedAccessRequest?.id === request.id) {
+        setIsAccessModalOpen(false);
+        setSelectedAccessRequest(null);
+      }
+      const updated = (pendingRequests || []).filter((r: any) => r.id !== request.id);
+      setPendingRequests(updated);
+      localStorage.setItem("pending_access_requests", JSON.stringify(updated));
+      localStorage.setItem(`access_response_${request.staffName}`, "DENIED");
+
+      if (request.type === "FINE_PAYMENT" || request.type === "LATE_EXCUSE") {
+        const savedUsersStr = localStorage.getItem("global_users");
+        const allUsers = savedUsersStr ? JSON.parse(savedUsersStr) : [];
+        const updatedUsers = (allUsers || []).map((u: any) =>
+          u.username === request.username || u.name === request.staffName
+            ? { 
+                ...u, 
+                finePaymentStatus: request.type === "FINE_PAYMENT" ? "DENIED" : u.finePaymentStatus,
+                lateExcuseStatus: request.type === "LATE_EXCUSE" ? "DENIED" : u.lateExcuseStatus
+              }
+            : u
+        );
+        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+        window.dispatchEvent(new Event("storage"));
+      }
+
+      toast.success(`Đã từ chối yêu cầu của ${request.staffName}`);
+      mutate("admin-dashboard-data");
     } catch (err) {
       console.error("Failed to deny access request:", err);
-    }
-
-    if (request.type === "FINE_PAYMENT" || request.type === "LATE_EXCUSE") {
-      const savedUsersStr = localStorage.getItem("global_users");
-      const allUsers = savedUsersStr ? JSON.parse(savedUsersStr) : [];
-      const updatedUsers = (allUsers || []).map((u: any) =>
-        u.username === request.username || u.name === request.staffName
-          ? { 
-              ...u, 
-              finePaymentStatus: request.type === "FINE_PAYMENT" ? "DENIED" : u.finePaymentStatus,
-              lateExcuseStatus: request.type === "LATE_EXCUSE" ? "DENIED" : u.lateExcuseStatus
-            }
-          : u
-      );
-      localStorage.setItem("global_users", JSON.stringify(updatedUsers));
-      window.dispatchEvent(new Event("storage"));
+      toast.error("Từ chối thất bại, vui lòng thử lại");
+    } finally {
+      setIsAdminSubmitting(false);
     }
   };
 
@@ -1715,47 +1718,6 @@ const typingTimer = setInterval(checkTyping, 1000);
  )}
  </AnimatePresence>
 
- {/* Manager Approval Notification */}
-  {(user?.role ==="ADMIN" || user?.role ==="01" || user?.role ==="02" || user?.role ==="03" || String(user?.role).toUpperCase().includes("QUẢN LÝ")) && (pendingRequests || []).length > 0 && showManagerNotif && (() => {
-    const request = pendingRequests[0];
-   const isLateRequest = request?.type === "FINE_PAYMENT" || request?.type === "LATE_EXCUSE";
-   return (
-     <div className="fixed bottom-10 right-10 z-50">
-       <div className="bg-sidebar border border-white/0 p-6 rounded-[32px] shadow-2xl w-96">
-         <div className="flex items-center gap-3 mb-4">
-           <div className="h-10 w-10 bg-gold rounded-full flex items-center justify-center text-sidebar animate-pulse">
-             <Bell size={20} />
-           </div>
-           <div>
-             <p className="text-[10px] font-bold text-gold uppercase tracking-widest">
-               {isLateRequest ? "Yêu cầu duyệt đi muộn" : "Yêu cầu truy cập mới"}
-             </p>
-             <p className="text-lg font-black text-white">{safeText(request?.staffName)}</p>
-           </div>
-         </div>
-         <p className="text-gray-400 text-base mb-6 font-medium">
-           {isLateRequest 
-             ? `Nhân viên ${safeText(request?.staffName)} vừa gửi yêu cầu mở khóa do đi muộn/chuyển khoản.`
-             : "Nhân viên này đang xin phép truy cập hệ thống ngoài giờ làm việc."}
-         </p>
-         <div className="flex gap-3">
-           <button
-             onClick={() => handleApprove(request)}
-             className="flex-1 h-12 bg-green-500 rounded-xl text-white font-bold flex items-center justify-center gap-2 hover:bg-green-600 transition-all shadow-lg shadow-green-500/20"
-           >
-             <Check size={18} /> {isLateRequest ? "Duyệt ngay" : "Đồng ý"}
-           </button>
-           <button
-             onClick={() => handleDeny(request)}
-             className="flex-1 h-12 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 font-bold flex items-center justify-center gap-2 hover:bg-red-500/20 transition-all"
-           >
-             <X size={18} /> Từ chối
-           </button>
-         </div>
-       </div>
-     </div>
-   );
- })()}
  </div>
  </main>
  </div>
@@ -1779,7 +1741,30 @@ const typingTimer = setInterval(checkTyping, 1000);
     <AccessLock
       message="Báo cáo đi muộn"
       userName={user?.name || "Nhân viên"}
-      onSendRequest={() => {}}
+      onSendRequest={async () => {
+        if (!user) return;
+        const requestBody = {
+          type: "ACCESS",
+          reason: "Xin phép vào hệ thống làm việc ngoài giờ",
+          staffName: user.name,
+          username: user.username
+        };
+        try {
+          const res = await fetch("/api/admin/attendance/request-access", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-user-id": user.id || user._id || (user as any).userId || ""
+            },
+            body: JSON.stringify(requestBody)
+          });
+          if (!res.ok) throw new Error("Gửi yêu cầu thất bại");
+          setIsPendingApproval(true);
+        } catch (e) {
+          console.error(e);
+          throw e;
+        }
+      }}
       onLogout={handleLogout}
       isPendingApproval={isPendingApproval || statusData?.userStatus === "PENDING"}
       isLateLock={true}
@@ -1805,34 +1790,34 @@ const typingTimer = setInterval(checkTyping, 1000);
             },
             body: JSON.stringify(requestBody)
           });
-          if (res.ok) {
-            setIsPendingApproval(true);
-            const json = await res.json();
-            const newRequest = json.data;
-            const savedRequests = localStorage.getItem("pending_access_requests");
-            const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
-            const updatedRequests = [...currentRequests, newRequest];
-            localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
+          if (!res.ok) throw new Error("Gửi yêu cầu thất bại");
+          setIsPendingApproval(true);
+          const json = await res.json();
+          const newRequest = json.data;
+          const savedRequests = localStorage.getItem("pending_access_requests");
+          const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+          const updatedRequests = [...currentRequests, newRequest];
+          localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
 
-            const savedUsers = localStorage.getItem("global_users");
-            if (savedUsers) {
-              const allUsers = JSON.parse(savedUsers);
-              const updated = (allUsers || []).map((u: any) =>
-                u.username === user.username ? { 
-                  ...u, 
-                  isLateLocked: true, 
-                  lateExcuseStatus: "PENDING_APPROVAL",
-                  status: "PENDING_APPROVAL" 
-                } : u
-              );
-              localStorage.setItem("global_users", JSON.stringify(updated));
-            }
-            window.dispatchEvent(new Event("storage"));
-            setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
-            setTimeout(() => setFineSuccessToast(null), 5000);
+          const savedUsers = localStorage.getItem("global_users");
+          if (savedUsers) {
+            const allUsers = JSON.parse(savedUsers);
+            const updated = (allUsers || []).map((u: any) =>
+              u.username === user.username ? { 
+                ...u, 
+                isLateLocked: true, 
+                lateExcuseStatus: "PENDING_APPROVAL",
+                status: "PENDING_APPROVAL" 
+              } : u
+            );
+            localStorage.setItem("global_users", JSON.stringify(updated));
           }
+          window.dispatchEvent(new Event("storage"));
+          setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
+          setTimeout(() => setFineSuccessToast(null), 5000);
         } catch (e) {
           console.error("Excuse submit error:", e);
+          throw e;
         }
       }}
       onReportPayment={async () => {
@@ -1852,34 +1837,34 @@ const typingTimer = setInterval(checkTyping, 1000);
             },
             body: JSON.stringify(requestBody)
           });
-          if (res.ok) {
-            setIsPendingApproval(true);
-            const json = await res.json();
-            const newRequest = json.data;
-            const savedRequests = localStorage.getItem("pending_access_requests");
-            const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
-            const updatedRequests = [...currentRequests, newRequest];
-            localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
+          if (!res.ok) throw new Error("Gửi yêu cầu thất bại");
+          setIsPendingApproval(true);
+          const json = await res.json();
+          const newRequest = json.data;
+          const savedRequests = localStorage.getItem("pending_access_requests");
+          const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+          const updatedRequests = [...currentRequests, newRequest];
+          localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
 
-            const savedUsers = localStorage.getItem("global_users");
-            if (savedUsers) {
-              const allUsers = JSON.parse(savedUsers);
-              const updated = (allUsers || []).map((u: any) =>
-                u.username === user.username ? { 
-                  ...u, 
-                  isLateLocked: true, 
-                  finePaymentStatus: "PENDING_APPROVAL",
-                  status: "PENDING_APPROVAL"
-                } : u
-              );
-              localStorage.setItem("global_users", JSON.stringify(updated));
-            }
-            window.dispatchEvent(new Event("storage"));
-            setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
-            setTimeout(() => setFineSuccessToast(null), 5000);
+          const savedUsers = localStorage.getItem("global_users");
+          if (savedUsers) {
+            const allUsers = JSON.parse(savedUsers);
+            const updated = (allUsers || []).map((u: any) =>
+              u.username === user.username ? { 
+                ...u, 
+                isLateLocked: true, 
+                finePaymentStatus: "PENDING_APPROVAL",
+                status: "PENDING_APPROVAL"
+              } : u
+            );
+            localStorage.setItem("global_users", JSON.stringify(updated));
           }
+          window.dispatchEvent(new Event("storage"));
+          setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
+          setTimeout(() => setFineSuccessToast(null), 5000);
         } catch (e) {
           console.error("Report payment error:", e);
+          throw e;
         }
       }}
       finePaymentPending={finePaymentPending}
@@ -2023,20 +2008,18 @@ const typingTimer = setInterval(checkTyping, 1000);
             <button
               onClick={async () => {
                 await handleApprove(selectedAccessRequest);
-                setIsAccessModalOpen(false);
-                setSelectedAccessRequest(null);
               }}
-              className="flex-1 h-12 bg-green-600 hover:bg-green-700 text-white font-bold rounded-sm flex items-center justify-center gap-2 transition-all"
+              disabled={isAdminSubmitting}
+              className="flex-1 h-12 bg-green-600 hover:bg-green-700 text-white font-bold rounded-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Check size={18} /> Đồng ý / Duyệt
             </button>
             <button
               onClick={async () => {
                 await handleDeny(selectedAccessRequest);
-                setIsAccessModalOpen(false);
-                setSelectedAccessRequest(null);
               }}
-              className="flex-1 h-12 bg-red-600/15 hover:bg-red-600/25 border border-red-600/30 text-red-500 font-bold rounded-sm flex items-center justify-center gap-2 transition-all"
+              disabled={isAdminSubmitting}
+              className="flex-1 h-12 bg-red-600/15 hover:bg-red-600/25 border border-red-600/30 text-red-500 font-bold rounded-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <X size={18} /> Từ chối
             </button>

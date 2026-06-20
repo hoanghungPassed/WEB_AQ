@@ -114,30 +114,54 @@ export default function AccessLock({
     return rem > 0 ? `${hrs} giờ ${rem} phút` : `${hrs} giờ`;
   };
 
-  const handleSendRequestClick = () => {
-    setLocalPending(true);
-    setLocalDenied(false);
-    onSendRequest();
-  };
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleReportPaymentClick = () => {
+  const handleSendRequestClick = async () => {
+    setIsSubmitting(true);
     setLocalPending(true);
     setLocalDenied(false);
-    if (onReportPayment) {
-      onReportPayment();
+    try {
+      await onSendRequest();
+    } catch (err) {
+      toast.error("Lỗi kết nối, vui lòng thử lại!");
+    } finally {
+      setIsSubmitting(false);
+      setLocalPending(false);
     }
   };
 
-  const handleExcuseSubmit = () => {
+  const handleReportPaymentClick = async () => {
+    if (!onReportPayment) return;
+    setIsSubmitting(true);
+    setLocalPending(true);
+    setLocalDenied(false);
+    try {
+      await onReportPayment();
+    } catch (err) {
+      toast.error("Lỗi kết nối, vui lòng thử lại!");
+    } finally {
+      setIsSubmitting(false);
+      setLocalPending(false);
+    }
+  };
+
+  const handleExcuseSubmit = async () => {
     if (!excuseReason.trim()) {
       toast.error("Vui lòng nhập lý do giải trình trước khi gửi!");
       return;
     }
+    if (!onSendExcuse) return;
+    setIsSubmitting(true);
     setLocalPending(true);
     setLocalDenied(false);
-    if (onSendExcuse) {
-      onSendExcuse(excuseReason);
+    try {
+      await onSendExcuse(excuseReason);
       setExcuseReason("");
+    } catch (err) {
+      toast.error("Lỗi kết nối, vui lòng thử lại!");
+    } finally {
+      setIsSubmitting(false);
+      setLocalPending(false);
     }
   };
 
@@ -231,13 +255,15 @@ export default function AccessLock({
             <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
               <button
                 onClick={handleSendRequestClick}
-                className="flex-1 h-12 bg-danger hover:bg-danger/90 text-white font-bold uppercase text-xs tracking-widest rounded-sm transition-all shadow-md shadow-danger/20 flex items-center justify-center gap-3"
+                disabled={isSubmitting}
+                className="flex-1 h-12 bg-danger hover:bg-danger/90 text-white font-bold uppercase text-xs tracking-widest rounded-sm transition-all shadow-md shadow-danger/20 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send size={16} /> Gửi yêu cầu mở khóa
               </button>
               <button
                 onClick={onLogout}
-                className="h-12 px-6 bg-background-tertiary border border-border text-foreground-secondary font-bold uppercase text-xs tracking-widest rounded-sm hover:text-foreground transition-all"
+                disabled={isSubmitting}
+                className="h-12 px-6 bg-background-tertiary border border-border text-foreground-secondary font-bold uppercase text-xs tracking-widest rounded-sm hover:text-foreground transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Đăng xuất
               </button>
@@ -310,23 +336,25 @@ export default function AccessLock({
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               <button
-                disabled={finePaymentPending}
+                disabled={finePaymentPending || isSubmitting}
                 onClick={handleReportPaymentClick}
-                className={`flex-1 h-12 font-bold text-xs uppercase tracking-widest rounded-sm transition-all duration-200 shadow-md ${finePaymentPending ? "bg-warning/10 border border-warning/20 text-warning cursor-not-allowed" : "bg-gold text-background hover:bg-gold-dark hover:shadow-gold/10"}`}
+                className={`flex-1 h-12 font-bold text-xs uppercase tracking-widest rounded-sm transition-all duration-200 shadow-md ${finePaymentPending || isSubmitting ? "bg-warning/10 border border-warning/20 text-warning cursor-not-allowed opacity-50" : "bg-gold text-background hover:bg-gold-dark hover:shadow-gold/10"}`}
               >
                 {finePaymentPending ? "Chờ duyệt..." : "Đã chuyển khoản"}
               </button>
 
               <button
                 onClick={handleExcuseSubmit}
-                className="flex-1 h-12 bg-background-tertiary border border-border text-foreground hover:border-border-light font-bold text-xs uppercase tracking-widest rounded-sm transition-all duration-200"
+                disabled={isSubmitting}
+                className="flex-1 h-12 bg-background-tertiary border border-border text-foreground hover:border-border-light font-bold text-xs uppercase tracking-widest rounded-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Gửi yêu cầu
               </button>
 
               <button
                 onClick={onLogout}
-                className="h-12 px-4 bg-danger/10 border border-danger/20 hover:bg-danger hover:text-white text-danger font-bold text-xs uppercase tracking-widest rounded-sm transition-all duration-200"
+                disabled={isSubmitting}
+                className="h-12 px-4 bg-danger/10 border border-danger/20 hover:bg-danger hover:text-white text-danger font-bold text-xs uppercase tracking-widest rounded-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Đăng xuất
               </button>
@@ -356,13 +384,15 @@ export default function AccessLock({
               <div className="flex flex-col sm:flex-row gap-4 justify-center w-full">
                 <button
                   onClick={handleSendRequestClick}
-                  className="h-12 px-6 rounded-sm bg-gold text-background font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:bg-gold-dark transition-all shadow-md shadow-gold/10"
+                  disabled={isSubmitting}
+                  className="h-12 px-6 rounded-sm bg-gold text-background font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:bg-gold-dark transition-all shadow-md shadow-gold/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send size={16} /> Gửi yêu cầu truy cập
                 </button>
                 <button
                   onClick={onLogout}
-                  className="h-12 px-6 rounded-sm bg-background-tertiary border border-border text-foreground-secondary font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:text-foreground transition-all"
+                  disabled={isSubmitting}
+                  className="h-12 px-6 rounded-sm bg-background-tertiary border border-border text-foreground-secondary font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:text-foreground transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <LogOut size={16} /> Đăng xuất
                 </button>

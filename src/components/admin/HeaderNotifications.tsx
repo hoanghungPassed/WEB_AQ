@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import useSWR, { mutate } from "swr";
 import Pusher from "pusher-js";
 import { StaffData } from "@/types/admin";
+import { toast } from "react-hot-toast";
 
 interface HeaderNotificationsProps {
   user: StaffData;
@@ -20,6 +21,25 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
   const [pendingApproveUser, setPendingApproveUser] = useState<any | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("04");
   const [isActionSubmitting, setIsActionSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
+
+  const handleMarkAllRead = async () => {
+    setNotifications(prev => prev.map(item => ({ ...item, read: true })));
+    try {
+      await fetch("/api/admin/notifications/mark-read", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || user?._id || (user as any)?.userId || "",
+          "x-user-role": user?.role || ""
+        },
+        body: JSON.stringify({})
+      });
+    } catch (err) {
+      console.error("Failed to mark all notifications as read:", err);
+    }
+    mutate("/api/admin/notifications?type=SYSTEM");
+  };
 
   const fetcher = (url: string) => fetch(url, {
     headers: {
@@ -160,12 +180,28 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
         return [newNotif, ...prev];
       });
 
-      // BẮT BUỘC nổi popup ngay lập tức khi nhận được yêu cầu
-      setTimeout(() => {
-        if (onOpenAccessModal) {
-          onOpenAccessModal(newNotif.data);
-        }
-      }, 100);
+      // Thay vì tự động mở Modal đè đập, hiển thị Toast góc trên bên phải để Admin click mở
+      toast((t) => (
+        <div 
+          onClick={() => {
+            if (onOpenAccessModal) onOpenAccessModal(newNotif.data);
+            toast.dismiss(t.id);
+          }}
+          className="flex flex-col p-4 bg-[#0d0d0f] border border-gold/30 hover:border-gold rounded-lg shadow-[0_0_15px_rgba(212,163,89,0.15)] transition-all cursor-pointer select-none min-w-[280px]"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+            <p className="font-black text-xs uppercase text-gold tracking-wider">{title}</p>
+          </div>
+          <p className="text-[10px] text-gray-300 font-medium">
+            Nhân viên <span className="text-white font-bold">{data.name || data.staffName || "Nhân viên"}</span> đang chờ duyệt. Click để mở.
+          </p>
+        </div>
+      ), { 
+        duration: 8000, 
+        position: "top-right",
+        style: { padding: 0, background: "transparent", boxShadow: "none", border: "none" }
+      });
 
       const audio = new Audio('/notification.mp3');
       audio.play().catch(() => {});
@@ -209,11 +245,31 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
         return [newNotif, ...prev];
       });
 
-      // Mở modal duyệt đăng ký ngay lập tức
-      setPendingApproveUser({
-        _id: data.userId,
-        name: data.name,
-        username: data.username
+      // Thay vì tự động mở Modal đè đập, hiển thị Toast góc trên bên phải để Admin click mở
+      toast((t) => (
+        <div 
+          onClick={() => {
+            setPendingApproveUser({
+              _id: data.userId || data._id || data.id,
+              name: data.name,
+              username: data.username
+            });
+            toast.dismiss(t.id);
+          }}
+          className="flex flex-col p-4 bg-[#0d0d0f] border border-gold/30 hover:border-gold rounded-lg shadow-[0_0_15px_rgba(212,163,89,0.15)] transition-all cursor-pointer select-none min-w-[280px]"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+            <p className="font-black text-xs uppercase text-gold tracking-wider">Yêu cầu đăng ký mới</p>
+          </div>
+          <p className="text-[10px] text-gray-300 font-medium">
+            Tài khoản <span className="text-white font-bold">@{data.username}</span> đang chờ duyệt. Click để mở.
+          </p>
+        </div>
+      ), { 
+        duration: 8000, 
+        position: "top-right",
+        style: { padding: 0, background: "transparent", boxShadow: "none", border: "none" }
       });
 
       const audio = new Audio('/notification.mp3');
@@ -277,82 +333,124 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               className="absolute right-0 mt-3 w-80 max-h-[500px] overflow-hidden rounded-2xl bg-background-secondary border border-border shadow-premium z-20 flex flex-col"
             >
-              <div className="p-4 bg-black/20 border-b border-border flex items-center justify-between">
-                <h3 className="text-xs font-black text-white uppercase tracking-widest">Thông báo</h3>
-                <button className="text-[10px] font-bold text-gold hover:underline">Đánh dấu đã xem</button>
+              <div className="p-4 bg-black/20 border-b border-border flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-white uppercase tracking-widest">Thông báo</h3>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllRead}
+                      className="text-[10px] font-bold text-gold hover:underline transition-all"
+                    >
+                      Đánh dấu tất cả là đã đọc
+                    </button>
+                  )}
+                </div>
+                <div className="flex border-b border-border/50">
+                  <button
+                    onClick={() => setActiveTab("all")}
+                    className={`flex-1 pb-2 text-[11px] font-bold uppercase tracking-wider text-center transition-all ${
+                      activeTab === "all"
+                        ? "text-gold border-b-2 border-gold"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    Tất cả
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("unread")}
+                    className={`flex-1 pb-2 text-[11px] font-bold uppercase tracking-wider text-center transition-all ${
+                      activeTab === "unread"
+                        ? "text-gold border-b-2 border-gold"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    Chưa đọc ({unreadCount})
+                  </button>
+                </div>
               </div>
               <div className="flex-1 overflow-y-auto custom-scrollbar">
-                {notifications.length > 0 ? (
-                  notifications.map((n, i) => (
-                    <div
-                      key={n.id || i}
-                      onClick={async () => {
-                        // Mark as read in local state
-                        setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item));
+                {notifications.filter(n => activeTab === "all" || !n.read).length > 0 ? (
+                  notifications
+                    .filter(n => activeTab === "all" || !n.read)
+                    .map((n, i) => (
+                      <div
+                        key={n.id || i}
+                        onClick={async () => {
+                          // Mark as read in local state
+                          setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item));
 
-                        // Mark as read in DB if it's a DB notification
-                        if (n.id && !String(n.id).startsWith("access-")) {
-                          try {
-                            await fetch(`/api/admin/notifications/${n.id}`, {
-                              method: 'PUT',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                'x-user-id': user.id || user._id || (user as any)?.userId || ''
-                              },
-                              body: JSON.stringify({ isRead: true })
+                          // Mark as read in DB if it's a DB notification
+                          if (n.id && !String(n.id).startsWith("access-")) {
+                            try {
+                              await fetch(`/api/admin/notifications/mark-read`, {
+                                method: 'PUT',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'x-user-id': user?.id || user?._id || (user as any)?.userId || '',
+                                  'x-user-role': user?.role || ''
+                                },
+                                body: JSON.stringify({ id: n.id })
+                              });
+                            } catch (err) {
+                              console.error("Failed to mark notification as read:", err);
+                            }
+                            mutate('/api/admin/notifications?type=SYSTEM');
+                          }
+
+                          if (n.type === "ACCESS_REQUEST" || n.link === "#approval-modal") {
+                            const authorObj = typeof n.author === 'object' ? n.author : null;
+                            const authorId = authorObj ? (authorObj._id || authorObj.id || "") : (n.userId || n.author || "");
+                            const authorName = authorObj ? authorObj.name : "Nhân viên";
+                            const authorUsername = authorObj ? authorObj.username : "";
+                            
+                            // Determine type of request from title/message
+                            let reqType = "ACCESS";
+                            if (n.title?.includes("phạt") || n.message?.includes("phạt")) reqType = "FINE_PAYMENT";
+                            else if (n.title?.includes("muộn") || n.message?.includes("muộn")) reqType = "LATE_EXCUSE";
+
+                            const requestData = n.data || {
+                              id: String(n.id || "").replace("access-", ""),
+                              userId: authorId,
+                              staffName: authorName,
+                              username: authorUsername,
+                              time: n.time || new Date(n.createdAt || Date.now()).toLocaleTimeString("vi-VN"),
+                              reason: n.message || "Xin phép truy cập hệ thống",
+                              type: reqType,
+                              status: "PENDING"
+                            };
+
+                            if (onOpenAccessModal) {
+                              onOpenAccessModal(requestData);
+                            }
+                            setIsNotifOpen(false);
+                          } else if (n.type === "REGISTRATION") {
+                            const authorObj = typeof n.author === 'object' ? n.author : null;
+                            setPendingApproveUser(authorObj || {
+                              _id: n.userId || n.author || "",
+                              name: n.title?.includes("đăng ký") ? n.message?.split("Tài khoản ")[1]?.split(" đang chờ duyệt")[0] || "Tài khoản mới" : "Tài khoản mới",
+                              username: n.title?.includes("đăng ký") ? n.message?.split("Tài khoản ")[1]?.split(" đang chờ duyệt")[0] || "" : ""
                             });
-                          } catch (err) {
-                            console.error("Failed to mark notification as read:", err);
+                            setIsNotifOpen(false);
+                          } else if (n.link && n.link !== "#" && n.link !== "#approval-modal") {
+                            router.push(n.link);
+                            setIsNotifOpen(false);
                           }
-                          mutate('/api/admin/notifications?type=SYSTEM');
-                        }
-
-                        if (n.type === "ACCESS_REQUEST" || n.link === "#approval-modal") {
-                          const authorObj = typeof n.author === 'object' ? n.author : null;
-                          const authorId = authorObj ? (authorObj._id || authorObj.id || "") : (n.userId || n.author || "");
-                          const authorName = authorObj ? authorObj.name : "Nhân viên";
-                          const authorUsername = authorObj ? authorObj.username : "";
-                          
-                          // Determine type of request from title/message
-                          let reqType = "ACCESS";
-                          if (n.title?.includes("phạt") || n.message?.includes("phạt")) reqType = "FINE_PAYMENT";
-                          else if (n.title?.includes("muộn") || n.message?.includes("muộn")) reqType = "LATE_EXCUSE";
-
-                          const requestData = n.data || {
-                            id: String(n.id || "").replace("access-", ""),
-                            userId: authorId,
-                            staffName: authorName,
-                            username: authorUsername,
-                            time: n.time || new Date(n.createdAt || Date.now()).toLocaleTimeString("vi-VN"),
-                            reason: n.message || "Xin phép truy cập hệ thống",
-                            type: reqType,
-                            status: "PENDING"
-                          };
-
-                          if (onOpenAccessModal) {
-                            onOpenAccessModal(requestData);
-                          }
-                          setIsNotifOpen(false);
-                        } else if (n.type === "REGISTRATION") {
-                          const authorObj = typeof n.author === 'object' ? n.author : null;
-                          setPendingApproveUser(authorObj || {
-                            _id: n.userId || n.author || "",
-                            name: n.title?.includes("đăng ký") ? n.message?.split("Tài khoản ")[1]?.split(" đang chờ duyệt")[0] || "Tài khoản mới" : "Tài khoản mới",
-                            username: n.title?.includes("đăng ký") ? n.message?.split("Tài khoản ")[1]?.split(" đang chờ duyệt")[0] || "" : ""
-                          });
-                          setIsNotifOpen(false);
-                        } else if (n.link && n.link !== "#" && n.link !== "#approval-modal") {
-                          router.push(n.link);
-                          setIsNotifOpen(false);
-                        }
-                      }}
-                      className={`p-4 border-b border-border/50 hover:bg-white/5 transition-all cursor-pointer ${!n.read ? 'bg-gold/5 border-l-2 border-l-gold' : ''}`}
-                    >
-                      <p className="text-xs font-bold text-white mb-1">{n.title}</p>
-                      <p className="text-[10px] text-gray-500 line-clamp-2">{n.message}</p>
-                      <p className="text-[8px] text-gray-600 mt-2 font-black uppercase">{n.time || "Vừa xong"}</p>
-                    </div>
-                  ))
+                        }}
+                        className={`p-4 border-b border-border/50 hover:bg-white/10 transition-all cursor-pointer flex items-start justify-between gap-3 ${!n.read ? 'bg-white/5' : 'bg-transparent'}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-white mb-1">{n.title}</p>
+                          <p className="text-[10px] text-gray-500 line-clamp-2">{n.message}</p>
+                          <p className="text-[8px] text-gray-600 mt-2 font-black uppercase">{n.time || "Vừa xong"}</p>
+                        </div>
+                        {!n.read && (
+                          <span className="flex h-2 w-2 relative mt-1.5 flex-shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-gold"></span>
+                          </span>
+                        )}
+                      </div>
+                    ))
                 ) : (
                   <div className="p-10 text-center opacity-20">
                     <Bell size={32} className="mx-auto mb-2" />

@@ -14,9 +14,15 @@ export default function MailCategoryPage() {
  if (storedUser) {
  const parsedUser = JSON.parse(storedUser);
  setUser(parsedUser);
- if ((parsedUser.role === "03" || parsedUser.role === "04") && category !== "satellite" && category !== "root") {
- window.location.href = "/admin/mail/satellite";
- }
+  const roleUpper = String(parsedUser.role || "").toUpperCase();
+  const isEmployee = ["04", "05", "NHÂN VIÊN", "NV THỬ VIỆC"].some(r => roleUpper.includes(r));
+  const isHR = ["03", "QL NHÂN SỰ", "QUẢN LÝ NHÂN SỰ"].some(r => roleUpper.includes(r));
+  
+  if (isEmployee && category !== "satellite") {
+    window.location.href = "/admin/mail/satellite";
+  } else if (isHR && category !== "satellite" && category !== "root") {
+    window.location.href = "/admin/mail/satellite";
+  }
  }
  }, [category]);
 

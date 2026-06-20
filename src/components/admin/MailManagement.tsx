@@ -40,11 +40,15 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
   );
 
   useEffect(() => {
-    if (type && (type === "ROOT" || type === "SATELLITE" || type === "MONETIZED" || type === "ALL")) {
+    const roleUpper = String(user?.role || "").toUpperCase();
+    const isEmp = roleUpper === "04" || roleUpper === "05" || roleUpper === "NHÂN VIÊN" || roleUpper === "NV THỬ VIỆC";
+    if (isEmp) {
+      setActiveTab("SATELLITE");
+    } else if (type && (type === "ROOT" || type === "SATELLITE" || type === "MONETIZED" || type === "ALL")) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveTab(type as any);
     }
-  }, [type]);
+  }, [type, user]);
 
   const [selectedBatch, setSelectedBatch] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -471,7 +475,10 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
         <div className="flex bg-white/5 p-1 rounded-2xl border border-white/0">
           {(["ALL", "ROOT", "SATELLITE", "MONETIZED"] as const)
             .filter((tab) => {
-              if (roleUpper === "03" || roleUpper === "04") {
+              if (roleUpper === "04" || roleUpper === "05" || roleUpper === "NHÂN VIÊN" || roleUpper === "NV THỬ VIỆC") {
+                return tab === "SATELLITE";
+              }
+              if (roleUpper === "03" || roleUpper === "QL NHÂN SỰ" || roleUpper === "QUẢN LÝ NHÂN SỰ") {
                 return tab === "ROOT" || tab === "SATELLITE";
               }
               return true;
@@ -767,6 +774,7 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
             mail={selectedMail} 
             type={activeTab === "ALL" ? selectedMail.type : activeTab}
             user={user}
+            viewOnly={!['01', '02', '03'].includes(user?.role || "") && String(selectedMail.assigneeId) !== String(user?.id || user?._id)}
             onClose={() => setSelectedMail(null)} 
             onSave={(updated) => { triggerToast("Đã cập nhật thành công!"); mutate(); }}
           />

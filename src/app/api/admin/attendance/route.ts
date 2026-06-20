@@ -9,60 +9,72 @@ export const dynamic ="force-dynamic";
 
 // GET: Lấy thông tin chấm công của user hiện tại
 export async function GET(req: NextRequest) {
- try {
- await dbConnect();
- const userId = req.headers.get("x-user-id");
- if (!userId) {
- return NextResponse.json({ error:"Unauthorized" }, { status: 401 });
- }
+  try {
+    await dbConnect();
+    const sessionUserId = req.headers.get("x-user-id");
+    const sessionRole = req.headers.get("x-user-role");
+    if (!sessionUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
- const user = await User.findById(userId).select("checkInTime checkOutTime isOnline"
- );
- if (!user) {
- return NextResponse.json({ error:"User not found" }, { status: 404 });
- }
+    const url = new URL(req.url);
+    const queryUserId = url.searchParams.get("userId");
+    const targetUserId = queryUserId || sessionUserId;
 
- const url = new URL(req.url);
- const history = url.searchParams.get("history");
- if (history === "true") {
-   const list = await Attendance.find({ userId })
-     .sort({ date: -1 })
-     .limit(30)
-     .lean();
-   return NextResponse.json({ success: true, data: list });
- }
+    // Check permissions if accessing another user's records
+    if (queryUserId && queryUserId !== sessionUserId) {
+      const roleUpper = String(sessionRole || "").toUpperCase();
+      const isAuthorized = ["01", "02", "03", "ADMIN"].some(r => roleUpper.includes(r)) || sessionUserId === "01";
+      if (!isAuthorized) {
+        return NextResponse.json({ error: "Forbidden: Bạn không có quyền truy cập dữ liệu này" }, { status: 403 });
+      }
+    }
 
- // Also try to find today's attendance record
- const now = new Date();
- const utc = now.getTime() + now.getTimezoneOffset() * 60000;
- const vnTime = new Date(utc + 3600000 * 7);
- const yyyy = vnTime.getFullYear();
- const mm = String(vnTime.getMonth() + 1).padStart(2, '0');
- const dd = String(vnTime.getDate()).padStart(2, '0');
- const todayStr = `${yyyy}-${mm}-${dd}`;
- 
- const dailyAttendance = await Attendance.findOne({ userId, date: todayStr });
+    const user = await User.findById(targetUserId).select("checkInTime checkOutTime isOnline");
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
- return NextResponse.json({
- success: true,
- checkInTime: user.checkInTime,
- checkOutTime: user.checkOutTime,
- isOnline: user.isOnline,
- dailyStatus: dailyAttendance?.status || "Vắng mặt",
- data: {
-    checkInTime: user.checkInTime,
-    checkOutTime: user.checkOutTime,
-    isOnline: user.isOnline,
-    dailyStatus: dailyAttendance?.status || "Vắng mặt"
-  }
- });
- } catch (error: unknown) {
+    const history = url.searchParams.get("history");
+    if (history === "true") {
+      const list = await Attendance.find({ userId: targetUserId })
+        .sort({ date: -1 })
+        .limit(30)
+        .lean();
+      return NextResponse.json({ success: true, data: list });
+    }
+
+    // Also try to find today's attendance record
+    const now = new Date();
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    const vnTime = new Date(utc + 3600000 * 7);
+    const yyyy = vnTime.getFullYear();
+    const mm = String(vnTime.getMonth() + 1).padStart(2, '0');
+    const dd = String(vnTime.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+
+    const dailyAttendance = await Attendance.findOne({ userId: targetUserId, date: todayStr });
+
+    return NextResponse.json({
+      success: true,
+      checkInTime: user.checkInTime,
+      checkOutTime: user.checkOutTime,
+      isOnline: user.isOnline,
+      dailyStatus: dailyAttendance?.status || "Vắng mặt",
+      data: {
+        checkInTime: user.checkInTime,
+        checkOutTime: user.checkOutTime,
+        isOnline: user.isOnline,
+        dailyStatus: dailyAttendance?.status || "Vắng mặt"
+      }
+    });
+  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
- return NextResponse.json(
- { success: false, error: errorMessage },
- { status: 500 }
- );
- }
+    return NextResponse.json(
+      { success: false, error: errorMessage },
+      { status: 500 }
+    );
+  }
 }
 
 // POST: Check-in hoặc Check-out

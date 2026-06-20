@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from"react";
 import { motion, AnimatePresence } from"framer-motion";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import { 
  Users, UserPlus, Search, Filter, MoreHorizontal, 
  CheckCircle2, XCircle, Shield, Activity, 
@@ -185,11 +185,8 @@ function StaffManagementContent() {
 
  const isRestricted = useMemo(() => {
  const curRoleUpper = String(currentUser?.role ||"").toUpperCase();
- return curRoleUpper ==="03" || 
- curRoleUpper ==="04" || 
+ return curRoleUpper ==="04" || 
  curRoleUpper ==="05" || 
- curRoleUpper ==="QL NHÂN SỰ" || 
- curRoleUpper ==="QUẢN LÝ NHÂN SỰ" || 
  curRoleUpper ==="NHÂN VIÊN" ||
  curRoleUpper ==="NV THỬ VIỆC";
  }, [currentUser]);
@@ -628,6 +625,8 @@ function StaffManagementContent() {
         })
       });
       await reloadStaffList();
+      mutate("admin-dashboard-data");
+      mutate((key: any) => typeof key === "string" && key.startsWith("/api/admin/"));
     } catch (err) {
       console.error("Failed to deny access request:", err);
     }
@@ -670,6 +669,8 @@ function StaffManagementContent() {
         })
       });
       await reloadStaffList();
+      mutate("admin-dashboard-data");
+      mutate((key: any) => typeof key === "string" && key.startsWith("/api/admin/"));
     } catch (err) {
       console.error("Failed to approve access request:", err);
     }
@@ -1352,7 +1353,7 @@ function StaffManagementContent() {
  ))}
  </div>
  </div>
- ) : isAdminOrWorkManager && selectedStaff.id !== currentUser?.id && (
+ ) : currentUser && ["01", "02", "03"].includes(currentUser.role || "") && selectedStaff.id !== currentUser?.id && (
  <div className="grid grid-cols-2 gap-4 w-full">
  {/* Hàng trên: Lưu & Reset */}
  <button 
@@ -1430,9 +1431,9 @@ function StaffManagementContent() {
  </div>
  <select 
  value={tempRole || selectedStaff.role}
- disabled={!(currentUser?.role ==="01" || currentUser?.role ==="02") || selectedStaff.id === currentUser?.id}
+ disabled={!["01", "02", "03"].includes(currentUser?.role || "") || selectedStaff.id === currentUser?.id}
  onChange={(e) => setTempRole(e.target.value)}
- className={`bg-transparent border-none outline-none text-base font-black text-gold cursor-pointer text-right ${(!(currentUser?.role ==="01" || currentUser?.role ==="02") || selectedStaff.id === currentUser?.id) ?"opacity-50 cursor-not-allowed" :""}`}
+ className={`bg-transparent border-none outline-none text-base font-black text-gold cursor-pointer text-right ${(!["01", "02", "03"].includes(currentUser?.role || "") || selectedStaff.id === currentUser?.id) ?"opacity-50 cursor-not-allowed" :""}`}
  >
  <option value="01" className="bg-zinc-900 text-white hover:bg-zinc-700">ADMIN</option>
  <option value="02" className="bg-zinc-900 text-white hover:bg-zinc-700">QUẢN LÝ CÔNG VIỆC</option>
