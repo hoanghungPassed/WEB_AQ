@@ -25,13 +25,7 @@ const FineSchema: Schema = new Schema(
   { timestamps: true }
 );
 
-FineSchema.index({ userId: 1, createdAt: -1 });
-FineSchema.index({ status: 1 });
-FineSchema.index({ userId: 1 });
-FineSchema.index({ createdAt: -1 });
+FineSchema.index({ userId: 1, status: 1, createdAt: -1 });
 
-if (mongoose.models.Fine) {
-  delete mongoose.models.Fine;
-}
-
-export const Fine: Model<IFine> = mongoose.models.Fine || mongoose.model<IFine>("Fine", FineSchema);
+export const Fine: Model<IFine> =
+  mongoose.models.Fine || mongoose.model<IFine>("Fine", FineSchema, "fines");

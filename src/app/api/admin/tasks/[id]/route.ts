@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import { Task } from "@/models/Task";
+import User from "@/models/User";
+import { RootMail } from "@/models/RootMail";
+import { MonetizedMail } from "@/models/MonetizedMail";
+import { SatelliteMail } from "@/models/SatelliteMail";
+import { SyncStore } from "@/models/SyncStore";
+import { Kpi } from "@/models/Kpi";
+import { Notification } from "@/models/Notification";
+import { Fine } from "@/models/Fine";
+import { logAction } from "@/lib/logger";
+import { pusherServer } from "@/lib/pusher";
 import { checkPermission, logAuditTrail } from "@/lib/permissions";
 import { UpdateTaskSchema, sanitizeXSS } from "@/lib/validation";
 import { sendTaskEmail, sendFineEmail } from "@/lib/email";
@@ -44,7 +54,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!parsed.success) {
       return NextResponse.json(
         {
-          error: "Validation failed",
+          error: "Dữ liệu không hợp lệ",
           details: parsed.error.issues.map(e => ({
             field: e.path.join("."),
             message: e.message
@@ -77,16 +87,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
       
       if ((oldTask.type as string) === 'MAIL_VE_TINH' || (oldTask.type as string) === 'SATELLITE') {
-        let MailModel: any;
-        try {
-          MailModel = (await import('@/models/SatelliteMail')).SatelliteMail;
-        } catch (_) {
-          const { SatelliteMail } = await import('@/models/SatelliteMail');
-          MailModel = SatelliteMail;
-        }
+        const MailModel = SatelliteMail;
 
         const batchIdentifier = oldTask.batch || (oldTask as any).batchName || (oldTask as any).batchId;
-        let mailsToCheck = [];
+        let mailsToCheck: any[] = [];
 
         if (batchIdentifier) {
           mailsToCheck = await MailModel.find({ 
@@ -146,7 +150,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   // If assignee changed, notify new assignee via email and update associated email documents
   if (data.assigneeId && data.assigneeId.toString() !== oldTask.assigneeId?.toString()) {
     try {
-      const User = (await import("@/models/User")).default;
       const newAssignee = await User.findById(data.assigneeId);
       if (newAssignee) {
         if (newAssignee.email) {
@@ -157,11 +160,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         if (task.mailIds && task.mailIds.length > 0) {
           let MailModel: any;
           if (task.type === 'MAIL_GOC') {
-            MailModel = (await import('@/models/RootMail')).RootMail;
+            MailModel = RootMail;
           } else if (task.type === 'MAIL_MONETIZED') {
-            MailModel = (await import('@/models/MonetizedMail')).MonetizedMail;
+            MailModel = MonetizedMail;
           } else {
-            MailModel = (await import('@/models/SatelliteMail')).SatelliteMail;
+            MailModel = SatelliteMail;
           }
 
           await MailModel.updateMany(
@@ -182,14 +185,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
  try {
- const { logAction } = await import('@/lib/logger');
  await logAction("system", `Cập nhật nhiệm vụ: ${task.title || id}`, `Cập nhật trạng thái/chi tiết nhiệm vụ.`);
-
+ 
   // Auto-update KPI & Mail status if transitioning to COMPLETED
   if (body.status === 'COMPLETED' && oldTask.status !== 'COMPLETED') {
     try {
       try {
-        const { pusherServer } = await import("@/lib/pusher");
         await pusherServer.trigger("system", "task-updated", {
           taskId: task._id,
           status: "COMPLETED",
@@ -202,11 +203,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       try {
         let MailModel: any;
         if (task.type === 'MAIL_GOC') {
-          MailModel = (await import('@/models/RootMail')).RootMail;
+          MailModel = RootMail;
         } else if (task.type === 'MAIL_MONETIZED') {
-          MailModel = (await import('@/models/MonetizedMail')).MonetizedMail;
+          MailModel = MonetizedMail;
         } else {
-          MailModel = (await import('@/models/SatelliteMail')).SatelliteMail;
+          MailModel = SatelliteMail;
         }
         
         // Find batch associated with this task
@@ -245,7 +246,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
       // 2. Update Global KPI in SyncStore
       try {
-        const { SyncStore } = await import('@/models/SyncStore');
         const syncKpi = await SyncStore.findOne({ key: 'global_kpi_data' });
         if (syncKpi) {
           const kpiData = JSON.parse(syncKpi.value || '{}');
@@ -263,7 +263,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
       // 3. Cập nhật KPI cá nhân (Tăng completedChannels & eligibleChannels)
       try {
-        const { Kpi } = await import('@/models/Kpi');
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -291,9 +290,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
       // 4. Thông báo cho Admin và Quản lý
       try {
-        const { Notification } = await import('@/models/Notification');
-        const User = (await import('@/models/User')).default;
-        
         // Find all admins and managers
         const admins = await User.find({ role: { $in: ['01', '02'] } }).select('_id');
         const staffName = task.assigneeName || "Nhân viên";
@@ -324,11 +320,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
  const deadlineDate = new Date(task.deadline);
  // Compare dates (end of day if no time specified)
  if (now > deadlineDate && now.getDate() !== deadlineDate.getDate()) {
- const { Fine } = await import('@/models/Fine');
- const { Notification } = await import('@/models/Notification');
  
  // Check if fine already exists
- const existingFine = await Fine.findOne({ userId: task.assigneeId, reason: { $regex: /Trễ hạn Task/ } });
+ const existingFine = await Fine.findOne({ userId: task.assigneeId, reason: `Hoàn thành trễ hạn Task: ${task.title || id}` });
  if (!existingFine) {
  await Fine.create({
  userId: task.assigneeId,
@@ -338,7 +332,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
  });
 
   try {
-    const { pusherServer } = await import("@/lib/pusher");
     await pusherServer.trigger("system", "new-fine", {
       userId: task.assigneeId,
       amount: 50000,
@@ -348,7 +341,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
 // Send overdue fine email notification (fire-and-forget)
 try {
-  const User = (await import("@/models/User")).default;
   const overdueUser = await User.findById(task.assigneeId).select("name email");
   if (overdueUser?.email) {
     sendFineEmail(overdueUser.email, overdueUser.name || "Nhân viên", 50000, `Hoàn thành trễ hạn Task: ${task.title || id}`).catch(console.error);
@@ -399,11 +391,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     try {
       let MailModel: any;
       if (task.type === 'MAIL_GOC') {
-        MailModel = (await import('@/models/RootMail')).RootMail;
+        MailModel = RootMail;
       } else if (task.type === 'MAIL_MONETIZED') {
-        MailModel = (await import('@/models/MonetizedMail')).MonetizedMail;
+        MailModel = MonetizedMail;
       } else {
-        MailModel = (await import('@/models/SatelliteMail')).SatelliteMail;
+        MailModel = SatelliteMail;
       }
 
       await MailModel.updateMany(
@@ -424,7 +416,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
   }
   try {
-  const { logAction } = await import('@/lib/logger');
   await logAction("system", `Xóa nhiệm vụ: ${task.title || id}`, `Đã xóa nhiệm vụ.`);
   } catch (logErr) {
   console.error("Log error:", logErr);

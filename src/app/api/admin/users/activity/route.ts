@@ -35,7 +35,8 @@ export async function GET(req: NextRequest) {
     const logs = await Log.find(filter)
       .populate("user", "name username")
       .sort({ createdAt: -1 })
-      .limit(100); // Limit to 100 recent actions to prevent slow queries
+      .limit(100) // Limit to 100 recent actions to prevent slow queries
+      .lean();
 
     return NextResponse.json(logs || []);
   } catch (error: unknown) {

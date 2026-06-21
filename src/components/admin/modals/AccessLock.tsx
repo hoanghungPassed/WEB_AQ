@@ -81,8 +81,13 @@ export default function AccessLock({
     });
 
     const channel = pusher.subscribe(`user-${userId}`);
-    channel.bind("access-response", (data: any) => {
+    channel.bind("access-response", async (data: any) => {
       if (data.status === "APPROVED") {
+        try {
+          await fetch("/api/auth/refresh", { method: "POST" });
+        } catch (refreshErr) {
+          console.error("Lỗi tự động cập nhật token khi được duyệt:", refreshErr);
+        }
         setLocalPending(false);
         setLocalDenied(false);
         toast.success("Yêu cầu của bạn đã được phê duyệt!");
@@ -122,9 +127,10 @@ export default function AccessLock({
     setLocalDenied(false);
     try {
       await onSendRequest();
+      toast.success("Đã gửi yêu cầu mở khóa thành công!");
     } catch (err) {
+      console.error("Gửi yêu cầu mở khóa thất bại:", err);
       toast.error("Lỗi kết nối, vui lòng thử lại!");
-    } finally {
       setIsSubmitting(false);
       setLocalPending(false);
     }
@@ -137,11 +143,12 @@ export default function AccessLock({
     setLocalDenied(false);
     try {
       await onReportPayment();
+      toast.success("Đã báo cáo chuyển khoản thành công!");
     } catch (err) {
+      console.error("Báo cáo chuyển khoản thất bại:", err);
       toast.error("Lỗi kết nối, vui lòng thử lại!");
-    } finally {
-      setIsSubmitting(false);
       setLocalPending(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -157,11 +164,12 @@ export default function AccessLock({
     try {
       await onSendExcuse(excuseReason);
       setExcuseReason("");
+      toast.success("Đã gửi lý do giải trình thành công!");
     } catch (err) {
+      console.error("Gửi giải trình thất bại:", err);
       toast.error("Lỗi kết nối, vui lòng thử lại!");
-    } finally {
-      setIsSubmitting(false);
       setLocalPending(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -221,10 +229,13 @@ export default function AccessLock({
             </p>
             <div className="pt-4 flex gap-3 justify-center">
               <button
-                onClick={onRetry}
+                onClick={() => {
+                  setLocalDenied(false);
+                  if (onRetry) onRetry();
+                }}
                 className="px-6 h-10 bg-gold text-background font-bold text-xs uppercase tracking-widest rounded-sm hover:bg-gold-dark transition-all shadow-md shadow-gold/10"
               >
-                Thử gửi lại
+                Thử gửi lại giải trình
               </button>
               <button
                 onClick={onLogout}

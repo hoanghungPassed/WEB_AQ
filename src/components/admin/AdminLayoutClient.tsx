@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import useSWR, { mutate } from "swr";
 import RealtimeProvider from "@/components/admin/RealtimeProvider";
 import { toast } from "react-hot-toast";
+import { clearAllLocalStorage } from "@/lib/clientUtils";
 
 const lastSyncedCache: Record<string, string | null> = {};
 
@@ -162,8 +163,7 @@ export default function AdminLayoutClient({
         await fetch('/api/messages/mark-read', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'x-user-id': user?.id || user?._id || (user as any)?.userId || ''
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ partnerId })
         });
@@ -374,12 +374,7 @@ export default function AdminLayoutClient({
       if (statusRes?.isLateLocked || statusRes?.userStatus === "LOCKED" || statusRes?.status === "REJECTED") {
         setAccessStatus('LATE');
         try {
-          const finesRes = await fetch('/api/admin/fines', {
-            headers: {
-              'x-user-id': currentUser?.id || currentUser?._id || (currentUser as any)?.userId || '',
-              'x-user-role': currentUser?.role || ''
-            }
-          }).then(r => r.json());
+          const finesRes = await fetch('/api/admin/fines').then(r => r.json());
           const fines = Array.isArray(finesRes) ? finesRes : (finesRes?.data || []);
           const unpaidLateFine = (fines || []).find((f: any) => {
             const isLateType = f.type === 'LATE' || (f.reason && (f.reason.includes("Đi muộn") || f.reason.includes("đăng nhập ngoài giờ")));
@@ -468,8 +463,7 @@ export default function AdminLayoutClient({
  fetch("/api/admin/phones", {
    method: "PUT",
    headers: { 
-     "Content-Type": "application/json",
-     "x-user-id": user?.id || user?._id || (user as any)?.userId || ""
+     "Content-Type": "application/json"
    },
    body: JSON.stringify({ id: phoneId, status: newStatus }),
  }).catch(() => {});
@@ -580,11 +574,7 @@ export default function AdminLayoutClient({
       }
 
       // 2. Fetch from DB for robust ground-truth synchronization
-      fetch("/api/admin/notifications?type=SYSTEM", {
-        headers: {
-          "x-user-id": currentUser.id || currentUser._id || currentUser.userId || ""
-        }
-      })
+      fetch("/api/admin/notifications?type=SYSTEM")
         .then(res => {
           if (!res.ok) throw new Error("Fetch failed");
           return res.json();
@@ -905,9 +895,7 @@ const totalWorkingMins = overlap1 + overlap2;
 
    try {
      // Fetch Company Chat
-     const compRes = await fetch("/api/messages?isCompanyChat=true", {
-       headers: { "x-user-id": user.id || user._id || (user as any).userId || "" }
-     });
+     const compRes = await fetch("/api/messages?isCompanyChat=true");
      if (compRes.ok) {
        const compData = await compRes.json();
        if (compData.success) setCompanyMessages(compData.data || []);
@@ -916,9 +904,7 @@ const totalWorkingMins = overlap1 + overlap2;
      // Fetch Private Chat (this would require a more complex API to get all partners, 
      // but for now let's just fetch if there's an active chat user)
      if (activeChatUser) {
-       const privRes = await fetch(`/api/messages?partnerId=${activeChatUser.id || activeChatUser._id}`, {
-         headers: { "x-user-id": user.id || user._id || (user as any).userId || "" }
-       });
+       const privRes = await fetch(`/api/messages?partnerId=${activeChatUser.id || activeChatUser._id}`);
        if (privRes.ok) {
          const privData = await privRes.json();
          if (privData.success) setPrivateMessages(privData.data || []);
@@ -951,7 +937,7 @@ const totalWorkingMins = overlap1 + overlap2;
       console.error("Poll settings error in layout", err);
     }
     return null;
-  }, { revalidateOnFocus: false, dedupingInterval: 5000 });
+  }, { revalidateOnFocus: false, dedupingInterval: 60000 });
 
   // 4. Realtime useSWR Polling for chat and active users (30s interval)
 
@@ -1050,8 +1036,7 @@ const totalWorkingMins = overlap1 + overlap2;
               fetch("/api/auth/logout", { method: "POST" })
                 .finally(() => {
                   if (typeof window !== "undefined") {
-                    sessionStorage.clear();
-                    localStorage.removeItem("user");
+                    clearAllLocalStorage();
                     window.location.href = "/login?error=system_closed";
                   }
                 });
@@ -1200,8 +1185,7 @@ const typingTimer = setInterval(checkTyping, 1000);
         fetch("/api/messages/mark-read", {
           method: "POST",
           headers: { 
-            "Content-Type": "application/json",
-            "x-user-id": user?.id || user?._id || (user as any)?.userId || ""
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({ partnerId })
         }).then(() => {
@@ -1334,8 +1318,7 @@ const typingTimer = setInterval(checkTyping, 1000);
  fetch("/api/messages", {
    method: "POST",
    headers: {
-     "Content-Type": "application/json",
-     "x-user-id": user?.id || user?._id || (user as any)?.userId || ""
+     "Content-Type": "application/json"
    },
    body: JSON.stringify({
      content,
@@ -1357,8 +1340,7 @@ const typingTimer = setInterval(checkTyping, 1000);
   fetch("/api/messages", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
-      "x-user-id": user?.id || user?._id || (user as any)?.userId || ""
+      "Content-Type": "application/json"
     },
     body: JSON.stringify({
       content,
@@ -1442,10 +1424,10 @@ const typingTimer = setInterval(checkTyping, 1000);
     return "Đã hết giờ làm việc. Hệ thống tự động khóa để bảo mật dữ liệu.";
   };
 
- const handleLogout = () => {
- localStorage.removeItem("user");
- window.location.href ="/login";
- };
+  const handleLogout = () => {
+    clearAllLocalStorage();
+    window.location.href = "/login";
+  };
 
  const handleRequestAccess = async () => {
     if (!user) return;
@@ -1460,8 +1442,7 @@ const typingTimer = setInterval(checkTyping, 1000);
       const res = await fetch("/api/admin/attendance/request-access", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "x-user-id": user.id || user._id || (user as any).userId || ""
+          "Content-Type": "application/json"
         },
         body: JSON.stringify(requestBody)
       });
@@ -1477,9 +1458,7 @@ const typingTimer = setInterval(checkTyping, 1000);
       const res = await fetch(`/api/admin/attendance/approve-access/${request.id}`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "x-user-id": user?.id || user?._id || (user as any)?.userId || "",
-          "x-user-role": user?.role || ""
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           status: "APPROVED",
@@ -1540,9 +1519,7 @@ const typingTimer = setInterval(checkTyping, 1000);
       const res = await fetch(`/api/admin/attendance/approve-access/${request.id}`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "x-user-id": user?.id || user?._id || (user as any)?.userId || "",
-          "x-user-role": user?.role || ""
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           status: "DENIED",
@@ -1753,8 +1730,7 @@ const typingTimer = setInterval(checkTyping, 1000);
           const res = await fetch("/api/admin/attendance/request-access", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
-              "x-user-id": user.id || user._id || (user as any).userId || ""
+              "Content-Type": "application/json"
             },
             body: JSON.stringify(requestBody)
           });
@@ -1785,8 +1761,7 @@ const typingTimer = setInterval(checkTyping, 1000);
           const res = await fetch("/api/admin/attendance/request-access", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
-              "x-user-id": user.id || user._id || (user as any).userId || ""
+              "Content-Type": "application/json"
             },
             body: JSON.stringify(requestBody)
           });
@@ -1832,8 +1807,7 @@ const typingTimer = setInterval(checkTyping, 1000);
           const res = await fetch("/api/admin/attendance/request-access", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
-              "x-user-id": user.id || user._id || (user as any).userId || ""
+              "Content-Type": "application/json"
             },
             body: JSON.stringify(requestBody)
           });

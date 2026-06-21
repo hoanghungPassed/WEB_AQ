@@ -114,12 +114,11 @@ export default function AdminDashboardClient({ user: initialUser }: { user: any 
   const refreshStats = useCallback(async () => {
     if (!user) return;
     try {
-      const headers = { 'x-user-id': user.id || user._id || '' };
       const [sRes, kRes, tRes, mRes] = await Promise.all([
-        fetch('/api/admin/stats', { headers }),
+        fetch('/api/admin/stats'),
         fetch('/api/admin/kpis'),
-        fetch('/api/admin/tasks', { headers }),
-        fetch('/api/admin/mails?limit=100', { headers })
+        fetch('/api/admin/tasks'),
+        fetch('/api/admin/mails?limit=100')
       ]);
       const [s, k, t, m] = await Promise.all([sRes.json(), kRes.json(), tRes.json(), mRes.json()]);
       if (s.success) setStats(s.data);

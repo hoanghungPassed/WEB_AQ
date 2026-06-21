@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const user = await User.findById(targetUserId).select("checkInTime checkOutTime isOnline");
+    const user = await User.findById(targetUserId).select("checkInTime checkOutTime isOnline").lean();
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     const dd = String(vnTime.getDate()).padStart(2, '0');
     const todayStr = `${yyyy}-${mm}-${dd}`;
 
-    const dailyAttendance = await Attendance.findOne({ userId: targetUserId, date: todayStr });
+    const dailyAttendance = await Attendance.findOne({ userId: targetUserId, date: todayStr }).lean();
 
     return NextResponse.json({
       success: true,

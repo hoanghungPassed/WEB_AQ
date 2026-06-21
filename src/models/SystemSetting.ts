@@ -27,10 +27,6 @@ const SystemSettingSchema: Schema = new Schema(
   { timestamps: true }
 );
 
-if (mongoose.models.SystemSetting) {
-  delete mongoose.models.SystemSetting;
-}
-
 export const SystemSetting: Model<ISystemSetting> =
   mongoose.models.SystemSetting ||
   mongoose.model<ISystemSetting>("SystemSetting", SystemSettingSchema, "system_settings");

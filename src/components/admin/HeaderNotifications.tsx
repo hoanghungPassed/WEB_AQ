@@ -29,9 +29,7 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
       await fetch("/api/admin/notifications/mark-read", {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
-          "x-user-id": user?.id || user?._id || (user as any)?.userId || "",
-          "x-user-role": user?.role || ""
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({})
       });
@@ -41,12 +39,7 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
     mutate("/api/admin/notifications?type=SYSTEM");
   };
 
-  const fetcher = (url: string) => fetch(url, {
-    headers: {
-      'x-user-id': user?.id || user?._id || (user as any)?.userId || '',
-      'x-user-role': user?.role || ''
-    }
-  }).then(res => res.json());
+  const fetcher = (url: string) => fetch(url).then(res => res.json());
   const { data: dbNotifs } = useSWR(
     user ? '/api/admin/notifications?type=SYSTEM' : null,
     fetcher,
@@ -385,9 +378,7 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
                               await fetch(`/api/admin/notifications/mark-read`, {
                                 method: 'PUT',
                                 headers: {
-                                  'Content-Type': 'application/json',
-                                  'x-user-id': user?.id || user?._id || (user as any)?.userId || '',
-                                  'x-user-role': user?.role || ''
+                                  'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify({ id: n.id })
                               });

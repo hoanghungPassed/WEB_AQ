@@ -4,7 +4,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { 
   Mail, DollarSign, ClipboardList, Calendar, Search, 
-  ArrowLeft, CheckCircle2, Clock, Play, Loader2, RefreshCw, AlertTriangle
+  ArrowLeft, CheckCircle2, Clock, Play, Loader2, RefreshCw, AlertTriangle, Inbox
 } from "lucide-react";
 import useSWR, { mutate } from "swr";
 import { Badge } from "@/components/ui/Badge";
@@ -47,33 +47,28 @@ export default function StaffDashboardClient({ user }: { user: any }) {
   const [taskSearch, setTaskSearch] = useState("");
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
 
-  const fetcherWithHeaders = useCallback(async (url: string) => {
-    const res = await fetch(url, {
-      headers: {
-        "x-user-id": user?.id || user?._id || "",
-        "x-user-role": user?.role || ""
-      }
-    });
+  const fetcher = useCallback(async (url: string) => {
+    const res = await fetch(url);
     if (!res.ok) throw new Error("Failed to fetch data");
     return res.json();
-  }, [user]);
+  }, []);
 
   // SWR hooks for staff data
   const { data: statsData, error: statsError, isValidating: statsValidating } = useSWR(
     user ? "/api/admin/stats" : null,
-    fetcherWithHeaders,
+    fetcher,
     { revalidateOnFocus: false, refreshInterval: 30000, dedupingInterval: 5000 }
   );
 
   const { data: tasksData, error: tasksError, isValidating: tasksValidating } = useSWR(
     user ? "/api/admin/tasks" : null,
-    fetcherWithHeaders,
+    fetcher,
     { revalidateOnFocus: false, dedupingInterval: 5000 }
   );
 
   const { data: attendanceData, error: attendanceError, isValidating: attendanceValidating } = useSWR(
     user ? "/api/admin/attendance?history=true" : null,
-    fetcherWithHeaders,
+    fetcher,
     { revalidateOnFocus: false, dedupingInterval: 5000 }
   );
 
@@ -355,8 +350,24 @@ export default function StaffDashboardClient({ user }: { user: any }) {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-foreground-secondary/50 uppercase tracking-widest font-black text-[10px]">
-                      {tasksValidating ? "Đang tải dữ liệu..." : "Không có nhiệm vụ nào"}
+                    <td colSpan={6} className="p-4">
+                      {tasksValidating ? (
+                        <div className="py-16 flex flex-col items-center justify-center gap-3">
+                          <Loader2 size={32} className="animate-spin text-gold" />
+                          <p className="text-foreground-secondary font-black uppercase text-[10px] tracking-widest animate-pulse">Đang tải dữ liệu nhiệm vụ...</p>
+                        </div>
+                      ) : (
+                        <div className="border border-dashed border-gold/30 bg-black/50 p-8 text-center rounded-lg my-2">
+                          <Inbox size={48} className="mx-auto text-gold/50 mb-4 animate-bounce" />
+                          <h4 className="text-gold font-bold uppercase text-sm tracking-wider mb-2">CHƯA CÓ NHIỆM VỤ ĐƯỢC GIAO</h4>
+                          <p className="text-gray-400 text-xs max-w-md mx-auto mb-4 leading-relaxed">
+                            Hệ thống chưa phân công nhiệm vụ mới hoặc bạn đã hoàn thành xuất sắc tất cả công việc được giao.
+                          </p>
+                          <span className="inline-block px-3 py-1 bg-white/5 border border-border text-foreground-secondary uppercase tracking-widest text-[9px] font-black rounded-sm">
+                            Vui lòng liên hệ quản lý hoặc kiểm tra lại sau
+                          </span>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 )}
@@ -373,7 +384,12 @@ export default function StaffDashboardClient({ user }: { user: any }) {
           </div>
 
           <div className="overflow-y-auto max-h-[350px] custom-scrollbar space-y-3 pr-1">
-            {attendanceHistory.length > 0 ? (
+            {attendanceValidating ? (
+              <div className="py-16 flex flex-col items-center justify-center gap-3">
+                <Loader2 size={32} className="animate-spin text-gold" />
+                <p className="text-foreground-secondary font-black uppercase text-[9px] tracking-widest animate-pulse">Đang tải lịch sử điểm danh...</p>
+              </div>
+            ) : attendanceHistory.length > 0 ? (
               attendanceHistory.slice(0, 30).map((record: any, idx: number) => (
                 <div key={record._id || idx} className="p-3 bg-white/5 border border-border/50 rounded-md flex items-center justify-between">
                   <div className="space-y-1">
@@ -400,8 +416,12 @@ export default function StaffDashboardClient({ user }: { user: any }) {
                 </div>
               ))
             ) : (
-              <div className="py-12 text-center text-foreground-secondary/40 font-black uppercase text-[10px] tracking-widest">
-                {attendanceValidating ? "Đang tải dữ liệu..." : "Chưa có lịch sử điểm danh"}
+              <div className="border border-dashed border-gold/30 bg-black/50 p-6 text-center rounded-lg">
+                <Calendar size={40} className="mx-auto text-gold/50 mb-3 animate-pulse" />
+                <h4 className="text-gold font-bold uppercase text-xs tracking-wider mb-1.5">CHƯA CÓ LỊCH SỬ ĐIỂM DANH</h4>
+                <p className="text-gray-400 text-[11px] leading-relaxed">
+                  Hệ thống chưa ghi nhận lịch sử chấm công của bạn. Hãy bắt đầu Check-in khi vào ca để tự động cập nhật.
+                </p>
               </div>
             )}
           </div>

@@ -44,7 +44,8 @@ export async function GET(req: Request) {
 
     const messages = await Message.find(query)
       .sort({ createdAt: 1 })
-      .limit(100); // cap to 100 messages for performance
+      .limit(100) // cap to 100 messages for performance
+      .lean();
 
     return NextResponse.json({ success: true, data: messages });
   } catch (error: unknown) {

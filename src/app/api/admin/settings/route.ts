@@ -3,7 +3,7 @@ import dbConnect from "@/lib/mongodb";
 import { SystemSetting } from "@/models/SystemSetting";
 import { checkPermission, logAuditTrail } from "@/lib/permissions";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export async function GET(req: NextRequest) {
   try {

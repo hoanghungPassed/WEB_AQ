@@ -282,8 +282,7 @@ export default function SatelliteBatchesPage() {
        await fetch("/api/admin/mails/batch-update", {
          method: "PUT",
          headers: { 
-           "Content-Type": "application/json",
-           "x-user-id": user?.id || user?._id || "" 
+           "Content-Type": "application/json"
          },
          body: JSON.stringify({
            ids: mailIds,
@@ -301,9 +300,7 @@ export default function SatelliteBatchesPage() {
      await fetch("/api/admin/tasks", {
        method: "POST",
        headers: { 
-         "Content-Type": "application/json",
-         "x-user-id": user?.id || user?._id || "",
-         "x-user-role": user?.role || ""
+         "Content-Type": "application/json"
        },
        body: JSON.stringify({
          title: "Phân công Lô Mail Vệ Tinh",
@@ -345,8 +342,7 @@ export default function SatelliteBatchesPage() {
         await fetch("/api/admin/mails/batch-update", {
           method: "PUT",
           headers: { 
-            "Content-Type": "application/json",
-            "x-user-id": user?.id || user?._id || "" 
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({
             ids: mailIds,
@@ -404,11 +400,7 @@ export default function SatelliteBatchesPage() {
  try {
    const batchId = batchToDelete._id || batchToDelete.id;
    const res = await fetch(`/api/admin/mail/satellite-batches/${batchId}`, {
-     method: "DELETE",
-     headers: {
-       "x-user-id": user?.id || user?._id || "",
-       "x-user-role": user?.role || ""
-     }
+     method: "DELETE"
    });
 
    if (res.ok) {
@@ -454,8 +446,7 @@ export default function SatelliteBatchesPage() {
             await fetch("/api/admin/mails/batch-update", {
               method: "PUT",
               headers: { 
-                "Content-Type": "application/json",
-                "x-user-id": user?.id || user?._id || "" 
+                "Content-Type": "application/json"
               },
               body: JSON.stringify({
                 ids: mailIds,
@@ -488,8 +479,7 @@ export default function SatelliteBatchesPage() {
       await fetch("/api/admin/mails/batch-update", {
         method: "PUT",
         headers: { 
-          "Content-Type": "application/json",
-          "x-user-id": user?.id || user?._id || "" 
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           ids: selectedMailsToAdd,

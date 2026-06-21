@@ -5,21 +5,14 @@ import User from "@/models/User";
 import { hashPassword } from "@/lib/auth";
 import { checkPermission, logAuditTrail } from "@/lib/permissions";
 import { paginate } from "@/lib/pagination";
+import { escapeRegExp } from "@/lib/validation";
 
 // Lấy danh sách nhân sự (Hỗ trợ lọc online, phân trang)
+
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
 
-    // Automatically sweep stale online statuses (inactive for > 5 mins)
-    try {
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-      await User.updateMany(
-        { isOnline: true, lastActive: { $lt: fiveMinutesAgo } },
-        { $set: { isOnline: false } }
-      );
-    } catch (_) {}
-    
     const role = req.headers.get("x-user-role");
     if (!role) {
       return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 });
@@ -56,32 +49,41 @@ export async function GET(req: NextRequest) {
 
     // Search Query (Matching Name or Username case-insensitively)
     if (searchParam) {
+      const escapedSearch = escapeRegExp(searchParam);
       filter.$or = [
-        { name: { $regex: searchParam, $options: "i" } },
-        { username: { $regex: searchParam, $options: "i" } }
+        { name: { $regex: escapedSearch, $options: "i" } },
+        { username: { $regex: escapedSearch, $options: "i" } }
       ];
     }
 
     if (!searchParams.has("page") && !searchParams.has("limit") && searchParams.get("all") !== "true") {
-      const users = await User.find(filter).select("_id name username avatar role isOnline status").sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).lean();
+      const users = await User.find(filter).select("_id name username avatar role isOnline status lastActive").sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 }).lean();
       const mappedUsers = users.map((u: any) => {
         const userObj = { ...u };
         delete userObj.password;
-        userObj.isOnline = u.isOnline;
+        
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).getTime();
+        const isActuallyOnline = !!(u.isOnline && u.lastActive && new Date(u.lastActive).getTime() >= fiveMinutesAgo);
+        userObj.isOnline = isActuallyOnline;
+        
         userObj.id = userObj._id.toString();
         return userObj;
       });
       return NextResponse.json({ success: true, data: mappedUsers, users: mappedUsers });
     }
 
-    const query = User.find(filter).select("_id name username avatar role isOnline status").lean();
+    const query = User.find(filter).select("_id name username avatar role isOnline status lastActive").lean();
     const result = await paginate(query, page, limit, sortBy, sortOrder);
 
     // Add dynamic isOnline and format mapped response
     const mappedData = result.data.map((u: any) => {
       const userObj = { ...u };
       delete userObj.password;
-      userObj.isOnline = u.isOnline;
+      
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).getTime();
+      const isActuallyOnline = !!(u.isOnline && u.lastActive && new Date(u.lastActive).getTime() >= fiveMinutesAgo);
+      userObj.isOnline = isActuallyOnline;
+      
       userObj.id = userObj._id.toString();
       return userObj;
     });
@@ -116,20 +118,20 @@ export async function POST(req: NextRequest) {
 
    const body = await req.json();
 
-   // Validate body using Zod schema
-   const parsed = CreateUserSchema.safeParse(body);
-   if (!parsed.success) {
-     return NextResponse.json(
-       { 
-         error: "Validation failed",
-         details: parsed.error.issues.map(e => ({
-           field: e.path.join("."),
-           message: e.message
-         }))
-       },
-       { status: 400 }
-     );
-   }
+    // Validate body using Zod schema
+    const parsed = CreateUserSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { 
+          error: "Dữ liệu không hợp lệ",
+          details: parsed.error.issues.map(e => ({
+            field: e.path.join("."),
+            message: e.message
+          }))
+        },
+        { status: 400 }
+      );
+    }
 
    const data = parsed.data;
 

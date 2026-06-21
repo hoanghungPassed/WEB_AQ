@@ -42,12 +42,7 @@ export default function RealtimeProvider({
 
     const sendHeartbeat = async () => {
       try {
-        await fetch("/api/auth/me", {
-          headers: {
-            "x-user-id": user.id || user._id || (user as any)?.userId || "",
-            "x-user-role": user.role || ""
-          }
-        });
+        await fetch("/api/auth/me");
       } catch (err) {
         console.error("Heartbeat error:", err);
       }

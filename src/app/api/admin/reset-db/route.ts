@@ -18,6 +18,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (userRole !== "01") {
+    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_RESET_DB_ROLE", "database", {}, request);
+    return NextResponse.json(
+      { error: "Chỉ Admin tối cao (Role 01) mới có quyền thực hiện thao tác này" },
+      { status: 403 }
+    );
+  }
+
+  let body: any = {};
+  try {
+    body = await request.json();
+  } catch(e) {}
+
+  if (body.confirmation !== "XAC_NHAN_XOA_TOAN_BO_DATA") {
+    return NextResponse.json(
+      { error: "Mã xác nhận không hợp lệ. Hành động bị từ chối." },
+      { status: 400 }
+    );
+  }
+
   try {
     await dbConnect();
 

@@ -258,11 +258,7 @@ function StaffManagementContent() {
 
     // 2. Fetch from ground truth notifications database
     try {
-      const res = await fetch("/api/admin/notifications?type=SYSTEM", {
-        headers: {
-          "x-user-id": currentUser.id || currentUser._id || ""
-        }
-      });
+      const res = await fetch("/api/admin/notifications?type=SYSTEM");
       if (res.ok) {
         const data = await res.json();
         const dbNotifs = Array.isArray(data) ? data : (data?.data || []);
@@ -612,9 +608,7 @@ function StaffManagementContent() {
       await fetch(`/api/admin/attendance/approve-access/${id}`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "x-user-id": currentUser?.id || currentUser?._id || "",
-          "x-user-role": currentUser?.role || ""
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           status: "DENIED",
@@ -656,9 +650,7 @@ function StaffManagementContent() {
       await fetch(`/api/admin/attendance/approve-access/${id}`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "x-user-id": currentUser?.id || currentUser?._id || "",
-          "x-user-role": currentUser?.role || ""
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           status: "APPROVED",
@@ -680,10 +672,19 @@ function StaffManagementContent() {
     setTimeout(() => setShowToast(false), 3000);
   };
 
- const handleResetDB = () => {
+  const handleResetDB = () => {
  showConfirm("Cảnh báo hệ thống","Bạn có chắc chắn muốn xóa toàn bộ dữ liệu và reset về mặc định?", async () => {
+   const confirmation = window.prompt("Hành động này cực kỳ nguy hiểm. Nhập 'XAC_NHAN_XOA_TOAN_BO_DATA' để xác nhận:");
+   if (confirmation !== "XAC_NHAN_XOA_TOAN_BO_DATA") {
+     alert("Mã xác nhận không đúng. Đã hủy thao tác.");
+     return;
+   }
  try {
- await fetch("/api/admin/reset-db", { method:"POST" });
+ await fetch("/api/admin/reset-db", { 
+   method: "POST",
+   headers: { "Content-Type": "application/json" },
+   body: JSON.stringify({ confirmation: "XAC_NHAN_XOA_TOAN_BO_DATA" })
+ });
  } catch (e) { console.error(e); }
  window.location.reload();
  });

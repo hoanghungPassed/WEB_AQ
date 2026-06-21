@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { StaffData } from "@/types/admin";
+import { clearAllLocalStorage } from "@/lib/clientUtils";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -160,8 +161,7 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem("user");
-    localStorage.removeItem("user");
+    clearAllLocalStorage();
     window.location.href = "/login";
   };
 

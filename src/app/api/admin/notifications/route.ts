@@ -5,6 +5,7 @@ import { Notification } from '@/models/Notification';
 import mongoose from 'mongoose';
 import { checkPermission, logAuditTrail } from "@/lib/permissions";
 import { pusherServer } from "@/lib/pusher";
+import { CreateNotificationSchema, sanitizeXSS } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   try {
@@ -62,29 +63,51 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
- try {
- const userId = req.headers.get("x-user-id");
- if (!userId) return NextResponse.json({ error:"Unauthorized" }, { status: 401 });
+  try {
+    const userId = req.headers.get("x-user-id");
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
- await dbConnect();
- const body = await req.json();
- body.author = userId;
+    await dbConnect();
+    const rawBody = await req.json();
 
- const newPost = await Notification.create(body);
- const populated = await newPost.populate('author', 'name username role avatar');
+    // Validate using Zod schema
+    const parseResult = CreateNotificationSchema.safeParse(rawBody);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { success: false, error: parseResult.error.issues[0]?.message || "Dữ liệu không hợp lệ" },
+        { status: 400 }
+      );
+    }
 
- // Notify clients about new newsfeed post
- try {
-   await pusherServer.trigger("newsfeed", "new-post", populated);
- } catch (pushErr) {
-   console.error("Pusher trigger newsfeed error:", pushErr);
- }
+    const validatedData = parseResult.data;
 
- return NextResponse.json({ success: true, data: populated }, { status: 201 });
- } catch (error: unknown) {
+    // Sanitize string inputs for XSS
+    const sanitizedData = {
+      ...validatedData,
+      title: sanitizeXSS(validatedData.title),
+      message: sanitizeXSS(validatedData.message),
+      link: validatedData.link ? sanitizeXSS(validatedData.link) : undefined,
+      imageUrl: validatedData.imageUrl ? sanitizeXSS(validatedData.imageUrl) : undefined,
+      targetRole: validatedData.targetRole ? sanitizeXSS(validatedData.targetRole) : undefined,
+      recipientId: validatedData.recipientId && validatedData.recipientId.trim() !== "" ? validatedData.recipientId : undefined,
+      author: userId,
+    };
+
+    const newPost = await Notification.create(sanitizedData);
+    const populated = await newPost.populate('author', 'name username role avatar');
+
+    // Notify clients about new newsfeed post
+    try {
+      await pusherServer.trigger("newsfeed", "new-post", populated);
+    } catch (pushErr) {
+      console.error("Pusher trigger newsfeed error:", pushErr);
+    }
+
+    return NextResponse.json({ success: true, data: populated }, { status: 201 });
+  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
- return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
- }
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
+  }
 }
 
 export async function PUT(req: NextRequest) {
@@ -109,16 +132,16 @@ export async function PUT(req: NextRequest) {
  post.likes = [...likes, new mongoose.Types.ObjectId(userId)];
  }
  } else if (action ==="COMMENT") {
- if (!post.comments) post.comments = [];
- post.comments.push({ userId, content, createdAt: new Date() });
- } else if (action ==="REPLY") {
- if (post.comments) {
- const comment = post.comments.find(c => String((c as any)._id) === commentId);
- if (comment) {
- if (!comment.replies) comment.replies = [];
- comment.replies.push({ userId, content, createdAt: new Date() });
- }
- }
+  if (!post.comments) post.comments = [];
+  post.comments.push({ userId, content: sanitizeXSS(String(content || "")), createdAt: new Date() });
+  } else if (action ==="REPLY") {
+  if (post.comments) {
+  const comment = post.comments.find(c => String((c as any)._id) === commentId);
+  if (comment) {
+  if (!comment.replies) comment.replies = [];
+  comment.replies.push({ userId, content: sanitizeXSS(String(content || "")), createdAt: new Date() });
+  }
+  }
  } else if (action ==="TOGGLE_PIN") {
   const hasPermission = await checkPermission(userRole || "", 4, ["all", "reports"]);
   if (hasPermission) {

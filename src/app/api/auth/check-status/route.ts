@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import { pusherServer } from "@/lib/pusher";
+import { getAuthUser } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,6 +22,13 @@ export async function GET(req: NextRequest) {
     if (!user) {
       // Nếu không tìm thấy (admin xóa hoặc từ chối trực tiếp), coi như bị từ chối (REJECTED)
       return NextResponse.json({ status: "REJECTED" });
+    }
+
+    const authUser = await getAuthUser();
+    if (authUser && authUser.username.toLowerCase() === lowercaseUsername) {
+      if (authUser.tokenVersion !== user.tokenVersion) {
+        return NextResponse.json({ error: "Phiên đăng nhập đã bị thu hồi", status: "REJECTED" }, { status: 401 });
+      }
     }
 
     // Vietnam ICT Time check

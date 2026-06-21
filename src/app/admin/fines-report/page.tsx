@@ -11,7 +11,8 @@ import {
  Search,
  Download,
  Calendar,
- User
+ User,
+ Loader2
 } from"lucide-react";
 import { motion, AnimatePresence } from"framer-motion";
 import { useRouter } from"next/navigation";
@@ -23,6 +24,7 @@ export default function FinesReportPage() {
  const [searchQuery, setSearchQuery] = useState("");
  const [filterStatus, setFilterStatus] = useState<"ALL" |"PENDING" |"PAID" |"OVERDUE">("ALL");
  const [toastMsg, setToastMsg] = useState("");
+ const [isLoading, setIsLoading] = useState(true);
 
  const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -53,6 +55,8 @@ export default function FinesReportPage() {
  }
  } catch (err) {
  console.error("Error fetching fines:", err);
+ } finally {
+ setIsLoading(false);
  }
  };
  fetchFines();
@@ -395,16 +399,31 @@ export default function FinesReportPage() {
  </tr>
  </thead>
  <tbody>
- {(filteredReports || []).length === 0 ? (
- <tr>
- <td colSpan={6} className="px-6 py-12 text-center">
- <div className="flex flex-col items-center gap-3">
- <FileText size={32} className="opacity-50" />
- <p className="text-gray-500 font-bold">Chưa có dữ liệu</p>
- </div>
- </td>
- </tr>
- ) : (
+  {isLoading ? (
+  <tr>
+  <td colSpan={6} className="px-6 py-16 text-center">
+  <div className="flex flex-col items-center justify-center gap-3">
+  <Loader2 size={32} className="animate-spin text-gold" />
+  <p className="text-gray-400 font-black uppercase text-[10px] tracking-widest animate-pulse">Đang tải danh sách phạt...</p>
+  </div>
+  </td>
+  </tr>
+  ) : (filteredReports || []).length === 0 ? (
+  <tr>
+  <td colSpan={6} className="p-6">
+  <div className="border border-dashed border-gold/30 bg-black/50 p-8 text-center rounded-lg">
+  <CheckCircle2 size={48} className="mx-auto text-gold/50 mb-4 animate-bounce" />
+  <h4 className="text-gold font-bold uppercase text-sm tracking-wider mb-2">TẤT CẢ ĐÃ HOÀN TẤT</h4>
+  <p className="text-gray-400 text-xs max-w-md mx-auto mb-4 leading-relaxed">
+    Không tìm thấy khoản phạt hay vi phạm đi muộn nào được ghi nhận. Toàn bộ nhân sự đều tuân thủ tốt kỷ luật làm việc.
+  </p>
+  <span className="inline-block px-3 py-1 bg-white/5 border border-white/10 text-gray-400 uppercase tracking-widest text-[9px] font-black rounded-sm">
+    Báo cáo sẽ tự động cập nhật khi có vi phạm mới
+  </span>
+  </div>
+  </td>
+  </tr>
+  ) : (
  (filteredReports || []).map((report, idx) => (
  <motion.tr
  key={report.id}

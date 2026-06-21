@@ -6,6 +6,7 @@ import { MonetizedMail } from "@/models/MonetizedMail";
 import { getAuthUser } from "@/lib/auth";
 import { checkPermission, logAuditTrail } from "@/lib/permissions";
 import { paginate } from "@/lib/pagination";
+import { escapeRegExp } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 
@@ -87,7 +88,8 @@ export async function GET(req: NextRequest) {
 
     // Text search filter
     if (search) {
-      const searchRegex = { $regex: search, $options: "i" };
+      const escapedSearch = escapeRegExp(search);
+      const searchRegex = { $regex: escapedSearch, $options: "i" };
       query.$or = [
         { email: searchRegex },
         { recoveryMail: searchRegex },

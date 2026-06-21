@@ -28,6 +28,13 @@ export async function GET() {
     );
   }
 
+  if (authUser.tokenVersion !== user.tokenVersion) {
+    return NextResponse.json(
+      { error: "Phiên đăng nhập đã bị thu hồi" },
+      { status: 401 }
+    );
+  }
+
   // Cập nhật lastActive và isOnline khi người dùng tương tác/gọi API
   await User.findByIdAndUpdate(user._id, { lastActive: new Date(), isOnline: true });
 

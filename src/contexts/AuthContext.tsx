@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { StaffData } from "@/types/admin";
+import { clearAllLocalStorage } from "@/lib/clientUtils";
 
 interface AuthContextType {
   user: StaffData | null;
@@ -41,8 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setUser(null);
         if (typeof window !== "undefined") {
-          sessionStorage.removeItem("user");
-          localStorage.removeItem("user");
+          clearAllLocalStorage();
         }
       }
     } catch (error) {
@@ -115,8 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setUser(null);
       if (typeof window !== "undefined") {
-        sessionStorage.removeItem("user");
-        localStorage.removeItem("user");
+        clearAllLocalStorage();
       }
       router.push("/login");
     } catch (error) {

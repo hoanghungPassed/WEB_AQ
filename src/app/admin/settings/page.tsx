@@ -189,8 +189,7 @@ export default function SettingsPage() {
       const res = await fetch("/api/admin/2fa/setup", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "x-user-id": user.id || user._id || ""
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           email: user.email || `${user.username}@aqmedia.vn`,
@@ -225,8 +224,7 @@ export default function SettingsPage() {
       const res = await fetch("/api/admin/2fa/verify", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "x-user-id": user.id || user._id || ""
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           token: twoFAInputCode,
@@ -264,8 +262,7 @@ export default function SettingsPage() {
       const res = await fetch(`/api/admin/users/${user.id || user._id}`, {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
-          "x-user-id": user.id || user._id || ""
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           twoFAEnabled: false
@@ -662,8 +659,18 @@ export default function SettingsPage() {
 
  triggerToast("Hệ thống đang tiến hành hard-reset toàn bộ dữ liệu...");
  try {
- const res = await fetch("/api/admin/reset-db", { method:"POST" });
- const data = await res.json();
+  const confirmation = window.prompt("Hành động này cực kỳ nguy hiểm. Nhập 'XAC_NHAN_XOA_TOAN_BO_DATA' để xác nhận:");
+  if (confirmation !== "XAC_NHAN_XOA_TOAN_BO_DATA") {
+    triggerToast("Mã xác nhận không đúng. Đã hủy thao tác.");
+    return;
+  }
+
+  const res = await fetch("/api/admin/reset-db", { 
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ confirmation: "XAC_NHAN_XOA_TOAN_BO_DATA" })
+  });
+  const data = await res.json();
  if (!res.ok) {
  triggerToast(data.error ||"Lỗi khi reset database");
  return;

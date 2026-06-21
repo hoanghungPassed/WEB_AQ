@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import { hashPassword } from "@/lib/auth";
@@ -65,7 +66,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!parsed.success) {
       return NextResponse.json(
         {
-          error: "Validation failed",
+          error: "Dữ liệu không hợp lệ",
           details: parsed.error.issues.map(e => ({
             field: e.path.join("."),
             message: e.message
@@ -107,7 +108,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     // { new: true } trả về document sau khi đã update, select('-password') bỏ mật khẩu
-    const updatedUser = await User.findByIdAndUpdate(id, data, { new: true }).select('-password');
+    const updatedUser = await User.findByIdAndUpdate(id, { $set: data, $inc: { tokenVersion: 1 } }, { new: true }).select('-password');
     
     if (!updatedUser) {
       return NextResponse.json({ error: "Không tìm thấy nhân viên" }, { status: 404 });
@@ -176,7 +177,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!parsed.success) {
       return NextResponse.json(
         {
-          error: "Validation failed",
+          error: "Dữ liệu không hợp lệ",
           details: parsed.error.issues.map(e => ({
             field: e.path.join("."),
             message: e.message
@@ -217,7 +218,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       (data as any).lastActive = null;
     }
 
-    const updatedUser = await User.findByIdAndUpdate(id, { $set: data }, { new: true }).select('-password');
+    const updatedUser = await User.findByIdAndUpdate(id, { $set: data, $inc: { tokenVersion: 1 } }, { new: true }).select('-password');
     
     if (!updatedUser) {
       return NextResponse.json({ error: "Không tìm thấy nhân viên" }, { status: 404 });
@@ -291,69 +292,78 @@ export async function DELETE(req: NextRequest, { params: paramsPromise }: { para
       return NextResponse.json({ error: "Không tìm thấy nhân viên" }, { status: 404 });
     }
 
-    // CASCADE DELETE: Cleanup associated data before locking
-    try {
-      await Promise.all([
-        Task.deleteMany({ assigneeId: id }),
-        Fine.deleteMany({ userId: id }),
-        Attendance.deleteMany({ userId: id }),
-        Batch.deleteMany({ assignedTo: id }),
-        SatelliteMail.updateMany(
-          { assigneeId: id }, 
-          { $set: { isAssigned: false, assignedTo: null, assigneeId: null, batchId: null, batchName: null } }
-        ),
-        RootMail.updateMany(
-          { assigneeId: id },
-          { $set: { assignedTo: null, assigneeId: null, assignee: null, batchId: null, batchName: null } }
-        ),
-        MonetizedMail.updateMany(
-          { assigneeId: id },
-          { $set: { assignedTo: null, assigneeId: null, assignee: null, batchId: null, batchName: null } }
-        )
-      ]);
-    } catch (cascadeErr) {
-      console.error("Cascade cleanup error:", cascadeErr);
-      // We continue with user lock even if cleanup fails partially
-    }
-
-    const newUsername = `${oldUser.username}_deleted_${Date.now()}`;
-
-    const archivedUser = await User.findByIdAndUpdate(
-      id,
-      { $set: { status: "LOCKED", deletedAt: new Date(), username: newUsername } },
-      { new: true }
-    ).select("-password");
-
-    if (!archivedUser) {
-      return NextResponse.json({ error: "Không tìm thấy nhân viên" }, { status: 404 });
-    }
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
     try {
-      const { Log } = await import('@/models/Log');
-      await Log.create({
-        user: "System",
-        role: role === "01" ? "ADMIN" : "QL NHÂN SỰ",
-        action: `Lưu trữ nhân sự (Soft-delete): ${archivedUser.name} (${archivedUser.username})`,
-        type: "SUCCESS",
-        timestamp: new Date().toLocaleString("vi-VN")
+      // CASCADE DELETE: Cleanup associated data before locking with transaction session
+      await Task.deleteMany({ assigneeId: id }, { session });
+      await Fine.deleteMany({ userId: id }, { session });
+      await Attendance.deleteMany({ userId: id }, { session });
+      await Batch.deleteMany({ assignedTo: id }, { session });
+      await SatelliteMail.updateMany(
+        { assigneeId: id }, 
+        { $set: { isAssigned: false, assignedTo: null, assigneeId: null, batchId: null, batchName: null } },
+        { session }
+      );
+      await RootMail.updateMany(
+        { assigneeId: id },
+        { $set: { assignedTo: null, assigneeId: null, assignee: null, batchId: null, batchName: null } },
+        { session }
+      );
+      await MonetizedMail.updateMany(
+        { assigneeId: id },
+        { $set: { assignedTo: null, assigneeId: null, assignee: null, batchId: null, batchName: null } },
+        { session }
+      );
+
+      const newUsername = `${oldUser.username}_deleted_${Date.now()}`;
+
+      const archivedUser = await User.findByIdAndUpdate(
+        id,
+        { $set: { status: "LOCKED", deletedAt: new Date(), username: newUsername } },
+        { new: true, session }
+      ).select("-password");
+
+      if (!archivedUser) {
+        throw new Error("Không tìm thấy nhân viên khi thực hiện lưu trữ");
+      }
+
+      await session.commitTransaction();
+
+      try {
+        const { Log } = await import('@/models/Log');
+        await Log.create({
+          user: "System",
+          role: role === "01" ? "ADMIN" : "QL NHÂN SỰ",
+          action: `Lưu trữ nhân sự (Soft-delete): ${archivedUser.name} (${archivedUser.username})`,
+          type: "SUCCESS",
+          timestamp: new Date().toLocaleString("vi-VN")
+        });
+      } catch (logErr) {
+        console.error("Log error:", logErr);
+      }
+
+      await logAuditTrail(reqUserId || "system", "DELETE_USER_SUCCESS", "users", { targetUserId: id, username: archivedUser.username }, req);
+
+      try {
+        await pusherServer.trigger(`user-${archivedUser._id.toString()}`, "status-update", {
+          status: "LOCKED"
+        });
+      } catch (pushErr) {}
+
+      return NextResponse.json({ 
+        success: true,
+        message: "User archived successfully",
+        data: archivedUser 
       });
-    } catch (logErr) {
-      console.error("Log error:", logErr);
+
+    } catch (transactionErr) {
+      await session.abortTransaction();
+      throw transactionErr;
+    } finally {
+      session.endSession();
     }
-
-    await logAuditTrail(reqUserId || "system", "DELETE_USER_SUCCESS", "users", { targetUserId: id, username: archivedUser.username }, req);
-
-    try {
-      await pusherServer.trigger(`user-${archivedUser._id.toString()}`, "status-update", {
-        status: "LOCKED"
-      });
-    } catch (pushErr) {}
-
-    return NextResponse.json({ 
-      success: true,
-      message: "User archived successfully",
-      data: archivedUser 
-    });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("Delete user error:", error);

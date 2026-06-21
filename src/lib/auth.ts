@@ -47,6 +47,13 @@ export interface TokenPayload {
  twoFAEnabled?: boolean;
  twoFAValidated?: boolean;
  overtimeBypass?: boolean;
+ tokenVersion?: number;
+ /** Trạng thái tài khoản tại thời điểm cấp token — dùng cho Middleware check không cần DB */
+ userStatus?: "ACTIVE" | "LOCKED" | "PENDING";
+ /** Trạng thái khóa đi muộn — dùng cho Middleware check không cần DB */
+ isLateLocked?: boolean;
+ openTime?: string;
+ closeTime?: string;
 }
 
 /** Tạo JWT token */

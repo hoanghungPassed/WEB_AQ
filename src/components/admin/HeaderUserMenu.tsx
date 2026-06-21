@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { User, LogOut, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { StaffData } from "@/types/admin";
+import { clearAllLocalStorage } from "@/lib/clientUtils";
 
 interface HeaderUserMenuProps {
   user: StaffData;
@@ -19,8 +20,7 @@ export default function HeaderUserMenu({ user, onOpenProfile }: HeaderUserMenuPr
     } catch (err) {
       console.error("Logout API error:", err);
     }
-    sessionStorage.removeItem("user");
-    localStorage.removeItem("user");
+    clearAllLocalStorage();
     window.location.href = "/login";
   };
 

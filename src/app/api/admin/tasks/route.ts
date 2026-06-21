@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json(
         {
-          error: "Validation failed",
+          error: "Dữ liệu không hợp lệ",
           details: parsed.error.issues.map(e => ({
             field: e.path.join("."),
             message: e.message

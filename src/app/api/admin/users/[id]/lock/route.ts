@@ -35,6 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const newStatus = previousStatus === "LOCKED" ? "ACTIVE" : "LOCKED";
     
     user.status = newStatus;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
     if (newStatus === "ACTIVE") {
       user.lastActive = null;
       (user as any).isLateLocked = false;

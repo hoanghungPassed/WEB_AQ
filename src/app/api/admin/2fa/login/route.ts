@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { User } from '@/models/User';
+import { SystemSetting } from '@/models/SystemSetting';
 import { verifyTokenAny, generateBackupCodes } from '@/lib/2fa';
 import { decrypt, encrypt } from '@/lib/crypto';
 import { logAuditTrail } from '@/lib/permissions';
@@ -41,7 +42,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Phiên làm việc tạm thời đã hết hạn hoặc bị trình duyệt chặn (Local). Vui lòng thử đăng nhập lại.' }, { status: 401 });
     }
 
-    const user = await User.findById(userId);
+    const [user, settings] = await Promise.all([
+      User.findById(userId),
+      SystemSetting.findOne().lean(),
+    ]);
     if (!user || !user.twoFAEnabled || !user.twoFASecret) {
       await logAuditTrail(userId, 'LOGIN_2FA', 'User', { success: false, reason: '2fa_not_enabled' }, request);
       return NextResponse.json({ error: '2FA chưa được kích hoạt cho tài khoản này.' }, { status: 400 });
@@ -120,6 +124,11 @@ export async function POST(request: Request) {
           twoFAEnabled: true,
           twoFAValidated: true,
           overtimeBypass: !!overtimeBypass,
+          tokenVersion: user.tokenVersion,
+          userStatus: user.status,
+          isLateLocked: user.isLateLocked,
+          openTime: settings?.openTime || "08:00",
+          closeTime: settings?.closeTime || "17:30",
         });
 
         const response = NextResponse.json({
@@ -185,6 +194,11 @@ export async function POST(request: Request) {
           twoFAEnabled: true,
           twoFAValidated: true,
           overtimeBypass: !!overtimeBypass,
+          tokenVersion: user.tokenVersion,
+          userStatus: user.status,
+          isLateLocked: user.isLateLocked,
+          openTime: settings?.openTime || "08:00",
+          closeTime: settings?.closeTime || "17:30",
         });
 
         const response = NextResponse.json({

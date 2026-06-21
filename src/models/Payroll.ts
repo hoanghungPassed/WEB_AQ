@@ -85,9 +85,5 @@ PayrollSchema.index({ userId: 1, month: 1 }, { unique: true });
 PayrollSchema.index({ month: 1 });
 PayrollSchema.index({ status: 1 });
 
-if (mongoose.models.Payroll) {
-  delete mongoose.models.Payroll;
-}
-
 export const Payroll: Model<IPayroll> =
   mongoose.models.Payroll || mongoose.model<IPayroll>("Payroll", PayrollSchema, "payrolls");

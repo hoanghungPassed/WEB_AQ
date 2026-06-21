@@ -6,6 +6,7 @@ import User from "@/models/User";
 import { Attendance } from "@/models/Attendance";
 import { Fine } from "@/models/Fine";
 import { checkPermission, logAuditTrail } from "@/lib/permissions";
+import { Log } from "@/models/Log";
 
 // GET all payroll records (with optional month filter)
 export async function GET(req: NextRequest) {
@@ -28,7 +29,8 @@ export async function GET(req: NextRequest) {
 
     const records = await Payroll.find(filter)
       .populate("userId", "name username role")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     return NextResponse.json({ success: true, data: records });
   } catch (error: unknown) {
@@ -92,7 +94,7 @@ async function calculateMonthlyPayroll(body: any, requesterId: string | null, re
   }
 
   // Get all ACTIVE users
-  const users = await User.find({ status: "ACTIVE" }).select("-password");
+  const users = await User.find({ status: "ACTIVE" }).select("-password").lean();
 
   // Parse month boundaries for querying attendance and fines
   const [yearStr, monthStr] = month.split("-");
@@ -102,39 +104,37 @@ async function calculateMonthlyPayroll(body: any, requesterId: string | null, re
   const daysInMonth = new Date(year, monthNum, 0).getDate();
   const monthEnd = `${month}-${String(daysInMonth).padStart(2, "0")}`;
 
-  const results: any[] = [];
+  const workingDaysDefault = body.workingDays || 26;
+  const monthStartUTC = new Date(Date.UTC(year, monthNum - 1, 1, -7, 0, 0, 0));
+  const monthEndUTC = new Date(Date.UTC(year, monthNum, 1, -7, 0, 0, 0));
 
-  for (const user of users) {
+  const payrollPromises = users.map(async (user) => {
     const uid = user._id.toString();
-    const workingDaysDefault = body.workingDays || 26;
-    
+
     // SECURE: Lấy mức lương và phụ cấp trực tiếp từ DB User, KHÔNG lấy từ client request body.
     const baseSalary = user.baseSalary || 5000000;
     const allowance = user.allowance || 500000;
 
-    // Count attendance days in the month
-    const attendanceCount = await Attendance.countDocuments({
-      userId: uid,
-      date: { $gte: monthStart, $lte: monthEnd },
-      status: { $in: ["Đúng giờ", "Đi muộn"] } // Both count as present
-    });
-
-    // Sum total unpaid fines for this user in the month (Standardized to VN time UTC+7)
-    const monthStartUTC = new Date(Date.UTC(year, monthNum - 1, 1, -7, 0, 0, 0));
-    const monthEndUTC = new Date(Date.UTC(year, monthNum, 1, -7, 0, 0, 0));
-
-    const finesAgg = await Fine.aggregate([
-      {
-        $match: {
-          userId: user._id,
-          status: { $ne: "CANCELLED" },
-          createdAt: {
-            $gte: monthStartUTC,
-            $lt: monthEndUTC
+    // Count attendance days and aggregate fines in parallel
+    const [attendanceCount, finesAgg] = await Promise.all([
+      Attendance.countDocuments({
+        userId: uid,
+        date: { $gte: monthStart, $lte: monthEnd },
+        status: { $in: ["Đúng giờ", "Đi muộn"] } // Both count as present
+      }),
+      Fine.aggregate([
+        {
+          $match: {
+            userId: user._id,
+            status: "UNPAID",
+            createdAt: {
+              $gte: monthStartUTC,
+              $lt: monthEndUTC
+            }
           }
-        }
-      },
-      { $group: { _id: null, total: { $sum: "$amount" } } }
+        },
+        { $group: { _id: null, total: { $sum: "$amount" } } }
+      ])
     ]);
 
     const totalFines = finesAgg.length > 0 ? finesAgg[0].total : 0;
@@ -178,14 +178,14 @@ async function calculateMonthlyPayroll(body: any, requesterId: string | null, re
     };
 
     // Upsert: update if exists for this user+month, create otherwise
-    const record = await Payroll.findOneAndUpdate(
+    return Payroll.findOneAndUpdate(
       { userId: uid, month },
       { $set: payrollData },
       { upsert: true, new: true }
     );
+  });
 
-    results.push(record);
-  }
+  const results = await Promise.all(payrollPromises);
 
   await logAuditTrail(
     requesterId || "system",
@@ -197,7 +197,6 @@ async function calculateMonthlyPayroll(body: any, requesterId: string | null, re
 
   // Create system log
   try {
-    const { Log } = await import("@/models/Log");
     await Log.create({
       user: "System",
       role: "ADMIN",

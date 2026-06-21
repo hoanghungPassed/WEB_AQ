@@ -32,6 +32,7 @@ export interface IUser extends Document {
  finePaymentStatus?: "PENDING_APPROVAL" | "APPROVED" | "DENIED" | null;
  lateExcuseStatus?: "PENDING_APPROVAL" | "APPROVED" | "DENIED" | null;
  accessApprovedUntil?: Date | null;
+ tokenVersion?: number;
 }
 
 const userSchema = new Schema<IUser>(
@@ -152,6 +153,10 @@ const userSchema = new Schema<IUser>(
  accessApprovedUntil: {
  type: Date,
  default: null,
+ },
+ tokenVersion: {
+ type: Number,
+ default: 0,
  },
  },
  {

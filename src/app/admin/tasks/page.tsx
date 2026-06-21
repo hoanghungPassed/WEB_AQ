@@ -23,7 +23,8 @@ import {
   RefreshCcw,
   Search,
   Copy,
-  User
+  User,
+  Inbox
 } from "lucide-react";
 
 import { MailData, StaffData, TaskAssignment } from "@/types/admin";
@@ -98,6 +99,7 @@ export default function TaskManagementPage() {
   const [user, setUser] = useState<any>(null);
   const [tasks, setTasks] = useState<TaskAssignment[]>([]);
   const [staffList, setStaffList] = useState<StaffData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskFilter, setTaskFilter] = useState("ALL");
   const [notification, setNotification] = useState<string | null>(null);
@@ -214,6 +216,8 @@ export default function TaskManagementPage() {
       }
     } catch (err) {
       console.error("Error fetching data:", err);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -1255,7 +1259,16 @@ export default function TaskManagementPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {filteredTasks.length > 0 ? (
+                      {isLoading ? (
+                        <tr>
+                          <td colSpan={5} className="p-8 text-center">
+                            <div className="py-16 flex flex-col items-center justify-center gap-3">
+                              <Loader2 size={32} className="animate-spin text-gold" />
+                              <p className="text-foreground-secondary font-black uppercase text-[10px] tracking-widest animate-pulse">Đang tải danh sách nhiệm vụ...</p>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : filteredTasks.length > 0 ? (
                         filteredTasks.map((task: TaskAssignment) => {
                           const dateStr = (task as any).createdAt || (task as any).assignedAt ? new Date((task as any).createdAt || (task as any).assignedAt).toLocaleDateString("vi-VN") : "---";
                           const batchName = (task as any).batch || (task as any).batchName || (task as any).mailRange || "---";
@@ -1294,8 +1307,17 @@ export default function TaskManagementPage() {
                         })
                       ) : (
                         <tr>
-                          <td colSpan={5} className="px-8 py-20 text-center text-gray-500 font-bold uppercase tracking-widest">
-                            Không có nhiệm vụ được giao
+                          <td colSpan={5} className="p-4">
+                            <div className="border border-dashed border-gold/30 bg-black/50 p-8 text-center rounded-lg my-2">
+                              <Inbox size={48} className="mx-auto text-gold/50 mb-4 animate-bounce" />
+                              <h4 className="text-gold font-bold uppercase text-sm tracking-wider mb-2">KHÔNG CÓ NHIỆM VỤ ĐƯỢC GIAO</h4>
+                              <p className="text-gray-400 text-xs max-w-md mx-auto mb-4 leading-relaxed">
+                                Bạn chưa được giao nhiệm vụ nào hoặc đã hoàn thành toàn bộ công việc được phân công.
+                              </p>
+                              <span className="inline-block px-3 py-1 bg-white/5 border border-border text-foreground-secondary uppercase tracking-widest text-[9px] font-black rounded-sm">
+                                Vui lòng liên hệ quản lý để nhận việc
+                              </span>
+                            </div>
                           </td>
                         </tr>
                       )}
@@ -1306,10 +1328,31 @@ export default function TaskManagementPage() {
             ) : (
               <motion.div key="staff-grid" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1 overflow-y-auto custom-scrollbar pr-2">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pb-10">
-                  {filteredTasks.length > 0 ? (
+                  {isLoading ? (
+                    <div className="col-span-full py-20 flex flex-col items-center justify-center gap-3">
+                      <Loader2 size={36} className="animate-spin text-gold" />
+                      <p className="text-foreground-secondary font-black uppercase text-xs tracking-widest animate-pulse">Đang tải danh sách nhiệm vụ...</p>
+                    </div>
+                  ) : filteredTasks.length > 0 ? (
                     filteredTasks.map(task => <TaskCard key={task.id} task={task} onClick={() => setSelectedTaskId(task.id)} />)
                   ) : (
-                    <div className="col-span-full py-20 text-center text-gray-500 font-bold uppercase tracking-widest">Không có nhiệm vụ được giao</div>
+                    <div className="col-span-full">
+                      <div className="border border-dashed border-gold/30 bg-black/50 p-10 text-center rounded-lg max-w-xl mx-auto my-10">
+                        <ClipboardList size={56} className="mx-auto text-gold/50 mb-4 animate-pulse" />
+                        <h3 className="text-gold font-bold uppercase text-lg tracking-wider mb-2">CHƯA CÓ NHIỆM VỤ NÀO</h3>
+                        <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                          Hệ thống chưa tạo lập hay giao nhiệm vụ nào cho nhân sự trong ngày hôm nay.
+                        </p>
+                        {isAdminOrManager && (
+                          <button
+                            onClick={() => setAdminTab("ASSIGN")}
+                            className="px-6 py-3 bg-gold hover:bg-yellow-500 text-sidebar font-black uppercase text-xs tracking-widest rounded-sm transition-all shadow-lg shadow-gold/10"
+                          >
+                            Giao công việc ngay
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
               </motion.div>

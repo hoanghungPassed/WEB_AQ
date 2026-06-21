@@ -32,10 +32,6 @@ AttendanceSchema.index({ userId: 1, date: 1 }, { unique: true });
 AttendanceSchema.index({ date: 1 });
 AttendanceSchema.index({ userId: 1 });
 
-if (mongoose.models.Attendance) {
-  delete mongoose.models.Attendance;
-}
-
 export const Attendance: Model<IAttendance> =
   mongoose.models.Attendance ||
   mongoose.model<IAttendance>("Attendance", AttendanceSchema, "attendances");

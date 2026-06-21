@@ -4,6 +4,12 @@ import { jwtVerify } from "jose";
 const COOKIE_NAME = "aq_token";
 
 export async function middleware(request: NextRequest) {
+  // Strip forgeable identity headers sent by client
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete("x-user-id");
+  requestHeaders.delete("x-user-role");
+  requestHeaders.delete("x-user-username");
+
   const { pathname } = request.nextUrl;
   const method = request.method.toUpperCase();
 
@@ -12,7 +18,11 @@ export async function middleware(request: NextRequest) {
 
   // Chỉ xử lý các route /admin/* hoặc các route API /api/*
   if (!isAdminPage && !isApiCall) {
-    return NextResponse.next();
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
   }
 
   // Bỏ qua xác thực cho các API công khai (Đăng nhập, Đăng ký, Xác thực 2FA lúc đăng nhập, Reset mật khẩu, và GET settings)
@@ -27,7 +37,11 @@ export async function middleware(request: NextRequest) {
     (pathname.startsWith("/api/admin/settings") && method === "GET");
 
   if (isPublicApi) {
-    return NextResponse.next();
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
   }
 
   // Lấy token từ cookie
@@ -159,16 +173,16 @@ export async function middleware(request: NextRequest) {
       let closeHour = 18;
       let closeMinute = 0;
 
-      const openTimeCookie = request.cookies.get("open_time")?.value;
-      if (openTimeCookie && openTimeCookie.includes(":")) {
-        const parts = openTimeCookie.split(":");
+      const openTime = payload.openTime ? String(payload.openTime) : "";
+      if (openTime && openTime.includes(":")) {
+        const parts = openTime.split(":");
         openHour = parseInt(parts[0], 10) || 8;
         openMinute = parseInt(parts[1], 10) || 0;
       }
 
-      const closeTimeCookie = request.cookies.get("close_time")?.value;
-      if (closeTimeCookie && closeTimeCookie.includes(":")) {
-        const parts = closeTimeCookie.split(":");
+      const closeTime = payload.closeTime ? String(payload.closeTime) : "";
+      if (closeTime && closeTime.includes(":")) {
+        const parts = closeTime.split(":");
         closeHour = parseInt(parts[0], 10) || 18;
         closeMinute = parseInt(parts[1], 10) || 0;
       }
@@ -200,7 +214,7 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith("/api/admin/notifications") ||
         pathname.startsWith("/api/admin/messages") ||
         pathname.startsWith("/api/messages") ||
-        pathname.startsWith("/api/admin/fines") ||
+        (pathname.startsWith("/api/admin/fines") && method === "GET") ||
         pathname.startsWith("/api/admin/2fa/setup") ||
         pathname.startsWith("/api/admin/2fa/verify") ||
         pathname.startsWith("/api/admin/mails") ||
@@ -217,7 +231,7 @@ export async function middleware(request: NextRequest) {
         );
       }
 
-      // Check if user is locked (LOCKED, isLateLocked, or PENDING) via internal API fetch
+      // Check if user is locked (LOCKED, isLateLocked, or PENDING) via JWT payload
       const isBypassLockEndpoint =
         pathname.startsWith("/api/auth/check-status") ||
         pathname.startsWith("/api/admin/fines") ||
@@ -227,26 +241,19 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith("/api/admin/attendance/request-access");
 
       if (!isBypassLockEndpoint) {
-        const checkStatusUrl = new URL(`/api/auth/check-status?username=${encodeURIComponent(username)}`, request.url);
-        try {
-          const statusRes = await fetch(checkStatusUrl);
-          if (statusRes.ok) {
-            const statusData = await statusRes.json();
-            if (statusData.status !== "ACTIVE") {
-              return NextResponse.json(
-                { error: "Tài khoản chưa được phê duyệt điểm danh hoặc đang bị khóa." },
-                { status: 403 }
-              );
-            }
-          }
-        } catch (err) {
-          console.error("Middleware check-status validation error:", err);
+        const userStatus = payload.userStatus;
+        const isLateLocked = !!payload.isLateLocked;
+
+        if (userStatus !== "ACTIVE" || isLateLocked) {
+          return NextResponse.json(
+            { error: "Tài khoản chưa được phê duyệt điểm danh hoặc đang bị khóa." },
+            { status: 403 }
+          );
         }
       }
     }
 
     // Inject thông tin người dùng vào headers cho các API routes
-    const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-user-id", userId);
     requestHeaders.set("x-user-role", role);
     requestHeaders.set("x-user-username", username);

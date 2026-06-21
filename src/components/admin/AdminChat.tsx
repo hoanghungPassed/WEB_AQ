@@ -146,8 +146,7 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
         await fetch('/api/messages/mark-read', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'x-user-id': user?.id || user?._id || ''
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ partnerId })
         });
@@ -187,18 +186,14 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
     if (!user) return;
 
     try {
-      const compRes = await fetch("/api/messages?isCompanyChat=true", {
-        headers: { "x-user-id": user.id || user._id }
-      });
+      const compRes = await fetch("/api/messages?isCompanyChat=true");
       if (compRes.ok) {
         const compData = await compRes.json();
         if (compData.success) setCompanyMessages(compData.data || []);
       }
 
       if (activeChatUser) {
-        const privRes = await fetch(`/api/messages?partnerId=${activeChatUser.id || activeChatUser._id}`, {
-          headers: { "x-user-id": user.id || user._id }
-        });
+        const privRes = await fetch(`/api/messages?partnerId=${activeChatUser.id || activeChatUser._id}`);
         if (privRes.ok) {
           const privData = await privRes.json();
           if (privData.success) setPrivateMessages(privData.data || []);
@@ -312,8 +307,7 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
         fetch("/api/messages/mark-read", {
           method: "POST",
           headers: { 
-            "Content-Type": "application/json",
-            "x-user-id": user?.id || user?._id || ""
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({ partnerId })
         }).then(() => router.refresh()).catch(() => {});
@@ -412,7 +406,7 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
 
     fetch("/api/messages", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-user-id": user?.id || user?._id || "" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content, isCompanyChat: true })
     }).catch(console.error);
   };
@@ -428,7 +422,7 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
 
     fetch("/api/messages", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-user-id": user?.id || user?._id || "" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content, receiverId: activeChatUser.id || activeChatUser._id, isCompanyChat: false })
     }).catch(console.error);
   };
