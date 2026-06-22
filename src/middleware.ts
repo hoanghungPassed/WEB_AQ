@@ -159,7 +159,8 @@ export async function middleware(request: NextRequest) {
 
     // 2. KIỂM TRA GIỜ HÀNH CHÍNH (AUTO-KICK) CHO NHÂN VIÊN
     const overtimeBypass = !!payload.overtimeBypass;
-    if (isStaff && !overtimeBypass) {
+    const isRequestAccess = pathname === "/api/admin/attendance/request-access";
+    if (isStaff && !overtimeBypass && !isRequestAccess) {
       const now = new Date();
       const utc = now.getTime() + now.getTimezoneOffset() * 60000;
       const vnTime = new Date(utc + 3600000 * 7); // GMT+7

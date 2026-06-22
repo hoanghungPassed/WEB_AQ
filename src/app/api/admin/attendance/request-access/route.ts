@@ -30,8 +30,7 @@ export async function POST(req: NextRequest) {
       await user.save();
     } else {
       // type === "ACCESS" (outside working hours or Sunday)
-      user.status = "PENDING";
-      await user.save();
+      // user.status remains ACTIVE, request status is tracked by the notification document
     }
 
     // Save access request into Notification collection in MongoDB
