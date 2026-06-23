@@ -30,6 +30,28 @@ export async function processLoginAttendance(
   const utc = now.getTime() + now.getTimezoneOffset() * 60000;
   const vnTime = new Date(utc + 3600000 * 7); // Vietnam GMT+7
   const currentMins = vnTime.getHours() * 60 + vnTime.getMinutes();
+
+  const yyyy = vnTime.getFullYear();
+  const mm = String(vnTime.getMonth() + 1).padStart(2, "0");
+  const dd = String(vnTime.getDate()).padStart(2, "0");
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+
+  const todayAttendance = await Attendance.findOne({
+    userId: user._id,
+    date: todayStr,
+  });
+
+  if (todayAttendance) {
+    const isLocked = user.status !== "ACTIVE" || !!user.isLateLocked;
+    user.isOnline = !isLocked;
+    user.lastActive = !isLocked ? now : null;
+    await user.save();
+
+    return {
+      overtimeBypass: false,
+      shouldBeOnline: !isLocked,
+    };
+  }
   const isStaff =
     (user.role === "03" ||
       user.role === "04" ||

@@ -1446,8 +1446,20 @@ const typingTimer = setInterval(checkTyping, 1000);
         },
         body: JSON.stringify(requestBody)
       });
+      if (!res.ok) throw new Error("Gửi yêu cầu thất bại");
+
+      setIsPendingApproval(true);
+      const json = await res.json();
+      const newRequest = json.data;
+      const savedRequests = localStorage.getItem("pending_access_requests");
+      const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+      const updatedRequests = [...currentRequests, newRequest];
+      localStorage.setItem("pending_access_requests", JSON.stringify(updatedRequests));
+
+      window.dispatchEvent(new Event("storage"));
     } catch (e) {
       console.error("Request access error:", e);
+      throw e;
     }
   };
 
