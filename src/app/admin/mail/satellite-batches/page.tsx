@@ -716,7 +716,7 @@ export default function SatelliteBatchesPage() {
  {/* Column 1: Info */}
  <div className="w-1/3 flex items-center gap-3">
  <div className="h-10 w-10 bg-gold/15 text-gold border border-gold/20 rounded-xl flex items-center justify-center font-black text-base uppercase shrink-0">
- {staff.name.charAt(0)}
+  {(staff.name || staff.username || "?").charAt(0)}
  </div>
  <div className="truncate">
  <p className="text-base font-black text-white transition-colors truncate uppercase">{staff.name}</p>
@@ -993,7 +993,7 @@ export default function SatelliteBatchesPage() {
             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">Nhân sự đang xử lý</label>
             <div className="flex items-center gap-3 bg-black/40 border border-white/0 rounded-2xl h-16 px-4 border border-white/5">
               <div className="h-9 w-9 bg-gold/15 text-gold border border-gold/20 rounded-xl flex items-center justify-center font-black text-base uppercase shrink-0">
-                {selectedStaff.name.charAt(0)}
+                {(selectedStaff.name || selectedStaff.username || "?").charAt(0)}
               </div>
               <div className="truncate">
                 <p className="text-sm font-black text-white uppercase truncate">{selectedStaff.name}</p>

@@ -2238,7 +2238,7 @@ const typingTimer = setInterval(checkTyping, 1000);
    >
    <div className="relative">
    <div className="h-8 w-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-sm text-gold font-black group-hover:scale-105 transition-all">
-   {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover rounded-lg" onError={(e) => e.currentTarget.src ="https://ui-avatars.com/api/?name=" + (u.name ||"U") +"&background=d4af37&color=000"} /> : u.name.charAt(0)}
+   {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover rounded-lg" onError={(e) => e.currentTarget.src ="https://ui-avatars.com/api/?name=" + (u.name ||"U") +"&background=d4af37&color=000"} /> : (u.name || u.username || "U").charAt(0)}
    </div>
    <div className={`absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-[#161616] ${u.isOnline ?"bg-green-500" :"bg-red-500"}`} />
    </div>
@@ -2266,7 +2266,7 @@ const typingTimer = setInterval(checkTyping, 1000);
  <div className="p-3 border-b border-white/0 bg-[#0e0e0e] flex items-center justify-between">
  <div className="flex items-center gap-2">
  <div className="h-6 w-6 rounded bg-gold/10 flex items-center justify-center text-[10px] font-black text-gold">
- {activeChatUser.name.charAt(0)}
+ {(activeChatUser.name || activeChatUser.username || "U").charAt(0)}
  </div>
  <span className="text-[10px] font-black text-white uppercase truncate max-w-[120px]">{activeChatUser.name}</span>
  </div>

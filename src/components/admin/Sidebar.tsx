@@ -153,6 +153,8 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
     if (rulesUrl) {
       dynamicMenuItems.push({ title: "Nội quy", icon: <FileText size={20} />, href: rulesUrl, isExternal: true });
     }
+
+    dynamicMenuItems.push({ title: "Hệ thống", icon: <Settings size={20} />, href: "/admin/settings" });
   }
 
   const toggleMenu = (title: string) => {

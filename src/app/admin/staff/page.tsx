@@ -1091,7 +1091,7 @@ function StaffManagementContent() {
  <td className="px-10 py-7">
  <div className="flex items-center gap-6">
  <div className="h-16 w-16 rounded-[24px] bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center text-2xl text-gold font-black border border-gold/10 shadow-xl group-hover:scale-110 transition-all">
- {req.staffName.charAt(0)}
+ {req.staffName ? req.staffName.charAt(0) : (req.username ? req.username.charAt(0) : "?")}
  </div>
  <div className="whitespace-nowrap">
  <p className="text-lg font-black text-white transition-colors">{req.staffName}</p>
@@ -1141,7 +1141,7 @@ function StaffManagementContent() {
  <td className="px-10 py-7">
  <div className="flex items-center gap-6">
  <div className="h-16 w-16 rounded-[24px] bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center text-2xl text-gold font-black border border-gold/10 shadow-xl group-hover:scale-110 transition-all">
- {staff.avatar ? <img src={staff.avatar} className="w-full h-full object-cover rounded-[24px]" onError={(e) => e.currentTarget.src ="https://ui-avatars.com/api/?name=" + (staff.name ||"U") +"&background=d4af37&color=000"} /> : staff.name.charAt(0)}
+ {staff.avatar ? <img src={staff.avatar} className="w-full h-full object-cover rounded-[24px]" onError={(e) => e.currentTarget.src ="https://ui-avatars.com/api/?name=" + (staff.name ||"U") +"&background=d4af37&color=000"} /> : (staff.name || staff.username || "U").charAt(0)}
  </div>
  <div className="whitespace-nowrap">
  <p className="text-lg font-black text-white transition-colors">{staff.name}</p>
@@ -1322,7 +1322,7 @@ function StaffManagementContent() {
  <div className="md:col-span-4 p-12 bg-gradient-to-b from-white/[0.03] to-transparent border-r border-white/0 flex flex-col items-center text-center md:max-h-[90vh] md:overflow-y-auto custom-scrollbar">
  <div className="relative group">
  <div className="h-32 w-32 rounded-[40px] bg-gold/10 border border-gold/20 flex items-center justify-center text-5xl text-gold font-black shadow-2xl group-hover:scale-105 transition-all">
- {selectedStaff.avatar ? <img src={selectedStaff.avatar} className="w-full h-full object-cover rounded-[40px]" onError={(e) => e.currentTarget.src ="https://ui-avatars.com/api/?name=" + (selectedStaff.name ||"U") +"&background=d4af37&color=000"} /> : selectedStaff.name.charAt(0)}
+ {selectedStaff.avatar ? <img src={selectedStaff.avatar} className="w-full h-full object-cover rounded-[40px]" onError={(e) => e.currentTarget.src ="https://ui-avatars.com/api/?name=" + (selectedStaff.name ||"U") +"&background=d4af37&color=000"} /> : (selectedStaff.name || selectedStaff.username || "U").charAt(0)}
  </div>
  <div className={`absolute -bottom-2 -right-2 h-8 w-8 rounded-full border-4 border-sidebar shadow-xl ${selectedStaff.isOnline ?"bg-green-500" :"bg-red-500"}`} />
  </div>

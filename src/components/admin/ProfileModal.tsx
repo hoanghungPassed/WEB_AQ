@@ -163,7 +163,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  {formData.avatar ? (
  <img src={formData.avatar} alt="Avatar" className="w-full h-full object-cover" />
  ) : (
- formData.name.charAt(0).toUpperCase()
+ (formData.name || formData.username || "U").charAt(0).toUpperCase()
  )}
  </div>
  </div>
