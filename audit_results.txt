@@ -1,0 +1,46 @@
+Audited codebase and found 3 issues:
+
+[1] FILE: c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\app\admin\newsfeed\page.tsx:790
+ISSUE: Icon left-positioned, but input is missing pl-* padding.
+INPUT TAG:
+<input 
+                                      placeholder={`Phản hồi ${cmt.authorName}...`}
+                                      value={replyInputs[cmt.id] || ""}
+                                      onChange={(e) => setReplyInputs({ ...replyInputs, [cmt.id]: e.target.value })}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") handleAddReply(post.id, cmt.id);
+                                      }}
+                                      className="flex-grow h-8 bg-[#050505]/80 border border-[#ffeb3b]/10 rounded-xl px-3 text-[11px] text-[#ffffff] focus:outline-none focus:border-[#ffeb3b]/30 transition-all font-bold shadow-inner"
+                                      style={{ color: '#fff' }}
+                                    />
+ICON ELEMENT REFERENCE:
+<div className="w-4 h-6 border-l-[1.5px] border-b-[1.5px] border-[#ffeb3b]/20 rounded-bl-xl absolute -left-5 -top-1" />
+--------------------------------------------------------------------------------
+
+[2] FILE: c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\components\admin\AdminChat.tsx:537
+ISSUE: Icon left-positioned, but input padding pl-7 is insufficient (should be >= pl-10).
+INPUT TAG:
+<input
+                        placeholder="Tìm..."
+                        value={chatSearchTerm}
+                        onChange={(e) => setChatSearchTerm(e.target.value)}
+                        className="w-full bg-white/5 border border-white/0 rounded-lg pl-7 pr-2 py-1.5 text-[10px] text-white outline-none"
+                      />
+ICON ELEMENT REFERENCE:
+<Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-600" />
+--------------------------------------------------------------------------------
+
+[3] FILE: c:\Users\HoangHung\Documents\GitHub\WEB_AQ\src\components\staff\StaffDashboardClient.tsx:718
+ISSUE: Icon left-positioned, but input padding pl-9 is insufficient (should be >= pl-10).
+INPUT TAG:
+<input 
+                type="text" 
+                placeholder="Tìm kiếm nhiệm vụ..." 
+                value={taskSearch}
+                onChange={(e) => setTaskSearch(e.target.value)}
+                className="w-full h-9 pl-9 pr-4 text-xs bg-background border border-border rounded-md text-white placeholder-foreground-secondary/70 focus:border-gold outline-none transition-all"
+              />
+ICON ELEMENT REFERENCE:
+<Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground-secondary w-4 h-4 pointer-events-none" />
+--------------------------------------------------------------------------------
+

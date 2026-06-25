@@ -1,0 +1,2450 @@
+Total inputs found: 88
+
+[1] FILE: src\app\admin\fines-report\page.tsx:342
+INPUT TAG:
+<input
+ type="text"
+ placeholder="Tìm theo tên nhân viên hoặc lí do..."
+ value={searchQuery}
+ onChange={(e) => setSearchQuery(e.target.value)}
+ className="w-full pl-10 pr-4 py-3 bg-sidebar border border-white/0 rounded-xl text-base text-white placeholder:text-gray-500 outline-none focus:border-white/5 transition-all"
+ />
+CONTEXT:
+     334:  </motion.div>
+     335:  </div>
+     336: 
+     337:  {/* Search & Filter Bar */}
+     338:  <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center shrink-0">
+     339:  <div className="flex-1 relative">
+     340:  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+     341:  <input
+-->  342:  type="text"
+     343:  placeholder="Tìm theo tên nhân viên hoặc lí do..."
+     344:  value={searchQuery}
+     345:  onChange={(e) => setSearchQuery(e.target.value)}
+     346:  className="w-full pl-10 pr-4 py-3 bg-sidebar border border-white/0 rounded-xl text-base text-white placeholder:text-gray-500 outline-none focus:border-white/5 transition-all"
+     347:  />
+     348:  </div>
+     349: 
+================================================================================
+
+[2] FILE: src\app\admin\mail\batches\page.tsx:424
+INPUT TAG:
+<input 
+ placeholder="Tìm kiếm Lô, Người quản lý, Người import..."
+ className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-60"
+ type="text" 
+ value={searchTerm}
+ onChange={(e) => setSearchTerm(e.target.value)}
+ />
+CONTEXT:
+     416:  </p>
+     417:  </div>
+     418:  </div>
+     419: 
+     420:  <div className="flex flex-wrap items-center gap-3">
+     421:  <div className="relative group">
+     422:  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={16} />
+     423:  <input 
+-->  424:  placeholder="Tìm kiếm Lô, Người quản lý, Người import..."
+     425:  className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-60"
+     426:  type="text" 
+     427:  value={searchTerm}
+     428:  onChange={(e) => setSearchTerm(e.target.value)}
+     429:  />
+     430:  </div>
+     431: 
+================================================================================
+
+[3] FILE: src\app\admin\mail\batches\page.tsx:618
+INPUT TAG:
+<input 
+ placeholder="Tìm Email trong lô..."
+ className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all w-48"
+ type="text" 
+ value={detailSearchTerm}
+ onChange={(e) => setDetailSearchTerm(e.target.value)}
+ />
+CONTEXT:
+     610:  </p>
+     611:  </div>
+     612:  </div>
+     613:  
+     614:  <div className="flex items-center gap-3">
+     615:  <div className="relative group">
+     616:  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={14} />
+     617:  <input 
+-->  618:  placeholder="Tìm Email trong lô..."
+     619:  className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all w-48"
+     620:  type="text" 
+     621:  value={detailSearchTerm}
+     622:  onChange={(e) => setDetailSearchTerm(e.target.value)}
+     623:  />
+     624:  </div>
+     625:  <button 
+================================================================================
+
+[4] FILE: src\app\admin\mail\satellite-batches\page.tsx:605
+INPUT TAG:
+<input 
+     placeholder="Tìm kiếm nhân sự..."
+     className="w-full bg-black/40 border border-white/0 rounded-md pl-12 pr-4 h-12 text-sm text-white outline-none focus:border-white/5 transition-all"
+     type="text" 
+     value={staffSearchTerm}
+     onChange={(e) => setStaffSearchTerm(e.target.value)}
+   />
+CONTEXT:
+     597:  </div>
+     598: 
+     599:  {/* Filter Bar */}
+     600:  <div className="flex flex-col lg:flex-row bg-sidebar/50 border border-white/0 p-6 rounded-[20px] flex-shrink-0 gap-6 lg:items-center justify-between">
+     601:  {/* Search */}
+     602:  <div className="relative flex items-center group flex-1">
+     603:    <Search className="absolute left-4 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
+     604:    <input 
+-->  605:      placeholder="Tìm kiếm nhân sự..."
+     606:      className="w-full bg-black/40 border border-white/0 rounded-md pl-12 pr-4 h-12 text-sm text-white outline-none focus:border-white/5 transition-all"
+     607:      type="text" 
+     608:      value={staffSearchTerm}
+     609:      onChange={(e) => setStaffSearchTerm(e.target.value)}
+     610:    />
+     611:  </div>
+     612: 
+================================================================================
+
+[5] FILE: src\app\admin\mail\satellite-batches\page.tsx:808
+INPUT TAG:
+<input 
+ placeholder="Tìm kiếm Lô..."
+ className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-48"
+ type="text" 
+ value={searchTerm}
+ onChange={(e) => setSearchTerm(e.target.value)}
+ />
+CONTEXT:
+     800:  </p>
+     801:  </div>
+     802:  </div>
+     803: 
+     804:  <div className="flex items-center gap-3">
+     805:  <div className="relative flex items-center group">
+     806:  <Search className="absolute left-4 text-gray-500 group-focus-within:text-gold transition-colors" size={16} />
+     807:  <input 
+-->  808:  placeholder="Tìm kiếm Lô..."
+     809:  className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-48"
+     810:  type="text" 
+     811:  value={searchTerm}
+     812:  onChange={(e) => setSearchTerm(e.target.value)}
+     813:  />
+     814:  </div>
+     815: 
+================================================================================
+
+[6] FILE: src\app\admin\mail\satellite-batches\page.tsx:1144
+INPUT TAG:
+<input 
+ type="checkbox"
+ checked={isChecked}
+ onChange={() => {
+ if (isChecked) {
+ setSelectedMailsToAdd((selectedMailsToAdd || []).filter(id => id !== m.id));
+ } else {
+ setSelectedMailsToAdd([...selectedMailsToAdd, m.id]);
+ }
+ }}
+ className="accent-gold h-4 w-4"
+ />
+CONTEXT:
+    1136:  className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
+    1137:  isChecked 
+    1138:  ?"bg-gold/10 border-white/0 text-gold" 
+    1139:  :" bg-white/0 border-white/0 text-gray-300 hover:bg-white/5"
+    1140:  }`}
+    1141:  >
+    1142:  <div className="flex items-center gap-3">
+    1143:  <input 
+--> 1144:  type="checkbox"
+    1145:  checked={isChecked}
+    1146:  onChange={() => {
+    1147:  if (isChecked) {
+    1148:  setSelectedMailsToAdd((selectedMailsToAdd || []).filter(id => id !== m.id));
+    1149:  } else {
+    1150:  setSelectedMailsToAdd([...selectedMailsToAdd, m.id]);
+    1151:  }
+================================================================================
+
+[7] FILE: src\app\admin\mail\satellite-batches\page.tsx:1336
+INPUT TAG:
+<input
+ type="text"
+ required
+ disabled={isSubmitting}
+ value={newBatchName}
+ onChange={(e) => setNewBatchName(e.target.value)}
+ placeholder="Ví dụ: Lô 7"
+ className="w-full bg-black/40 border border-white/10 rounded-2xl h-14 px-5 text-sm font-black text-white outline-none focus:border-gold disabled:opacity-50 transition-all"
+ />
+CONTEXT:
+    1328:  </div>
+    1329: 
+    1330:  <form onSubmit={handleSubmitNewBatch} className="space-y-6 relative z-10">
+    1331:  <div className="space-y-2">
+    1332:  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">
+    1333:  Tên Lô Mail
+    1334:  </label>
+    1335:  <input
+--> 1336:  type="text"
+    1337:  required
+    1338:  disabled={isSubmitting}
+    1339:  value={newBatchName}
+    1340:  onChange={(e) => setNewBatchName(e.target.value)}
+    1341:  placeholder="Ví dụ: Lô 7"
+    1342:  className="w-full bg-black/40 border border-white/10 rounded-2xl h-14 px-5 text-sm font-black text-white outline-none focus:border-gold disabled:opacity-50 transition-all"
+    1343:  />
+================================================================================
+
+[8] FILE: src\app\admin\mails\page.tsx:138
+INPUT TAG:
+<input 
+ type="text"
+ placeholder="Tìm kiếm nhanh..."
+ value={searchTerm}
+ onChange={(e) => setSearchTerm(e.target.value)}
+ className="h-10 w-40 rounded-md bg-sidebar border border-white/0 pl-12 pr-4 text-sm text-white focus:border-white/5 focus:outline-none transition-all"
+ />
+CONTEXT:
+     130:  <option key={status} value={status}>{status}</option>
+     131:  ))}
+     132:  </select>
+     133:  </div>
+     134: 
+     135:  <div className="relative group">
+     136:  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={16} />
+     137:  <input 
+-->  138:  type="text"
+     139:  placeholder="Tìm kiếm nhanh..."
+     140:  value={searchTerm}
+     141:  onChange={(e) => setSearchTerm(e.target.value)}
+     142:  className="h-10 w-40 rounded-md bg-sidebar border border-white/0 pl-12 pr-4 text-sm text-white focus:border-white/5 focus:outline-none transition-all"
+     143:  />
+     144:  </div>
+     145:  <button className="h-10 px-4 rounded-lg bg-gold text-[#0a0a0a] font-bold text-sm flex items-center gap-2 hover:bg-gold-hover transition-all">
+================================================================================
+
+[9] FILE: src\app\admin\newsfeed\page.tsx:790
+INPUT TAG:
+<input 
+                                      placeholder={`Phản hồi ${cmt.authorName}...`}
+                                      value={replyInputs[cmt.id] || ""}
+                                      onChange={(e) => setReplyInputs({ ...replyInputs, [cmt.id]: e.target.value })}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") handleAddReply(post.id, cmt.id);
+                                      }}
+                                      className="flex-grow h-8 bg-[#050505]/80 border border-[#ffeb3b]/10 rounded-xl px-3 text-[11px] text-[#ffffff] focus:outline-none focus:border-[#ffeb3b]/30 transition-all font-bold shadow-inner"
+                                      style={{ color: '#fff' }}
+                                    />
+CONTEXT:
+     782:                                     animate={{ opacity: 1, y: 0 }}
+     783:                                     exit={{ opacity: 0, y: -10 }}
+     784:                                     className="ml-10 flex items-center gap-2 mt-2 relative"
+     785:                                   >
+     786:                                     {/* Curved connecter line */}
+     787:                                     <div className="w-4 h-6 border-l-[1.5px] border-b-[1.5px] border-[#ffeb3b]/20 rounded-bl-xl absolute -left-5 -top-1" />
+     788: 
+     789:                                     <input 
+-->  790:                                       placeholder={`Phản hồi ${cmt.authorName}...`}
+     791:                                       value={replyInputs[cmt.id] || ""}
+     792:                                       onChange={(e) => setReplyInputs({ ...replyInputs, [cmt.id]: e.target.value })}
+     793:                                       onKeyDown={(e) => {
+     794:                                         if (e.key === "Enter") handleAddReply(post.id, cmt.id);
+     795:                                       }}
+     796:                                       className="flex-grow h-8 bg-[#050505]/80 border border-[#ffeb3b]/10 rounded-xl px-3 text-[11px] text-[#ffffff] focus:outline-none focus:border-[#ffeb3b]/30 transition-all font-bold shadow-inner"
+     797:                                       style={{ color: '#fff' }}
+================================================================================
+
+[10] FILE: src\app\admin\newsfeed\page.tsx:816
+INPUT TAG:
+<input
+                          placeholder="Viết bình luận bài đăng..."
+                          value={commentInputs[post.id] || ""}
+                          onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleAddComment(post.id);
+                          }}
+                          className="flex-grow h-9 bg-[#050505]/60 border border-[#ffeb3b]/10 rounded-xl px-4.5 text-[11px] text-[#ffffff] focus:outline-none focus:border-[#ffeb3b]/30 transition-all font-bold shadow-inner"
+                          style={{ color: '#fff' }}
+                        />
+CONTEXT:
+     808:                             </div>
+     809:                           ))}
+     810:                         </div>
+     811:                       )}
+     812: 
+     813:                       {/* New Comment Input Box */}
+     814:                       <div className="flex items-center gap-2 pt-3 border-t border-[#ffeb3b]/5 mt-3">
+     815:                         <input
+-->  816:                           placeholder="Viết bình luận bài đăng..."
+     817:                           value={commentInputs[post.id] || ""}
+     818:                           onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
+     819:                           onKeyDown={(e) => {
+     820:                             if (e.key === "Enter") handleAddComment(post.id);
+     821:                           }}
+     822:                           className="flex-grow h-9 bg-[#050505]/60 border border-[#ffeb3b]/10 rounded-xl px-4.5 text-[11px] text-[#ffffff] focus:outline-none focus:border-[#ffeb3b]/30 transition-all font-bold shadow-inner"
+     823:                           style={{ color: '#fff' }}
+================================================================================
+
+[11] FILE: src\app\admin\phone\batches\page.tsx:501
+INPUT TAG:
+<input
+ ref={fileInputRef}
+ type="file"
+ accept=".txt"
+ className="hidden"
+ onChange={handleImportTxt}
+ />
+CONTEXT:
+     493:  >
+     494:  <CheckCircle2 size={18} /> {toastMsg}
+     495:  </motion.div>
+     496:  )}
+     497:  </AnimatePresence>
+     498: 
+     499:  {/* Hidden file input */}
+     500:  <input
+-->  501:  ref={fileInputRef}
+     502:  type="file"
+     503:  accept=".txt"
+     504:  className="hidden"
+     505:  onChange={handleImportTxt}
+     506:  />
+     507: 
+     508:  {/* ── Header ────────────────────────────────────────── */}
+================================================================================
+
+[12] FILE: src\app\admin\phone\batches\page.tsx:589
+INPUT TAG:
+<input
+  placeholder="Tìm SĐT, OTP Link..."
+  className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-60"
+ type="text"
+ value={searchTerm}
+ onChange={(e) => setSearchTerm(e.target.value)}
+ />
+CONTEXT:
+     581:  <Warehouse size={18} className="text-gold" />
+     582:  Kho SĐT trống ({(warehousePhones || []).length} số)
+     583:  </h3>
+     584: 
+     585:  <div className="flex items-center gap-3">
+     586:   <div className="relative group">
+     587:   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors pointer-events-none" size={14} />
+     588:   <input
+-->  589:   placeholder="Tìm SĐT, OTP Link..."
+     590:   className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-60"
+     591:  type="text"
+     592:  value={searchTerm}
+     593:  onChange={(e) => setSearchTerm(e.target.value)}
+     594:  />
+     595:  </div>
+     596:  <div className="flex items-center gap-3">
+================================================================================
+
+[13] FILE: src\app\admin\phone\batches\page.tsx:598
+INPUT TAG:
+<input
+ placeholder="Nhập tên lô mới..."
+ className="bg-black/20 border border-white/0 rounded-xl px-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-60"
+ type="text"
+ value={batchName}
+ onChange={(e) => setBatchName(e.target.value)}
+ />
+CONTEXT:
+     590:   className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-60"
+     591:  type="text"
+     592:  value={searchTerm}
+     593:  onChange={(e) => setSearchTerm(e.target.value)}
+     594:  />
+     595:  </div>
+     596:  <div className="flex items-center gap-3">
+     597:  <input
+-->  598:  placeholder="Nhập tên lô mới..."
+     599:  className="bg-black/20 border border-white/0 rounded-xl px-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-60"
+     600:  type="text"
+     601:  value={batchName}
+     602:  onChange={(e) => setBatchName(e.target.value)}
+     603:  />
+     604:  </div>
+     605:  <button
+================================================================================
+
+[14] FILE: src\app\admin\phone\batches\page.tsx:690
+INPUT TAG:
+<input placeholder="Nhập tên lô mới..." className="bg-black/20 border border-white/0 rounded-xl px-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-60" value={batchName} onChange={(e) => setBatchName(e.target.value)} />
+CONTEXT:
+     682:  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-sidebar border border-white/0 rounded-[32px] p-6 shadow-xl space-y-4">
+     683:  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+     684:  <h3 className="text-md font-black text-white uppercase tracking-tight flex items-center gap-2">
+     685:  <Layers size={18} className="text-gold" />
+     686:  Danh sách Lô SĐT
+     687:  </h3>
+     688:  <div className="flex items-center gap-3">
+     689:  <input placeholder="Nhập tên lô mới..." className="bg-black/20 border border-white/0 rounded-xl px-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-60" value={batchName} onChange={(e) => setBatchName(e.target.value)} />
+-->  690:  <button onClick={() => fileInputRef.current?.click()} className="bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-[10px] tracking-widest px-4 h-9 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-gold/20">
+     691:  <Upload size={14} /> Import Txt
+     692:  </button>
+     693:  </div>
+     694:  </div>
+     695:  <div className="space-y-4">
+     696:  {Object.entries(groupedWarehouse).map(([batch, bPhones]) => (
+     697:  <div key={batch} className="border border-white/0 rounded-2xl overflow-hidden bg-[#0c0c0c]">
+================================================================================
+
+[15] FILE: src\app\admin\phone\batches\page.tsx:782
+INPUT TAG:
+<input
+ placeholder="Tìm tên hoặc username..."
+ className="w-full bg-black/40 border border-white/0 rounded-md pl-12 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all"
+ type="text"
+ value={staffSearch}
+ onChange={(e) => setStaffSearch(e.target.value)}
+ />
+CONTEXT:
+     774:  <Users size={18} className="text-gold" />
+     775:  Nhân viên Online
+     776:  </h3>
+     777: 
+     778:  {/* Search employees */}
+     779:  <div className="relative flex items-center group">
+     780:  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors pointer-events-none" size={14} />
+     781:  <input
+-->  782:  placeholder="Tìm tên hoặc username..."
+     783:  className="w-full bg-black/40 border border-white/0 rounded-md pl-12 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all"
+     784:  type="text"
+     785:  value={staffSearch}
+     786:  onChange={(e) => setStaffSearch(e.target.value)}
+     787:  />
+     788:  </div>
+     789: 
+================================================================================
+
+[16] FILE: src\app\admin\phone\list\page.tsx:217
+INPUT TAG:
+<input 
+  placeholder="Tìm kiếm số điện thoại..."
+  className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-64"
+  type="text" 
+  value={searchTerm}
+  onChange={(e) => setSearchTerm(e.target.value)}
+  />
+CONTEXT:
+     209: 
+     210:  {/* Interactive Table Panel */}
+     211:  <div className="bg-sidebar border border-white/0 rounded-[36px] p-6 shadow-2xl flex-1 flex flex-col justify-between min-h-[400px]">
+     212:  {/* Table Toolbar */}
+     213:  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/0 mb-4">
+     214:   <div className="relative flex items-center group">
+     215:   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors pointer-events-none" size={15} />
+     216:   <input 
+-->  217:   placeholder="Tìm kiếm số điện thoại..."
+     218:   className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-64"
+     219:   type="text" 
+     220:   value={searchTerm}
+     221:   onChange={(e) => setSearchTerm(e.target.value)}
+     222:   />
+     223:   </div>
+     224: 
+================================================================================
+
+[17] FILE: src\app\admin\settings\page.tsx:923
+INPUT TAG:
+<input 
+ type="text"
+ placeholder='Nhập XACNHAN để tiếp tục...'
+ value={safetyPhrase}
+ onChange={(e) => setSafetyPhrase(e.target.value)}
+ className="bg-black/40 border-2 border-red-500/30 rounded-xl px-4 h-14 text-lg text-white font-black text-center mb-6 outline-none focus:border-red-500 transition-all placeholder:text-red-500/30"
+ />
+CONTEXT:
+     915:  <p>• Lịch sử chat & tin nhắn</p>
+     916:  <p>• Bài đăng newsfeed & thông báo</p>
+     917:  <p>• Cấu hình hệ thống & KPI</p>
+     918:  </div>
+     919:  <p className="pt-2 border-t border-red-500/20">Để xác nhận, vui lòng nhập chữ <span className="text-red-400 font-black text-base">&quot;XACNHAN&quot;</span> vào ô bên dưới:</p>
+     920:  </div>
+     921: 
+     922:  <input 
+-->  923:  type="text"
+     924:  placeholder='Nhập XACNHAN để tiếp tục...'
+     925:  value={safetyPhrase}
+     926:  onChange={(e) => setSafetyPhrase(e.target.value)}
+     927:  className="bg-black/40 border-2 border-red-500/30 rounded-xl px-4 h-14 text-lg text-white font-black text-center mb-6 outline-none focus:border-red-500 transition-all placeholder:text-red-500/30"
+     928:  />
+     929: 
+     930:  <div className="flex gap-4">
+================================================================================
+
+[18] FILE: src\app\admin\settings\page.tsx:1034
+INPUT TAG:
+<input 
+                  type="password" 
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="bg-zinc-900 border border-white/10 text-zinc-100 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+                  required
+                />
+CONTEXT:
+    1026:               <p className="text-base text-amber-400 font-medium leading-relaxed">
+    1027:                 🔐 Bạn nên đổi mật khẩu định kỳ để đảm bảo an toàn cho tài khoản.
+    1028:               </p>
+    1029:             </div>
+    1030:             <form onSubmit={handleChangePassword} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    1031:               <div className="space-y-2">
+    1032:                 <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Mật khẩu cũ</label>
+    1033:                 <input 
+--> 1034:                   type="password" 
+    1035:                   value={oldPassword}
+    1036:                   onChange={(e) => setOldPassword(e.target.value)}
+    1037:                   placeholder="••••••••"
+    1038:                   className="bg-zinc-900 border border-white/10 text-zinc-100 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+    1039:                   required
+    1040:                 />
+    1041:               </div>
+================================================================================
+
+[19] FILE: src\app\admin\settings\page.tsx:1045
+INPUT TAG:
+<input 
+                  type="password" 
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="bg-zinc-900 border border-white/10 text-zinc-100 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+                  required
+                />
+CONTEXT:
+    1037:                   placeholder="••••••••"
+    1038:                   className="bg-zinc-900 border border-white/10 text-zinc-100 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+    1039:                   required
+    1040:                 />
+    1041:               </div>
+    1042:               <div className="space-y-2">
+    1043:                 <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Mật khẩu mới</label>
+    1044:                 <input 
+--> 1045:                   type="password" 
+    1046:                   value={newPassword}
+    1047:                   onChange={(e) => setNewPassword(e.target.value)}
+    1048:                   placeholder="••••••••"
+    1049:                   className="bg-zinc-900 border border-white/10 text-zinc-100 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+    1050:                   required
+    1051:                 />
+    1052:               </div>
+================================================================================
+
+[20] FILE: src\app\admin\settings\page.tsx:1056
+INPUT TAG:
+<input 
+                  type="password" 
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="bg-zinc-900 border border-white/10 text-zinc-100 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+                  required
+                />
+CONTEXT:
+    1048:                   placeholder="••••••••"
+    1049:                   className="bg-zinc-900 border border-white/10 text-zinc-100 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+    1050:                   required
+    1051:                 />
+    1052:               </div>
+    1053:               <div className="space-y-2">
+    1054:                 <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Xác nhận mật khẩu mới</label>
+    1055:                 <input 
+--> 1056:                   type="password" 
+    1057:                   value={confirmPassword}
+    1058:                   onChange={(e) => setConfirmPassword(e.target.value)}
+    1059:                   placeholder="••••••••"
+    1060:                   className="bg-zinc-900 border border-white/10 text-zinc-100 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+    1061:                   required
+    1062:                 />
+    1063:               </div>
+================================================================================
+
+[21] FILE: src\app\admin\settings\page.tsx:1228
+INPUT TAG:
+<input
+                  type="text"
+                  required
+                  maxLength={6}
+                  value={twoFAInputCode}
+                  onChange={(e) => setTwoFAInputCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="000000"
+                  className="bg-black border-2 border-white/10 rounded-2xl h-14 text-2xl text-white outline-none focus:border-amber-500/50 focus:bg-[#161616] transition-all w-full text-center font-mono tracking-[0.3em] font-black placeholder:text-zinc-700"
+                />
+CONTEXT:
+    1220:               <span className="h-6 w-6 rounded-full bg-gold/10 text-gold text-xs font-black flex items-center justify-center shrink-0">3</span>
+    1221:               Xác thực mã để kích hoạt
+    1222:             </h5>
+    1223: 
+    1224:             <form onSubmit={handleVerify2FA} className="space-y-4">
+    1225:               <div className="space-y-2">
+    1226:                 <label className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest block text-center">Mã OTP 6 chữ số từ app Authenticator</label>
+    1227:                 <input
+--> 1228:                   type="text"
+    1229:                   required
+    1230:                   maxLength={6}
+    1231:                   value={twoFAInputCode}
+    1232:                   onChange={(e) => setTwoFAInputCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+    1233:                   placeholder="000000"
+    1234:                   className="bg-black border-2 border-white/10 rounded-2xl h-14 text-2xl text-white outline-none focus:border-amber-500/50 focus:bg-[#161616] transition-all w-full text-center font-mono tracking-[0.3em] font-black placeholder:text-zinc-700"
+    1235:                 />
+================================================================================
+
+[22] FILE: src\app\admin\settings\page.tsx:1291
+INPUT TAG:
+<input 
+ type="time" 
+ value={workStartTime}
+ onChange={(e) => setWorkStartTime(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-lg outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ />
+CONTEXT:
+    1283:  ⏰ Thiết lập giờ làm việc và mức phạt đi muộn cho nhân viên. Giờ kết thúc làm việc sẽ tự động tính toán (8 tiếng + Thời gian nghỉ trưa).
+    1284:  </p>
+    1285:  </div>
+    1286:  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+    1287:  <div className="space-y-2">
+    1288:  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Giờ bắt đầu làm việc</label>
+    1289:  <div className="relative">
+    1290:  <input 
+--> 1291:  type="time" 
+    1292:  value={workStartTime}
+    1293:  onChange={(e) => setWorkStartTime(e.target.value)}
+    1294:  onMouseDown={(e) => e.stopPropagation()}
+    1295:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-lg outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+    1296:  />
+    1297:  </div>
+    1298:  </div>
+================================================================================
+
+[23] FILE: src\app\admin\settings\page.tsx:1303
+INPUT TAG:
+<input 
+ type="time" 
+ value={breakStartTime}
+ onChange={(e) => setBreakStartTime(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-lg outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ />
+CONTEXT:
+    1295:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-lg outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+    1296:  />
+    1297:  </div>
+    1298:  </div>
+    1299:  <div className="space-y-2">
+    1300:  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Bắt đầu nghỉ trưa</label>
+    1301:  <div className="relative">
+    1302:  <input 
+--> 1303:  type="time" 
+    1304:  value={breakStartTime}
+    1305:  onChange={(e) => setBreakStartTime(e.target.value)}
+    1306:  onMouseDown={(e) => e.stopPropagation()}
+    1307:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-lg outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+    1308:  />
+    1309:  </div>
+    1310:  </div>
+================================================================================
+
+[24] FILE: src\app\admin\settings\page.tsx:1315
+INPUT TAG:
+<input 
+ type="time" 
+ value={breakEndTime}
+ onChange={(e) => setBreakEndTime(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-lg outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ />
+CONTEXT:
+    1307:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-lg outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+    1308:  />
+    1309:  </div>
+    1310:  </div>
+    1311:  <div className="space-y-2">
+    1312:  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Kết thúc nghỉ trưa</label>
+    1313:  <div className="relative">
+    1314:  <input 
+--> 1315:  type="time" 
+    1316:  value={breakEndTime}
+    1317:  onChange={(e) => setBreakEndTime(e.target.value)}
+    1318:  onMouseDown={(e) => e.stopPropagation()}
+    1319:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-lg outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+    1320:  />
+    1321:  </div>
+    1322:  </div>
+================================================================================
+
+[25] FILE: src\app\admin\settings\page.tsx:1327
+INPUT TAG:
+<input 
+ type="time" 
+ value={workEndTime}
+ disabled
+ className="bg-zinc-900/50 border border-white/0 text-zinc-500 rounded-2xl px-5 h-14 text-lg outline-none w-full font-bold [color-scheme:dark] cursor-not-allowed"
+ />
+CONTEXT:
+    1319:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-lg outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+    1320:  />
+    1321:  </div>
+    1322:  </div>
+    1323:  <div className="space-y-2">
+    1324:  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Giờ kết thúc làm việc</label>
+    1325:  <div className="relative">
+    1326:  <input 
+--> 1327:  type="time" 
+    1328:  value={workEndTime}
+    1329:  disabled
+    1330:  className="bg-zinc-900/50 border border-white/0 text-zinc-500 rounded-2xl px-5 h-14 text-lg outline-none w-full font-bold [color-scheme:dark] cursor-not-allowed"
+    1331:  />
+    1332:  </div>
+    1333:  </div>
+    1334:  <div className="space-y-2 md:col-span-4">
+================================================================================
+
+[26] FILE: src\app\admin\settings\page.tsx:1338
+INPUT TAG:
+<input 
+ type="time" 
+ value={systemCloseTime}
+ onChange={(e) => setSystemCloseTime(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-lg text-amber-500 outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+ />
+CONTEXT:
+    1330:  className="bg-zinc-900/50 border border-white/0 text-zinc-500 rounded-2xl px-5 h-14 text-lg outline-none w-full font-bold [color-scheme:dark] cursor-not-allowed"
+    1331:  />
+    1332:  </div>
+    1333:  </div>
+    1334:  <div className="space-y-2 md:col-span-4">
+    1335:  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Hệ thống sẽ đóng vào lúc</label>
+    1336:  <div className="relative">
+    1337:  <input 
+--> 1338:  type="time" 
+    1339:  value={systemCloseTime}
+    1340:  onChange={(e) => setSystemCloseTime(e.target.value)}
+    1341:  onMouseDown={(e) => e.stopPropagation()}
+    1342:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-lg text-amber-500 outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold [color-scheme:dark]"
+    1343:  />
+    1344:  </div>
+    1345:  </div>
+================================================================================
+
+[27] FILE: src\app\admin\settings\page.tsx:1354
+INPUT TAG:
+<input 
+ type="text" 
+ value={Number(fineTier1).toLocaleString("vi-VN")}
+ onChange={(e) => setFineTier1(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ />
+CONTEXT:
+    1346:  </div>
+    1347:  <div className="space-y-3 pt-4 border-t border-white/0">
+    1348:  <label className="text-[12px] text-zinc-400 font-bold uppercase tracking-widest mb-4 block">Mức phạt đi muộn (VNĐ)</label>
+    1349:  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    1350:  <div className="space-y-2">
+    1351:  <p className="text-base text-amber-400 font-black">Muộn 1-5 phút</p>
+    1352:  <div className="relative">
+    1353:  <input 
+--> 1354:  type="text" 
+    1355:  value={Number(fineTier1).toLocaleString("vi-VN")}
+    1356:  onChange={(e) => setFineTier1(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
+    1357:  onMouseDown={(e) => e.stopPropagation()}
+    1358:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+    1359:  />
+    1360:  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
+    1361:  </div>
+================================================================================
+
+[28] FILE: src\app\admin\settings\page.tsx:1367
+INPUT TAG:
+<input 
+ type="text" 
+ value={Number(fineTier2).toLocaleString("vi-VN")}
+ onChange={(e) => setFineTier2(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ />
+CONTEXT:
+    1359:  />
+    1360:  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
+    1361:  </div>
+    1362:  </div>
+    1363:  <div className="space-y-2">
+    1364:  <p className="text-base text-orange-400 font-black">Muộn 6-19 phút</p>
+    1365:  <div className="relative">
+    1366:  <input 
+--> 1367:  type="text" 
+    1368:  value={Number(fineTier2).toLocaleString("vi-VN")}
+    1369:  onChange={(e) => setFineTier2(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
+    1370:  onMouseDown={(e) => e.stopPropagation()}
+    1371:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+    1372:  />
+    1373:  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
+    1374:  </div>
+================================================================================
+
+[29] FILE: src\app\admin\settings\page.tsx:1380
+INPUT TAG:
+<input 
+ type="text" 
+ value={Number(fineTier3).toLocaleString("vi-VN")}
+ onChange={(e) => setFineTier3(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ />
+CONTEXT:
+    1372:  />
+    1373:  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
+    1374:  </div>
+    1375:  </div>
+    1376:  <div className="space-y-2">
+    1377:  <p className="text-base text-red-400 font-black">Muộn 20+ phút</p>
+    1378:  <div className="relative">
+    1379:  <input 
+--> 1380:  type="text" 
+    1381:  value={Number(fineTier3).toLocaleString("vi-VN")}
+    1382:  onChange={(e) => setFineTier3(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
+    1383:  onMouseDown={(e) => e.stopPropagation()}
+    1384:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+    1385:  />
+    1386:  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
+    1387:  </div>
+================================================================================
+
+[30] FILE: src\app\admin\settings\page.tsx:1412
+INPUT TAG:
+<input 
+ type="text" 
+ value={agencyConfigName}
+ onChange={(e) => setAgencyConfigName(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
+ placeholder="VD: AQ MEDIA"
+ className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+ />
+CONTEXT:
+    1404:  <p className="text-base text-blue-400 font-medium leading-relaxed">
+    1405:  🌟 Thiết lập tên thương hiệu hiển thị trên toàn hệ thống và đường dẫn tải nội quy công ty.
+    1406:  </p>
+    1407:  </div>
+    1408:  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    1409:  <div className="space-y-2">
+    1410:  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Tên Thương Hiệu</label>
+    1411:  <input 
+--> 1412:  type="text" 
+    1413:  value={agencyConfigName}
+    1414:  onChange={(e) => setAgencyConfigName(e.target.value)}
+    1415:  onMouseDown={(e) => e.stopPropagation()}
+    1416:  placeholder="VD: AQ MEDIA"
+    1417:  className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+    1418:  />
+    1419:  </div>
+================================================================================
+
+[31] FILE: src\app\admin\settings\page.tsx:1423
+INPUT TAG:
+<input 
+ type="url" 
+ value={rulesUrl}
+ onChange={(e) => setRulesUrl(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
+ placeholder="VD: https://docs.google.com/document/d/... (hoặc link PDF)"
+ className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+ />
+CONTEXT:
+    1415:  onMouseDown={(e) => e.stopPropagation()}
+    1416:  placeholder="VD: AQ MEDIA"
+    1417:  className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+    1418:  />
+    1419:  </div>
+    1420:  <div className="space-y-2">
+    1421:  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Đường dẫn Nội quy công ty (URL)</label>
+    1422:  <input 
+--> 1423:  type="url" 
+    1424:  value={rulesUrl}
+    1425:  onChange={(e) => setRulesUrl(e.target.value)}
+    1426:  onMouseDown={(e) => e.stopPropagation()}
+    1427:  placeholder="VD: https://docs.google.com/document/d/... (hoặc link PDF)"
+    1428:  className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+    1429:  />
+    1430:  </div>
+================================================================================
+
+[32] FILE: src\app\admin\settings\page.tsx:1452
+INPUT TAG:
+<input 
+ type="number" 
+ value={chunkSize}
+ onChange={(e) => setChunkSize(Math.max(1, Number(e.target.value)))}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-base text-gold outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ required
+ />
+CONTEXT:
+    1444:  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    1445:  {/* Left Side: General System Settings */}
+    1446:  <div className="lg:col-span-2 space-y-6">
+    1447:  <form onSubmit={handleSaveSettings} className="space-y-5">
+    1448:  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    1449:  <div className="space-y-2">
+    1450:  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Số lượng gán Mail mỗi đợt</label>
+    1451:  <input 
+--> 1452:  type="number" 
+    1453:  value={chunkSize}
+    1454:  onChange={(e) => setChunkSize(Math.max(1, Number(e.target.value)))}
+    1455:  onMouseDown={(e) => e.stopPropagation()}
+    1456:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-base text-gold outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+    1457:  required
+    1458:  />
+    1459:  </div>
+================================================================================
+
+[33] FILE: src\app\admin\settings\page.tsx:1463
+INPUT TAG:
+<input 
+ type="number" 
+ value={kpiTargetMails}
+ onChange={(e) => setKpiTargetMails(Math.max(1, Number(e.target.value)))}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold"
+ required
+ />
+CONTEXT:
+    1455:  onMouseDown={(e) => e.stopPropagation()}
+    1456:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-base text-gold outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+    1457:  required
+    1458:  />
+    1459:  </div>
+    1460:  <div className="space-y-2">
+    1461:  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">KPI Target (Mail Hàng tháng)</label>
+    1462:  <input 
+--> 1463:  type="number" 
+    1464:  value={kpiTargetMails}
+    1465:  onChange={(e) => setKpiTargetMails(Math.max(1, Number(e.target.value)))}
+    1466:  onMouseDown={(e) => e.stopPropagation()}
+    1467:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold"
+    1468:  required
+    1469:  />
+    1470:  </div>
+================================================================================
+
+[34] FILE: src\app\admin\settings\page.tsx:1474
+INPUT TAG:
+<input 
+ type="number" 
+ value={kpiTargetWatchHours}
+ onChange={(e) => setKpiTargetWatchHours(Math.max(1, Number(e.target.value)))}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold"
+ required
+ />
+CONTEXT:
+    1466:  onMouseDown={(e) => e.stopPropagation()}
+    1467:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold"
+    1468:  required
+    1469:  />
+    1470:  </div>
+    1471:  <div className="space-y-2 md:col-span-2">
+    1472:  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">KPI Target (Watch Hours tích lũy)</label>
+    1473:  <input 
+--> 1474:  type="number" 
+    1475:  value={kpiTargetWatchHours}
+    1476:  onChange={(e) => setKpiTargetWatchHours(Math.max(1, Number(e.target.value)))}
+    1477:  onMouseDown={(e) => e.stopPropagation()}
+    1478:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold"
+    1479:  required
+    1480:  />
+    1481:  </div>
+================================================================================
+
+[35] FILE: src\app\admin\settings\page.tsx:1486
+INPUT TAG:
+<input 
+ type="text" 
+ value={apiSyncEndpoint}
+ onChange={(e) => setApiSyncEndpoint(e.target.value)}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-base text-gray-300 font-mono outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full"
+ required
+ />
+CONTEXT:
+    1478:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-base text-white outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-bold"
+    1479:  required
+    1480:  />
+    1481:  </div>
+    1482:  </div>
+    1483:  <div className="space-y-2 pt-2">
+    1484:  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">API Server Sync Endpoint</label>
+    1485:  <input 
+--> 1486:  type="text" 
+    1487:  value={apiSyncEndpoint}
+    1488:  onChange={(e) => setApiSyncEndpoint(e.target.value)}
+    1489:  onMouseDown={(e) => e.stopPropagation()}
+    1490:  className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl px-5 h-14 text-base text-gray-300 font-mono outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full"
+    1491:  required
+    1492:  />
+    1493:  </div>
+================================================================================
+
+[36] FILE: src\app\admin\settings\page.tsx:1570
+INPUT TAG:
+<input 
+ type="text" 
+ placeholder="Tìm tên hoặc mã ngân hàng..."
+ value={bankSearchTerm}
+ onChange={(e) => setBankSearchTerm(e.target.value)}
+ onClick={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 rounded-xl px-3 h-9 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-amber-500/30 w-full"
+ />
+CONTEXT:
+    1562:  </div>
+    1563:  <span className="text-zinc-400 text-[10px]">{isDropdownOpen ?"▲" :"▼"}</span>
+    1564:  </div>
+    1565: 
+    1566:  {isDropdownOpen && (
+    1567:  <div className="absolute left-0 right-0 mt-2 bg-zinc-950/95 backdrop-blur-md border border-white/0 rounded-2xl shadow-2xl z-[100] max-h-64 flex flex-col overflow-hidden animate-fade-in">
+    1568:  <div className="p-2 border-b border-white/0 flex-shrink-0">
+    1569:  <input 
+--> 1570:  type="text" 
+    1571:  placeholder="Tìm tên hoặc mã ngân hàng..."
+    1572:  value={bankSearchTerm}
+    1573:  onChange={(e) => setBankSearchTerm(e.target.value)}
+    1574:  onClick={(e) => e.stopPropagation()}
+    1575:  className="bg-zinc-900 border border-white/0 rounded-xl px-3 h-9 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-amber-500/30 w-full"
+    1576:  />
+    1577:  </div>
+================================================================================
+
+[37] FILE: src\app\admin\settings\page.tsx:1625
+INPUT TAG:
+<input 
+ type="text" 
+ value={bankAccountNumber}
+ onChange={(e) => {
+ setBankAccountNumber(e.target.value);
+ setIsDirty(true);
+ setLookupSuccess(null);
+ }}
+ onMouseDown={(e) => e.stopPropagation()}
+ placeholder="Ví dụ: 0123456789"
+ className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl pl-5 pr-12 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+ required
+ />
+CONTEXT:
+    1617:  )}
+    1618:  </div>
+    1619: 
+    1620:  <div className="space-y-2 relative pt-2">
+    1621:  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Số Tài Khoản (STK)</label>
+    1622:  <div className="flex gap-2">
+    1623:  <div className="relative flex-1">
+    1624:  <input 
+--> 1625:  type="text" 
+    1626:  value={bankAccountNumber}
+    1627:  onChange={(e) => {
+    1628:  setBankAccountNumber(e.target.value);
+    1629:  setIsDirty(true);
+    1630:  setLookupSuccess(null);
+    1631:  }}
+    1632:  onMouseDown={(e) => e.stopPropagation()}
+================================================================================
+
+[38] FILE: src\app\admin\settings\page.tsx:1665
+INPUT TAG:
+<input 
+ type="text" 
+ value={bankAccountHolder}
+ onChange={(e) => setBankAccountHolder(e.target.value.toUpperCase())}
+ onMouseDown={(e) => e.stopPropagation()}
+ placeholder="Ví dụ: NGUYEN VAN A"
+ className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+ required
+ />
+CONTEXT:
+    1657:  <CheckCircle2 size={12} className="text-green-400" /> Tên tài khoản đã được xác thực thành công
+    1658:  </p>
+    1659:  )}
+    1660:  </div>
+    1661: 
+    1662:  <div className="space-y-2 pt-2">
+    1663:  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Tên Chủ Tài Khoản</label>
+    1664:  <input 
+--> 1665:  type="text" 
+    1666:  value={bankAccountHolder}
+    1667:  onChange={(e) => setBankAccountHolder(e.target.value.toUpperCase())}
+    1668:  onMouseDown={(e) => e.stopPropagation()}
+    1669:  placeholder="Ví dụ: NGUYEN VAN A"
+    1670:  className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-base outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+    1671:  required
+    1672:  />
+================================================================================
+
+[39] FILE: src\app\admin\staff\page.tsx:1025
+INPUT TAG:
+<input
+ type="text"
+ placeholder="Tìm kiếm tên hoặc username..."
+ value={searchQuery}
+ onChange={(e) => setSearchQuery(e.target.value)}
+ className="w-full pl-12 pr-4 h-12 bg-background-secondary border border-border rounded-md text-base text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+ />
+CONTEXT:
+    1017:  ) : (
+    1018:  <>
+    1019:  {/* Toolbar */}
+    1020:  <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-sidebar/50 border border-white/0 p-6 rounded-[32px] backdrop-blur-xl">
+    1021:  <div className="flex flex-1 gap-4 w-full">
+    1022:  <div className="relative flex-1">
+    1023:  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary w-5 h-5 pointer-events-none" />
+    1024:  <input
+--> 1025:  type="text"
+    1026:  placeholder="Tìm kiếm tên hoặc username..."
+    1027:  value={searchQuery}
+    1028:  onChange={(e) => setSearchQuery(e.target.value)}
+    1029:  className="w-full pl-12 pr-4 h-12 bg-background-secondary border border-border rounded-md text-base text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+    1030:  />
+    1031:  </div>
+    1032:  
+================================================================================
+
+[40] FILE: src\app\admin\stats\logs\page.tsx:224
+INPUT TAG:
+<input 
+              placeholder="Tìm kiếm tác vụ, tài khoản..."
+              className="bg-zinc-900 border border-border rounded-md pl-12 pr-4 h-10 text-sm text-zinc-100 outline-none focus:border-amber-500/50 transition-all w-60"
+              type="text" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+CONTEXT:
+     216:             </p>
+     217:           </div>
+     218:         </div>
+     219: 
+     220:         <div className="flex flex-wrap items-center gap-3">
+     221:           <div className="relative group">
+     222:             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-amber-500 transition-colors" size={14} />
+     223:             <input 
+-->  224:               placeholder="Tìm kiếm tác vụ, tài khoản..."
+     225:               className="bg-zinc-900 border border-border rounded-md pl-12 pr-4 h-10 text-sm text-zinc-100 outline-none focus:border-amber-500/50 transition-all w-60"
+     226:               type="text" 
+     227:               value={searchTerm}
+     228:               onChange={(e) => setSearchTerm(e.target.value)}
+     229:             />
+     230:           </div>
+     231: 
+================================================================================
+
+[41] FILE: src\app\admin\stats\report\page.tsx:342
+INPUT TAG:
+<input 
+       type="month" 
+       value={selectedMonth}
+       onChange={(e) => setSelectedMonth(e.target.value)}
+       className="bg-transparent text-white text-xs font-black uppercase outline-none cursor-pointer"
+     />
+CONTEXT:
+     334:  </h2>
+     335:  <div className="flex items-center gap-4 mt-1">
+     336:    <p className="text-sm text-gray-500 font-medium uppercase tracking-widest">
+     337:      Phân tích hiệu suất thực tế & Quản lý bảng lương
+     338:    </p>
+     339:    <div className="flex items-center gap-2 bg-sidebar border border-white/5 px-3 py-1 rounded-lg no-print">
+     340:      <CalendarDays size={14} className="text-gold" />
+     341:      <input 
+-->  342:        type="month" 
+     343:        value={selectedMonth}
+     344:        onChange={(e) => setSelectedMonth(e.target.value)}
+     345:        className="bg-transparent text-white text-xs font-black uppercase outline-none cursor-pointer"
+     346:      />
+     347:    </div>
+     348:  </div>
+     349:  </div>
+================================================================================
+
+[42] FILE: src\app\admin\stats\report\page.tsx:652
+INPUT TAG:
+<input 
+ type="text" 
+ value={baseSalary ? Number(baseSalary).toLocaleString("vi-VN") : ""}
+ onChange={(e) => setBaseSalary(e.target.value.replace(/\D/g, ""))}
+ className="h-12 px-4 rounded-xl bg-[#0a0a0a] text-white border border-white/5 text-base focus:outline-none focus:border-gold/50 font-bold" 
+ placeholder="Ví dụ: 5.000.000"
+ />
+CONTEXT:
+     644:         staffList.find((s: StaffData) => s.id === selectedStaffId)?.role === "02" ? "QL CÔNG VIỆC" : 
+     645:         staffList.find((s: StaffData) => s.id === selectedStaffId)?.role === "03" ? "QL NHÂN SỰ" : "NHÂN VIÊN")
+     646:      : "Chưa chọn"}
+     647:  </div>
+     648:  </div>
+     649:  <div className="flex flex-col gap-2">
+     650:  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Lương cơ bản (VNĐ)</label>
+     651:  <input 
+-->  652:  type="text" 
+     653:  value={baseSalary ? Number(baseSalary).toLocaleString("vi-VN") : ""}
+     654:  onChange={(e) => setBaseSalary(e.target.value.replace(/\D/g, ""))}
+     655:  className="h-12 px-4 rounded-xl bg-[#0a0a0a] text-white border border-white/5 text-base focus:outline-none focus:border-gold/50 font-bold" 
+     656:  placeholder="Ví dụ: 5.000.000"
+     657:  />
+     658:  </div>
+     659:  <div className="flex flex-col gap-2">
+================================================================================
+
+[43] FILE: src\app\admin\stats\report\page.tsx:662
+INPUT TAG:
+<input 
+ type="text" 
+ value={allowance ? Number(allowance).toLocaleString("vi-VN") : ""}
+ onChange={(e) => setAllowance(e.target.value.replace(/\D/g, ""))}
+ className="h-12 px-4 rounded-xl bg-[#0a0a0a] text-white border border-white/5 text-base focus:outline-none focus:border-gold/50 font-bold" 
+ placeholder="Ví dụ: 500.000"
+ />
+CONTEXT:
+     654:  onChange={(e) => setBaseSalary(e.target.value.replace(/\D/g, ""))}
+     655:  className="h-12 px-4 rounded-xl bg-[#0a0a0a] text-white border border-white/5 text-base focus:outline-none focus:border-gold/50 font-bold" 
+     656:  placeholder="Ví dụ: 5.000.000"
+     657:  />
+     658:  </div>
+     659:  <div className="flex flex-col gap-2">
+     660:  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Trợ cấp (VNĐ)</label>
+     661:  <input 
+-->  662:  type="text" 
+     663:  value={allowance ? Number(allowance).toLocaleString("vi-VN") : ""}
+     664:  onChange={(e) => setAllowance(e.target.value.replace(/\D/g, ""))}
+     665:  className="h-12 px-4 rounded-xl bg-[#0a0a0a] text-white border border-white/5 text-base focus:outline-none focus:border-gold/50 font-bold" 
+     666:  placeholder="Ví dụ: 500.000"
+     667:  />
+     668:  </div>
+     669:  </div>
+================================================================================
+
+[44] FILE: src\app\admin\tasks\page.tsx:1037
+INPUT TAG:
+<input
+                            type="text"
+                            placeholder="Nhập tên nhân viên đang online..."
+                            value={staffSearch}
+                            onChange={(e) => {
+                              setStaffSearch(e.target.value);
+                              setShowStaffDropdown(true);
+                            }}
+                            onFocus={() => setShowStaffDropdown(true)}
+                            className="w-full pl-12 pr-4 h-14 bg-background-secondary border border-border rounded-md text-foreground text-base placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+                          />
+CONTEXT:
+    1029:                     </div>
+    1030: 
+    1031:                     <div className="space-y-4 mb-4 relative z-50">
+    1032:                       <div className="space-y-2">
+    1033:                         <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Tìm kiếm & Chọn nhân viên thực hiện (Chỉ hiển thị người online)</label>
+    1034:                         <div className="relative w-full">
+    1035:                           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary w-5 h-5 pointer-events-none" />
+    1036:                           <input
+--> 1037:                             type="text"
+    1038:                             placeholder="Nhập tên nhân viên đang online..."
+    1039:                             value={staffSearch}
+    1040:                             onChange={(e) => {
+    1041:                               setStaffSearch(e.target.value);
+    1042:                               setShowStaffDropdown(true);
+    1043:                             }}
+    1044:                             onFocus={() => setShowStaffDropdown(true)}
+================================================================================
+
+[45] FILE: src\app\admin\tasks\page.tsx:1153
+INPUT TAG:
+<input 
+                              type="number"
+                              value={mailRangeStart}
+                              onChange={(e) => setMailRangeStart(Math.max(1, parseInt(e.target.value) || 1))}
+                              className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all"
+                            />
+CONTEXT:
+    1145:                     )}
+    1146: 
+    1147:                     {selectedTemplate === "Kênh bật kiếm tiền" && (
+    1148:                       <div className="space-y-6">
+    1149:                         <div className="grid grid-cols-2 gap-4">
+    1150:                           <div className="space-y-2">
+    1151:                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Bắt đầu từ STT</label>
+    1152:                             <input 
+--> 1153:                               type="number"
+    1154:                               value={mailRangeStart}
+    1155:                               onChange={(e) => setMailRangeStart(Math.max(1, parseInt(e.target.value) || 1))}
+    1156:                               className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all"
+    1157:                             />
+    1158:                           </div>
+    1159:                           <div className="space-y-2">
+    1160:                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Đến STT (Tổng {inventory.monetized})</label>
+================================================================================
+
+[46] FILE: src\app\admin\tasks\page.tsx:1162
+INPUT TAG:
+<input 
+                              type="number"
+                              value={mailRangeEnd}
+                              onChange={(e) => setMailRangeEnd(Math.max(1, parseInt(e.target.value) || 1))}
+                              className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all"
+                            />
+CONTEXT:
+    1154:                               value={mailRangeStart}
+    1155:                               onChange={(e) => setMailRangeStart(Math.max(1, parseInt(e.target.value) || 1))}
+    1156:                               className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all"
+    1157:                             />
+    1158:                           </div>
+    1159:                           <div className="space-y-2">
+    1160:                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Đến STT (Tổng {inventory.monetized})</label>
+    1161:                             <input 
+--> 1162:                               type="number"
+    1163:                               value={mailRangeEnd}
+    1164:                               onChange={(e) => setMailRangeEnd(Math.max(1, parseInt(e.target.value) || 1))}
+    1165:                               className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all"
+    1166:                             />
+    1167:                           </div>
+    1168:                         </div>
+    1169:                         
+================================================================================
+
+[47] FILE: src\app\register\page.tsx:409
+INPUT TAG:
+<input type="text" name="name" required value={formData.name} onChange={handleInputChange} placeholder="Nguyễn Văn A" style={{ paddingLeft: "3.5rem" }} className={inputClass("name")} />
+CONTEXT:
+     401:  </motion.div>
+     402:  ) : (
+     403:  <form onSubmit={handleRegister} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+     404:  <div className="space-y-1">
+     405:  <label className={labelClass}>Họ và tên</label>
+     406:  <div className="relative group">
+     407:  <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.name ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+     408:  <input type="text" name="name" required value={formData.name} onChange={handleInputChange} placeholder="Nguyễn Văn A" style={{ paddingLeft: "3.5rem" }} className={inputClass("name")} />
+-->  409:  </div>
+     410:  {errors.name && <p className="text-red-500 text-[10px] mt-1 text-left ml-2">{errors.name}</p>}
+     411:  </div>
+     412: 
+     413:  <div className="space-y-1">
+     414:  <label className={labelClass}>Năm sinh</label>
+     415:  <div className="relative group">
+     416:  <Calendar className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.birthYear ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+================================================================================
+
+[48] FILE: src\app\register\page.tsx:429
+INPUT TAG:
+<input type="text" name="username" required value={formData.username} onChange={handleInputChange} onBlur={handleUsernameBlur} placeholder="username_01" style={{ paddingLeft: "3.5rem" }} className={inputClass("username")} />
+CONTEXT:
+     421:  </div>
+     422:  </div>
+     423: 
+     424:  <div className="space-y-1">
+     425:  <label className={labelClass}>Username</label>
+     426:  <div className="relative group">
+     427:  <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.username ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+     428:  <input type="text" name="username" required value={formData.username} onChange={handleInputChange} onBlur={handleUsernameBlur} placeholder="username_01" style={{ paddingLeft: "3.5rem" }} className={inputClass("username")} />
+-->  429:  </div>
+     430:  {errors.username && <p className="text-red-500 text-[10px] mt-1 text-left ml-2">{errors.username}</p>}
+     431:  </div>
+     432: 
+     433:  <div className="space-y-1">
+     434:  <label className={labelClass}>Số điện thoại</label>
+     435:  <div className="relative group">
+     436:  <Phone className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.phone ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+================================================================================
+
+[49] FILE: src\app\register\page.tsx:438
+INPUT TAG:
+<input type="tel" name="phone" required value={formData.phone} onChange={handleInputChange} placeholder="09xxxxxxxx" style={{ paddingLeft: "3.5rem" }} className={inputClass("phone")} />
+CONTEXT:
+     430:  {errors.username && <p className="text-red-500 text-[10px] mt-1 text-left ml-2">{errors.username}</p>}
+     431:  </div>
+     432: 
+     433:  <div className="space-y-1">
+     434:  <label className={labelClass}>Số điện thoại</label>
+     435:  <div className="relative group">
+     436:  <Phone className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.phone ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+     437:  <input type="tel" name="phone" required value={formData.phone} onChange={handleInputChange} placeholder="09xxxxxxxx" style={{ paddingLeft: "3.5rem" }} className={inputClass("phone")} />
+-->  438:  </div>
+     439:  {errors.phone && <p className="text-red-500 text-[10px] mt-1 text-left ml-2">{errors.phone}</p>}
+     440:  </div>
+     441: 
+     442:  <div className="space-y-1">
+     443:   <label className={labelClass}>Email</label>
+     444:   <div className="relative group">
+     445:   <Mail className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.email ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+================================================================================
+
+[50] FILE: src\app\register\page.tsx:447
+INPUT TAG:
+<input type="email" name="email" required value={formData.email} onChange={handleInputChange} placeholder="example@mail.com" style={{ paddingLeft: "3.5rem" }} className={inputClass("email")} />
+CONTEXT:
+     439:  {errors.phone && <p className="text-red-500 text-[10px] mt-1 text-left ml-2">{errors.phone}</p>}
+     440:  </div>
+     441: 
+     442:  <div className="space-y-1">
+     443:   <label className={labelClass}>Email</label>
+     444:   <div className="relative group">
+     445:   <Mail className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.email ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+     446:   <input type="email" name="email" required value={formData.email} onChange={handleInputChange} placeholder="example@mail.com" style={{ paddingLeft: "3.5rem" }} className={inputClass("email")} />
+-->  447:   </div>
+     448:   {errors.email && <p className="text-red-500 text-[10px] mt-1 text-left ml-2">{errors.email}</p>}
+     449:   </div>
+     450: 
+     451:  <div className="space-y-1">
+     452:  <label className={labelClass}>Địa chỉ liên hệ</label>
+     453:  <div className="relative group">
+     454:  <MapPin className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.address ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+================================================================================
+
+[51] FILE: src\app\register\page.tsx:456
+INPUT TAG:
+<input type="text" name="address" required value={formData.address} onChange={handleInputChange} placeholder="Hà Nội, Việt Nam" style={{ paddingLeft: "3.5rem" }} className={inputClass("address")} />
+CONTEXT:
+     448:   {errors.email && <p className="text-red-500 text-[10px] mt-1 text-left ml-2">{errors.email}</p>}
+     449:   </div>
+     450: 
+     451:  <div className="space-y-1">
+     452:  <label className={labelClass}>Địa chỉ liên hệ</label>
+     453:  <div className="relative group">
+     454:  <MapPin className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.address ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+     455:  <input type="text" name="address" required value={formData.address} onChange={handleInputChange} placeholder="Hà Nội, Việt Nam" style={{ paddingLeft: "3.5rem" }} className={inputClass("address")} />
+-->  456:  </div>
+     457:  </div>
+     458: 
+     459:  <div className="space-y-1">
+     460:  <label className={labelClass}>Mật khẩu</label>
+     461:  <div className="relative group">
+     462:  <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.password ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+     463:  <input type="password" name="password" required value={formData.password} onChange={handleInputChange} style={{ paddingLeft: "3.5rem" }} className={inputClass("password")} />
+================================================================================
+
+[52] FILE: src\app\register\page.tsx:464
+INPUT TAG:
+<input type="password" name="password" required value={formData.password} onChange={handleInputChange} style={{ paddingLeft: "3.5rem" }} className={inputClass("password")} />
+CONTEXT:
+     456:  </div>
+     457:  </div>
+     458: 
+     459:  <div className="space-y-1">
+     460:  <label className={labelClass}>Mật khẩu</label>
+     461:  <div className="relative group">
+     462:  <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.password ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+     463:  <input type="password" name="password" required value={formData.password} onChange={handleInputChange} style={{ paddingLeft: "3.5rem" }} className={inputClass("password")} />
+-->  464:  </div>
+     465:  {formData.password && (
+     466:  <div className="px-1 pt-2 space-y-1.5">
+     467:  <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
+     468:  <span className="text-gray-500">Độ mạnh:</span>
+     469:  <span className={passwordStrength.label ==="Mạnh" ?"text-green-500" : passwordStrength.label ==="Trung bình" ?"text-yellow-500" :"text-red-500"}>{passwordStrength.label}</span>
+     470:  </div>
+     471:  <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+================================================================================
+
+[53] FILE: src\app\register\page.tsx:484
+INPUT TAG:
+<input type="password" name="confirmPassword" required value={formData.confirmPassword} onChange={handleInputChange} style={{ paddingLeft: "3.5rem" }} className={`h-14 w-full rounded-2xl border ${formData.confirmPassword && formData.confirmPassword !== formData.password ?"border-red-500 bg-red-50/50 bg-red-900/20 text-white" : formData.confirmPassword && formData.confirmPassword === formData.password ?"border-green-500 bg-green-50/50 bg-green-900/20 text-white" :" border-gray-600 bg-gray-800 text-white"} pl-14 pr-6 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder-gray-400 placeholder-gray-500 font-bold`} />
+CONTEXT:
+     476:  {errors.password && <p className="text-red-500 text-[10px] mt-1 text-left ml-2">{errors.password}</p>}
+     477:  </div>
+     478: 
+     479:  <div className="space-y-1">
+     480:  <label className={labelClass}>Xác nhận mật khẩu</label>
+     481:  <div className="relative group">
+     482:  <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${formData.confirmPassword && formData.confirmPassword !== formData.password ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+     483:  <input type="password" name="confirmPassword" required value={formData.confirmPassword} onChange={handleInputChange} style={{ paddingLeft: "3.5rem" }} className={`h-14 w-full rounded-2xl border ${formData.confirmPassword && formData.confirmPassword !== formData.password ?"border-red-500 bg-red-50/50 bg-red-900/20 text-white" : formData.confirmPassword && formData.confirmPassword === formData.password ?"border-green-500 bg-green-50/50 bg-green-900/20 text-white" :" border-gray-600 bg-gray-800 text-white"} pl-14 pr-6 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder-gray-400 placeholder-gray-500 font-bold`} />
+-->  484:  </div>
+     485:  {formData.confirmPassword && formData.confirmPassword !== formData.password && (
+     486:  <p className="text-sm text-red-500 font-medium flex items-center gap-1 mt-1 ml-1"><AlertCircle size={14} /> Mật khẩu không khớp!</p>
+     487:  )}
+     488:  {formData.confirmPassword && formData.confirmPassword === formData.password && (
+     489:  <p className="text-sm text-green-500 font-medium flex items-center gap-1 mt-1 ml-1"><CheckCircle2 size={14} /> Mật khẩu hợp lệ</p>
+     490:  )}
+     491:  </div>
+================================================================================
+
+[54] FILE: src\app\register\page.tsx:496
+INPUT TAG:
+<input
+      type="checkbox"
+      id="agreeTerms"
+      checked={agreeTerms}
+      onChange={(e) => setAgreeTerms(e.target.checked)}
+      className="mt-1 h-5 w-5 rounded border-gray-600 bg-gray-800 text-gold focus:ring-gold cursor-pointer"
+    />
+CONTEXT:
+     488:  {formData.confirmPassword && formData.confirmPassword === formData.password && (
+     489:  <p className="text-sm text-green-500 font-medium flex items-center gap-1 mt-1 ml-1"><CheckCircle2 size={14} /> Mật khẩu hợp lệ</p>
+     490:  )}
+     491:  </div>
+     492: 
+     493:   {/* Terms & Conditions Checkbox */}
+     494:   <div className="md:col-span-2 flex items-start gap-3 mt-4">
+     495:     <input
+-->  496:       type="checkbox"
+     497:       id="agreeTerms"
+     498:       checked={agreeTerms}
+     499:       onChange={(e) => setAgreeTerms(e.target.checked)}
+     500:       className="mt-1 h-5 w-5 rounded border-gray-600 bg-gray-800 text-gold focus:ring-gold cursor-pointer"
+     501:     />
+     502:     <label htmlFor="agreeTerms" className="text-xs font-bold text-gray-400 select-none cursor-pointer leading-normal">
+     503:       Tôi đồng ý với{" "}
+================================================================================
+
+[55] FILE: src\app\register\page.tsx:654
+INPUT TAG:
+<input
+                type="text"
+                required
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="000000"
+                className="bg-black border-2 border-white/10 rounded-2xl h-14 text-2xl text-white outline-none focus:border-gold/50 focus:bg-[#202020] transition-all w-full text-center font-mono tracking-[0.3em] font-black placeholder:text-zinc-700"
+              />
+CONTEXT:
+     646:               Xác thực OTP đăng ký
+     647:             </h3>
+     648:             <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider mb-6">
+     649:               Mã OTP đã được gửi tới email {formData.email}
+     650:             </p>
+     651: 
+     652:             <form onSubmit={handleVerifyOtpAndSubmit} className="w-full space-y-4">
+     653:               <input
+-->  654:                 type="text"
+     655:                 required
+     656:                 maxLength={6}
+     657:                 value={otpCode}
+     658:                 onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+     659:                 placeholder="000000"
+     660:                 className="bg-black border-2 border-white/10 rounded-2xl h-14 text-2xl text-white outline-none focus:border-gold/50 focus:bg-[#202020] transition-all w-full text-center font-mono tracking-[0.3em] font-black placeholder:text-zinc-700"
+     661:               />
+================================================================================
+
+[56] FILE: src\components\admin\AdminChat.tsx:519
+INPUT TAG:
+<input
+                    value={chatMessage}
+                    onChange={(e) => handleInputChange(e.target.value)}
+                    placeholder="Nhập tin nhắn..."
+                    className="flex-1 bg-white/5 border border-white/0 rounded-2xl px-5 py-3 text-sm text-white outline-none focus:border-gold/30"
+                  />
+CONTEXT:
+     511:                       <p className="text-xs text-gray-500 mt-1">Bắt đầu cuộc trò chuyện chung của toàn công ty.</p>
+     512:                     </div>
+     513:                   )}
+     514:                   {companyTypingUsers.length > 0 && <TypingBubble senderName={companyTypingUsers.join(", ")} />}
+     515:                   <div ref={companyMessagesEndRef} />
+     516:                 </div>
+     517:                 <form onSubmit={handleSendCompanyMessage} className="p-4 bg-black/40 border-t border-border flex gap-3">
+     518:                   <input
+-->  519:                     value={chatMessage}
+     520:                     onChange={(e) => handleInputChange(e.target.value)}
+     521:                     placeholder="Nhập tin nhắn..."
+     522:                     className="flex-1 bg-white/5 border border-white/0 rounded-2xl px-5 py-3 text-sm text-white outline-none focus:border-gold/30"
+     523:                   />
+     524:                   <button type="submit" className="h-12 w-12 bg-gold text-background rounded-2xl flex items-center justify-center shadow-lg shadow-gold/20 hover:scale-105 transition-all">
+     525:                     <Send size={20} />
+     526:                   </button>
+================================================================================
+
+[57] FILE: src\components\admin\AdminChat.tsx:537
+INPUT TAG:
+<input
+                        placeholder="Tìm..."
+                        value={chatSearchTerm}
+                        onChange={(e) => setChatSearchTerm(e.target.value)}
+                        className="w-full bg-white/5 border border-white/0 rounded-lg pl-7 pr-2 py-1.5 text-[10px] text-white outline-none"
+                      />
+CONTEXT:
+     529:             ) : (
+     530:               <div className="flex-1 flex overflow-hidden">
+     531:                 {/* User List */}
+     532:                 <div className="w-[140px] border-r border-border flex flex-col bg-black/10">
+     533:                   <div className="p-3 border-b border-border">
+     534:                     <div className="relative">
+     535:                       <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-600" />
+     536:                       <input
+-->  537:                         placeholder="Tìm..."
+     538:                         value={chatSearchTerm}
+     539:                         onChange={(e) => setChatSearchTerm(e.target.value)}
+     540:                         className="w-full bg-white/5 border border-white/0 rounded-lg pl-7 pr-2 py-1.5 text-[10px] text-white outline-none"
+     541:                       />
+     542:                     </div>
+     543:                   </div>
+     544:                   <div className="flex-1 overflow-y-auto p-1.5 space-y-1 custom-scrollbar">
+================================================================================
+
+[58] FILE: src\components\admin\AdminChat.tsx:605
+INPUT TAG:
+<input
+                          value={chatMessage}
+                          onChange={(e) => handleInputChange(e.target.value)}
+                          placeholder="Nhập tin nhắn..."
+                          className="flex-1 bg-white/5 border border-white/0 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-gold/30"
+                        />
+CONTEXT:
+     597:                             <p className="text-xs text-gray-500 mt-1">Hãy gửi tin nhắn đầu tiên để bắt đầu cuộc trò chuyện.</p>
+     598:                           </div>
+     599:                         )}
+     600:                         {isPartnerTyping && <TypingBubble />}
+     601:                         <div ref={privateMessagesEndRef} />
+     602:                       </div>
+     603:                       <form onSubmit={handleSendPrivateMessage} className="p-3 bg-black/40 border-t border-border flex gap-2">
+     604:                         <input
+-->  605:                           value={chatMessage}
+     606:                           onChange={(e) => handleInputChange(e.target.value)}
+     607:                           placeholder="Nhập tin nhắn..."
+     608:                           className="flex-1 bg-white/5 border border-white/0 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-gold/30"
+     609:                         />
+     610:                         <button type="submit" className="h-10 w-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg hover:scale-105 transition-all">
+     611:                           <Send size={16} />
+     612:                         </button>
+================================================================================
+
+[59] FILE: src\components\admin\AdminDashboardClient.tsx:76
+INPUT TAG:
+<input 
+            type="number" 
+            value={target || ""} 
+            readOnly={readonly}
+            onChange={(e) => onChange(parseInt(e.target.value) || 0)} 
+            className="h-12 w-full rounded-xl bg-gold/5 border border-gold/20 px-4 text-gold font-black focus:border-gold outline-none transition-all" 
+          />
+CONTEXT:
+      68:       <div className="grid grid-cols-2 gap-4">
+      69:         <div className="space-y-1.5">
+      70:           <label className="text-[9px] font-black text-foreground-secondary uppercase tracking-widest">Đã đạt</label>
+      71:           <div className="h-12 w-full rounded-xl bg-white/5 border border-border flex items-center px-4 text-white font-black text-sm">{current.toLocaleString()} {unit}</div>
+      72:         </div>
+      73:         <div className="space-y-1.5">
+      74:           <label className="text-[9px] font-black text-foreground-secondary uppercase tracking-widest">Mục tiêu</label>
+      75:           <input 
+-->   76:             type="number" 
+      77:             value={target || ""} 
+      78:             readOnly={readonly}
+      79:             onChange={(e) => onChange(parseInt(e.target.value) || 0)} 
+      80:             className="h-12 w-full rounded-xl bg-gold/5 border border-gold/20 px-4 text-gold font-black focus:border-gold outline-none transition-all" 
+      81:           />
+      82:         </div>
+      83:       </div>
+================================================================================
+
+[60] FILE: src\components\admin\AdminDashboardClient.tsx:160
+INPUT TAG:
+<input 
+                placeholder="Tìm kiếm nhanh..."
+                className="w-full bg-white/5 border border-border rounded-xl pl-11 pr-4 h-11 text-sm text-white focus:border-gold outline-none transition-all"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+CONTEXT:
+     152:           </h2>
+     153:         </div>
+     154: 
+     155:         <div className="card-style !p-0 overflow-hidden">
+     156:           <div className="p-6 bg-white/5 border-b border-border flex items-center justify-between">
+     157:             <div className="relative w-full max-w-sm">
+     158:               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary" />
+     159:               <input 
+-->  160:                 placeholder="Tìm kiếm nhanh..."
+     161:                 className="w-full bg-white/5 border border-border rounded-xl pl-11 pr-4 h-11 text-sm text-white focus:border-gold outline-none transition-all"
+     162:                 value={searchQuery}
+     163:                 onChange={(e) => setSearchQuery(e.target.value)}
+     164:               />
+     165:             </div>
+     166:           </div>
+     167:           <div className="overflow-x-auto">
+================================================================================
+
+[61] FILE: src\components\admin\AdminLayoutClient.tsx:2184
+INPUT TAG:
+<input
+ type="file"
+ ref={companyFileInputRef}
+ onChange={handleChatFileSelect}
+ className="hidden"
+ />
+CONTEXT:
+    2176:  >
+    2177:  <X size={12} />
+    2178:  </button>
+    2179:  </div>
+    2180:  )}
+    2181: 
+    2182:  <form onSubmit={handleSendCompanyMessage} className="p-3 border-t border-white/0 bg-[#0e0e0e] flex gap-2 items-center">
+    2183:  <input
+--> 2184:  type="file"
+    2185:  ref={companyFileInputRef}
+    2186:  onChange={handleChatFileSelect}
+    2187:  className="hidden"
+    2188:  />
+    2189:  <button
+    2190:  type="button"
+    2191:  onClick={() => companyFileInputRef.current?.click()}
+================================================================================
+
+[62] FILE: src\components\admin\AdminLayoutClient.tsx:2199
+INPUT TAG:
+<input
+ type="text"
+ placeholder="Nhập nội dung tin nhắn..."
+ value={chatMessage}
+ onChange={(e) => handleInputChange(e.target.value)}
+ className="flex-1 h-10 bg-white/5 border border-white/0 focus:border-white/5 rounded-xl px-4 text-sm text-white focus:outline-none transition-all placeholder:text-gray-600 text-gray-400"
+ />
+CONTEXT:
+    2191:  onClick={() => companyFileInputRef.current?.click()}
+    2192:  className="h-10 w-10 shrink-0 bg-white/5 border border-white/0 hover:border-white/0 rounded-xl flex items-center justify-center text-gray-500 text-gray-400 hover:text-gold transition-colors"
+    2193:  title="Đính kèm ảnh hoặc tệp (tối đa 200MB)"
+    2194:  >
+    2195:  <Plus size={16} />
+    2196:  </button>
+    2197: 
+    2198:  <input
+--> 2199:  type="text"
+    2200:  placeholder="Nhập nội dung tin nhắn..."
+    2201:  value={chatMessage}
+    2202:  onChange={(e) => handleInputChange(e.target.value)}
+    2203:  className="flex-1 h-10 bg-white/5 border border-white/0 focus:border-white/5 rounded-xl px-4 text-sm text-white focus:outline-none transition-all placeholder:text-gray-600 text-gray-400"
+    2204:  />
+    2205:  <button type="submit" className="h-10 w-10 bg-gold text-sidebar rounded-xl flex items-center justify-center hover:bg-amber-700 bg-amber-600 hover:text-white transition-colors shadow-lg shadow-gold/10">
+    2206:  <Send size={14} />
+================================================================================
+
+[63] FILE: src\components\admin\AdminLayoutClient.tsx:2222
+INPUT TAG:
+<input 
+        type="text" 
+        placeholder="Tìm tên hoặc username..."
+        value={chatSearchTerm}
+        onChange={(e) => setChatSearchTerm(e.target.value)}
+        className="w-full pl-10 pr-4 h-10 bg-background-secondary border border-border rounded-md text-xs text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+      />
+CONTEXT:
+    2214:  <div className="flex-1 flex flex-col overflow-y-auto p-2 divide-y divide-white/5 custom-scrollbar">
+    2215:  <div className="text-[9px] font-bold text-gray-500 uppercase tracking-wider p-2">Chọn nhân sự (Online)</div>
+    2216:  
+    2217:  {/* Chat Search Input */}
+    2218:  <div className="p-2 mb-2 relative">
+    2219:     <div className="relative w-full">
+    2220:       <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary w-3.5 h-3.5 pointer-events-none" />
+    2221:       <input 
+--> 2222:         type="text" 
+    2223:         placeholder="Tìm tên hoặc username..."
+    2224:         value={chatSearchTerm}
+    2225:         onChange={(e) => setChatSearchTerm(e.target.value)}
+    2226:         className="w-full pl-10 pr-4 h-10 bg-background-secondary border border-border rounded-md text-xs text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+    2227:       />
+    2228:     </div>
+    2229:  </div>
+================================================================================
+
+[64] FILE: src\components\admin\AdminLayoutClient.tsx:2356
+INPUT TAG:
+<input
+ type="file"
+ ref={privateFileInputRef}
+ onChange={handleChatFileSelect}
+ className="hidden"
+ />
+CONTEXT:
+    2348:  >
+    2349:  <X size={12} />
+    2350:  </button>
+    2351:  </div>
+    2352:  )}
+    2353: 
+    2354:  <form onSubmit={handleSendPrivateMessage} className="p-3 border-t border-white/0 bg-[#000000] flex gap-2 items-center">
+    2355:  <input
+--> 2356:  type="file"
+    2357:  ref={privateFileInputRef}
+    2358:  onChange={handleChatFileSelect}
+    2359:  className="hidden"
+    2360:  />
+    2361:  <button
+    2362:  type="button"
+    2363:  onClick={() => privateFileInputRef.current?.click()}
+================================================================================
+
+[65] FILE: src\components\admin\AdminLayoutClient.tsx:2371
+INPUT TAG:
+<input
+ type="text"
+ placeholder={`Chat với ${activeChatUser.name}...`}
+ value={chatMessage}
+ onChange={(e) => handleInputChange(e.target.value)}
+ className="flex-1 h-10 bg-white/5 border border-white/0 focus:border-white/5 rounded-xl px-4 text-sm text-white focus:outline-none transition-all placeholder:text-gray-600 text-gray-400"
+ />
+CONTEXT:
+    2363:  onClick={() => privateFileInputRef.current?.click()}
+    2364:  className="h-10 w-10 shrink-0 bg-white/5 border border-white/0 hover:border-white/0 rounded-xl flex items-center justify-center text-gray-500 text-gray-400 hover:text-gold transition-colors"
+    2365:  title="Đính kèm ảnh hoặc tệp (tối đa 200MB)"
+    2366:  >
+    2367:  <Plus size={16} />
+    2368:  </button>
+    2369: 
+    2370:  <input
+--> 2371:  type="text"
+    2372:  placeholder={`Chat với ${activeChatUser.name}...`}
+    2373:  value={chatMessage}
+    2374:  onChange={(e) => handleInputChange(e.target.value)}
+    2375:  className="flex-1 h-10 bg-white/5 border border-white/0 focus:border-white/5 rounded-xl px-4 text-sm text-white focus:outline-none transition-all placeholder:text-gray-600 text-gray-400"
+    2376:  />
+    2377:  <button type="submit" className="h-10 w-10 bg-gold text-sidebar rounded-xl flex items-center justify-center hover:bg-amber-600 transition-colors shadow-lg shadow-gold/10">
+    2378:  <Send size={14} />
+================================================================================
+
+[66] FILE: src\components\admin\MailDetailModal.tsx:215
+INPUT TAG:
+<input
+                type="date"
+                value={cccdDate}
+                disabled={viewOnly}
+                readOnly={viewOnly}
+                onChange={(e) => setCccdDate(e.target.value)}
+                className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all cursor-pointer ${viewOnly ? "opacity-60 cursor-not-allowed" : ""}`}
+              />
+CONTEXT:
+     207:       }
+     208:     >
+     209:       <div className="space-y-6">
+     210:         {type === "ROOT" && (
+     211:           <>
+     212:             <div className="space-y-2">
+     213:               <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Quét lại CCCD vào ngày</label>
+     214:               <input
+-->  215:                 type="date"
+     216:                 value={cccdDate}
+     217:                 disabled={viewOnly}
+     218:                 readOnly={viewOnly}
+     219:                 onChange={(e) => setCccdDate(e.target.value)}
+     220:                 className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all cursor-pointer ${viewOnly ? "opacity-60 cursor-not-allowed" : ""}`}
+     221:               />
+     222:             </div>
+================================================================================
+
+[67] FILE: src\components\admin\MailDetailModal.tsx:253
+INPUT TAG:
+<input 
+                    value={links[idx] || ""} 
+                    onChange={viewOnly ? undefined : (e) => handleLinkChange(idx, e.target.value)} 
+                    placeholder="Dán link channel YouTube..." 
+                    readOnly={viewOnly}
+                    className={`flex-1 h-14 bg-white/5 border rounded-2xl px-6 text-white text-base outline-none transition-all ${
+                      validationErrors[idx] ? "border-red-500/50 focus:border-red-500 bg-red-500/5 shadow-[0_0_15px_rgba(239,68,68,0.1)]" : " border-white/0 focus:border-white/5"
+                    } ${viewOnly ? "opacity-60 cursor-not-allowed" : ""}`}
+                  />
+CONTEXT:
+     245:                   {names[idx] && (
+     246:                     <span className={`text-[10px] font-black uppercase ${validationErrors[idx] ? "text-red-400" : "text-gold"}`}>
+     247:                       {names[idx]}
+     248:                     </span>
+     249:                   )}
+     250:                 </div>
+     251:                 <div className="flex items-center gap-3">
+     252:                   <input 
+-->  253:                     value={links[idx] || ""} 
+     254:                     onChange={viewOnly ? undefined : (e) => handleLinkChange(idx, e.target.value)} 
+     255:                     placeholder="Dán link channel YouTube..." 
+     256:                     readOnly={viewOnly}
+     257:                     className={`flex-1 h-14 bg-white/5 border rounded-2xl px-6 text-white text-base outline-none transition-all ${
+     258:                       validationErrors[idx] ? "border-red-500/50 focus:border-red-500 bg-red-500/5 shadow-[0_0_15px_rgba(239,68,68,0.1)]" : " border-white/0 focus:border-white/5"
+     259:                     } ${viewOnly ? "opacity-60 cursor-not-allowed" : ""}`}
+     260:                   />
+================================================================================
+
+[68] FILE: src\components\admin\MailDetailModal.tsx:323
+INPUT TAG:
+<input
+                type="date"
+                value={reClickDate}
+                disabled={viewOnly}
+                readOnly={viewOnly}
+                onChange={(e) => setReClickDate(e.target.value)}
+                className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all cursor-pointer ${viewOnly ? "opacity-60 cursor-not-allowed" : ""}`}
+              />
+CONTEXT:
+     315:           </div>
+     316:         )}
+     317: 
+     318:         {type === "MONETIZED" && (
+     319:           <>
+     320:             <div className="space-y-2">
+     321:               <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Ngày bấm lại</label>
+     322:               <input
+-->  323:                 type="date"
+     324:                 value={reClickDate}
+     325:                 disabled={viewOnly}
+     326:                 readOnly={viewOnly}
+     327:                 onChange={(e) => setReClickDate(e.target.value)}
+     328:                 className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all cursor-pointer ${viewOnly ? "opacity-60 cursor-not-allowed" : ""}`}
+     329:               />
+     330:             </div>
+================================================================================
+
+[69] FILE: src\components\admin\MailDetailModal.tsx:334
+INPUT TAG:
+<input
+                type="date"
+                value={step2PendingDate}
+                disabled={viewOnly}
+                readOnly={viewOnly}
+                onChange={(e) => setStep2PendingDate(e.target.value)}
+                className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all cursor-pointer ${viewOnly ? "opacity-60 cursor-not-allowed" : ""}`}
+              />
+CONTEXT:
+     326:                 readOnly={viewOnly}
+     327:                 onChange={(e) => setReClickDate(e.target.value)}
+     328:                 className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all cursor-pointer ${viewOnly ? "opacity-60 cursor-not-allowed" : ""}`}
+     329:               />
+     330:             </div>
+     331:             <div className="space-y-2">
+     332:               <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Chờ bước 2</label>
+     333:               <input
+-->  334:                 type="date"
+     335:                 value={step2PendingDate}
+     336:                 disabled={viewOnly}
+     337:                 readOnly={viewOnly}
+     338:                 onChange={(e) => setStep2PendingDate(e.target.value)}
+     339:                 className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all cursor-pointer ${viewOnly ? "opacity-60 cursor-not-allowed" : ""}`}
+     340:               />
+     341:             </div>
+================================================================================
+
+[70] FILE: src\components\admin\MailManagement.tsx:467
+INPUT TAG:
+<input type="file" accept=".xlsx, .xls" onChange={handleImportExcel} className="hidden" disabled={isImporting} />
+CONTEXT:
+     459:             >
+     460:               <RotateCcw size={16} /> Lịch sử nạp
+     461:             </button>
+     462:             
+     463:             <label className={`h-12 px-6 bg-gold hover:bg-gold-hover text-sidebar rounded-xl font-black uppercase text-xs tracking-widest transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-gold/20 ${isImporting ? "opacity-50 cursor-not-allowed" : ""}`}>
+     464:               {isImporting ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
+     465:               {isImporting ? "Đang xử lý..." : "Nạp Excel Mới"}
+     466:               <input type="file" accept=".xlsx, .xls" onChange={handleImportExcel} className="hidden" disabled={isImporting} />
+-->  467:             </label>
+     468:           </div>
+     469:         )}
+     470:       </div>
+     471: 
+     472:       {/* Tabs & Search */}
+     473:       <div className="flex flex-col lg:flex-row gap-4 flex-shrink-0">
+     474:         <div className="flex bg-white/5 p-1 rounded-2xl border border-white/0">
+================================================================================
+
+[71] FILE: src\components\admin\MailManagement.tsx:502
+INPUT TAG:
+<input
+              type="text"
+              placeholder="Tìm kiếm email, lô, ghi chú..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl pl-10 pr-6 text-white text-sm outline-none focus:border-white/10 transition-all shadow-inner"
+            />
+CONTEXT:
+     494:               </button>
+     495:             ))}
+     496:         </div>
+     497: 
+     498:         <div className="flex-1 flex gap-3">
+     499:           <div className="relative flex items-center flex-1 group">
+     500:             <Search className="absolute left-3 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
+     501:             <input
+-->  502:               type="text"
+     503:               placeholder="Tìm kiếm email, lô, ghi chú..."
+     504:               value={searchQuery}
+     505:               onChange={(e) => setSearchQuery(e.target.value)}
+     506:               className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl pl-10 pr-6 text-white text-sm outline-none focus:border-white/10 transition-all shadow-inner"
+     507:             />
+     508:           </div>
+     509:           {viewMode === "MAILS" && (
+================================================================================
+
+[72] FILE: src\components\admin\ProfileModal.tsx:178
+INPUT TAG:
+<input
+ type="time" value={formData.offWorkTime || "17:30"}
+ disabled={!isManagement}
+ onChange={(e) => setFormData({...formData, offWorkTime: e.target.value})}
+ className="h-12 w-full rounded-lg border bg-background text-white border-border px-4 text-base focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
+ />
+CONTEXT:
+     170:  <p className="text-lg font-black text-white uppercase tracking-tighter">{formData.name}</p>
+     171:  <p className="text-sm font-bold text-gold uppercase tracking-[0.3em] mt-1">@{formData.username}</p>
+     172:  </div>
+     173:  <div className="w-full mt-4 max-w-xs">
+     174:  <label className="text-[10px] font-black uppercase tracking-widest text-foreground-secondary flex items-center gap-2 mb-2">
+     175:  <Clock size={14} className="text-gold" /> Giờ tan làm
+     176:  </label>
+     177:  <input
+-->  178:  type="time" value={formData.offWorkTime || "17:30"}
+     179:  disabled={!isManagement}
+     180:  onChange={(e) => setFormData({...formData, offWorkTime: e.target.value})}
+     181:  className="h-12 w-full rounded-lg border bg-background text-white border-border px-4 text-base focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
+     182:  />
+     183:  { !isManagement && <p className="text-[9px] text-zinc-500 italic mt-1 ml-1">* Chỉ quản lý mới có quyền thay đổi giờ tan làm</p> }
+     184:  </div>
+     185:  </div>
+================================================================================
+
+[73] FILE: src\components\admin\ProfileModal.tsx:193
+INPUT TAG:
+<input
+ type="text" value={formData.name}
+ onChange={(e) => setFormData({...formData, name: e.target.value})}
+ className="h-12 w-full rounded-lg border bg-background text-white border-border px-4 text-base text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all shadow-inner"
+ />
+CONTEXT:
+     185:  </div>
+     186: 
+     187:  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+     188:  <div className="space-y-2">
+     189:  <label className="flex items-center gap-2 text-[10px] font-black text-foreground-secondary uppercase tracking-widest ml-1">
+     190:  <User size={14} className="text-gold" /> Họ và tên
+     191:  </label>
+     192:  <input
+-->  193:  type="text" value={formData.name}
+     194:  onChange={(e) => setFormData({...formData, name: e.target.value})}
+     195:  className="h-12 w-full rounded-lg border bg-background text-white border-border px-4 text-base text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all shadow-inner"
+     196:  />
+     197:  </div>
+     198: 
+     199:  <div className="space-y-2">
+     200:  <label className="flex items-center gap-2 text-[10px] font-black text-foreground-secondary uppercase tracking-widest ml-1">
+================================================================================
+
+[74] FILE: src\components\admin\ProfileModal.tsx:204
+INPUT TAG:
+<input
+ type="text" value={formData.birthYear || ""}
+ onChange={(e) => setFormData({...formData, birthYear: e.target.value})}
+ className="h-12 w-full rounded-lg border bg-background text-white border-border px-4 text-base text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all shadow-inner"
+ />
+CONTEXT:
+     196:  />
+     197:  </div>
+     198: 
+     199:  <div className="space-y-2">
+     200:  <label className="flex items-center gap-2 text-[10px] font-black text-foreground-secondary uppercase tracking-widest ml-1">
+     201:  <Calendar size={14} className="text-gold" /> Năm sinh
+     202:  </label>
+     203:  <input
+-->  204:  type="text" value={formData.birthYear || ""}
+     205:  onChange={(e) => setFormData({...formData, birthYear: e.target.value})}
+     206:  className="h-12 w-full rounded-lg border bg-background text-white border-border px-4 text-base text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all shadow-inner"
+     207:  />
+     208:  </div>
+     209: 
+     210:  <div className="space-y-2">
+     211:  <label className="flex items-center gap-2 text-[10px] font-black text-foreground-secondary uppercase tracking-widest ml-1">
+================================================================================
+
+[75] FILE: src\components\admin\ProfileModal.tsx:215
+INPUT TAG:
+<input
+ type="email" value={formData.email}
+ onChange={(e) => setFormData({...formData, email: e.target.value})}
+ className="h-12 w-full rounded-lg border bg-background text-white border-border px-4 text-base text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all shadow-inner"
+ />
+CONTEXT:
+     207:  />
+     208:  </div>
+     209: 
+     210:  <div className="space-y-2">
+     211:  <label className="flex items-center gap-2 text-[10px] font-black text-foreground-secondary uppercase tracking-widest ml-1">
+     212:  <Mail size={14} className="text-gold" /> Email
+     213:  </label>
+     214:  <input
+-->  215:  type="email" value={formData.email}
+     216:  onChange={(e) => setFormData({...formData, email: e.target.value})}
+     217:  className="h-12 w-full rounded-lg border bg-background text-white border-border px-4 text-base text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all shadow-inner"
+     218:  />
+     219:  </div>
+     220: 
+     221:  <div className="space-y-2">
+     222:  <label className="flex items-center gap-2 text-[10px] font-black text-foreground-secondary uppercase tracking-widest ml-1">
+================================================================================
+
+[76] FILE: src\components\admin\ProfileModal.tsx:226
+INPUT TAG:
+<input
+ type="text" value={formData.phone || ""}
+ onChange={(e) => setFormData({...formData, phone: e.target.value})}
+ className="h-12 w-full rounded-lg border bg-background text-white border-border px-4 text-base text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all shadow-inner"
+ />
+CONTEXT:
+     218:  />
+     219:  </div>
+     220: 
+     221:  <div className="space-y-2">
+     222:  <label className="flex items-center gap-2 text-[10px] font-black text-foreground-secondary uppercase tracking-widest ml-1">
+     223:  <Phone size={14} className="text-gold" /> Số điện thoại
+     224:  </label>
+     225:  <input
+-->  226:  type="text" value={formData.phone || ""}
+     227:  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+     228:  className="h-12 w-full rounded-lg border bg-background text-white border-border px-4 text-base text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all shadow-inner"
+     229:  />
+     230:  </div>
+     231: 
+     232:  <div className="space-y-2 md:col-span-2">
+     233:  <label className="flex items-center gap-2 text-[10px] font-black text-foreground-secondary uppercase tracking-widest ml-1">
+================================================================================
+
+[77] FILE: src\components\admin\ProfileModal.tsx:237
+INPUT TAG:
+<input
+ type="text" value={formData.address || ""}
+ onChange={(e) => setFormData({...formData, address: e.target.value})}
+ className="h-12 w-full rounded-lg border bg-background text-white border-border px-4 text-base text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all shadow-inner"
+ />
+CONTEXT:
+     229:  />
+     230:  </div>
+     231: 
+     232:  <div className="space-y-2 md:col-span-2">
+     233:  <label className="flex items-center gap-2 text-[10px] font-black text-foreground-secondary uppercase tracking-widest ml-1">
+     234:  <MapPin size={14} className="text-gold" /> Địa chỉ liên hệ
+     235:  </label>
+     236:  <input
+-->  237:  type="text" value={formData.address || ""}
+     238:  onChange={(e) => setFormData({...formData, address: e.target.value})}
+     239:  className="h-12 w-full rounded-lg border bg-background text-white border-border px-4 text-base text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all shadow-inner"
+     240:  />
+     241:  </div>
+     242: 
+     243:  <div className="space-y-2 md:col-span-2">
+     244:  <label className="flex items-center gap-2 text-[10px] font-black text-foreground-secondary uppercase tracking-widest ml-1">
+================================================================================
+
+[78] FILE: src\components\admin\modals\BatchNameModal.tsx:59
+INPUT TAG:
+<input
+            type="text"
+            placeholder="VD: Lô 1 ngày 15/10"
+            value={importBatchName}
+            onChange={(e) => setImportBatchName(e.target.value)}
+            className="w-full bg-background-secondary border border-border rounded-md px-4 py-3 text-sm text-foreground placeholder:text-foreground-secondary/40 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all"
+            autoFocus
+          />
+CONTEXT:
+      51:     >
+      52:       <div className="space-y-4">
+      53:         <p className="text-sm text-foreground-secondary font-medium leading-relaxed">
+      54:           Lô mail mới nhập sẽ được nhóm lại để thuận tiện quản lý công việc, theo dõi tiến độ và phân bổ cho nhân viên.
+      55:         </p>
+      56:         <div className="space-y-2">
+      57:           <label className="text-[10px] font-bold text-foreground-secondary uppercase tracking-widest block">Tên Lô Import</label>
+      58:           <input
+-->   59:             type="text"
+      60:             placeholder="VD: Lô 1 ngày 15/10"
+      61:             value={importBatchName}
+      62:             onChange={(e) => setImportBatchName(e.target.value)}
+      63:             className="w-full bg-background-secondary border border-border rounded-md px-4 py-3 text-sm text-foreground placeholder:text-foreground-secondary/40 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all"
+      64:             autoFocus
+      65:           />
+      66:         </div>
+================================================================================
+
+[79] FILE: src\components\admin\modals\MailSelectorModal.tsx:98
+INPUT TAG:
+<input
+            type="text"
+            placeholder="Tìm kiếm Email hoặc Mail KP..."
+            value={modalSearchQuery}
+            onChange={(e) => setModalSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 h-10 bg-background-secondary border border-border rounded-md text-xs text-foreground placeholder:text-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+          />
+CONTEXT:
+      90:           </div>
+      91:         </>
+      92:       }
+      93:     >
+      94:       <div className="mb-6 relative z-10">
+      95:         <div className="relative w-full">
+      96:           <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary w-4 h-4 pointer-events-none" />
+      97:           <input
+-->   98:             type="text"
+      99:             placeholder="Tìm kiếm Email hoặc Mail KP..."
+     100:             value={modalSearchQuery}
+     101:             onChange={(e) => setModalSearchQuery(e.target.value)}
+     102:             className="w-full pl-12 pr-4 h-10 bg-background-secondary border border-border rounded-md text-xs text-foreground placeholder:text-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+     103:           />
+     104:         </div>
+     105:       </div>
+================================================================================
+
+[80] FILE: src\components\admin\modals\MailSelectorModal.tsx:113
+INPUT TAG:
+<input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = someSelected;
+                  }}
+                  onChange={handleSelectAll}
+                  className="rounded border-border bg-background-secondary text-gold focus:ring-0 cursor-pointer h-4 w-4"
+                />
+CONTEXT:
+     105:       </div>
+     106: 
+     107:       <div className="min-h-[250px] overflow-y-auto max-h-[40vh] custom-scrollbar">
+     108:         <table className="w-full text-left text-xs whitespace-nowrap">
+     109:           <thead className="bg-background-secondary text-foreground-secondary border-b border-border sticky top-0 z-20">
+     110:             <tr>
+     111:               <th className="py-3 px-6 text-center w-12">
+     112:                 <input
+-->  113:                   type="checkbox"
+     114:                   checked={allSelected}
+     115:                   ref={(el) => {
+     116:                     if (el) el.indeterminate = someSelected;
+     117:                   }}
+     118:                   onChange={handleSelectAll}
+     119:                   className="rounded border-border bg-background-secondary text-gold focus:ring-0 cursor-pointer h-4 w-4"
+     120:                 />
+================================================================================
+
+[81] FILE: src\components\admin\modals\MailSelectorModal.tsx:137
+INPUT TAG:
+<input
+                        type="checkbox"
+                        checked={selectedMailIds.includes(key)}
+                        onChange={() => handleToggleRow(key)}
+                        className="rounded border-border bg-background-secondary text-gold focus:ring-0 cursor-pointer h-4 w-4"
+                      />
+CONTEXT:
+     129:           <tbody className="divide-y divide-border text-foreground-secondary">
+     130:             {availableMails.length > 0 ? (
+     131:               availableMails.map((mail, index) => {
+     132:                 const key = getMailKey(mail);
+     133:                 return (
+     134:                   <tr key={key} className="hover:bg-background-tertiary/40 bg-transparent transition-colors group">
+     135:                     <td className="py-2 px-6 text-center">
+     136:                       <input
+-->  137:                         type="checkbox"
+     138:                         checked={selectedMailIds.includes(key)}
+     139:                         onChange={() => handleToggleRow(key)}
+     140:                         className="rounded border-border bg-background-secondary text-gold focus:ring-0 cursor-pointer h-4 w-4"
+     141:                       />
+     142:                     </td>
+     143:                     <td className="py-2 px-6 text-xs text-foreground-secondary/70">{index + 1}</td>
+     144:                     <td className="py-2 px-6 text-xs text-gold/90 font-bold">
+================================================================================
+
+[82] FILE: src\components\auth\ForgotPasswordClient.tsx:177
+INPUT TAG:
+<input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={handleEmailChange}
+                      placeholder="username@gmail.com"
+                      style={{ paddingLeft: "3.5rem" }}
+                      className="h-16 w-full rounded-md border border-border bg-background-tertiary pl-14 pr-6 text-lg text-white focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold transition-all"
+                    />
+CONTEXT:
+     169:                 onSubmit={handleSendOTP}
+     170:                 className="space-y-6"
+     171:               >
+     172:                 <div className="space-y-4">
+     173:                   <label className="text-sm font-black uppercase tracking-widest text-foreground-secondary ml-1">Email của bạn</label>
+     174:                   <div className="group relative">
+     175:                     <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-foreground-secondary group-focus-within:text-gold transition-colors" size={18} />
+     176:                     <input
+-->  177:                       type="email"
+     178:                       required
+     179:                       value={email}
+     180:                       onChange={handleEmailChange}
+     181:                       placeholder="username@gmail.com"
+     182:                       style={{ paddingLeft: "3.5rem" }}
+     183:                       className="h-16 w-full rounded-md border border-border bg-background-tertiary pl-14 pr-6 text-lg text-white focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold transition-all"
+     184:                     />
+================================================================================
+
+[83] FILE: src\components\auth\ForgotPasswordClient.tsx:217
+INPUT TAG:
+<input
+                      type="text"
+                      required
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      placeholder="Nhập 6 số OTP"
+                      style={{ paddingLeft: "3.5rem" }}
+                      className="h-16 w-full rounded-md border border-border bg-background-tertiary pl-14 pr-6 text-center text-2xl tracking-[0.5em] text-white focus:border-gold focus:outline-none transition-all"
+                    />
+CONTEXT:
+     209:                 onSubmit={handleVerifyOTP}
+     210:                 className="space-y-6"
+     211:               >
+     212:                 <div className="space-y-4">
+     213:                   <label className="text-sm font-black uppercase tracking-widest text-foreground-secondary ml-1">Mã xác thực OTP</label>
+     214:                   <div className="group relative">
+     215:                     <ShieldCheck className="absolute left-5 top-1/2 -translate-y-1/2 text-foreground-secondary group-focus-within:text-gold transition-colors" size={18} />
+     216:                     <input
+-->  217:                       type="text"
+     218:                       required
+     219:                       value={otp}
+     220:                       onChange={(e) => setOtp(e.target.value)}
+     221:                       placeholder="Nhập 6 số OTP"
+     222:                       style={{ paddingLeft: "3.5rem" }}
+     223:                       className="h-16 w-full rounded-md border border-border bg-background-tertiary pl-14 pr-6 text-center text-2xl tracking-[0.5em] text-white focus:border-gold focus:outline-none transition-all"
+     224:                     />
+================================================================================
+
+[84] FILE: src\components\auth\ForgotPasswordClient.tsx:248
+INPUT TAG:
+<input
+                      type="password"
+                      required
+                      value={newPassword}
+                      onChange={handlePasswordChange}
+                      placeholder="••••••••"
+                      style={{ paddingLeft: "3.5rem" }}
+                      className="h-16 w-full rounded-md border border-border bg-background-tertiary pl-14 pr-6 text-lg text-white focus:border-gold focus:outline-none transition-all"
+                    />
+CONTEXT:
+     240:                 onSubmit={handleResetPassword}
+     241:                 className="space-y-6"
+     242:               >
+     243:                 <div className="space-y-4">
+     244:                   <label className="text-sm font-black uppercase tracking-widest text-foreground-secondary ml-1">Mật khẩu mới</label>
+     245:                   <div className="group relative">
+     246:                     <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-foreground-secondary group-focus-within:text-gold transition-colors" size={18} />
+     247:                     <input
+-->  248:                       type="password"
+     249:                       required
+     250:                       value={newPassword}
+     251:                       onChange={handlePasswordChange}
+     252:                       placeholder="••••••••"
+     253:                       style={{ paddingLeft: "3.5rem" }}
+     254:                       className="h-16 w-full rounded-md border border-border bg-background-tertiary pl-14 pr-6 text-lg text-white focus:border-gold focus:outline-none transition-all"
+     255:                     />
+================================================================================
+
+[85] FILE: src\components\auth\LoginFormClient.tsx:133
+INPUT TAG:
+<input 
+                        type="text" 
+                        required 
+                        value={username} 
+                        onChange={(e) => setUsername(e.target.value)} 
+                        placeholder="Username" 
+                        className="w-full pl-12 pr-4 h-14 bg-background-secondary border border-border rounded-md text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+                        disabled={isLoading}
+                      />
+CONTEXT:
+     125:                   transition={{ duration: 0.3 }}
+     126:                   className="space-y-6"
+     127:                 >
+     128:                   <div className="space-y-2">
+     129:                     <label className="text-[10px] font-black text-foreground-secondary uppercase tracking-widest ml-1">Tài khoản</label>
+     130:                     <div className="relative w-full">
+     131:                       <User className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary w-5 h-5 pointer-events-none" />
+     132:                       <input 
+-->  133:                         type="text" 
+     134:                         required 
+     135:                         value={username} 
+     136:                         onChange={(e) => setUsername(e.target.value)} 
+     137:                         placeholder="Username" 
+     138:                         className="w-full pl-12 pr-4 h-14 bg-background-secondary border border-border rounded-md text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+     139:                         disabled={isLoading}
+     140:                       />
+================================================================================
+
+[86] FILE: src\components\auth\LoginFormClient.tsx:152
+INPUT TAG:
+<input 
+                        type={showPassword ? "text" : "password"} 
+                        required 
+                        value={password} 
+                        onChange={(e) => setPassword(e.target.value)} 
+                        placeholder="••••••••" 
+                        className="w-full pl-12 pr-12 h-14 bg-background-secondary border border-border rounded-md text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+                        disabled={isLoading}
+                      />
+CONTEXT:
+     144:                   <div className="space-y-2">
+     145:                     <div className="flex justify-between items-center ml-1">
+     146:                       <label className="text-[10px] font-black text-foreground-secondary uppercase tracking-widest">Mật khẩu</label>
+     147:                       <Link href="/forgot-password" className="text-[8px] font-black text-gold hover:underline uppercase tracking-widest transition-all">Quên mật khẩu?</Link>
+     148:                     </div>
+     149:                     <div className="relative w-full">
+     150:                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary w-5 h-5 pointer-events-none" />
+     151:                       <input 
+-->  152:                         type={showPassword ? "text" : "password"} 
+     153:                         required 
+     154:                         value={password} 
+     155:                         onChange={(e) => setPassword(e.target.value)} 
+     156:                         placeholder="••••••••" 
+     157:                         className="w-full pl-12 pr-12 h-14 bg-background-secondary border border-border rounded-md text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+     158:                         disabled={isLoading}
+     159:                       />
+================================================================================
+
+[87] FILE: src\components\auth\LoginFormClient.tsx:182
+INPUT TAG:
+<input 
+                    type="text" 
+                    required 
+                    value={totpCode} 
+                    onChange={(e) => setTotpCode(e.target.value)} 
+                    placeholder="000000" 
+                    className="w-full h-16 text-2xl font-black text-gold text-center tracking-[0.5em] focus:border-gold focus:ring-1 focus:ring-gold outline-none bg-background-secondary border border-border rounded-md transition-all"
+                    disabled={isLoading}
+                    autoFocus
+                  />
+CONTEXT:
+     174:                   initial={{ opacity: 0, x: 20 }}
+     175:                   animate={{ opacity: 1, x: 0 }}
+     176:                   exit={{ opacity: 0, x: -20 }}
+     177:                   transition={{ duration: 0.3 }}
+     178:                   className="space-y-4"
+     179:                 >
+     180:                   <label className="text-[10px] font-black text-foreground-secondary uppercase tracking-widest text-center block">Xác thực 2FA</label>
+     181:                   <input 
+-->  182:                     type="text" 
+     183:                     required 
+     184:                     value={totpCode} 
+     185:                     onChange={(e) => setTotpCode(e.target.value)} 
+     186:                     placeholder="000000" 
+     187:                     className="w-full h-16 text-2xl font-black text-gold text-center tracking-[0.5em] focus:border-gold focus:ring-1 focus:ring-gold outline-none bg-background-secondary border border-border rounded-md transition-all"
+     188:                     disabled={isLoading}
+     189:                     autoFocus
+================================================================================
+
+[88] FILE: src\components\staff\StaffDashboardClient.tsx:718
+INPUT TAG:
+<input 
+                type="text" 
+                placeholder="Tìm kiếm nhiệm vụ..." 
+                value={taskSearch}
+                onChange={(e) => setTaskSearch(e.target.value)}
+                className="w-full h-9 pl-9 pr-4 text-xs bg-background border border-border rounded-md text-white placeholder-foreground-secondary/70 focus:border-gold outline-none transition-all"
+              />
+CONTEXT:
+     710:         
+     711:         {/* Task list section */}
+     712:         <div className="xl:col-span-2 card-style space-y-6">
+     713:           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-4">
+     714:             <h3 className="text-base font-black text-white uppercase tracking-widest">Danh sách nhiệm vụ</h3>
+     715:             <div className="relative w-full sm:w-60">
+     716:               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground-secondary w-4 h-4 pointer-events-none" />
+     717:               <input 
+-->  718:                 type="text" 
+     719:                 placeholder="Tìm kiếm nhiệm vụ..." 
+     720:                 value={taskSearch}
+     721:                 onChange={(e) => setTaskSearch(e.target.value)}
+     722:                 className="w-full h-9 pl-9 pr-4 text-xs bg-background border border-border rounded-md text-white placeholder-foreground-secondary/70 focus:border-gold outline-none transition-all"
+     723:               />
+     724:             </div>
+     725:           </div>
+================================================================================
+

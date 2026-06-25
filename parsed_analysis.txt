@@ -1,0 +1,396 @@
+Found 35 inputs with absolute positioned elements nearby:
+
+[1] src\app\admin\fines-report\page.tsx:342
+  Absolute: 340:  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+  Input: <input
+ type="text"
+ placeholder="Tìm theo tên nhân viên hoặc lí do..."
+ value={searchQuery}
+ onChange={(e) => setSearchQuery(e.target.value)}
+ className="w-full pl-10 pr-4 py-3 bg-sidebar border border-white/0 rounded-xl text-base text-white placeholder:text-gray-500 outline-none focus:border-white/5 transition-all"
+ />
+  pl: 10, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[2] src\app\admin\mail\batches\page.tsx:424
+  Absolute: 422:  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={16} />
+  Input: <input 
+ placeholder="Tìm kiếm Lô, Người quản lý, Người import..."
+ className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-60"
+ type="text" 
+ value={searchTerm}
+ onChange={(e) => setSearchTerm(e.target.value)}
+ />
+  pl: 12, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[3] src\app\admin\mail\batches\page.tsx:618
+  Absolute: 616:  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={14} />
+  Input: <input 
+ placeholder="Tìm Email trong lô..."
+ className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all w-48"
+ type="text" 
+ value={detailSearchTerm}
+ onChange={(e) => setDetailSearchTerm(e.target.value)}
+ />
+  pl: 12, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[4] src\app\admin\mail\satellite-batches\page.tsx:605
+  Absolute: 603:    <Search className="absolute left-4 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
+  Input: <input 
+     placeholder="Tìm kiếm nhân sự..."
+     className="w-full bg-black/40 border border-white/0 rounded-md pl-12 pr-4 h-12 text-sm text-white outline-none focus:border-white/5 transition-all"
+     type="text" 
+     value={staffSearchTerm}
+     onChange={(e) => setStaffSearchTerm(e.target.value)}
+   />
+  pl: 12, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[5] src\app\admin\mail\satellite-batches\page.tsx:808
+  Absolute: 806:  <Search className="absolute left-4 text-gray-500 group-focus-within:text-gold transition-colors" size={16} />
+  Input: <input 
+ placeholder="Tìm kiếm Lô..."
+ className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-48"
+ type="text" 
+ value={searchTerm}
+ onChange={(e) => setSearchTerm(e.target.value)}
+ />
+  pl: 12, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[6] src\app\admin\mails\page.tsx:138
+  Absolute: 136:  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={16} />
+  Input: <input 
+ type="text"
+ placeholder="Tìm kiếm nhanh..."
+ value={searchTerm}
+ onChange={(e) => setSearchTerm(e.target.value)}
+ className="h-10 w-40 rounded-md bg-sidebar border border-white/0 pl-12 pr-4 text-sm text-white focus:border-white/5 focus:outline-none transition-all"
+ />
+  pl: 12, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[7] src\app\admin\newsfeed\page.tsx:790
+  Absolute: 787:                                     <div className="w-4 h-6 border-l-[1.5px] border-b-[1.5px] border-[#ffeb3b]/20 rounded-bl-xl absolute -left-5 -top-1" />
+  Input: <input 
+                                      placeholder={`Phản hồi ${cmt.authorName}...`}
+                                      value={replyInputs[cmt.id] || ""}
+                                      onChange={(e) => setReplyInputs({ ...replyInputs, [cmt.id]: e.target.value })}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") handleAddReply(post.id, cmt.id);
+                                      }}
+                                      className="flex-grow h-8 bg-[#050505]/80 border border-[#ffeb3b]/10 rounded-xl px-3 text-[11px] text-[#ffffff] focus:outline-none focus:border-[#ffeb3b]/30 transition-all font-bold shadow-inner"
+                                      style={{ color: '#fff' }}
+                                    />
+  pl: None, pr: None, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[8] src\app\admin\phone\batches\page.tsx:589
+  Absolute: 587:   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors pointer-events-none" size={14} />
+  Input: <input
+  placeholder="Tìm SĐT, OTP Link..."
+  className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-60"
+ type="text"
+ value={searchTerm}
+ onChange={(e) => setSearchTerm(e.target.value)}
+ />
+  pl: 12, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[9] src\app\admin\phone\batches\page.tsx:782
+  Absolute: 780:  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors pointer-events-none" size={14} />
+  Input: <input
+ placeholder="Tìm tên hoặc username..."
+ className="w-full bg-black/40 border border-white/0 rounded-md pl-12 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all"
+ type="text"
+ value={staffSearch}
+ onChange={(e) => setStaffSearch(e.target.value)}
+ />
+  pl: 12, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[10] src\app\admin\phone\list\page.tsx:217
+  Absolute: 215:   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors pointer-events-none" size={15} />
+  Input: <input 
+  placeholder="Tìm kiếm số điện thoại..."
+  className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-64"
+  type="text" 
+  value={searchTerm}
+  onChange={(e) => setSearchTerm(e.target.value)}
+  />
+  pl: 12, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[11] src\app\admin\settings\page.tsx:1354
+  Absolute: 1360:  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
+  Input: <input 
+ type="text" 
+ value={Number(fineTier1).toLocaleString("vi-VN")}
+ onChange={(e) => setFineTier1(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ />
+  pl: 5, pr: 12, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[12] src\app\admin\settings\page.tsx:1367
+  Absolute: 1360:  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
+  Input: <input 
+ type="text" 
+ value={Number(fineTier2).toLocaleString("vi-VN")}
+ onChange={(e) => setFineTier2(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ />
+  pl: 5, pr: 12, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[13] src\app\admin\settings\page.tsx:1380
+  Absolute: 1373:  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-base">VND</span>
+  Input: <input 
+ type="text" 
+ value={Number(fineTier3).toLocaleString("vi-VN")}
+ onChange={(e) => setFineTier3(Math.max(0, Number(e.target.value.replace(/\D/g,""))))}
+ onMouseDown={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 text-zinc-100 rounded-2xl pl-5 pr-12 h-14 text-lg text-gold outline-none focus:border-white/5 focus:bg-[#161616] transition-all w-full font-black tracking-wider"
+ />
+  pl: 5, pr: 12, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[14] src\app\admin\settings\page.tsx:1570
+  Absolute: 1567:  <div className="absolute left-0 right-0 mt-2 bg-zinc-950/95 backdrop-blur-md border border-white/0 rounded-2xl shadow-2xl z-[100] max-h-64 flex flex-col overflow-hidden animate-fade-in">
+  Input: <input 
+ type="text" 
+ placeholder="Tìm tên hoặc mã ngân hàng..."
+ value={bankSearchTerm}
+ onChange={(e) => setBankSearchTerm(e.target.value)}
+ onClick={(e) => e.stopPropagation()}
+ className="bg-zinc-900 border border-white/0 rounded-xl px-3 h-9 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-amber-500/30 w-full"
+ />
+  pl: None, pr: None, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[15] src\app\admin\staff\page.tsx:1025
+  Absolute: 1023:  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary w-5 h-5 pointer-events-none" />
+  Input: <input
+ type="text"
+ placeholder="Tìm kiếm tên hoặc username..."
+ value={searchQuery}
+ onChange={(e) => setSearchQuery(e.target.value)}
+ className="w-full pl-12 pr-4 h-12 bg-background-secondary border border-border rounded-md text-base text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+ />
+  pl: 12, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[16] src\app\admin\stats\logs\page.tsx:224
+  Absolute: 222:             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-amber-500 transition-colors" size={14} />
+  Input: <input 
+              placeholder="Tìm kiếm tác vụ, tài khoản..."
+              className="bg-zinc-900 border border-border rounded-md pl-12 pr-4 h-10 text-sm text-zinc-100 outline-none focus:border-amber-500/50 transition-all w-60"
+              type="text" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+  pl: 12, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[17] src\app\admin\tasks\page.tsx:1037
+  Absolute: 1035:                           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary w-5 h-5 pointer-events-none" />
+  Input: <input
+                            type="text"
+                            placeholder="Nhập tên nhân viên đang online..."
+                            value={staffSearch}
+                            onChange={(e) => {
+                              setStaffSearch(e.target.value);
+                              setShowStaffDropdown(true);
+                            }}
+                            onFocus={() => setShowStaffDropdown(true)}
+                            className="w-full pl-12 pr-4 h-14 bg-background-secondary border border-border rounded-md text-foreground text-base placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+                          />
+  pl: 12, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[18] src\app\register\page.tsx:409
+  Absolute: 407:  <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.name ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+  Input: <input type="text" name="name" required value={formData.name} onChange={handleInputChange} placeholder="Nguyễn Văn A" style={{ paddingLeft: "3.5rem" }} className={inputClass("name")} />
+  pl: None, pr: None, style_pl: True, style_pr: False
+--------------------------------------------------------------------------------
+
+[19] src\app\register\page.tsx:429
+  Absolute: 427:  <User className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.username ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+  Input: <input type="text" name="username" required value={formData.username} onChange={handleInputChange} onBlur={handleUsernameBlur} placeholder="username_01" style={{ paddingLeft: "3.5rem" }} className={inputClass("username")} />
+  pl: None, pr: None, style_pl: True, style_pr: False
+--------------------------------------------------------------------------------
+
+[20] src\app\register\page.tsx:438
+  Absolute: 436:  <Phone className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.phone ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+  Input: <input type="tel" name="phone" required value={formData.phone} onChange={handleInputChange} placeholder="09xxxxxxxx" style={{ paddingLeft: "3.5rem" }} className={inputClass("phone")} />
+  pl: None, pr: None, style_pl: True, style_pr: False
+--------------------------------------------------------------------------------
+
+[21] src\app\register\page.tsx:447
+  Absolute: 445:   <Mail className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.email ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+  Input: <input type="email" name="email" required value={formData.email} onChange={handleInputChange} placeholder="example@mail.com" style={{ paddingLeft: "3.5rem" }} className={inputClass("email")} />
+  pl: None, pr: None, style_pl: True, style_pr: False
+--------------------------------------------------------------------------------
+
+[22] src\app\register\page.tsx:456
+  Absolute: 454:  <MapPin className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.address ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+  Input: <input type="text" name="address" required value={formData.address} onChange={handleInputChange} placeholder="Hà Nội, Việt Nam" style={{ paddingLeft: "3.5rem" }} className={inputClass("address")} />
+  pl: None, pr: None, style_pl: True, style_pr: False
+--------------------------------------------------------------------------------
+
+[23] src\app\register\page.tsx:464
+  Absolute: 462:  <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${errors.password ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+  Input: <input type="password" name="password" required value={formData.password} onChange={handleInputChange} style={{ paddingLeft: "3.5rem" }} className={inputClass("password")} />
+  pl: None, pr: None, style_pl: True, style_pr: False
+--------------------------------------------------------------------------------
+
+[24] src\app\register\page.tsx:484
+  Absolute: 482:  <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 ${formData.confirmPassword && formData.confirmPassword !== formData.password ?"text-red-500" :" text-gray-400 group-focus-within:text-gold"} transition-colors`} size={18} />
+  Input: <input type="password" name="confirmPassword" required value={formData.confirmPassword} onChange={handleInputChange} style={{ paddingLeft: "3.5rem" }} className={`h-14 w-full rounded-2xl border ${formData.confirmPassword && formData.confirmPassword !== formData.password ?"border-red-500 bg-red-50/50 bg-red-900/20 text-white" : formData.confirmPassword && formData.confirmPassword === formData.password ?"border-green-500 bg-green-50/50 bg-green-900/20 text-white" :" border-gray-600 bg-gray-800 text-white"} pl-14 pr-6 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder-gray-400 placeholder-gray-500 font-bold`} />
+  pl: 14, pr: 6, style_pl: True, style_pr: False
+--------------------------------------------------------------------------------
+
+[25] src\components\admin\AdminChat.tsx:537
+  Absolute: 535:                       <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-600" />
+  Input: <input
+                        placeholder="Tìm..."
+                        value={chatSearchTerm}
+                        onChange={(e) => setChatSearchTerm(e.target.value)}
+                        className="w-full bg-white/5 border border-white/0 rounded-lg pl-7 pr-2 py-1.5 text-[10px] text-white outline-none"
+                      />
+  pl: 7, pr: 2, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[26] src\components\admin\AdminDashboardClient.tsx:160
+  Absolute: 158:               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary" />
+  Input: <input 
+                placeholder="Tìm kiếm nhanh..."
+                className="w-full bg-white/5 border border-border rounded-xl pl-11 pr-4 h-11 text-sm text-white focus:border-gold outline-none transition-all"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+  pl: 11, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[27] src\components\admin\AdminLayoutClient.tsx:2222
+  Absolute: 2220:       <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary w-3.5 h-3.5 pointer-events-none" />
+  Input: <input 
+        type="text" 
+        placeholder="Tìm tên hoặc username..."
+        value={chatSearchTerm}
+        onChange={(e) => setChatSearchTerm(e.target.value)}
+        className="w-full pl-10 pr-4 h-10 bg-background-secondary border border-border rounded-md text-xs text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+      />
+  pl: 10, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[28] src\components\admin\MailManagement.tsx:502
+  Absolute: 500:             <Search className="absolute left-3 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
+  Input: <input
+              type="text"
+              placeholder="Tìm kiếm email, lô, ghi chú..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl pl-10 pr-6 text-white text-sm outline-none focus:border-white/10 transition-all shadow-inner"
+            />
+  pl: 10, pr: 6, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[29] src\components\admin\modals\MailSelectorModal.tsx:98
+  Absolute: 96:           <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary w-4 h-4 pointer-events-none" />
+  Input: <input
+            type="text"
+            placeholder="Tìm kiếm Email hoặc Mail KP..."
+            value={modalSearchQuery}
+            onChange={(e) => setModalSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 h-10 bg-background-secondary border border-border rounded-md text-xs text-foreground placeholder:text-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+          />
+  pl: 12, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[30] src\components\auth\ForgotPasswordClient.tsx:177
+  Absolute: 175:                     <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-foreground-secondary group-focus-within:text-gold transition-colors" size={18} />
+  Input: <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={handleEmailChange}
+                      placeholder="username@gmail.com"
+                      style={{ paddingLeft: "3.5rem" }}
+                      className="h-16 w-full rounded-md border border-border bg-background-tertiary pl-14 pr-6 text-lg text-white focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold transition-all"
+                    />
+  pl: 14, pr: 6, style_pl: True, style_pr: False
+--------------------------------------------------------------------------------
+
+[31] src\components\auth\ForgotPasswordClient.tsx:217
+  Absolute: 215:                     <ShieldCheck className="absolute left-5 top-1/2 -translate-y-1/2 text-foreground-secondary group-focus-within:text-gold transition-colors" size={18} />
+  Input: <input
+                      type="text"
+                      required
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      placeholder="Nhập 6 số OTP"
+                      style={{ paddingLeft: "3.5rem" }}
+                      className="h-16 w-full rounded-md border border-border bg-background-tertiary pl-14 pr-6 text-center text-2xl tracking-[0.5em] text-white focus:border-gold focus:outline-none transition-all"
+                    />
+  pl: 14, pr: 6, style_pl: True, style_pr: False
+--------------------------------------------------------------------------------
+
+[32] src\components\auth\ForgotPasswordClient.tsx:248
+  Absolute: 246:                     <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-foreground-secondary group-focus-within:text-gold transition-colors" size={18} />
+  Input: <input
+                      type="password"
+                      required
+                      value={newPassword}
+                      onChange={handlePasswordChange}
+                      placeholder="••••••••"
+                      style={{ paddingLeft: "3.5rem" }}
+                      className="h-16 w-full rounded-md border border-border bg-background-tertiary pl-14 pr-6 text-lg text-white focus:border-gold focus:outline-none transition-all"
+                    />
+  pl: 14, pr: 6, style_pl: True, style_pr: False
+--------------------------------------------------------------------------------
+
+[33] src\components\auth\LoginFormClient.tsx:133
+  Absolute: 131:                       <User className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary w-5 h-5 pointer-events-none" />
+  Input: <input 
+                        type="text" 
+                        required 
+                        value={username} 
+                        onChange={(e) => setUsername(e.target.value)} 
+                        placeholder="Username" 
+                        className="w-full pl-12 pr-4 h-14 bg-background-secondary border border-border rounded-md text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+                        disabled={isLoading}
+                      />
+  pl: 12, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[34] src\components\auth\LoginFormClient.tsx:152
+  Absolute: 150:                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary w-5 h-5 pointer-events-none" />
+  Input: <input 
+                        type={showPassword ? "text" : "password"} 
+                        required 
+                        value={password} 
+                        onChange={(e) => setPassword(e.target.value)} 
+                        placeholder="••••••••" 
+                        className="w-full pl-12 pr-12 h-14 bg-background-secondary border border-border rounded-md text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+                        disabled={isLoading}
+                      />
+  pl: 12, pr: 12, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
+[35] src\components\staff\StaffDashboardClient.tsx:718
+  Absolute: 716:               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground-secondary w-4 h-4 pointer-events-none" />
+  Input: <input 
+                type="text" 
+                placeholder="Tìm kiếm nhiệm vụ..." 
+                value={taskSearch}
+                onChange={(e) => setTaskSearch(e.target.value)}
+                className="w-full h-9 pl-9 pr-4 text-xs bg-background border border-border rounded-md text-white placeholder-foreground-secondary/70 focus:border-gold outline-none transition-all"
+              />
+  pl: 9, pr: 4, style_pl: False, style_pr: False
+--------------------------------------------------------------------------------
+
