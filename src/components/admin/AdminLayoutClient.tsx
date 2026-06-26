@@ -1324,7 +1324,20 @@ const typingTimer = setInterval(checkTyping, 1000);
      content,
      isCompanyChat: true
    })
- }).catch(err => console.error("POST company message error:", err));
+ })
+   .then(async (res) => {
+     if (res.ok) {
+       const data = await res.json();
+       if (data.success && data.data) {
+         setCompanyMessages(prev => {
+           if (prev.some(m => m.id === data.data.id || m._id === data.data._id)) return prev;
+           return [...prev, data.data];
+         });
+         scrollToBottom();
+       }
+     }
+   })
+   .catch(err => console.error("POST company message error:", err));
  };
 
  const handleSendPrivateMessage = (e: React.FormEvent) => {
@@ -1347,7 +1360,20 @@ const typingTimer = setInterval(checkTyping, 1000);
       receiverId: activeChatUser.id || activeChatUser._id,
       isCompanyChat: false
     })
-  }).catch(err => console.error("POST message to DB error:", err));
+  })
+    .then(async (res) => {
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.data) {
+          setPrivateMessages(prev => {
+            if (prev.some(m => m.id === data.data.id || m._id === data.data._id)) return prev;
+            return [...prev, data.data];
+          });
+          scrollToBottom();
+        }
+      }
+    })
+    .catch(err => console.error("POST message to DB error:", err));
   };
 
  // Kiểm tra giờ làm việc & ngày Chủ Nhật
@@ -1382,17 +1408,19 @@ const typingTimer = setInterval(checkTyping, 1000);
  const [chatSearchTerm, setChatSearchTerm] = useState("");
 
  const filteredChatUsers = useMemo(() => {
-   return (chatUsers || []).filter((u: any) => {
-     // 1. Chỉ hiện nhân sự online
-     if (!u.isOnline) return false;
-
-     // 2. Lọc theo search term (tên hoặc username)
+   const list = (chatUsers || []).filter((u: any) => {
+     if (u.status !== "ACTIVE") return false;
      if (chatSearchTerm.trim() === "") return true;
      const term = chatSearchTerm.toLowerCase();
      return (
        u.name?.toLowerCase().includes(term) ||
        u.username?.toLowerCase().includes(term)
      );
+   });
+   return [...list].sort((a, b) => {
+     if (a.isOnline && !b.isOnline) return -1;
+     if (!a.isOnline && b.isOnline) return 1;
+     return 0;
    });
  }, [chatUsers, chatSearchTerm]);
 
@@ -2240,7 +2268,7 @@ const typingTimer = setInterval(checkTyping, 1000);
    <div className="h-8 w-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-sm text-gold font-black group-hover:scale-105 transition-all">
    {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover rounded-lg" onError={(e) => e.currentTarget.src ="https://ui-avatars.com/api/?name=" + (u.name ||"U") +"&background=d4af37&color=000"} /> : (u.name || u.username || "U").charAt(0)}
    </div>
-   <div className={`absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-[#161616] ${u.isOnline ?"bg-green-500" :"bg-red-500"}`} />
+   <div className={`absolute -bottom-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-[#161616] ${u.isOnline ? "bg-green-500" : "bg-zinc-600"}`} />
    </div>
    <div className="flex-1 min-w-0">
    <p className="text-sm font-bold text-white truncate">{u.name}</p>
@@ -2256,7 +2284,7 @@ const typingTimer = setInterval(checkTyping, 1000);
  ) : (
    <div className="py-20 text-center flex flex-col items-center gap-3">
      <UserSearch size={32} className="text-gray-700" />
-     <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest italic">Không có ai online</p>
+     <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest italic">Không tìm thấy nhân sự</p>
    </div>
  )}
  </div>

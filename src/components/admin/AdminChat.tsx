@@ -366,11 +366,16 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
   }, [companyMessages, privateMessages, user, playChatChime]);
 
   const filteredChatUsers = useMemo(() => {
-    return (chatUsers || []).filter((u: any) => {
-      if (!u.isOnline) return false;
+    const list = (chatUsers || []).filter((u: any) => {
+      if (u.status !== "ACTIVE") return false;
       if (chatSearchTerm.trim() === "") return true;
       const term = chatSearchTerm.toLowerCase();
       return (u.name?.toLowerCase().includes(term) || u.username?.toLowerCase().includes(term));
+    });
+    return [...list].sort((a, b) => {
+      if (a.isOnline && !b.isOnline) return -1;
+      if (!a.isOnline && b.isOnline) return 1;
+      return 0;
     });
   }, [chatUsers, chatSearchTerm]);
 
@@ -408,7 +413,20 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content, isCompanyChat: true })
-    }).catch(console.error);
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data) {
+            setCompanyMessages(prev => {
+              if (prev.some(m => m.id === data.data.id || m._id === data.data._id)) return prev;
+              return [...prev, data.data];
+            });
+            scrollToBottom();
+          }
+        }
+      })
+      .catch(console.error);
   };
 
   const handleSendPrivateMessage = (e: React.FormEvent) => {
@@ -424,7 +442,20 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content, receiverId: activeChatUser.id || activeChatUser._id, isCompanyChat: false })
-    }).catch(console.error);
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data) {
+            setPrivateMessages(prev => {
+              if (prev.some(m => m.id === data.data.id || m._id === data.data._id)) return prev;
+              return [...prev, data.data];
+            });
+            scrollToBottom();
+          }
+        }
+      })
+      .catch(console.error);
   };
 
   const getUnreadCountForUser = (senderUsername: string) => {
@@ -538,7 +569,7 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
                         placeholder="Tìm..."
                         value={chatSearchTerm}
                         onChange={(e) => setChatSearchTerm(e.target.value)}
-                        className="w-full bg-white/5 border border-white/0 rounded-lg pl-7 pr-2 py-1.5 text-[10px] text-white outline-none"
+                        className="w-full bg-white/5 border border-white/0 rounded-lg pl-10 pr-2 py-1.5 text-[10px] text-white outline-none"
                       />
                     </div>
                   </div>
@@ -552,7 +583,7 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
                           className={`w-full p-2.5 rounded-xl flex flex-col gap-1 transition-all relative ${activeChatUser?.username === u.username ? 'bg-gold/10 border border-gold/20' : 'hover:bg-white/5 border border-transparent'}`}
                         >
                           <div className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.5)]" />
+                            <div className={`w-2.5 h-2.5 rounded-full ${u.isOnline ? 'bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.5)]' : 'bg-zinc-600'}`}></div>
                             <span className={`text-[10px] font-black truncate ${activeChatUser?.username === u.username ? 'text-gold' : 'text-zinc-400'}`}>
                               {u.name}
                             </span>
