@@ -442,9 +442,14 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
             </button>
           )}
           <div>
-            <h1 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+            <h1 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3 flex-wrap">
               <Database className="text-gold" size={28} />
               Quản lý Kho Mail AQ
+              {apiData?.warehouseCount !== undefined && (
+                <span className="px-3 py-1 text-xs font-black bg-gold/10 text-gold border border-gold/30 rounded-full shadow-[0_0_15px_rgba(251,191,36,0.3)] animate-pulse shrink-0">
+                  Kho còn: {apiData.warehouseCount} mail
+                </span>
+              )}
             </h1>
             <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">
               {viewMode === "BATCHES" ? "Danh sách các đợt nạp mail hệ thống" : `Chi tiết Lô: ${selectedBatch}`}
@@ -504,7 +509,7 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
               placeholder="Tìm kiếm email, lô, ghi chú..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl pl-10 pr-6 text-white text-sm outline-none focus:border-white/10 transition-all shadow-inner"
+              className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl pl-12 pr-6 text-white text-sm outline-none focus:border-white/10 transition-all shadow-inner"
             />
           </div>
           {viewMode === "MAILS" && (

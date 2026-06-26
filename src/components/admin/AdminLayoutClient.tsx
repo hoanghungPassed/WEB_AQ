@@ -39,8 +39,8 @@ const getMessageStatus = (msg: any) => {
   const msgTime = Number(msg.id?.split("_")[1]) || (msg.createdAt ? new Date(msg.createdAt).getTime() : 0);
   if (msgTime === 0) return null;
 
-  const receiver = msg.receiver;
-  const sender = msg.sender;
+  const receiver = msg.receiverUsername || msg.receiver;
+  const sender = msg.senderUsername || msg.sender;
 
   const readTimeStr = typeof window !== "undefined" ? localStorage.getItem(`chat_last_read_time_${receiver}_${sender}`) : null;
   const readTime = readTimeStr ? Number(readTimeStr) : 0;
@@ -434,21 +434,35 @@ export default function AdminLayoutClient({
  const [phoneList, setPhoneList] = useState<any[]>([]);
  const isCurrentlyLockedRef = React.useRef(false);
 
- useEffect(() => {
- const loadPhones = () => {
- const raw = localStorage.getItem("global_phones_data");
- if (raw) {
- setPhoneList(JSON.parse(raw));
- }
- };
- loadPhones();
- window.addEventListener("storage", loadPhones);
- const interval = setInterval(loadPhones, 10000);
- return () => {
- window.removeEventListener("storage", loadPhones);
- clearInterval(interval);
- };
- }, []);
+  useEffect(() => {
+    const fetchPhones = async () => {
+      if (!user) return;
+      const isStaff = ["03", "04", "05"].includes(user.role || "");
+      if (isStaff) {
+        try {
+          const res = await fetch("/api/admin/phones");
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.data) {
+              setPhoneList(data.data);
+              localStorage.setItem("global_phones_data", JSON.stringify(data.data));
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch phones:", err);
+        }
+      } else {
+        const raw = localStorage.getItem("global_phones_data");
+        if (raw) {
+          setPhoneList(JSON.parse(raw));
+        }
+      }
+    };
+
+    fetchPhones();
+    const interval = setInterval(fetchPhones, 10000);
+    return () => clearInterval(interval);
+  }, [user]);
 
  const handleUpdatePhoneStatus = (phoneId: string, newStatus: string) => {
  const raw = localStorage.getItem("global_phones_data");
@@ -1075,13 +1089,15 @@ const totalWorkingMins = overlap1 + overlap2;
 
  let count = 0;
  privateMessages.forEach((msg: any) => {
- if (msg.sender === senderUsername && msg.receiver === user?.username) {
- const msgTime = Number(msg.id.split("_")[1]) || 0;
- if (msgTime > 0 && msgTime > lastReadTime) {
- count++;
- }
- }
- });
+    const sender = msg.senderUsername || msg.sender;
+    const receiver = msg.receiverUsername || msg.receiver;
+    if (sender === senderUsername && receiver === user?.username) {
+      const msgTime = Number(msg.id.split("_")[1]) || 0;
+      if (msgTime > 0 && msgTime > lastReadTime) {
+        count++;
+      }
+    }
+  });
  return count;
  };
 
@@ -2149,7 +2165,7 @@ const typingTimer = setInterval(checkTyping, 1000);
  </span>
  )}
  <div className={`p-3 rounded-2xl text-sm font-medium leading-relaxed break-all flex flex-col gap-2 ${isMe ?"bg-gold text-sidebar rounded-tr-none" :" bg-white/5 text-white rounded-tl-none border border-white/0"}`}>
- {msg.text && <span>{msg.text}</span>}
+ {(msg.content || msg.text) && <span>{msg.content || msg.text}</span>}
  {msg.fileData && msg.fileType?.startsWith("image/") && (
  <div className="rounded-xl overflow-hidden border border-white/0 max-h-36">
  <img
@@ -2178,7 +2194,9 @@ const typingTimer = setInterval(checkTyping, 1000);
  </div>
  )}
  </div>
- <span className="text-[8px] font-bold font-mono mt-1 px-1">{msg.time}</span>
+  <span className="text-[8px] font-bold font-mono mt-1 px-1">
+    {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : msg.time}
+  </span>
  </div>
  );
  })}
@@ -2252,7 +2270,7 @@ const typingTimer = setInterval(checkTyping, 1000);
         placeholder="Tìm tên hoặc username..."
         value={chatSearchTerm}
         onChange={(e) => setChatSearchTerm(e.target.value)}
-        className="w-full pl-10 pr-4 h-10 bg-background-secondary border border-border rounded-md text-xs text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+        className="w-full pl-12 pr-4 h-10 bg-background-secondary border border-border rounded-md text-xs text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
       />
     </div>
  </div>
@@ -2309,16 +2327,18 @@ const typingTimer = setInterval(checkTyping, 1000);
  {/* Private Messages Area */}
  <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar flex flex-col">
  {privateMessages
- .filter((msg: any) =>
- (msg.sender === user?.username && msg.receiver === activeChatUser.username) ||
- (msg.sender === activeChatUser.username && msg.receiver === user?.username)
- )
- .map((msg: any) => {
- const isMe = msg.sender === user?.username;
+  .filter((msg: any) => {
+    const sender = msg.senderUsername || msg.sender;
+    const receiver = msg.receiverUsername || msg.receiver;
+    return (sender === user?.username && receiver === activeChatUser.username) ||
+           (sender === activeChatUser.username && receiver === user?.username);
+  })
+  .map((msg: any) => {
+    const isMe = (msg.senderUsername || msg.sender) === user?.username;
  return (
  <div key={msg.id} className={`flex flex-col max-w-[80%] ${isMe ?"self-end items-end" :"self-start items-start"}`}>
  <div className={`p-3 rounded-2xl text-sm font-medium leading-relaxed break-all flex flex-col gap-2 ${isMe ?"bg-gold text-sidebar rounded-tr-none" :" bg-white/5 text-white rounded-tl-none border border-white/0"}`}>
- {msg.text && <span>{msg.text}</span>}
+ {(msg.content || msg.text) && <span>{msg.content || msg.text}</span>}
  {msg.fileData && msg.fileType?.startsWith("image/") && (
  <div className="rounded-xl overflow-hidden border border-white/0 max-h-36">
  <img
@@ -2348,7 +2368,9 @@ const typingTimer = setInterval(checkTyping, 1000);
  )}
  </div>
  <div className="flex items-center gap-1 mt-1 px-1">
- <span className="text-[8px] font-bold font-mono">{msg.time}</span>
+  <span className="text-[8px] font-bold font-mono">
+    {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : msg.time}
+  </span>
  {isMe && getMessageStatus(msg)}
  </div>
  </div>

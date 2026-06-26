@@ -369,7 +369,7 @@ export default function PhoneBatchesPage() {
  const now = new Date().toISOString().split("T")[0];
 
  await updatePhonesAPI(ids, {
- assigneeId: selectedEmp.username,
+ assigneeId: selectedEmp.id,
  assignedTo: selectedEmp.name,
  assignedAt: now
  });
@@ -444,7 +444,7 @@ export default function PhoneBatchesPage() {
  const refillIds = unassignedNewStock.slice(0, canFill).map(p => p.id);
  const now = new Date().toISOString().split("T")[0];
  await updatePhonesAPI(refillIds, {
- assigneeId: selectedEmp.username,
+ assigneeId: selectedEmp.id,
  assignedTo: selectedEmp.name,
  assignedAt: now,
  status:"Chưa làm"

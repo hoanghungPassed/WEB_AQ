@@ -83,7 +83,14 @@ export async function GET(req: NextRequest) {
     }
     const isStaffRole = userRole === "03" || userRole === "04" || userRole === "05";
     if (isStaffRole) {
-      query.assigneeId = userId;
+      const mongoose = (await import("mongoose")).default;
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { assigneeId: userId },
+          { assignee: userId ? new mongoose.Types.ObjectId(userId) : null }
+        ]
+      });
     }
 
     // Text search filter
@@ -120,18 +127,47 @@ export async function GET(req: NextRequest) {
       return MonetizedMail;
     };
 
-    // Use cached batch stats if less than 30 seconds old to prevent heavy DB load
-    let batchStats = cachedBatchStats;
-    const now = Date.now();
-    if (now - lastBatchCacheTime > 30000 || cachedBatchStats.length === 0) {
+    // Count unassigned mails in the warehouse
+    let warehouseCount = 0;
+    const warehouseQuery = { status: { $in: ["AVAILABLE", "UNPROCESSED"] } };
+    if (type === "ROOT") {
+      warehouseCount = await RootMail.countDocuments(warehouseQuery);
+    } else if (type === "SATELLITE") {
+      warehouseCount = await SatelliteMail.countDocuments(warehouseQuery);
+    } else if (type === "MONETIZED") {
+      warehouseCount = await MonetizedMail.countDocuments(warehouseQuery);
+    } else {
+      const [r, s, m] = await Promise.all([
+        RootMail.countDocuments(warehouseQuery),
+        SatelliteMail.countDocuments(warehouseQuery),
+        MonetizedMail.countDocuments(warehouseQuery)
+      ]);
+      warehouseCount = r + s + m;
+    }
+
+    let batchStats: any[] = [];
+    let uniqueBatches: string[] = [];
+
+    if (isStaffRole) {
+      const mongoose = (await import("mongoose")).default;
+      const staffMatch = {
+        $or: [
+          { assigneeId: userId },
+          { assignee: userId ? new mongoose.Types.ObjectId(userId) : null }
+        ]
+      };
+      // If staff, we aggregate batches specifically for this user's assigned mails
       const [rootBatches, satBatches, monBatches] = await Promise.all([
         RootMail.aggregate([
+          { $match: staffMatch },
           { $group: { _id: "$batchName", count: { $sum: 1 }, type: { $first: "$type" }, createdAt: { $first: "$createdAt" } } }
         ]).catch(() => []),
         SatelliteMail.aggregate([
+          { $match: staffMatch },
           { $group: { _id: "$batchName", count: { $sum: 1 }, type: { $first: "$type" }, createdAt: { $first: "$createdAt" } } }
         ]).catch(() => []),
         MonetizedMail.aggregate([
+          { $match: staffMatch },
           { $group: { _id: "$batchName", count: { $sum: 1 }, type: { $first: "$type" }, createdAt: { $first: "$createdAt" } } }
         ]).catch(() => [])
       ]);
@@ -155,12 +191,49 @@ export async function GET(req: NextRequest) {
         type: data.type,
         createdAt: data.createdAt
       }));
-      cachedBatchStats = batchStats;
-      cachedBatches = batchStats.map(b => b.name);
-      lastBatchCacheTime = now;
+      uniqueBatches = batchStats.map(b => b.name);
+    } else {
+      // Admin/Manager: Use cached batch stats if less than 30 seconds old to prevent heavy DB load
+      const now = Date.now();
+      if (now - lastBatchCacheTime > 30000 || cachedBatchStats.length === 0) {
+        const [rootBatches, satBatches, monBatches] = await Promise.all([
+          RootMail.aggregate([
+            { $group: { _id: "$batchName", count: { $sum: 1 }, type: { $first: "$type" }, createdAt: { $first: "$createdAt" } } }
+          ]).catch(() => []),
+          SatelliteMail.aggregate([
+            { $group: { _id: "$batchName", count: { $sum: 1 }, type: { $first: "$type" }, createdAt: { $first: "$createdAt" } } }
+          ]).catch(() => []),
+          MonetizedMail.aggregate([
+            { $group: { _id: "$batchName", count: { $sum: 1 }, type: { $first: "$type" }, createdAt: { $first: "$createdAt" } } }
+          ]).catch(() => [])
+        ]);
+
+        const combined = [...rootBatches, ...satBatches, ...monBatches];
+        const map = new Map<string, { count: number, type: string, createdAt: Date }>();
+        
+        for (const b of combined) {
+          if (!b._id) continue;
+          const existing = map.get(b._id);
+          if (existing) {
+            existing.count += b.count;
+          } else {
+            map.set(b._id, { count: b.count, type: b.type || "ROOT", createdAt: b.createdAt || new Date() });
+          }
+        }
+        
+        cachedBatchStats = Array.from(map.entries()).map(([name, data]) => ({
+          name,
+          count: data.count,
+          type: data.type,
+          createdAt: data.createdAt
+        }));
+        cachedBatches = cachedBatchStats.map(b => b.name);
+        lastBatchCacheTime = now;
+      }
+      batchStats = cachedBatchStats;
+      uniqueBatches = cachedBatches;
     }
 
-    let uniqueBatches = cachedBatches;
     const skip = (page - 1) * limit;
 
     // Paged Query for specific type
@@ -171,7 +244,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         ...result,
         batches: uniqueBatches,
-        batchStats
+        batchStats,
+        warehouseCount
       });
     }
 
@@ -208,7 +282,8 @@ export async function GET(req: NextRequest) {
         pages: Math.ceil(total / limit) || 1
       },
       batches: uniqueBatches,
-      batchStats
+      batchStats,
+      warehouseCount
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";

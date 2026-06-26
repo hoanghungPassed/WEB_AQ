@@ -62,6 +62,14 @@ export async function GET(req: NextRequest) {
       const dieSat = await SatelliteMail.countDocuments({ $or: [{ assignee: userId }, { assigneeId: userId }], status: 'DIE' });
       const dieMails = dieRoot + dieSat;
 
+      const warehouseQuery = { status: { $in: ["AVAILABLE", "UNPROCESSED"] } };
+      const [r, s, m] = await Promise.all([
+        RootMail.countDocuments(warehouseQuery),
+        SatelliteMail.countDocuments(warehouseQuery),
+        MonetizedMail.countDocuments(warehouseQuery)
+      ]);
+      const warehouseMailsCount = r + s + m;
+
       return NextResponse.json({
         success: true,
         data: {
@@ -70,6 +78,7 @@ export async function GET(req: NextRequest) {
           myMails,
           liveMails,
           dieMails,
+          warehouseMailsCount,
           checkInTime: attendance?.checkInTime || null,
           checkOutTime: attendance?.checkOutTime || null
         }

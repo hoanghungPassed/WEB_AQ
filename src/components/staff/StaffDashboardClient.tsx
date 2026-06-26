@@ -639,7 +639,14 @@ export default function StaffDashboardClient({ user }: { user: any }) {
       {/* Header section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tighter uppercase">BẢNG ĐIỀU KHIỂN CÁ NHÂN</h1>
+          <h1 className="text-3xl font-black text-white tracking-tighter uppercase flex items-center gap-3 flex-wrap">
+            BẢNG ĐIỀU KHIỂN CÁ NHÂN
+            {stats.warehouseMailsCount !== undefined && (
+              <span className="px-3 py-1 text-xs font-black bg-gold/10 text-gold border border-gold/30 rounded-full shadow-[0_0_15px_rgba(251,191,36,0.3)] animate-pulse shrink-0">
+                Kho còn: {stats.warehouseMailsCount} mail
+              </span>
+            )}
+          </h1>
           <p className="text-sm text-gold font-mono uppercase tracking-widest">Xin chào, {user?.name || "Nhân viên"}</p>
         </div>
         <button 

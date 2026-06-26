@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
   const userId = req.headers.get("x-user-id");
   const userRole = req.headers.get("x-user-role");
 
-  const hasPermission = await checkPermission(userRole || "", 3, ["all", "reports", "attendance", "staff"]);
+  const hasPermission = await checkPermission(userRole || "", 1, ["all", "reports", "attendance", "staff"]);
   if (!hasPermission) {
     await logAuditTrail(userId || "unknown", "UNAUTHORIZED_GET_PHONES", "phones", {}, req);
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -65,8 +65,23 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
 
-  const query: Partial<Pick<IPhone, 'status'>> = {};
+  const query: any = {};
   if (status) query.status = status;
+
+  const isStaff = userRole === "03" || userRole === "04" || userRole === "05";
+  if (isStaff) {
+    const mongoose = (await import("mongoose")).default;
+    query.assigneeId = userId ? new mongoose.Types.ObjectId(userId) : null;
+    if (status) {
+      if (status === "XM lần 2" || status === "Lỗi") {
+        query.status = "NONE";
+      } else {
+        query.status = status;
+      }
+    } else {
+      query.status = { $nin: ["XM lần 2", "Lỗi"] };
+    }
+  }
 
   const phones = await Phone.find(query).sort({ createdAt: -1 }).lean();
   return NextResponse.json({ success: true, data: phones });
@@ -155,8 +170,7 @@ export async function PUT(req: NextRequest) {
   const userId = req.headers.get("x-user-id");
   const userRole = req.headers.get("x-user-role");
 
-  // Allow level 2 (Staff) to update phone statuses
-  const hasPermission = await checkPermission(userRole || "", 2, ["all", "reports", "attendance", "staff"]);
+  const hasPermission = await checkPermission(userRole || "", 1, ["all", "reports", "attendance", "staff"]);
   if (!hasPermission) {
     await logAuditTrail(userId || "unknown", "UNAUTHORIZED_UPDATE_PHONES", "phones", {}, req);
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

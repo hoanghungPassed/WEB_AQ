@@ -31,8 +31,8 @@ const getMessageStatus = (msg: any, currentUser: any) => {
   const msgTime = Number(msg.id?.split("_")[1]) || (msg.createdAt ? new Date(msg.createdAt).getTime() : 0);
   if (msgTime === 0) return null;
 
-  const receiver = msg.receiver;
-  const sender = msg.sender;
+  const receiver = msg.receiverUsername || msg.receiver;
+  const sender = msg.senderUsername || msg.sender;
 
   if (typeof window === "undefined") return null;
 
@@ -462,7 +462,11 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
     if (!user) return 0;
     const lastReadTimeStr = localStorage.getItem(`chat_last_read_time_${user?.username}_${senderUsername}`);
     const lastReadTime = lastReadTimeStr ? Number(lastReadTimeStr) : 0;
-    return privateMessages.filter(msg => msg.sender === senderUsername && msg.receiver === user?.username && (Number(msg.id.split("_")[1]) || 0) > lastReadTime).length;
+    return privateMessages.filter(msg => {
+      const sender = msg.senderUsername || msg.sender;
+      const receiver = msg.receiverUsername || msg.receiver;
+      return sender === senderUsername && receiver === user?.username && (Number(msg.id.split("_")[1]) || 0) > lastReadTime;
+    }).length;
   };
 
   return (
@@ -569,7 +573,7 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
                         placeholder="Tìm..."
                         value={chatSearchTerm}
                         onChange={(e) => setChatSearchTerm(e.target.value)}
-                        className="w-full bg-white/5 border border-white/0 rounded-lg pl-10 pr-2 py-1.5 text-[10px] text-white outline-none"
+                        className="w-full bg-white/5 border border-white/0 rounded-lg pl-12 pr-2 py-1.5 text-[10px] text-white outline-none"
                       />
                     </div>
                   </div>
