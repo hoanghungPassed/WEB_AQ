@@ -216,7 +216,7 @@ export default function EmployeePhoneListPage() {
   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors pointer-events-none" size={15} />
   <input 
   placeholder="Tìm kiếm số điện thoại..."
-  className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-64"
+  className="bg-black/20 border border-white/0 rounded-md pl-14 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-64"
   type="text" 
   value={searchTerm}
   onChange={(e) => setSearchTerm(e.target.value)}

@@ -1027,7 +1027,7 @@ function StaffManagementContent() {
  placeholder="Tìm kiếm tên hoặc username..."
  value={searchQuery}
  onChange={(e) => setSearchQuery(e.target.value)}
- className="w-full pl-12 pr-4 h-12 bg-background-secondary border border-border rounded-md text-base text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+ className="w-full pl-14 pr-4 h-12 bg-background-secondary border border-border rounded-md text-base text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
  />
  </div>
  
@@ -1036,7 +1036,7 @@ function StaffManagementContent() {
  <div className="relative min-w-[180px]">
  <Filter size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gold w-4 h-4 pointer-events-none" />
  <select
- className="w-full pl-11 pr-4 h-12 bg-background-secondary border border-border rounded-md text-sm text-foreground font-bold uppercase tracking-widest cursor-pointer focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all appearance-none"
+ className="w-full pl-14 pr-4 h-12 bg-background-secondary border border-border rounded-md text-sm text-foreground font-bold uppercase tracking-widest cursor-pointer focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all appearance-none"
  value={roleFilter}
  onChange={(e) => setRoleFilter(e.target.value)}
  >
@@ -1051,7 +1051,7 @@ function StaffManagementContent() {
  <div className="relative min-w-[180px]">
  <Activity size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gold w-4 h-4 pointer-events-none" />
  <select
- className="w-full pl-11 pr-4 h-12 bg-background-secondary border border-border rounded-md text-sm text-foreground font-bold uppercase tracking-widest cursor-pointer focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all appearance-none"
+ className="w-full pl-14 pr-4 h-12 bg-background-secondary border border-border rounded-md text-sm text-foreground font-bold uppercase tracking-widest cursor-pointer focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all appearance-none"
  value={statusFilter}
  onChange={(e) => setStatusFilter(e.target.value)}
  >

@@ -140,7 +140,7 @@ function MailTableContent() {
  placeholder="Tìm kiếm nhanh..."
  value={searchTerm}
  onChange={(e) => setSearchTerm(e.target.value)}
- className="h-10 w-40 rounded-md bg-sidebar border border-white/0 pl-12 pr-4 text-sm text-white focus:border-white/5 focus:outline-none transition-all"
+ className="h-10 w-40 rounded-md bg-sidebar border border-white/0 pl-14 pr-4 text-sm text-white focus:border-white/5 focus:outline-none transition-all"
  />
  </div>
  <button className="h-10 px-4 rounded-lg bg-gold text-[#0a0a0a] font-bold text-sm flex items-center gap-2 hover:bg-gold-hover transition-all">

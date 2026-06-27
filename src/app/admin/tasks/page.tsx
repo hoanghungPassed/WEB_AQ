@@ -1043,7 +1043,7 @@ export default function TaskManagementPage() {
                               setShowStaffDropdown(true);
                             }}
                             onFocus={() => setShowStaffDropdown(true)}
-                            className="w-full pl-12 pr-4 h-14 bg-background-secondary border border-border rounded-md text-foreground text-base placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+                            className="w-full pl-14 pr-4 h-14 bg-background-secondary border border-border rounded-md text-foreground text-base placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
                           />
                         </div>
 

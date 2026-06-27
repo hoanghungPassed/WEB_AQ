@@ -136,7 +136,7 @@ export default function LoginFormClient() {
                         value={username} 
                         onChange={(e) => setUsername(e.target.value)} 
                         placeholder="Username" 
-                        className="w-full pl-12 pr-4 h-14 bg-background-secondary border border-border rounded-md text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+                        className="w-full pl-14 pr-4 h-14 bg-background-secondary border border-border rounded-md text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
                         disabled={isLoading}
                       />
                     </div>
@@ -155,7 +155,7 @@ export default function LoginFormClient() {
                         value={password} 
                         onChange={(e) => setPassword(e.target.value)} 
                         placeholder="••••••••" 
-                        className="w-full pl-12 pr-12 h-14 bg-background-secondary border border-border rounded-md text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+                        className="w-full pl-14 pr-12 h-14 bg-background-secondary border border-border rounded-md text-foreground placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
                         disabled={isLoading}
                       />
                       <button 

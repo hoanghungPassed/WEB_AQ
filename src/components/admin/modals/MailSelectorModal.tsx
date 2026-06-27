@@ -100,7 +100,7 @@ export const MailSelectorModal = ({
             placeholder="Tìm kiếm Email hoặc Mail KP..."
             value={modalSearchQuery}
             onChange={(e) => setModalSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 h-10 bg-background-secondary border border-border rounded-md text-xs text-foreground placeholder:text-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+            className="w-full pl-14 pr-4 h-10 bg-background-secondary border border-border rounded-md text-xs text-foreground placeholder:text-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
           />
         </div>
       </div>

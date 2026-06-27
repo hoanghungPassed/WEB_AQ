@@ -588,7 +588,7 @@ export default function PhoneBatchesPage() {
   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors pointer-events-none" size={14} />
   <input
   placeholder="Tìm SĐT, OTP Link..."
-  className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-60"
+  className="bg-black/20 border border-white/0 rounded-md pl-14 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all w-full sm:w-60"
  type="text"
  value={searchTerm}
  onChange={(e) => setSearchTerm(e.target.value)}
@@ -781,7 +781,7 @@ export default function PhoneBatchesPage() {
  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors pointer-events-none" size={14} />
  <input
  placeholder="Tìm tên hoặc username..."
- className="w-full bg-black/40 border border-white/0 rounded-md pl-12 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all"
+ className="w-full bg-black/40 border border-white/0 rounded-md pl-14 pr-4 h-9 text-sm text-white outline-none focus:border-white/5 transition-all"
  type="text"
  value={staffSearch}
  onChange={(e) => setStaffSearch(e.target.value)}

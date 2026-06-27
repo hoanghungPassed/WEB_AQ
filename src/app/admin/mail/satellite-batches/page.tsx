@@ -604,7 +604,7 @@ export default function SatelliteBatchesPage() {
    <Search className="absolute left-4 text-gray-500 group-focus-within:text-gold transition-colors" size={18} />
    <input 
      placeholder="Tìm kiếm nhân sự..."
-     className="w-full bg-black/40 border border-white/0 rounded-md pl-12 pr-4 h-12 text-sm text-white outline-none focus:border-white/5 transition-all"
+     className="w-full bg-black/40 border border-white/0 rounded-md pl-14 pr-4 h-12 text-sm text-white outline-none focus:border-white/5 transition-all"
      type="text" 
      value={staffSearchTerm}
      onChange={(e) => setStaffSearchTerm(e.target.value)}
@@ -807,7 +807,7 @@ export default function SatelliteBatchesPage() {
  <Search className="absolute left-4 text-gray-500 group-focus-within:text-gold transition-colors" size={16} />
  <input 
  placeholder="Tìm kiếm Lô..."
- className="bg-black/20 border border-white/0 rounded-md pl-12 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-48"
+ className="bg-black/20 border border-white/0 rounded-md pl-14 pr-4 h-10 text-sm text-white outline-none focus:border-white/5 transition-all w-48"
  type="text" 
  value={searchTerm}
  onChange={(e) => setSearchTerm(e.target.value)}

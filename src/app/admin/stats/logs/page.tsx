@@ -54,9 +54,10 @@ export default function SystemLogsPage() {
       try {
         const response = await fetch("/api/admin/logs");
         if (response.ok) {
-          const data = await response.json();
-          if (Array.isArray(data)) {
-            const normalizedLogs = data.map((log: any) => {
+          const result = await response.json();
+          const logData = Array.isArray(result) ? result : (result.data || []);
+          if (Array.isArray(logData)) {
+            const normalizedLogs = logData.map((log: any) => {
               return {
                 id: log._id || log.id,
                 user: log.user, // Keep as-is, we'll render it safely in JSX
@@ -223,7 +224,7 @@ export default function SystemLogsPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-amber-500 transition-colors" size={14} />
             <input 
               placeholder="Tìm kiếm tác vụ, tài khoản..."
-              className="bg-zinc-900 border border-border rounded-md pl-12 pr-4 h-10 text-sm text-zinc-100 outline-none focus:border-amber-500/50 transition-all w-60"
+              className="bg-zinc-900 border border-border rounded-md pl-14 pr-4 h-10 text-sm text-zinc-100 outline-none focus:border-amber-500/50 transition-all w-60"
               type="text" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}

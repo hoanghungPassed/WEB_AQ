@@ -727,7 +727,7 @@ export default function StaffDashboardClient({ user }: { user: any }) {
                 placeholder="Tìm kiếm nhiệm vụ..." 
                 value={taskSearch}
                 onChange={(e) => setTaskSearch(e.target.value)}
-                className="w-full h-9 pl-10 pr-4 text-xs bg-background border border-border rounded-md text-white placeholder-foreground-secondary/70 focus:border-gold outline-none transition-all"
+                className="w-full h-9 pl-14 pr-4 text-xs bg-background border border-border rounded-md text-white placeholder-foreground-secondary/70 focus:border-gold outline-none transition-all"
               />
             </div>
           </div>

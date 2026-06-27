@@ -509,7 +509,7 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
               placeholder="Tìm kiếm email, lô, ghi chú..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl pl-12 pr-6 text-white text-sm outline-none focus:border-white/10 transition-all shadow-inner"
+              className="w-full h-14 bg-white/5 border border-white/0 rounded-2xl pl-14 pr-6 text-white text-sm outline-none focus:border-white/10 transition-all shadow-inner"
             />
           </div>
           {viewMode === "MAILS" && (

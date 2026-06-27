@@ -573,7 +573,7 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
                         placeholder="Tìm..."
                         value={chatSearchTerm}
                         onChange={(e) => setChatSearchTerm(e.target.value)}
-                        className="w-full bg-white/5 border border-white/0 rounded-lg pl-12 pr-2 py-1.5 text-[10px] text-white outline-none"
+                        className="w-full bg-white/5 border border-white/0 rounded-lg pl-14 pr-2 py-1.5 text-[10px] text-white outline-none"
                       />
                     </div>
                   </div>

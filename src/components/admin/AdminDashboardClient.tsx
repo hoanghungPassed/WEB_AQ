@@ -159,7 +159,7 @@ export default function AdminDashboardClient({ user: initialUser }: { user: any 
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary" />
               <input 
                 placeholder="Tìm kiếm nhanh..."
-                className="w-full bg-white/5 border border-border rounded-xl pl-11 pr-4 h-11 text-sm text-white focus:border-gold outline-none transition-all"
+                className="w-full bg-white/5 border border-border rounded-xl pl-14 pr-4 h-11 text-sm text-white focus:border-gold outline-none transition-all"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />

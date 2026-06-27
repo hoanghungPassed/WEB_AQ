@@ -344,7 +344,7 @@ export default function FinesReportPage() {
  placeholder="Tìm theo tên nhân viên hoặc lí do..."
  value={searchQuery}
  onChange={(e) => setSearchQuery(e.target.value)}
- className="w-full pl-10 pr-4 py-3 bg-sidebar border border-white/0 rounded-xl text-base text-white placeholder:text-gray-500 outline-none focus:border-white/5 transition-all"
+ className="w-full pl-14 pr-4 py-3 bg-sidebar border border-white/0 rounded-xl text-base text-white placeholder:text-gray-500 outline-none focus:border-white/5 transition-all"
  />
  </div>
 
