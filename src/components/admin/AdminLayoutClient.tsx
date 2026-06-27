@@ -94,7 +94,17 @@ export default function AdminLayoutClient({
   }, []);
 
  const [isModalOpen, setIsModalOpen] = useState(false);
- const [user, setUser] = useState<StaffData | null>(initialUser);
+  const [user, setUser] = useState<StaffData | null>(() => {
+    if (typeof window !== "undefined") {
+      const stored = sessionStorage.getItem("user") || localStorage.getItem("user");
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {}
+      }
+    }
+    return initialUser;
+  });
  const [isAdminSubmitting, setIsAdminSubmitting] = useState(false);
 
  useEffect(() => {
@@ -1844,8 +1854,6 @@ const typingTimer = setInterval(checkTyping, 1000);
             localStorage.setItem("global_users", JSON.stringify(updated));
           }
           window.dispatchEvent(new Event("storage"));
-          setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
-          setTimeout(() => setFineSuccessToast(null), 5000);
         } catch (e) {
           console.error("Excuse submit error:", e);
           throw e;
@@ -1890,8 +1898,6 @@ const typingTimer = setInterval(checkTyping, 1000);
             localStorage.setItem("global_users", JSON.stringify(updated));
           }
           window.dispatchEvent(new Event("storage"));
-          setFineSuccessToast("Yêu cầu của bạn đã được gửi. Vui lòng đợi Admin hoặc Quản lý phê duyệt để vào hệ thống.");
-          setTimeout(() => setFineSuccessToast(null), 5000);
         } catch (e) {
           console.error("Report payment error:", e);
           throw e;

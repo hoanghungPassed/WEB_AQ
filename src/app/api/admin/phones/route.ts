@@ -72,15 +72,7 @@ export async function GET(req: NextRequest) {
   if (isStaff) {
     const mongoose = (await import("mongoose")).default;
     query.assigneeId = userId ? new mongoose.Types.ObjectId(userId) : null;
-    if (status) {
-      if (status === "XM lần 2" || status === "Lỗi") {
-        query.status = "NONE";
-      } else {
-        query.status = status;
-      }
-    } else {
-      query.status = { $nin: ["XM lần 2", "Lỗi"] };
-    }
+    query.status = { $ne: "Lỗi" };
   }
 
   const phones = await Phone.find(query).sort({ createdAt: -1 }).lean();
@@ -180,14 +172,22 @@ export async function PUT(req: NextRequest) {
  const body = (await req.json()) as PhoneBulkUpdateBody;
  const { ids, update } = body;
 
- if (ids && Array.isArray(ids) && update) {
-  const result = await Phone.updateMany(
-    { _id: { $in: ids } },
-    { $set: update }
-  );
-  await logAuditTrail(userId || "system", "BULK_UPDATE_PHONES_SUCCESS", "phones", { idsCount: ids.length }, req);
-  return NextResponse.json({ success: true, modifiedCount: result.modifiedCount });
- }
+  if (ids && Array.isArray(ids) && update) {
+    const mongoose = (await import("mongoose")).default;
+    const updateSet: any = { ...update };
+    if (updateSet.assigneeId) {
+      updateSet.assigneeId = new mongoose.Types.ObjectId(updateSet.assigneeId as string);
+      if (!updateSet.status) {
+        updateSet.status = 'ASSIGNED';
+      }
+    }
+    const result = await Phone.updateMany(
+      { _id: { $in: ids.map(id => new mongoose.Types.ObjectId(id)) } },
+      { $set: updateSet }
+    );
+    await logAuditTrail(userId || "system", "BULK_UPDATE_PHONES_SUCCESS", "phones", { idsCount: ids.length }, req);
+    return NextResponse.json({ success: true, modifiedCount: result.modifiedCount });
+  }
 
  const { id, ...updateData } = body;
  if (!id) {

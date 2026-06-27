@@ -40,6 +40,100 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
     }
   };
 
+  const getStableDateString = () => {
+    const d = new Date();
+    const utc = d.getTime() + d.getTimezoneOffset() * 60000;
+    const vnTime = new Date(utc + 3600000 * 7); // Vietnam GMT+7
+    const year = vnTime.getFullYear();
+    const month = String(vnTime.getMonth() + 1).padStart(2, '0');
+    const day = String(vnTime.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleApproveRequestDirect = async (request: any, isApprove: boolean) => {
+    if (!request) return;
+    const rawId = request.id || request._id || String(request.id).replace("access-", "");
+    const cleanId = String(rawId).replace("access-", "");
+    const status = isApprove ? "APPROVED" : "DENIED";
+
+    toast.loading(isApprove ? "Đang phê duyệt..." : "Đang từ chối...", { id: `action-${cleanId}` });
+    try {
+      const res = await fetch(`/api/admin/attendance/approve-access/${cleanId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          status,
+          userId: request.userId || request.data?.userId,
+          type: request.type || request.data?.type || "ACCESS",
+          username: request.username || request.data?.username,
+          staffName: request.staffName || request.data?.staffName
+        })
+      });
+
+      toast.dismiss(`action-${cleanId}`);
+      if (!res.ok) {
+        throw new Error("Thao tác thất bại");
+      }
+
+      // Update notifications locally
+      setNotifications(prev => prev.map(item => (item.id === request.id || item.id === `access-${cleanId}`) ? { ...item, read: true, data: { ...item.data, status } } : item));
+
+      // Remove from pending_access_requests in local storage
+      const accessReqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
+      const updatedAccess = accessReqs.filter((r: any) => String(r.id) !== cleanId);
+      localStorage.setItem("pending_access_requests", JSON.stringify(updatedAccess));
+      
+      const savedSync: any = { pending_access_requests: JSON.stringify(updatedAccess) };
+
+      if (isApprove) {
+        localStorage.setItem(`access_response_${request.staffName}`, "APPROVED");
+        localStorage.setItem(`access_${getStableDateString()}_${request.staffName}`, "true");
+
+        const savedUsersStr = localStorage.getItem("global_users");
+        const allUsers = savedUsersStr ? JSON.parse(savedUsersStr) : [];
+        const updatedUsers = (allUsers || []).map((u: any) =>
+          u.username === request.username || u.name === request.staffName
+            ? { 
+                ...u, 
+                isLateLocked: false, 
+                finePaymentStatus: request.type === "FINE_PAYMENT" ? "APPROVED" : u.finePaymentStatus,
+                lateExcuseStatus: request.type === "LATE_EXCUSE" ? "APPROVED" : u.lateExcuseStatus
+              }
+            : u
+        );
+        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+        savedSync.global_users = JSON.stringify(updatedUsers);
+      } else {
+        const savedUsersStr = localStorage.getItem("global_users");
+        const allUsers = savedUsersStr ? JSON.parse(savedUsersStr) : [];
+        const updatedUsers = (allUsers || []).map((u: any) =>
+          u.username === request.username || u.name === request.staffName
+            ? { 
+                ...u, 
+                isLateLocked: true, 
+                finePaymentStatus: request.type === "FINE_PAYMENT" ? "DENIED" : u.finePaymentStatus,
+                lateExcuseStatus: request.type === "LATE_EXCUSE" ? "DENIED" : u.lateExcuseStatus
+              }
+            : u
+        );
+        localStorage.setItem("global_users", JSON.stringify(updatedUsers));
+        savedSync.global_users = JSON.stringify(updatedUsers);
+      }
+
+      await pushToSync(savedSync);
+      window.dispatchEvent(new Event("storage"));
+      
+      mutate('/api/admin/notifications?type=SYSTEM');
+      mutate('/api/admin/users');
+      toast.success(isApprove ? `Đã duyệt yêu cầu của ${request.staffName}` : `Đã từ chối yêu cầu của ${request.staffName}`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Thao tác thất bại, vui lòng thử lại");
+    }
+  };
+
   const handleMarkAllRead = async () => {
     setNotifications(prev => prev.map(item => ({ ...item, read: true })));
 
@@ -315,25 +409,43 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
         return [newNotif, ...prev];
       });
 
-      // Thay vì tự động mở Modal đè đập, hiển thị Toast góc trên bên phải để Admin click mở
+      // Hiển thị Toast có 2 nút [ĐỒNG Ý] và [TỪ CHỐI] để duyệt nhanh
       toast((t) => (
         <div 
-          onClick={() => {
-            if (onOpenAccessModal) onOpenAccessModal(newNotif.data);
-            toast.dismiss(t.id);
-          }}
-          className="flex flex-col p-4 bg-[#0d0d0f] border border-gold/30 hover:border-gold rounded-lg shadow-[0_0_15px_rgba(212,163,89,0.15)] transition-all cursor-pointer select-none min-w-[280px]"
+          className="flex flex-col p-4 bg-[#0d0d0f] border border-gold/30 hover:border-gold rounded-lg shadow-[0_0_15px_rgba(212,163,89,0.15)] transition-all min-w-[300px]"
         >
           <div className="flex items-center gap-2 mb-1">
             <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
             <p className="font-black text-xs uppercase text-gold tracking-wider">{title}</p>
           </div>
-          <p className="text-[10px] text-gray-300 font-medium">
-            Nhân viên <span className="text-white font-bold">{data.name || data.staffName || "Nhân viên"}</span> đang chờ duyệt. Click để mở.
+          <p className="text-[10px] text-gray-300 font-medium mb-3">
+            Nhân viên <span className="text-white font-bold">{data.name || data.staffName || "Nhân viên"}</span> đang chờ duyệt.
           </p>
+          <div className="flex gap-2 justify-end">
+            <button 
+              onClick={async (e) => {
+                e.stopPropagation();
+                toast.dismiss(t.id);
+                await handleApproveRequestDirect(newNotif.data, true);
+              }}
+              className="px-3 py-1.5 bg-gold text-background hover:bg-gold-hover text-[9px] font-black uppercase tracking-wider rounded transition-all"
+            >
+              Đồng ý
+            </button>
+            <button 
+              onClick={async (e) => {
+                e.stopPropagation();
+                toast.dismiss(t.id);
+                await handleApproveRequestDirect(newNotif.data, false);
+              }}
+              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[9px] font-black uppercase tracking-wider rounded transition-all"
+            >
+              Từ chối
+            </button>
+          </div>
         </div>
       ), { 
-        duration: 8000, 
+        duration: 12000, 
         position: "top-right",
         style: { padding: 0, background: "transparent", boxShadow: "none", border: "none" }
       });
@@ -380,29 +492,66 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
         return [newNotif, ...prev];
       });
 
-      // Thay vì tự động mở Modal đè đập, hiển thị Toast góc trên bên phải để Admin click mở
+      // Hiển thị Toast Đăng ký mới có nút bấm trực tiếp
       toast((t) => (
         <div 
-          onClick={() => {
-            setPendingApproveUser({
-              _id: data.userId || data._id || data.id,
-              name: data.name,
-              username: data.username
-            });
-            toast.dismiss(t.id);
-          }}
-          className="flex flex-col p-4 bg-[#0d0d0f] border border-gold/30 hover:border-gold rounded-lg shadow-[0_0_15px_rgba(212,163,89,0.15)] transition-all cursor-pointer select-none min-w-[280px]"
+          className="flex flex-col p-4 bg-[#0d0d0f] border border-gold/30 hover:border-gold rounded-lg shadow-[0_0_15px_rgba(212,163,89,0.15)] transition-all min-w-[300px]"
         >
           <div className="flex items-center gap-2 mb-1">
             <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
             <p className="font-black text-xs uppercase text-gold tracking-wider">Yêu cầu đăng ký mới</p>
           </div>
-          <p className="text-[10px] text-gray-300 font-medium">
-            Tài khoản <span className="text-white font-bold">@{data.username}</span> đang chờ duyệt. Click để mở.
+          <p className="text-[10px] text-gray-300 font-medium mb-3">
+            Tài khoản <span className="text-white font-bold">@{data.username}</span> ({data.name}) đang chờ duyệt.
           </p>
+          <div className="flex gap-2 justify-end">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                toast.dismiss(t.id);
+                setPendingApproveUser({
+                  _id: data.userId || data._id || data.id,
+                  name: data.name,
+                  username: data.username
+                });
+              }}
+              className="px-3 py-1.5 bg-gold text-background hover:bg-gold-hover text-[9px] font-black uppercase tracking-wider rounded transition-all"
+            >
+              Phê duyệt
+            </button>
+            <button 
+              onClick={async (e) => {
+                e.stopPropagation();
+                toast.dismiss(t.id);
+                const userId = data.userId || data._id || data.id;
+                if (!userId) return;
+                toast.loading("Đang từ chối...", { id: "reject-reg-toast" });
+                try {
+                  const res = await fetch(`/api/admin/users/${userId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ status: "LOCKED" })
+                  });
+                  toast.dismiss("reject-reg-toast");
+                  if (res.ok) {
+                    toast.success("Đã từ chối tài khoản!");
+                    mutate('/api/admin/users');
+                  } else {
+                    toast.error("Từ chối thất bại");
+                  }
+                } catch (err) {
+                  toast.dismiss("reject-reg-toast");
+                  toast.error("Lỗi kết nối");
+                }
+              }}
+              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[9px] font-black uppercase tracking-wider rounded transition-all"
+            >
+              Từ chối
+            </button>
+          </div>
         </div>
       ), { 
-        duration: 8000, 
+        duration: 12000, 
         position: "top-right",
         style: { padding: 0, background: "transparent", boxShadow: "none", border: "none" }
       });
@@ -713,19 +862,91 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
                         </div>
 
                         <div className="flex items-center gap-4 flex-shrink-0 text-right">
-                          <div>
-                            <p className="text-[10px] text-gray-500 font-bold uppercase">{n.time || "Vừa xong"}</p>
-                            {n.data?.status && (
-                              <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                                n.data.status === "PENDING"
-                                  ? "bg-amber-500/10 text-amber-400"
-                                  : n.data.status === "APPROVED"
-                                    ? "bg-green-500/10 text-green-400"
-                                    : "bg-red-500/10 text-red-400"
-                              }`}>
-                                {n.data.status}
-                              </span>
+                          <div className="flex items-center gap-3">
+                            {/* Inline quick actions for ACCESS_REQUEST */}
+                            {n.type === "ACCESS_REQUEST" && (!n.read || n.data?.status === "PENDING") && (
+                              <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  onClick={async () => {
+                                    await handleApproveRequestDirect(n.data, true);
+                                  }}
+                                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-[9px] font-black uppercase tracking-wider rounded-lg transition-all"
+                                >
+                                  Duyệt
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    await handleApproveRequestDirect(n.data, false);
+                                  }}
+                                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[9px] font-black uppercase tracking-wider rounded-lg transition-all"
+                                >
+                                  Từ chối
+                                </button>
+                              </div>
                             )}
+
+                            {/* Inline quick actions for REGISTRATION */}
+                            {n.type === "REGISTRATION" && !n.read && (
+                              <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  onClick={() => {
+                                    const authorObj = typeof n.author === 'object' ? n.author : null;
+                                    setPendingApproveUser(authorObj || {
+                                      _id: n.userId || n.author || "",
+                                      name: n.title?.includes("đăng ký") ? n.message?.split("Tài khoản ")[1]?.split(" đang chờ duyệt")[0] || "Tài khoản mới" : "Tài khoản mới",
+                                      username: n.title?.includes("đăng ký") ? n.message?.split("Tài khoản ")[1]?.split(" đang chờ duyệt")[0] || "" : ""
+                                    });
+                                  }}
+                                  className="px-3 py-1.5 bg-gold text-background hover:bg-gold-hover text-[9px] font-black uppercase tracking-wider rounded-lg transition-all"
+                                >
+                                  Duyệt
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    const authorObj = typeof n.author === 'object' ? n.author : null;
+                                    const userId = n.userId || n.author || (authorObj ? authorObj._id || authorObj.id : "");
+                                    if (!userId) return;
+                                    toast.loading("Đang từ chối...", { id: "reject-reg" });
+                                    try {
+                                      const res = await fetch(`/api/admin/users/${userId}`, {
+                                        method: "PUT",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ status: "LOCKED" })
+                                      });
+                                      toast.dismiss("reject-reg");
+                                      if (res.ok) {
+                                        toast.success("Đã từ chối tài khoản này!");
+                                        setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item));
+                                        mutate('/api/admin/users');
+                                      } else {
+                                        toast.error("Từ chối thất bại");
+                                      }
+                                    } catch (err) {
+                                      toast.dismiss("reject-reg");
+                                      toast.error("Lỗi kết nối");
+                                    }
+                                  }}
+                                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[9px] font-black uppercase tracking-wider rounded-lg transition-all"
+                                >
+                                  Từ chối
+                                </button>
+                              </div>
+                            )}
+
+                            <div>
+                              <p className="text-[10px] text-gray-500 font-bold uppercase">{n.time || "Vừa xong"}</p>
+                              {n.data?.status && (
+                                <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                  n.data.status === "PENDING"
+                                    ? "bg-amber-500/10 text-amber-400"
+                                    : n.data.status === "APPROVED"
+                                      ? "bg-green-500/10 text-green-400"
+                                      : "bg-red-500/10 text-red-400"
+                                }`}>
+                                  {n.data.status}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           {!n.read && (
                             <span className="flex h-2.5 w-2.5 relative flex-shrink-0">

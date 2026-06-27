@@ -110,14 +110,10 @@ export default function RealtimeProvider({
     // 4. Subscribe to User Status Changes (Legacy channel system-users status-changed)
     const statusChannel = pusher.subscribe("system-users");
     statusChannel.bind("status-changed", (data: any) => {
-      // VÁ LỖ HỔNG: Nếu offline thì loại bỏ khỏi danh sách ngay lập tức
-      if (data.isOnline === false) {
-        setChatUsers(prev => prev.filter(u => u.id !== data.userId && u._id !== data.userId));
-      } else {
-        setChatUsers(prev => prev.map(u =>
-          (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline, lastActive: data.lastActive } : u
-        ));
-      }
+      // Cập nhật trạng thái online/offline của user trong danh sách
+      setChatUsers(prev => prev.map(u =>
+        (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline, lastActive: data.lastActive } : u
+      ));
 
       try {
         const storedUsers = localStorage.getItem("global_users");
@@ -165,31 +161,25 @@ export default function RealtimeProvider({
 
       // Phase 1: online status synchronization
       systemChannel.bind("user-status-changed", (data: any) => {
-        // VÁ LỖ HỔNG: Nếu offline thì loại bỏ khỏi danh sách ngay lập tức (KHÔNG GỌI API LẠI)
-        if (data.isOnline === false) {
-          setChatUsers(prev => prev.filter(u => u.id !== data.userId && u._id !== data.userId));
-        } else {
-          setChatUsers(prev => {
-            const exists = prev.some(u => u.id === data.userId || u._id === data.userId);
-            if (data.isOnline) {
-              if (exists) {
-                return prev.map(u => (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: true } : u);
-              } else {
-                let newUser = { id: data.userId, _id: data.userId, isOnline: true, name: data.username || "Nhân viên", username: data.username || "user", role: "05", avatar: "" };
-                try {
-                  const stored = localStorage.getItem("global_users");
-                  if (stored) {
-                    const parsed = JSON.parse(stored);
-                    const found = parsed.find((u: any) => u.id === data.userId || u._id === data.userId);
-                    if (found) newUser = { ...found, isOnline: true };
-                  }
-                } catch (e) {}
-                return [newUser, ...prev];
+        // Cập nhật trạng thái online/offline của user trong danh sách
+        setChatUsers(prev => {
+          const exists = prev.some(u => u.id === data.userId || u._id === data.userId);
+          if (exists) {
+            return prev.map(u => (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline } : u);
+          } else if (data.isOnline) {
+            let newUser = { id: data.userId, _id: data.userId, isOnline: true, name: data.username || "Nhân viên", username: data.username || "user", role: "05", avatar: "" };
+            try {
+              const stored = localStorage.getItem("global_users");
+              if (stored) {
+                const parsed = JSON.parse(stored);
+                const found = parsed.find((u: any) => u.id === data.userId || u._id === data.userId);
+                if (found) newUser = { ...found, isOnline: true };
               }
-            }
-            return prev;
-          });
-        }
+            } catch (e) {}
+            return [newUser, ...prev];
+          }
+          return prev;
+        });
 
         // Sync global_users in localStorage
         try {

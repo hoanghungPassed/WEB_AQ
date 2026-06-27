@@ -48,10 +48,10 @@ export default function HeaderUserMenu({ user, onOpenProfile }: HeaderUserMenuPr
           )}
         </div>
         <div className="hidden sm:flex flex-col items-start pr-2">
-          <span className="text-[10px] font-black text-gold uppercase tracking-widest leading-none mb-1">
+          <span className="text-[10px] font-black text-gold uppercase tracking-widest leading-none mb-1 inline-block max-w-[100px] truncate">
             {getRoleLabel(user?.role)}
           </span>
-          <span className="text-xs font-bold text-white group-hover:text-gold transition-colors">
+          <span className="text-xs font-bold text-white group-hover:text-gold transition-colors inline-block max-w-[100px] truncate">
             {user?.name || "Người dùng"}
           </span>
         </div>
