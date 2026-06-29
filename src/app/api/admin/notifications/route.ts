@@ -46,6 +46,18 @@ export async function GET(req: NextRequest) {
       filter.type = "INFO";
     } else if (type === "SYSTEM") {
       filter.type = { $ne: "INFO" };
+      filter.$or = [
+        { recipientId: { $exists: false } },
+        { recipientId: null },
+        { recipientId: userId }
+      ];
+    } else {
+      filter.$or = [
+        { recipientId: { $exists: false } },
+        { recipientId: null },
+        { recipientId: userId },
+        { type: "INFO" }
+      ];
     }
   }
 

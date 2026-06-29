@@ -7,6 +7,7 @@ import {
   Mail,
   AlertCircle,
   CheckCircle2,
+  Copy,
 } from "lucide-react";
 import {
   validateYouTubeUrl,
@@ -229,9 +230,12 @@ export default function MailDetailModal({
                 onChange={(e) => setVerificationStatus(e.target.value)}
                 className={`w-full h-14 bg-white/5 border border-white/0 rounded-2xl px-6 text-white text-base outline-none focus:border-white/5 transition-all cursor-pointer ${viewOnly ? "opacity-60 cursor-not-allowed" : ""}`}
               >
-                <option value="Mail Veri mail" className="bg-zinc-900 text-white hover:bg-zinc-700">Mail Veri mail</option>
-                <option value="Đã xanh" className="bg-zinc-900 text-white hover:bg-zinc-700">Đã xanh</option>
-                <option value="Chưa xanh" className="bg-zinc-900 text-white hover:bg-zinc-700">Chưa xanh</option>
+                <option value="Xanh dòng 3" className="bg-zinc-900 text-white hover:bg-zinc-700">Xanh dòng 3</option>
+                <option value="chưa xanh dòng 3" className="bg-zinc-900 text-white hover:bg-zinc-700">Chưa xanh dòng 3</option>
+                <option value="lỗi" className="bg-zinc-900 text-white hover:bg-zinc-700">Lỗi</option>
+                <option value="đang hoạt động" className="bg-zinc-900 text-white hover:bg-zinc-700">Đang hoạt động</option>
+                <option value="chưa mời" className="bg-zinc-900 text-white hover:bg-zinc-700">Chưa mời</option>
+                <option value="đã mời" className="bg-zinc-900 text-white hover:bg-zinc-700">Đã mời</option>
               </select>
             </div>
           </>
@@ -244,9 +248,20 @@ export default function MailDetailModal({
                 <div className="flex items-center justify-between ml-1">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Link YouTube {idx + 1}</label>
                   {names[idx] && (
-                    <span className={`text-[10px] font-black uppercase ${validationErrors[idx] ? "text-red-400" : "text-gold"}`}>
-                      {names[idx]}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (names[idx] && !scanning[idx] && !validationErrors[idx]) {
+                          navigator.clipboard.writeText(names[idx]);
+                          toast.success(`Đã sao chép tên kênh: ${names[idx]}`);
+                        }
+                      }}
+                      className={`font-black text-gold text-lg flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 select-none`}
+                      title="Chạm để sao chép tên kênh"
+                    >
+                      <span className="truncate max-w-[200px] md:max-w-[300px]">{names[idx]}</span>
+                      <Copy size={16} className="text-gold/75 hover:text-gold" />
+                    </button>
                   )}
                 </div>
                 <div className="flex items-center gap-3">

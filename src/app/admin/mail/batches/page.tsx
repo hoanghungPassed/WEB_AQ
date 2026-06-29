@@ -16,8 +16,10 @@ import {
  FolderOpen,
  Info
 } from"lucide-react";
-import { motion, AnimatePresence } from"framer-motion";
-import { useRouter } from"next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import MailDetailModal from "@/components/admin/MailDetailModal";
 
 interface BatchItem {
  id: string;
@@ -48,6 +50,7 @@ export default function BatchesManagementPage() {
  const [detailSearchTerm, setDetailSearchTerm] = useState("");
  const [detailMails, setDetailMails] = useState<any[]>([]);
  const [detailCopyToast, setDetailCopyToast] = useState("");
+ const [selectedMailForDetails, setSelectedMailForDetails] = useState<any | null>(null);
 
  // Roll-over assignment states
  const [showAssignModal, setShowAssignModal] = useState(false);
@@ -650,6 +653,7 @@ export default function BatchesManagementPage() {
  <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px] text-center">Người nhận / Lô gán</th>
  <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px] text-center">Hệ thống</th>
  <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px] text-center">Công việc</th>
+ <th className="py-3 px-4 font-black uppercase tracking-widest text-[9px] text-right">Chi tiết</th>
  </tr>
  </thead>
  <tbody className="divide-y divide-white/5 text-gray-300">
@@ -688,12 +692,20 @@ export default function BatchesManagementPage() {
  {mail.workStatus ||"Chưa làm"}
  </span>
  </td>
+ <td className="py-3 px-4 text-right">
+ <button
+    onClick={() => setSelectedMailForDetails(mail)}
+    className="h-7 px-3 bg-white/5 hover:bg-gold hover:text-sidebar rounded-sm text-[10px] font-black uppercase tracking-widest transition-all"
+  >
+    Xem
+  </button>
+ </td>
  </tr>
  );
  })}
  {(detailMails || []).length === 0 && (
  <tr>
- <td colSpan={10} className="py-10 text-center font-bold uppercase tracking-widest">Không có mail nào trong lô này</td>
+ <td colSpan={11} className="py-10 text-center font-bold uppercase tracking-widest">Không có mail nào trong lô này</td>
  </tr>
  )}
  </tbody>
@@ -825,6 +837,51 @@ export default function BatchesManagementPage() {
  </motion.div>
  )}
  </AnimatePresence>
+
+ {selectedMailForDetails && (
+    <MailDetailModal
+      mail={selectedMailForDetails}
+      type={selectedMailForDetails.type || selectedBatchForDetail?.type || "SATELLITE"}
+      user={user}
+      viewOnly={false}
+      onClose={() => setSelectedMailForDetails(null)}
+      onSave={async (updatedFields) => {
+        const mailId = selectedMailForDetails._id || selectedMailForDetails.id;
+        try {
+          const additionalFields: any = {};
+          if (updatedFields.workStatus) {
+            additionalFields.workStatus = updatedFields.workStatus;
+            if (updatedFields.workStatus === "Đã làm") {
+              additionalFields.status = "USED";
+            }
+          } else if (updatedFields.links && Array.isArray(updatedFields.links) && updatedFields.links.filter(Boolean).length === 3) {
+            additionalFields.status = "USED";
+            additionalFields.workStatus = "Đã làm";
+          }
+
+          const res = await fetch(`/api/admin/mails/${mailId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...updatedFields, ...additionalFields })
+          });
+
+          if (res.ok) {
+            toast.success("Cập nhật chi tiết mail thành công!");
+            setDetailMails(prev => prev.map(m => (m._id === mailId || m.id === mailId) ? { ...m, ...updatedFields, ...additionalFields } : m));
+            loadBatches();
+            window.dispatchEvent(new Event("storage"));
+            setSelectedMailForDetails(null);
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            toast.error(errData.error || "Không thể cập nhật chi tiết mail.");
+          }
+        } catch (err) {
+          console.error(err);
+          toast.error("Lỗi kết nối khi lưu chi tiết mail!");
+        }
+      }}
+    />
+  )}
  </div>
  );
 }

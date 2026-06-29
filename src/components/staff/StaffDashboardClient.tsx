@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Mail, DollarSign, ClipboardList, Calendar, Search, 
   ArrowLeft, CheckCircle2, Clock, Play, Loader2, RefreshCw, AlertTriangle, Inbox,
-  Copy, ExternalLink
+  Copy, ExternalLink, Lock
 } from "lucide-react";
 import useSWR, { mutate } from "swr";
 import { Badge } from "@/components/ui/Badge";
@@ -46,6 +46,22 @@ function StatCard({ title, value, icon, color, subtitle }: any) {
     </motion.div>
   );
 }
+
+const formatDeadline = (dateStr: string) => {
+  if (!dateStr) return "N/A";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const MM = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${hh}:${mm} - ${dd}/${MM}/${yyyy}`;
+  } catch {
+    return dateStr;
+  }
+};
 
 export default function StaffDashboardClient({ user }: { user: any }) {
   const [taskSearch, setTaskSearch] = useState("");
@@ -390,7 +406,7 @@ export default function StaffDashboardClient({ user }: { user: any }) {
                 <div>
                   <span className="text-[10px] font-black text-foreground-secondary uppercase tracking-widest block">Hạn chót (Deadline)</span>
                   <span className="text-sm font-bold text-red-400">
-                    {selectedTask.deadline ? new Date(selectedTask.deadline).toLocaleString("vi-VN") : "N/A"}
+                    {formatDeadline(selectedTask.deadline)}
                   </span>
                 </div>
 
@@ -445,8 +461,19 @@ export default function StaffDashboardClient({ user }: { user: any }) {
             <span className="text-xs font-mono font-bold text-gold">{taskMailsList.length} Mail</span>
           </div>
           
-          <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full text-left min-w-[900px] border-collapse">
+          {selectedTask.status === "PENDING" ? (
+            <div className="flex flex-col items-center justify-center p-12 text-center bg-black/30 border border-dashed border-gold/10 rounded-b-xl min-h-[300px]">
+              <div className="h-16 w-16 bg-gold/10 text-gold rounded-full flex items-center justify-center border border-gold/20 mb-4 animate-pulse">
+                <Lock size={32} />
+              </div>
+              <h4 className="text-lg font-black text-white uppercase tracking-tight">Danh sách mail đang bị khóa</h4>
+              <p className="text-xs text-gray-500 max-w-sm mt-2 leading-relaxed font-semibold uppercase tracking-wider">
+                Bạn cần phải nhấn nút <span className="text-gold font-bold">"Bắt đầu thực hiện"</span> ở trên để xem danh sách tài khoản và nhận phân công nhiệm vụ.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left min-w-[900px] border-collapse">
               <thead>
                 <tr className="border-b border-border text-[9px] font-black uppercase text-foreground-secondary tracking-widest bg-black/20">
                   <th className="px-6 py-4">STT</th>
@@ -607,6 +634,7 @@ export default function StaffDashboardClient({ user }: { user: any }) {
               </tbody>
             </table>
           </div>
+          )}
         </div>
 
         {selectedMailForConfig && (
@@ -757,7 +785,7 @@ export default function StaffDashboardClient({ user }: { user: any }) {
                       <td className="py-3.5 px-4 text-foreground-secondary">{getTaskTypeLabel(task.type)}</td>
                       <td className="py-3.5 px-4 text-center font-semibold text-white">{task.mailCount || 0}</td>
                       <td className="py-3.5 px-4 text-foreground-secondary font-mono">
-                        {task.deadline ? new Date(task.deadline).toLocaleDateString("vi-VN") : "N/A"}
+                        {formatDeadline(task.deadline)}
                       </td>
                       <td className="py-3.5 px-4 text-center">{getStatusBadge(task.status)}</td>
                       <td className="py-3.5 px-4 text-right">

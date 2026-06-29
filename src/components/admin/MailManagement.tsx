@@ -59,6 +59,11 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
   // New state for View Mode: BATCHES vs MAILS
   const [viewMode, setViewMode] = useState<"BATCHES" | "MAILS">("BATCHES");
 
+  // Staff sidebar states
+  const [staffList, setStaffList] = useState<any[]>([]);
+  const [selectedStaffId, setSelectedStaffId] = useState<string>("ALL");
+  const [staffSearchQuery, setStaffSearchQuery] = useState("");
+
   const roleUpper = String(user?.role || "").toUpperCase();
   const isAdminOrManager = roleUpper === "01" || 
     roleUpper === "ADMIN" || 
@@ -67,7 +72,7 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
     roleUpper === "QUẢN LÝ CÔNG VIỆC";
 
   const { data: apiData, mutate, isLoading } = useSWR(
-    `/api/admin/mails?type=${activeTab}&page=${currentPage}&limit=${itemsPerPage}&search=${searchQuery}&status=${statusFilter}${selectedBatch ? `&batch=${encodeURIComponent(selectedBatch)}` : ""}`,
+    `/api/admin/mails?type=${activeTab}&page=${currentPage}&limit=${itemsPerPage}&search=${searchQuery}&status=${statusFilter}${selectedBatch ? `&batch=${encodeURIComponent(selectedBatch)}` : ""}${selectedStaffId !== "ALL" ? `&assigneeId=${selectedStaffId}` : ""}`,
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 5000 }
   );
@@ -106,7 +111,28 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
         console.error("Error parsing mail_import_history from localStorage:", err);
       }
     }
+
+    const fetchStaff = async () => {
+      try {
+        const res = await fetch("/api/admin/users");
+        if (res.ok) {
+          const data = await res.json();
+          const allUsers = data.users || data.data || [];
+          const staffOnly = (allUsers || []).filter((u: any) =>
+            ["03", "04", "05", "NHÂN VIÊN", "NV THỬ VIỆC", "QUẢN LÝ NHÂN SỰ"].includes(String(u.role).toUpperCase())
+          );
+          setStaffList(staffOnly);
+        }
+      } catch (err) {
+        console.error("Failed to fetch staff in MailManagement:", err);
+      }
+    };
+    fetchStaff();
   }, [initialUser]);
+
+  useEffect(() => {
+    setSelectedStaffId("ALL");
+  }, [activeTab]);
 
   const triggerToast = (msg: string) => {
     if (msg.toLowerCase().includes("lỗi") || msg.toLowerCase().includes("không hợp lệ") || msg.toLowerCase().includes("trống") || msg.toLowerCase().includes("thất bại")) {
@@ -519,9 +545,30 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
               className="h-14 px-6 bg-white/5 border border-white/0 rounded-2xl text-white text-sm font-bold outline-none cursor-pointer focus:border-white/10 transition-all"
             >
               <option value="ALL">Tất cả trạng thái</option>
-              <option value="Đã xanh">Đã xanh</option>
-              <option value="Lỗi">Lỗi</option>
-              <option value="Chưa check">Chưa check</option>
+              {activeTab === "ROOT" && (
+                <>
+                  <option value="Xanh dòng 3">Xanh dòng 3</option>
+                  <option value="chưa xanh dòng 3">Chưa xanh dòng 3</option>
+                  <option value="lỗi">Lỗi</option>
+                  <option value="đang hoạt động">Đang hoạt động</option>
+                  <option value="chưa mời">Chưa mời</option>
+                  <option value="đã mời">Đã mời</option>
+                </>
+              )}
+              {activeTab === "SATELLITE" && (
+                <>
+                  <option value="Đã làm">Đã làm</option>
+                  <option value="Chưa làm">Chưa làm</option>
+                  <option value="Lỗi">Lỗi</option>
+                </>
+              )}
+              {activeTab === "MONETIZED" && (
+                <>
+                  {["Chờ bước 3", "Mất kênh", "Chưa SUB", "DONE", "Gắn lại gà", "Die Spam", "Chưa Done"].map(st => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </>
+              )}
             </select>
           )}
         </div>
@@ -575,9 +622,62 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
           </div>
         ) : (
           /* MAIL LIST VIEW */
-          <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
-            <div className="flex-1 min-h-0 overflow-auto">
-              <table className="w-full text-left border-collapse min-w-[1200px]">
+          <div className="flex-1 overflow-hidden flex flex-row">
+            {activeTab === "SATELLITE" && (
+              <div className="w-72 border-r border-white/5 bg-[#09090b]/40 flex flex-col p-4 flex-shrink-0">
+                <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 px-1">Tìm kiếm nhân sự</div>
+                <div className="relative group mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={14} />
+                  <input
+                    type="text"
+                    placeholder="Tìm nhân viên..."
+                    value={staffSearchQuery}
+                    onChange={(e) => setStaffSearchQuery(e.target.value)}
+                    className="w-full h-10 bg-black/40 border border-white/5 rounded-xl pl-10 pr-4 text-white text-xs outline-none focus:border-gold transition-all"
+                  />
+                </div>
+                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1">
+                  <button
+                    onClick={() => setSelectedStaffId("ALL")}
+                    className={`w-full text-left p-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-between ${
+                      selectedStaffId === "ALL"
+                        ? "bg-gold/10 text-gold border border-gold/20"
+                        : "text-gray-400 hover:bg-white/5 hover:text-white border border-transparent"
+                    }`}
+                  >
+                    <span>👥 Tất cả nhân sự</span>
+                  </button>
+                  {staffList
+                    .filter(s => !staffSearchQuery || s.name.toLowerCase().includes(staffSearchQuery.toLowerCase()) || s.username.toLowerCase().includes(staffSearchQuery.toLowerCase()))
+                    .map((staff) => {
+                      const isOnline = staff.lastActive ? (Date.now() - new Date(staff.lastActive).getTime() < 15 * 60000) : (staff.isOnline === true);
+                      const isSelected = selectedStaffId === staff.id || selectedStaffId === staff._id;
+                      return (
+                        <button
+                          key={staff.id || staff._id}
+                          onClick={() => setSelectedStaffId(staff.id || staff._id)}
+                          className={`w-full text-left p-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between border ${
+                            isSelected
+                              ? "bg-gold/10 text-gold border-gold/20 font-black"
+                              : "text-gray-400 hover:bg-white/5 hover:text-white border-transparent"
+                          }`}
+                        >
+                          <span className="truncate max-w-[150px]">{staff.name}</span>
+                          <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
+                            isOnline ? "bg-green-500/10 text-green-500 animate-pulse" : "bg-gray-500/10 text-gray-500"
+                          }`}>
+                            {isOnline ? "Online" : "Offline"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 min-h-0 overflow-auto">
+                <table className="w-full text-left border-collapse min-w-[1200px]">
                 <thead className="sticky top-0 bg-[#0a0a0a] z-20 shadow-xl">
                   <tr className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] border-b border-white/5">
                     <th className="px-8 py-5">STT</th>
@@ -711,13 +811,31 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
-                            mail.verificationStatus === "Đã xanh" ? "bg-green-500/10 text-green-500 border-green-500/20" :
-                            mail.verificationStatus === "Lỗi" ? "bg-red-500/10 text-red-500 border-red-500/20" :
-                            "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-                          }`}>
-                            {mail.verificationStatus}
-                          </span>
+                          {activeTab === "ROOT" ? (
+                            <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+                              mail.verificationStatus === "Xanh dòng 3" || mail.verificationStatus === "đang hoạt động" ? "bg-green-500/10 text-green-500 border-green-500/20" :
+                              mail.verificationStatus === "lỗi" ? "bg-red-500/10 text-red-500 border-red-500/20" :
+                              "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                            }`}>
+                              {mail.verificationStatus || "chưa mời"}
+                            </span>
+                          ) : activeTab === "SATELLITE" ? (
+                            <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+                              mail.workStatus === "Đã làm" ? "bg-green-500/10 text-green-500 border-green-500/20" :
+                              mail.workStatus === "Lỗi" ? "bg-red-500/10 text-red-500 border-red-500/20" :
+                              "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                            }`}>
+                              {mail.workStatus || "Chưa làm"}
+                            </span>
+                          ) : (
+                            <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+                              mail.channelStatusDetail === "DONE" ? "bg-green-500/10 text-green-500 border-green-500/20" :
+                              mail.channelStatusDetail === "Mất kênh" || mail.channelStatusDetail === "Die Spam" ? "bg-red-500/10 text-red-500 border-red-500/20" :
+                              "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                            }`}>
+                              {mail.channelStatusDetail || "Chưa Done"}
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
@@ -769,6 +887,7 @@ export default function MailManagement({ type, user: initialUser }: MailManageme
                 </button>
               </div>
             </div>
+          </div>
           </div>
         )}
       </div>

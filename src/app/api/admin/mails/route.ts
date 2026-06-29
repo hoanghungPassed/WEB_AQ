@@ -48,6 +48,8 @@ export async function GET(req: NextRequest) {
     if (status && status !== "ALL") {
       if (type === "ROOT") {
         query.verificationStatus = status;
+      } else if (type === "MONETIZED") {
+        query.channelStatusDetail = status;
       } else {
         query.workStatus = status;
       }

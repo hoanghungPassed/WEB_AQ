@@ -338,6 +338,13 @@ export default function RealtimeProvider({
       mutate("/api/admin/stats");
     });
 
+    personalChannel.bind("new_notification", (notif: any) => {
+      console.log("[Pusher personal] Received new_notification:", notif);
+      try {
+        window.dispatchEvent(new CustomEvent("pusher-new-notification", { detail: notif }));
+      } catch (e) {}
+    });
+
     personalChannel.bind("status-update", (data: any) => {
       router.refresh();
       mutate("/api/admin/stats");

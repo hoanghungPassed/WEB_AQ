@@ -37,7 +37,7 @@ const RootMailSchema: Schema = new Schema(
  status: { type: String, default: 'LIVE' },
  type: { type: String, default: 'ROOT' },
  workStatus: { type: String },
- verificationStatus: { type: String },
+ verificationStatus: { type: String, enum: ["Xanh dòng 3", "chưa xanh dòng 3", "lỗi", "đang hoạt động", "chưa mời", "đã mời"], default: "chưa mời" },
  cccdDate: { type: String },
  batch: { type: String },
  batchName: { type: String },

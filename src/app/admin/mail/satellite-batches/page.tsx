@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import useSWR, { mutate as globalMutate } from "swr";
 import { toast } from "react-hot-toast";
+import MailDetailModal from "@/components/admin/MailDetailModal";
 
 interface BatchItem {
  _id?: string;
@@ -55,6 +56,7 @@ export default function SatelliteBatchesPage() {
  const [selectedMailsToAdd, setSelectedMailsToAdd] = useState<number[]>([]);
  const [selectedStaffToAssign, setSelectedStaffToAssign] = useState("");
  const [batchToDelete, setBatchToDelete] = useState<BatchItem | null>(null);
+ const [selectedMailForDetails, setSelectedMailForDetails] = useState<any | null>(null);
  const [batchToReset, setBatchToReset] = useState<BatchItem | null>(null);
  const [showCreateModal, setShowCreateModal] = useState(false);
  const [newBatchName, setNewBatchName] = useState("");
@@ -1059,6 +1061,13 @@ export default function SatelliteBatchesPage() {
                 }`}>
                   {mail.workStatus || "Chưa làm"}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMailForDetails(mail)}
+                  className="h-8 px-3 bg-white/5 hover:bg-gold hover:text-sidebar rounded-md text-[10px] font-black uppercase tracking-widest transition-all"
+                >
+                  Chi tiết
+                </button>
               </div>
             </div>
           ))}
@@ -1409,6 +1418,51 @@ export default function SatelliteBatchesPage() {
  </motion.div>
  )}
  </AnimatePresence>
+
+  {selectedMailForDetails && (
+    <MailDetailModal
+      mail={selectedMailForDetails}
+      type="SATELLITE"
+      user={user}
+      viewOnly={false}
+      onClose={() => setSelectedMailForDetails(null)}
+      onSave={async (updatedFields) => {
+        const mailId = selectedMailForDetails._id || selectedMailForDetails.id;
+        try {
+          const additionalFields: any = {};
+          if (updatedFields.workStatus) {
+            additionalFields.workStatus = updatedFields.workStatus;
+            if (updatedFields.workStatus === "Đã làm") {
+              additionalFields.status = "USED";
+            }
+          } else if (updatedFields.links && Array.isArray(updatedFields.links) && updatedFields.links.filter(Boolean).length === 3) {
+            additionalFields.status = "USED";
+            additionalFields.workStatus = "Đã làm";
+          }
+
+          const res = await fetch(`/api/admin/mails/${mailId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...updatedFields, ...additionalFields })
+          });
+
+          if (res.ok) {
+            toast.success("Cập nhật chi tiết mail thành công!");
+            setBatchMails(prev => prev.map(m => (m._id === mailId || m.id === mailId) ? { ...m, ...updatedFields, ...additionalFields } : m));
+            mutateBatches();
+            window.dispatchEvent(new Event("storage"));
+            setSelectedMailForDetails(null);
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            toast.error(errData.error || "Không thể cập nhật chi tiết mail.");
+          }
+        } catch (err) {
+          console.error(err);
+          toast.error("Lỗi kết nối khi lưu chi tiết mail!");
+        }
+      }}
+    />
+  )}
  </div>
  );
 }

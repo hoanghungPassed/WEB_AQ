@@ -326,19 +326,21 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
   useEffect(() => {
     if (!user) return;
 
-    const roleUpper = String(user?.role || "").toUpperCase();
-    const isAuthorizedManager = ["01", "02", "03", "ADMIN"].some(r => roleUpper.includes(r));
-    if (!isAuthorizedManager) return; // Only managers/admins get real-time notifications
-
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || "", {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "ap1",
     });
 
-    // ONLY subscribe to system-notifications for the bell counter
-    const notifChannel = pusher.subscribe("system-notifications");
-    notifChannel.bind("new-notification", (notif: any) => {
-      console.log("[Pusher HeaderNotifications] Received new-notification:", notif);
+    const roleUpper = String(user?.role || "").toUpperCase();
+    const isAuthorizedManager = ["01", "02", "03", "ADMIN"].some(r => roleUpper.includes(r));
+
+    const handleNewNotif = (notif: any) => {
+      console.log("[Pusher HeaderNotifications] Received notification:", notif);
       
+      // Filter by recipient if set
+      if (notif.recipientId && String(notif.recipientId) !== String(user.id || user._id)) {
+        return;
+      }
+
       const newNotif = {
         id: notif.id || notif._id || String(Date.now()),
         title: notif.title || "Thông báo hệ thống",
@@ -359,10 +361,31 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
       audio.play().catch(() => {});
 
       mutate('/api/admin/notifications?type=SYSTEM');
-    });
+    };
+
+    let notifChannel: any;
+    let privateChannel: any;
+
+    if (isAuthorizedManager) {
+      notifChannel = pusher.subscribe("system-notifications");
+      notifChannel.bind("new-notification", handleNewNotif);
+      notifChannel.bind("new_notification", handleNewNotif);
+    }
+
+    const currentUserId = user.id || user._id;
+    if (currentUserId) {
+      privateChannel = pusher.subscribe(`private-${currentUserId}`);
+      privateChannel.bind("new-notification", handleNewNotif);
+      privateChannel.bind("new_notification", handleNewNotif);
+    }
 
     return () => {
-      pusher.unsubscribe("system-notifications");
+      if (isAuthorizedManager && notifChannel) {
+        pusher.unsubscribe("system-notifications");
+      }
+      if (privateChannel) {
+        pusher.unsubscribe(`private-${currentUserId}`);
+      }
       pusher.disconnect();
     };
   }, [user]);
@@ -560,14 +583,47 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
       audio.play().catch(() => {});
     };
 
+    const handleNewNotification = (e: Event) => {
+      const data = (e as CustomEvent).detail;
+      console.log("[HeaderNotifications] Received new-notification via CustomEvent:", data);
+      
+      // Filter by recipient if set
+      if (data.recipientId && String(data.recipientId) !== String(user.id || user._id)) {
+        return;
+      }
+
+      const newNotif = {
+        id: data.id || data._id || String(Date.now()),
+        title: data.title || "Thông báo hệ thống",
+        message: data.message || "",
+        time: data.time || new Date().toLocaleTimeString("vi-VN"),
+        type: data.type || "SYSTEM",
+        read: data.isRead || false,
+        link: data.link || "",
+        data: data.data
+      };
+      
+      setNotifications(prev => {
+        if (prev.some(n => n.id === newNotif.id)) return prev;
+        return [newNotif, ...prev];
+      });
+      
+      const audio = new Audio('/notification.mp3');
+      audio.play().catch(() => {});
+      
+      mutate('/api/admin/notifications?type=SYSTEM');
+    };
+
     window.addEventListener("pusher-access-request", handleAccessRequest);
     window.addEventListener("pusher-new-fine", handleNewFine);
     window.addEventListener("pusher-register-request", handleRegisterRequest);
+    window.addEventListener("pusher-new-notification", handleNewNotification);
 
     return () => {
       window.removeEventListener("pusher-access-request", handleAccessRequest);
       window.removeEventListener("pusher-new-fine", handleNewFine);
       window.removeEventListener("pusher-register-request", handleRegisterRequest);
+      window.removeEventListener("pusher-new-notification", handleNewNotification);
     };
   }, [user, onOpenAccessModal]);
 
@@ -706,27 +762,28 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-zinc-950/95 border border-gold/20 rounded-3xl p-6 w-full max-w-4xl max-h-[85vh] shadow-premium flex flex-col relative"
+              className="bg-zinc-950/95 border border-gold/20 rounded-lg p-6 w-full max-w-4xl max-h-[85vh] shadow-premium flex flex-col relative"
             >
-              {/* Close Button */}
-              <button
-                onClick={() => setIsAllNotifsModalOpen(false)}
-                className="absolute top-6 right-6 p-2 rounded-xl bg-white/5 border border-white/5 text-gray-400 hover:text-gold hover:bg-white/10 transition-all"
-              >
-                <X size={20} />
-              </button>
-
               {/* Title Header */}
-              <div className="flex items-center gap-3 mb-6 flex-shrink-0">
-                <div className="h-12 w-12 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold">
-                  <Bell size={24} />
+              <div className="flex items-center justify-between mb-6 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold">
+                    <Bell size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-white uppercase tracking-tighter">Bảng điều khiển thông báo</h3>
+                    <p className="text-[10px] text-gold font-semibold uppercase tracking-widest mt-0.5">
+                      Quản lý tất cả sự kiện ({notifications.length} thông báo, {unreadCount} chưa đọc)
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-black text-white uppercase tracking-tighter">Bảng điều khiển thông báo</h3>
-                  <p className="text-[10px] text-gold font-semibold uppercase tracking-widest mt-0.5">
-                    Quản lý tất cả sự kiện ({notifications.length} thông báo, {unreadCount} chưa đọc)
-                  </p>
-                </div>
+                {/* Close Button */}
+                <button
+                  onClick={() => setIsAllNotifsModalOpen(false)}
+                  className="p-2 rounded-xl bg-white/5 border border-white/5 text-gray-400 hover:text-gold hover:bg-white/10 transition-all z-10"
+                >
+                  <X size={20} />
+                </button>
               </div>
 
               {/* Search and Mark All Read Row */}

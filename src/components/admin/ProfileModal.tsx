@@ -54,7 +54,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  
  setIsSaving(true);
  try {
- const res = await fetch(`/api/users/${formData.id}`, {
+ const res = await fetch(`/api/admin/users/${formData.id}`, {
  method: "PUT",
  headers: { "Content-Type": "application/json" },
  body: JSON.stringify(formData)
@@ -70,6 +70,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  window.dispatchEvent(new Event("storage"));
  alert("Cập nhật thông tin thành công!");
  onClose();
+ window.location.reload();
  } else {
  const errorData = await res.json();
  alert(errorData.error || "Lỗi khi cập nhật thông tin");
@@ -108,7 +109,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  }
 
  try {
- const res = await fetch(`/api/users/${formData.id}`, {
+ const res = await fetch(`/api/admin/users/${formData.id}`, {
  method: "PUT",
  headers: { "Content-Type": "application/json" },
  body: JSON.stringify({ password: newPassword, currentPassword })
@@ -119,6 +120,7 @@ const ProfileModal = ({ isOpen, onClose, userData }: ProfileModalProps) => {
  setCurrentPassword("");
  setNewPassword("");
  setConfirmPassword("");
+ window.location.reload();
  } else {
  const errorData = await res.json();
  setPasswordError(errorData.error || "Mật khẩu hiện tại không đúng hoặc lỗi hệ thống");

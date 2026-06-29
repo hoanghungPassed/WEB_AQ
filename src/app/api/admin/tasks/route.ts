@@ -176,6 +176,12 @@ export async function POST(req: NextRequest) {
         time: new Date().toLocaleTimeString("vi-VN") + " - " + new Date().toLocaleDateString("vi-VN")
       });
 
+      // Trigger new_notification on private channel of the assignee (Lock 3)
+      await pusherServer.trigger(`private-${data.assigneeId}`, "new_notification", {
+        ...newNotif.toObject(),
+        time: new Date().toLocaleTimeString("vi-VN") + " - " + new Date().toLocaleDateString("vi-VN")
+      });
+
       // Trigger new-task on private channel of the assignee
       await pusherServer.trigger(`user-${data.assigneeId}`, "new-task", {
         taskId: task._id,
