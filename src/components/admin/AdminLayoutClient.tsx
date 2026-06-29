@@ -214,38 +214,49 @@ export default function AdminLayoutClient({
  const prevPrivateLengthRef = React.useRef(0);
  const prevCompanyLengthRef = React.useRef(0);
  const isInitialLoadRef = React.useRef(true);
+ const audioCtxRef = React.useRef<AudioContext | null>(null);
 
  const playChatChime = () => {
  try {
- const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
- if (!AudioContext) return;
- const ctx = new AudioContext();
- 
- const osc1 = ctx.createOscillator();
- const osc2 = ctx.createOscillator();
- const gainNode = ctx.createGain();
- 
- osc1.type ="sine";
- osc1.frequency.setValueAtTime(880, ctx.currentTime);
- osc1.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.1);
- 
- osc2.type ="sine";
- osc2.frequency.setValueAtTime(440, ctx.currentTime);
- osc2.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
- 
- gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
- gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
- 
- osc1.connect(gainNode);
- osc2.connect(gainNode);
- gainNode.connect(ctx.destination);
- 
- osc1.start();
- osc2.start();
- osc1.stop(ctx.currentTime + 0.45);
- osc2.stop(ctx.currentTime + 0.45);
+  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+  if (!AudioContextClass) return;
+
+  // Reuse a single AudioContext to avoid browser suspension issues
+  if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
+   audioCtxRef.current = new AudioContextClass();
+  }
+  const ctx = audioCtxRef.current;
+
+  // Resume if suspended (required by autoplay policy after page load)
+  if (ctx.state === "suspended") {
+   ctx.resume().catch(() => {});
+  }
+
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  const gainNode = ctx.createGain();
+
+  osc1.type = "sine";
+  osc1.frequency.setValueAtTime(880, ctx.currentTime);
+  osc1.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.1);
+
+  osc2.type = "sine";
+  osc2.frequency.setValueAtTime(440, ctx.currentTime);
+  osc2.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
+
+  gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+
+  osc1.connect(gainNode);
+  osc2.connect(gainNode);
+  gainNode.connect(ctx.destination);
+
+  osc1.start();
+  osc2.start();
+  osc1.stop(ctx.currentTime + 0.45);
+  osc2.stop(ctx.currentTime + 0.45);
  } catch (e) {
- console.error("Audio chime error:", e);
+  console.error("Audio chime error:", e);
  }
  };
 
@@ -1215,9 +1226,6 @@ const typingTimer = setInterval(checkTyping, 1000);
             "Content-Type": "application/json"
           },
           body: JSON.stringify({ partnerId })
-        }).then(() => {
-          // If we had a global mutate function, we could call it here
-          router.refresh();
         }).catch(() => {});
       }
 
