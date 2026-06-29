@@ -994,8 +994,8 @@ function StaffManagementContent() {
  </div>
  
  <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-2">
- {(dutyRoster || []).length > 0 ? (dutyRoster || []).map((item, idx) => (
- <div key={idx} className="flex items-center gap-4 p-6 rounded-2xl bg-white/0 border border-white/0">
+ {(dutyRoster || []).length > 0 ? (dutyRoster || []).map((item) => (
+ <div key={`${item.day}-${item.staffId}`} className="flex items-center gap-4 p-6 rounded-2xl bg-white/0 border border-white/0">
  <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex flex-col items-center justify-center text-blue-400 border border-blue-500/20 flex-shrink-0">
  <span className="text-[10px] font-bold uppercase tracking-tight">Thứ</span>
  <span className="text-lg font-black">{item.day.split(' ')[1]}</span>
@@ -1140,22 +1140,22 @@ function StaffManagementContent() {
  <tr key={`${staff.id}-${staff.username}`} className="group hover:bg-zinc-800 bg-zinc-900/[0.02] transition-all cursor-pointer" onClick={() => setSelectedStaff(staff)}>
  <td className="px-10 py-7">
  <div className="flex items-center gap-6">
- <div className="h-16 w-16 rounded-[24px] bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center text-2xl text-gold font-black border border-gold/10 shadow-xl group-hover:scale-110 transition-all">
+ <div className="h-16 w-16 rounded-[24px] bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center text-2xl text-gold font-black border border-gold/10 shadow-xl group-hover:scale-110 transition-all flex-shrink-0">
  {staff.avatar ? <img src={staff.avatar} className="w-full h-full object-cover rounded-[24px]" onError={(e) => e.currentTarget.src ="https://ui-avatars.com/api/?name=" + (staff.name ||"U") +"&background=d4af37&color=000"} /> : (staff.name || staff.username || "U").charAt(0)}
  </div>
- <div className="whitespace-nowrap">
- <p className="text-lg font-black text-white transition-colors">{staff.name}</p>
- <p className="text-sm text-gray-500 font-bold uppercase mt-1 tracking-wider">@{staff.username}</p>
+ <div className="min-w-0 max-w-[200px]">
+   <p className="text-lg font-black text-white transition-colors truncate">{staff.name}</p>
+   <p className="text-sm text-gray-500 font-bold uppercase mt-1 tracking-wider truncate">@{staff.username}</p>
  </div>
  </div>
  </td>
  <td className="px-8 py-7">
- <div className="space-y-1">
- <div className="flex items-center gap-2 text-sm text-gray-400 font-bold">
- <Mail size={12} className="text-gold/50" /> {staff.email}
+ <div className="space-y-1 min-w-0 max-w-[220px]">
+ <div className="flex items-center gap-2 text-sm text-gray-400 font-bold truncate" title={staff.email}>
+ <Mail size={12} className="text-gold/50 shrink-0" /> <span className="truncate">{staff.email}</span>
  </div>
- <div className="flex items-center gap-2 text-sm text-gray-400 font-bold">
- <Phone size={12} className="text-gold/50" /> {staff.phone ||"---"}
+ <div className="flex items-center gap-2 text-sm text-gray-400 font-bold truncate">
+ <Phone size={12} className="text-gold/50 shrink-0" /> <span className="truncate">{staff.phone ||"---"}</span>
  </div>
  </div>
  </td>

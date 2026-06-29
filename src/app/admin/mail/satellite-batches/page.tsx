@@ -1565,9 +1565,9 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
               </div>
             )}
 
-            {!isLoading && ranges.map((range: any, idx: number) => (
+            {!isLoading && ranges.map((range: any) => (
               <div
-                key={idx}
+                key={range.rangeIndex}
                 onClick={() => handleSelectRange(range)}
                 className={`p-5 rounded-2xl border bg-white/0 border-white/5 hover:border-gold/30 hover:bg-gold/5 flex items-center justify-between transition-all cursor-pointer group ${
                   isAssigning ? "opacity-50 pointer-events-none" : ""
