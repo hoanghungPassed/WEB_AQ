@@ -9,8 +9,9 @@ import {
 } from "lucide-react";
 import useSWR, { mutate } from "swr";
 import { Badge } from "@/components/ui/Badge";
-import TOTPDisplay from "@/components/admin/TOTPDisplay";
-import MailDetailModal from "@/components/admin/MailDetailModal";
+import dynamic from "next/dynamic";
+const TOTPDisplay = dynamic(() => import("@/components/admin/TOTPDisplay"), { ssr: false });
+const MailDetailModal = dynamic(() => import("@/components/admin/MailDetailModal"), { ssr: false });
 import { toast } from "react-hot-toast";
 
 // Helper components
@@ -70,6 +71,7 @@ export default function StaffDashboardClient({ user }: { user: any }) {
   const [taskMailsList, setTaskMailsList] = useState<any[]>([]);
   const [loadingTaskMails, setLoadingTaskMails] = useState<boolean>(false);
   const [completingTask, setCompletingTask] = useState<boolean>(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState<boolean>(false);
   const [selectedMailForConfig, setSelectedMailForConfig] = useState<any | null>(null);
 
   const handleCopy = (text: string) => {
@@ -226,8 +228,9 @@ export default function StaffDashboardClient({ user }: { user: any }) {
   };
 
   const updateTaskStatus = async (newStatus: string) => {
-    if (!selectedTask) return;
+    if (!selectedTask || isUpdatingStatus) return;
     const taskId = selectedTask._id || selectedTask.id;
+    setIsUpdatingStatus(true);
     try {
       const res = await fetch(`/api/admin/tasks/${taskId}`, {
         method: "PUT",
@@ -249,6 +252,8 @@ export default function StaffDashboardClient({ user }: { user: any }) {
     } catch (e) {
       console.error(e);
       toast.error("Lỗi kết nối");
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -262,7 +267,7 @@ export default function StaffDashboardClient({ user }: { user: any }) {
   const { data: statsData, error: statsError, isValidating: statsValidating } = useSWR(
     user ? "/api/admin/stats" : null,
     fetcher,
-    { revalidateOnFocus: false, refreshInterval: 30000, dedupingInterval: 5000 }
+    { revalidateOnFocus: false, refreshInterval: 120000, dedupingInterval: 10000 }
   );
 
   const { data: tasksData, error: tasksError, isValidating: tasksValidating } = useSWR(
@@ -424,9 +429,14 @@ export default function StaffDashboardClient({ user }: { user: any }) {
               {selectedTask.status === "PENDING" && (
                 <button
                   onClick={() => updateTaskStatus("IN_PROGRESS")}
-                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-md uppercase text-xs tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-600/10 cursor-pointer"
+                  disabled={isUpdatingStatus}
+                  className={`w-full h-12 text-white font-bold rounded-md uppercase text-xs tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer ${
+                    isUpdatingStatus 
+                      ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-50" 
+                      : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/10"
+                  }`}
                 >
-                  <Play size={14} /> Bắt đầu thực hiện
+                  {isUpdatingStatus ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />} Bắt đầu thực hiện
                 </button>
               )}
 

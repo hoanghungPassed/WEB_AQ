@@ -7,6 +7,8 @@ import { logAuditTrail } from '@/lib/permissions';
 import { signToken, COOKIE_NAME } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
 
+import { rateLimit } from '@/middleware/rateLimiter';
+
 /**
  * POST /api/admin/2fa/login
  * After primary authentication, the client sends a TOTP token **or** a backup code.
@@ -14,6 +16,18 @@ import dbConnect from '@/lib/mongodb';
  */
 export async function POST(request: Request) {
   try {
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      request.headers.get('x-real-ip') ||
+      '127.0.0.1';
+    const limitResult = await rateLimit(ip, 5, 60000);
+    if (!limitResult.success) {
+      return NextResponse.json(
+        { error: 'Bạn đã xác thực quá nhiều lần. Vui lòng thử lại sau 1 phút.' },
+        { status: 429 }
+      );
+    }
+
     await dbConnect();
     const body = await request.json();
     const { token, backupCode, overtimeBypass, userId: userIdFromBody } = body;
@@ -51,7 +65,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '2FA chưa được kích hoạt cho tài khoản này.' }, { status: 400 });
     }
 
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '';
 
     // ----- Token verification -----
     if (token && String(token).trim().length === 6) {

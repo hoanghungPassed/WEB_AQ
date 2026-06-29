@@ -80,8 +80,8 @@ export async function PUT(
     // Trigger Pusher events to update real-time screens
     try {
       const { pusherServer } = await import("@/lib/pusher");
-      await pusherServer.trigger("system", "task-updated", {});
-      await pusherServer.trigger("system", "satellite-batches-updated", {});
+      await pusherServer.trigger("private-system", "task-updated", {});
+      await pusherServer.trigger("private-system", "satellite-batches-updated", {});
     } catch (pe) {
       console.error("Failed to trigger pusher event:", pe);
     }

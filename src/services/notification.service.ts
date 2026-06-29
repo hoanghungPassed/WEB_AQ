@@ -31,7 +31,7 @@ export async function triggerLoginNotifications(data: LoginNotificationData): Pr
       isOnline: data.shouldBeOnline,
       lastActive: data.shouldBeOnline ? data.now : null
     });
-    await pusherServer.trigger("system", "user-status-changed", {
+    await pusherServer.trigger("private-system", "user-status-changed", {
       userId: data.userId,
       isOnline: data.shouldBeOnline
     });
@@ -42,7 +42,7 @@ export async function triggerLoginNotifications(data: LoginNotificationData): Pr
   // 2. Overtime fine Pusher notification
   if (data.overtimeFineCreated) {
     try {
-      await pusherServer.trigger("system", "new-fine", {
+      await pusherServer.trigger("private-system", "new-fine", {
         userId: data.userId,
         amount: data.overtimeFineCreated.amount,
         reason: data.overtimeFineCreated.reason
@@ -55,7 +55,7 @@ export async function triggerLoginNotifications(data: LoginNotificationData): Pr
   // 3. Late check-in Pusher notification & Email warning
   if (data.lateFineCreated) {
     try {
-      await pusherServer.trigger("system", "new-fine", {
+      await pusherServer.trigger("private-system", "new-fine", {
         userId: data.userId,
         amount: data.lateFineCreated.amount,
         reason: data.lateFineCreated.reason

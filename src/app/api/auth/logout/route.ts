@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
         // 3. Bắn Pusher báo Offline
         try {
-          await pusherServer.trigger("system", "user-status-changed", {
+          await pusherServer.trigger("private-system", "user-status-changed", {
             userId: authUser.userId,
             isOnline: false
           });

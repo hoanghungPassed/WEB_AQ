@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
       await user.save();
 
       try {
-        await pusherServer.trigger("system", "user-status-changed", {
+        await pusherServer.trigger("private-system", "user-status-changed", {
           userId: user._id.toString(),
           isOnline: shouldBeOnline
         });

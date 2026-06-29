@@ -98,6 +98,7 @@ export default function AdminDashboardClient({ user: initialUser }: { user: any 
   const [selectedViewType, setSelectedViewType] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isEligibleModalOpen, setIsEligibleModalOpen] = useState(false);
 
   // Load user
   useEffect(() => {
@@ -223,9 +224,10 @@ export default function AdminDashboardClient({ user: initialUser }: { user: any 
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <StatCard title="Task Đang Chờ" value={stats.tasks?.pending || 0} icon={<Activity size={24} />} color="indigo" subtitle="Nhiệm vụ chưa hoàn thành" onClick={() => setSelectedViewType("TASKS")} />
         <StatCard title="Kênh Đã BKT" value={stats.monCount || 0} icon={<DollarSign size={24} />} color="gold" subtitle="Bật kiếm tiền thành công" onClick={() => router.push("/admin/mail/monetized")} />
+        <StatCard title="Kênh Đủ Giờ" value={stats.eligibleChannelsCount || 0} icon={<Zap size={24} />} color="green" subtitle="Kênh đạt chỉ tiêu đủ giờ" onClick={() => setIsEligibleModalOpen(true)} />
         <StatCard title="Nhân Sự Active" value={stats.activeStaff || 0} icon={<Users size={24} />} color="purple" subtitle="Đội ngũ nhân sự đang làm việc" />
         <StatCard title="Tài Khoản Die" value={stats.totalDie || 0} icon={<XCircle size={24} />} color="red" subtitle="Mail gặp lỗi hệ thống" onClick={() => setSelectedViewType("DIE")} />
       </div>
@@ -277,6 +279,74 @@ export default function AdminDashboardClient({ user: initialUser }: { user: any 
             </button>
           </div>
         </div>
+      {/* Eligible Channels Detail Modal */}
+      <AnimatePresence>
+        {isEligibleModalOpen && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setIsEligibleModalOpen(false)}
+              className="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-4xl bg-sidebar border border-white/10 rounded-[32px] shadow-2xl p-8 overflow-hidden"
+            >
+              <button 
+                onClick={() => setIsEligibleModalOpen(false)}
+                className="absolute top-6 right-6 h-10 w-10 bg-white/5 border border-white/0 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="flex items-center gap-4 mb-6">
+                <div className="h-12 w-12 rounded-xl bg-green-500/10 text-emerald-400 flex items-center justify-center border border-green-500/20 shrink-0">
+                  <Zap size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white uppercase tracking-tight">Chi Tiết Kênh Đủ Giờ</h3>
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-1">Danh sách chi tiết kênh đã đạt tiêu chuẩn thời gian xem</p>
+                </div>
+              </div>
+
+              <div className="overflow-y-auto max-h-[60vh] custom-scrollbar rounded-2xl border border-white/5 bg-black/30">
+                <table className="w-full text-left">
+                  <thead className="bg-[#0c0c0c] text-[10px] font-black uppercase text-gray-500 tracking-widest border-b border-white/5 sticky top-0">
+                    <tr>
+                      <th className="p-4">Nhân sự</th>
+                      <th className="p-4">Lô mail</th>
+                      <th className="p-4">Email</th>
+                      <th className="p-4">Tên kênh</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 text-gray-300 text-sm font-medium">
+                    {stats.eligibleChannelsList && stats.eligibleChannelsList.length > 0 ? (
+                      stats.eligibleChannelsList.map((item: any) => (
+                        <tr key={item.id} className="hover:bg-white/5 transition-colors">
+                          <td className="p-4 font-bold text-white">{item.assignedTo}</td>
+                          <td className="p-4 text-xs font-black uppercase text-gold">{item.batchName}</td>
+                          <td className="p-4 font-mono text-zinc-400 text-xs">{item.email}</td>
+                          <td className="p-4 text-emerald-400 font-bold">{item.channelName}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="p-8 text-center text-gray-500 font-bold uppercase tracking-widest text-xs">
+                          Chưa có kênh nào đủ giờ
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       </div>
     </div>
   );

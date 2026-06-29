@@ -98,6 +98,29 @@ function StaffManagementContent() {
   const [selectedStaff, setSelectedStaff] = useState<StaffData | null>(null);
   const [activeDetailDay, setActiveDetailDay] = useState<any | null>(null);
 
+  // Real-time SWR polling for selected staff's attendance history
+  const { data: attendanceHistoryResponse, mutate: mutateStaffAttendance } = useSWR(
+    selectedStaff ? `/api/admin/attendance?userId=${selectedStaff.id || selectedStaff._id}&history=true` : null,
+    fetcher,
+    {
+      refreshInterval: 5000, // Real-time 5s auto polling
+      revalidateOnFocus: true
+    }
+  );
+
+  const attendanceHistory = useMemo(() => {
+    return attendanceHistoryResponse?.data || [];
+  }, [attendanceHistoryResponse]);
+
+  // Sync mutation on storage event (dispatched on login/logout/checks)
+  useEffect(() => {
+    const handleSync = () => {
+      mutateStaffAttendance();
+    };
+    window.addEventListener("storage", handleSync);
+    return () => window.removeEventListener("storage", handleSync);
+  }, [mutateStaffAttendance]);
+
  // Auto Messages States
  const [autoMessagesList, setAutoMessagesList] = useState<any[]>([]);
  const [isAutoMsgModalOpen, setIsAutoMsgModalOpen] = useState(false);
@@ -768,31 +791,25 @@ function StaffManagementContent() {
         }
       }
 
-      // Check-in logic
-      const checkinTime = localStorage.getItem(`checkin_time_${selectedStaff.username}_${dateKey}`) || localStorage.getItem(`checkin_time_${selectedStaff.username}`);
+      // Check-in logic using database record
+      const dbRecord = (attendanceHistory || []).find((r: any) => r.date === dateKey);
       let hasCheckedIn = false;
       let actualTime = "";
       let checkoutTime = "";
 
-      if (isToday) {
-        if (checkinTime) {
+      if (dbRecord) {
+        if (dbRecord.checkInTime || (dbRecord.status && dbRecord.status !== "Vắng mặt")) {
           hasCheckedIn = true;
-          actualTime = checkinTime;
-          checkoutTime = "17:30:00";
-        }
-      } else if (!isFuture && !isSunday && !isNotStarted) {
-        let hash = 0;
-        const combined = selectedStaff.username + dateKey;
-        for (let charIdx = 0; charIdx < (combined || []).length; charIdx++) {
-          hash = combined.charCodeAt(charIdx) + ((hash << 5) - hash);
-        }
-        hasCheckedIn = Math.abs(hash % 100) < 85;
-        
-        if (hasCheckedIn) {
-          const minOffset = Math.abs(hash % 25); // 0-24 minutes late
-          const secOffset = Math.abs(hash % 60);
-          actualTime = `07:${String(45 + minOffset).padStart(2, '0')}:${String(secOffset).padStart(2, '0')}`;
-          checkoutTime = `17:${String(15 + Math.abs(hash % 20)).padStart(2, '0')}:${String(secOffset).padStart(2, '0')}`;
+          if (dbRecord.checkInTime) {
+            const dIn = new Date(dbRecord.checkInTime);
+            actualTime = dIn.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+          } else {
+            actualTime = "Đã vào hệ thống";
+          }
+          if (dbRecord.checkOutTime) {
+            const dOut = new Date(dbRecord.checkOutTime);
+            checkoutTime = dOut.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+          }
         }
       }
 
@@ -815,7 +832,7 @@ function StaffManagementContent() {
       let workLog: any[] = [];
       if (hasCheckedIn) {
         workLog = [
-          { time: actualTime, title: "Điểm danh sáng (Check-in)", desc: "Bắt đầu ca làm việc." },
+          { time: actualTime, title: "Điểm danh sáng (Check-in)", desc: dbRecord?.status === "Đi muộn" ? "Bắt đầu ca làm việc (Muộn giờ)." : "Bắt đầu ca làm việc." },
           { time: checkoutTime || "---", title: "Điểm danh chiều (Check-out)", desc: checkoutTime ? "Hoàn tất ca làm việc." : "Đang làm việc..." }
         ];
       } else if (status === "SUNDAY") {
@@ -849,7 +866,7 @@ function StaffManagementContent() {
     }
 
     return { list, present, absent };
-  }, [selectedStaff]);
+  }, [selectedStaff, attendanceHistory]);
 
   
  return (
@@ -1464,25 +1481,25 @@ function StaffManagementContent() {
  {/* Calendar attendance grid with summary stats */}
  <div className="space-y-4 pt-4 border-t border-white/0">
  <div className="flex items-center justify-between">
- <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
- <Calendar size={14} className="text-gold" /> Lịch Chấm Công & Hoạt Động (Tháng {String(new Date().getMonth() + 1).padStart(2, '0')} / Năm {new Date().getFullYear()})
+ <h4 className="text-base font-black text-zinc-300 uppercase tracking-wider flex items-center gap-2">
+ <Calendar size={18} className="text-gold" /> Lịch Chấm Công & Hoạt Động (Tháng {String(new Date().getMonth() + 1).padStart(2, '0')} / Năm {new Date().getFullYear()})
  </h4>
- <span className="text-[9px] text-gold font-bold uppercase tracking-wider bg-gold/10 px-3 py-1 rounded-full border border-gold/10">👉 Bấm vào ngày để xem chi tiết việc đã làm</span>
+ <span className="text-xs text-gold font-bold uppercase tracking-wider bg-gold/10 px-4 py-1.5 rounded-full border border-gold/10 shadow-sm">👉 Bấm vào ngày để xem chi tiết việc đã làm</span>
  </div>
  
  {/* Dynamic Present/Absent Summary Bar */}
  <div className="grid grid-cols-3 gap-4 bg-black/20 border border-white/0 rounded-3xl p-5">
  <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/0 border border-white/0">
- <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Tiêu chuẩn</span>
- <span className="text-xl font-bold text-white mt-1">26 công</span>
+ <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tiêu chuẩn</span>
+ <span className="text-2xl font-bold text-white mt-1">26 công</span>
  </div>
  <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-green-500/5 border border-green-500/10">
- <span className="text-[10px] font-semibold text-green-500/80 uppercase tracking-wider">Có mặt</span>
- <span className="text-xl font-black text-green-500 mt-1">{attendanceData.present} ngày</span>
+ <span className="text-xs font-semibold text-green-500/80 uppercase tracking-wider">Có mặt</span>
+ <span className="text-2xl font-black text-green-500 mt-1">{attendanceData.present} ngày</span>
  </div>
  <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-red-500/5 border border-red-500/10">
- <span className="text-[10px] font-semibold text-red-500/80 uppercase tracking-wider">Vắng mặt</span>
- <span className="text-xl font-black text-red-500 mt-1">{attendanceData.absent} ngày</span>
+ <span className="text-xs font-semibold text-red-500/80 uppercase tracking-wider">Vắng mặt</span>
+ <span className="text-2xl font-black text-red-500 mt-1">{attendanceData.absent} ngày</span>
  </div>
  </div>
 
@@ -1495,7 +1512,7 @@ function StaffManagementContent() {
     let borderStyle = "bg-white/0 border-white/0";
     let statusText = "Vắng";
     let statusColor = "text-red-500/80";
-    let statusIcon = <XCircle size={18} className="text-red-500 group-hover/day:scale-110 transition-transform" />;
+    let statusIcon = <XCircle size={20} className="text-red-500 group-hover/day:scale-110 transition-transform" />;
 
     if (isToday) {
       borderStyle = "bg-gold/10 border-gold shadow-lg shadow-gold/5";
@@ -1504,21 +1521,21 @@ function StaffManagementContent() {
     if (day.status === "PRESENT") {
       statusText = "Có mặt";
       statusColor = "text-green-500/80";
-      statusIcon = <CheckCircle2 size={18} className="text-green-500 group-hover/day:scale-110 transition-transform" />;
+      statusIcon = <CheckCircle2 size={20} className="text-green-500 group-hover/day:scale-110 transition-transform" />;
     } else if (day.status === "NOT_STARTED") {
       statusText = "Chưa làm việc";
       statusColor = "text-zinc-500";
-      statusIcon = <Minus size={18} className="text-zinc-500 group-hover/day:scale-110 transition-transform" />;
+      statusIcon = <Minus size={20} className="text-zinc-500 group-hover/day:scale-110 transition-transform" />;
       if (!isToday) borderStyle = "bg-white/5 border-white/0 opacity-55";
     } else if (day.status === "SUNDAY") {
       statusText = "Chủ nhật";
       statusColor = "text-amber-500/80";
-      statusIcon = <Calendar size={18} className="text-amber-500 group-hover/day:scale-110 transition-transform" />;
+      statusIcon = <Calendar size={20} className="text-amber-500 group-hover/day:scale-110 transition-transform" />;
       if (!isToday) borderStyle = "bg-amber-500/5 border-amber-500/10";
     } else if (day.status === "FUTURE") {
       statusText = "Chưa đến";
       statusColor = "text-zinc-600";
-      statusIcon = <Clock size={18} className="text-zinc-600 group-hover/day:scale-110 transition-transform" />;
+      statusIcon = <Clock size={20} className="text-zinc-600 group-hover/day:scale-110 transition-transform" />;
       if (!isToday) borderStyle = "bg-white/0 border-white/0 opacity-40";
     }
 
@@ -1526,13 +1543,13 @@ function StaffManagementContent() {
       <button 
         key={`cal-day-${day.dayNum}`}
         onClick={() => setActiveDetailDay(day)}
-        className={`group/day flex flex-col items-center justify-between p-3 rounded-2xl border text-center transition-all hover:scale-105 hover:bg-white/[0.06] hover:border-white/0 active:scale-95 ${borderStyle}`}
+        className={`group/day flex flex-col items-center justify-between p-4 rounded-2xl border text-center transition-all hover:scale-105 hover:bg-white/[0.06] hover:border-white/0 active:scale-95 ${borderStyle}`}
       >
-        <span className={`text-[9px] font-bold uppercase tracking-tighter ${isToday ?"text-gold" :"text-gray-500"}`}>Ngày {day.dayNum}</span>
-        <div className="my-2 flex items-center justify-center">
+        <span className={`text-xs font-bold uppercase tracking-wider ${isToday ?"text-gold" :"text-gray-500"}`}>Ngày {day.dayNum}</span>
+        <div className="my-2.5 flex items-center justify-center">
           {statusIcon}
         </div>
-        <span className={`text-[8px] font-bold uppercase tracking-wider ${statusColor}`}>
+        <span className={`text-xs font-black uppercase tracking-widest ${statusColor}`}>
           {statusText}
         </span>
       </button>

@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Sidebar from "@/components/admin/Sidebar";
 import Header from "@/components/admin/Header";
-import ProfileModal from "@/components/admin/ProfileModal";
-import AccessLock from "@/components/admin/modals/AccessLock";
+import dynamic from "next/dynamic";
+const ProfileModal = dynamic(() => import("@/components/admin/ProfileModal"), { ssr: false });
+const AccessLock = dynamic(() => import("@/components/admin/modals/AccessLock"), { ssr: false });
 import { useRouter } from "next/navigation";
 import { Bell, Check, X, Clock, CheckCircle2, MessageSquare, Send, MessageCircle, Plus, FileText, Download, Paperclip, Phone, Minus, Copy, ExternalLink, ShieldAlert, Loader2, Search, UserSearch } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";

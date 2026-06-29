@@ -534,10 +534,8 @@ export default function ReportsPage() {
   <tr>
   <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center w-16">Hạng</th>
   <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Nhân sự</th>
-  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Hôm nay</th>
-  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Tuần này</th>
-  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Tháng này (Kênh)</th>
-  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Tài khoản (Tháng)</th>
+  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Mail đã làm</th>
+  <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Đủ giờ</th>
   <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px]">Tiến độ KPI Tuần</th>
   <th className="py-5 px-6 font-black uppercase tracking-widest text-[10px] text-center">Xếp loại</th>
   </tr>
@@ -561,10 +559,8 @@ export default function ReportsPage() {
       <span className="text-[10px] text-gray-500 font-mono tracking-tight">@{staff.username}</span>
     </div>
   </td>
-  <td className="py-4.5 px-6 text-center font-bold text-emerald-400">+{staff.todayChannels}</td>
-  <td className="py-4.5 px-6 text-center font-bold text-blue-400">{staff.weeklyChannels}</td>
+  <td className="py-4.5 px-6 text-center font-bold text-emerald-400">{staff.completed}</td>
   <td className="py-4.5 px-6 text-center font-bold text-purple-400">{staff.monthlyChannels}</td>
-  <td className="py-4.5 px-6 text-center font-bold text-gray-400">{staff.assigned}</td>
   <td className="py-4.5 px-6">
   <div className="flex items-center gap-3 w-40">
   <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">

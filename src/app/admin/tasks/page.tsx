@@ -226,7 +226,7 @@ export default function TaskManagementPage() {
     if (storedUser) setUser(JSON.parse(storedUser));
 
     loadData();
-    const interval = setInterval(loadData, 30000);
+    const interval = setInterval(loadData, 120000);
     
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "global_tasks_data" || e.key === "global_mails_data" || e.key === "global_users") {

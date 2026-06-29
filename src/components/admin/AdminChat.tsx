@@ -27,14 +27,16 @@ const TypingBubble = ({ senderName }: { senderName?: string }) => {
   );
 };
 
-const getMessageStatus = (msg: any, currentUser: any) => {
+const getMessageStatus = (msg: any, currentUser: any, isMounted: boolean = false) => {
   const msgTime = Number(msg.id?.split("_")[1]) || (msg.createdAt ? new Date(msg.createdAt).getTime() : 0);
   if (msgTime === 0) return null;
 
   const receiver = msg.receiverUsername || msg.receiver;
   const sender = msg.senderUsername || msg.sender;
 
-  if (typeof window === "undefined") return null;
+  if (!isMounted || typeof window === "undefined") {
+    return <span className="text-[9px] text-gray-400 text-zinc-500 font-bold ml-1">✓ Đã gửi</span>;
+  }
 
   const readTimeStr = localStorage.getItem(`chat_last_read_time_${receiver}_${sender}`);
   const readTime = readTimeStr ? Number(readTimeStr) : 0;
@@ -65,6 +67,11 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
   const [chatMessage, setChatMessage] = useState("");
   const [selectedChatFile, setSelectedChatFile] = useState<any>(null);
   const [activeLightboxImage, setActiveLightboxImage] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   const companyFileInputRef = useRef<HTMLInputElement>(null);
   const privateFileInputRef = useRef<HTMLInputElement>(null);
   const companyMessagesEndRef = useRef<HTMLDivElement>(null);
@@ -81,6 +88,15 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
 
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const [companyTypingUsers, setCompanyTypingUsers] = useState<string[]>([]);
+
+  // Smooth scroll to bottom on new messages
+  useEffect(() => {
+    companyMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [companyMessages]);
+
+  useEffect(() => {
+    privateMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [privateMessages]);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
@@ -231,6 +247,7 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
 
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || "", {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "ap1",
+      authEndpoint: "/api/pusher/auth"
     });
 
     const chatChannel = pusher.subscribe("chat");
@@ -238,31 +255,59 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
       console.log("[AdminChat Pusher chat] Received new-message:", msg);
       if (msg.isCompanyChat) {
         setCompanyMessages(prev => {
-          if (prev.some(m => m.id === msg.id || m._id === msg._id)) return prev;
+          const isDup = prev.some(m => 
+            m.id === msg.id || 
+            m._id === msg._id || 
+            (m.content === msg.content && m.senderId === msg.senderId && m._id?.startsWith("temp_"))
+          );
+          if (isDup) {
+            return prev.map(m => 
+              (m.content === msg.content && m.senderId === msg.senderId && m._id?.startsWith("temp_")) 
+                ? msg 
+                : m
+            );
+          }
           return [...prev, msg];
         });
+        if (msg.senderUsername !== user.username) {
+          playChatChime();
+        }
         scrollToBottom();
       }
     });
 
-    const personalChannel = pusher.subscribe(`user-${user.id || user._id}`);
+    const personalChannel = pusher.subscribe(`private-direct-chat-${user.id || user._id}`);
     personalChannel.bind("new-message", (msg: any) => {
       console.log("[AdminChat Pusher personal] Received new-message:", msg);
       if (!msg.isCompanyChat) {
         setPrivateMessages(prev => {
-          if (prev.some(m => m.id === msg.id || m._id === msg._id)) return prev;
+          const isDup = prev.some(m => 
+            m.id === msg.id || 
+            m._id === msg._id || 
+            (m.content === msg.content && m.senderId === msg.senderId && m._id?.startsWith("temp_"))
+          );
+          if (isDup) {
+            return prev.map(m => 
+              (m.content === msg.content && m.senderId === msg.senderId && m._id?.startsWith("temp_")) 
+                ? msg 
+                : m
+            );
+          }
           return [...prev, msg];
         });
+        if (msg.senderUsername !== user.username) {
+          playChatChime();
+        }
         scrollToBottom();
       }
     });
 
     return () => {
       pusher.unsubscribe("chat");
-      pusher.unsubscribe(`user-${user.id || user._id}`);
+      pusher.unsubscribe(`private-direct-chat-${user.id || user._id}`);
       pusher.disconnect();
     };
-  }, [user, scrollToBottom]);
+  }, [user, scrollToBottom, playChatChime]);
 
   useEffect(() => {
     if (!user) return;
@@ -409,6 +454,22 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
     setSelectedChatFile(null);
     scrollToBottom();
 
+    const tempId = `temp_${Date.now()}`;
+    const optimisticMessage = {
+      _id: tempId,
+      id: tempId,
+      senderId: user?.id || user?._id || "me",
+      senderName: user?.name || "Tôi",
+      senderUsername: user?.username || "me",
+      content: content,
+      isCompanyChat: true,
+      createdAt: new Date().toISOString(),
+      isSent: false,
+      isDelivered: false,
+      isRead: false
+    };
+    setCompanyMessages(prev => [...prev, optimisticMessage]);
+
     fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -419,11 +480,14 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
           const data = await res.json();
           if (data.success && data.data) {
             setCompanyMessages(prev => {
-              if (prev.some(m => m.id === data.data.id || m._id === data.data._id)) return prev;
-              return [...prev, data.data];
+              const filtered = prev.filter(m => m._id !== tempId && m.id !== tempId);
+              if (filtered.some(m => m.id === data.data.id || m._id === data.data._id)) return filtered;
+              return [...filtered, data.data];
             });
             scrollToBottom();
           }
+        } else {
+          setCompanyMessages(prev => prev.filter(m => m._id !== tempId && m.id !== tempId));
         }
       })
       .catch(console.error);
@@ -438,6 +502,24 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
     setSelectedChatFile(null);
     scrollToBottom();
 
+    const tempId = `temp_${Date.now()}`;
+    const optimisticMessage = {
+      _id: tempId,
+      id: tempId,
+      senderId: user?.id || user?._id || "me",
+      senderName: user?.name || "Tôi",
+      senderUsername: user?.username || "me",
+      receiverId: activeChatUser.id || activeChatUser._id,
+      receiverUsername: activeChatUser.username,
+      content: content,
+      isCompanyChat: false,
+      createdAt: new Date().toISOString(),
+      isSent: false,
+      isDelivered: false,
+      isRead: false
+    };
+    setPrivateMessages(prev => [...prev, optimisticMessage]);
+
     fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -448,11 +530,14 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
           const data = await res.json();
           if (data.success && data.data) {
             setPrivateMessages(prev => {
-              if (prev.some(m => m.id === data.data.id || m._id === data.data._id)) return prev;
-              return [...prev, data.data];
+              const filtered = prev.filter(m => m._id !== tempId && m.id !== tempId);
+              if (filtered.some(m => m.id === data.data.id || m._id === data.data._id)) return filtered;
+              return [...filtered, data.data];
             });
             scrollToBottom();
           }
+        } else {
+          setPrivateMessages(prev => prev.filter(m => m._id !== tempId && m.id !== tempId));
         }
       })
       .catch(console.error);
@@ -617,7 +702,7 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
                                   {msg.content}
                                   {isMe && (
                                     <div className="mt-1 flex justify-end">
-                                      {getMessageStatus(msg, user)}
+                                      {getMessageStatus(msg, user, isMounted)}
                                     </div>
                                   )}
                                 </div>

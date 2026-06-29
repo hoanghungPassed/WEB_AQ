@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
       const fines = await Fine.find(filter)
         .populate("userId", "name username role email")
         .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
+        .limit(100)
         .lean();
       return NextResponse.json(fines || []);
     }
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const { pusherServer } = await import("@/lib/pusher");
-    await pusherServer.trigger("system", "new-fine", {
+    await pusherServer.trigger("private-system", "new-fine", {
       userId: data.userId,
       amount: data.amount,
       reason: data.reason
@@ -174,12 +175,26 @@ export async function PUT(req: NextRequest) {
      }
    }
 
-   // Validate using Zod UpdateFineSchema
+    // Validate using Zod UpdateFineSchema
+    const parsed = UpdateFineSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { 
+          error: "Dữ liệu không hợp lệ",
+          details: parsed.error.issues.map(e => ({
+            field: e.path.join("."),
+            message: e.message
+          }))
+        },
+        { status: 400 }
+      );
+    }
+    const validatedData = parsed.data;
 
-   const updateData: any = {
-     status: body.status,
-     amount: body.amount !== undefined ? body.amount : existingFine.amount
-   };
+    const updateData: any = {
+      status: validatedData.status,
+      amount: validatedData.amount !== undefined ? validatedData.amount : existingFine.amount
+    };
 
    const fine = await Fine.findByIdAndUpdate(id, { $set: updateData }, { new: true }).populate('userId', 'name');
    if (!fine) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
@@ -207,51 +222,63 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
- try {
-  const userId = req.headers.get("x-user-id");
-  const userRole = req.headers.get("x-user-role");
-
-  const hasPermission = await checkPermission(userRole || "", 4, ["all", "attendance"]);
-  if (!hasPermission) {
-    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_DELETE_FINE", "fines", {}, req);
-    return NextResponse.json({ error: "Không có quyền xóa báo cáo phạt" }, { status: 403 });
-  }
-
-  await dbConnect();
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get('id');
-  
-  if (!id) return NextResponse.json({ success: false, error:"ID is required" }, { status: 400 });
-
-  const existingFine = await Fine.findById(id);
-  if (!existingFine) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
-
-  // Strictly enforce Manager+ permission for deletion
-  const hasManagerPermission = await checkPermission(userRole || "", 4, ["all", "attendance"]);
-  if (!hasManagerPermission) {
-    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_DELETE_FINE", "fines", { fineId: id }, req);
-    return NextResponse.json({ error: "Không có quyền xóa báo cáo phạt" }, { status: 403 });
-  }
-
-  const fine = await Fine.findByIdAndDelete(id).populate('userId', 'name');
-  
-  if (fine) {
   try {
-  await Log.create({
-  user:"System",
-  role:"ADMIN",
-  action: `Xóa báo cáo phạt của ${(fine.userId as any)?.name}`,
-  type:"SUCCESS",
-  timestamp: new Date().toLocaleString("vi-VN")
-  });
-  } catch (logErr) {}
+    const userId = req.headers.get("x-user-id");
+    const userRole = req.headers.get("x-user-role");
+
+    const hasPermission = await checkPermission(userRole || "", 4, ["all", "attendance"]);
+    if (!hasPermission) {
+      await logAuditTrail(userId || "unknown", "UNAUTHORIZED_DELETE_FINE", "fines", {}, req);
+      return NextResponse.json({ error: "Không có quyền xóa báo cáo phạt" }, { status: 403 });
+    }
+
+    await dbConnect();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    const all = searchParams.get('all');
+
+    // Delete all fines
+    if (all === 'true') {
+      const deleteResult = await Fine.deleteMany({});
+      try {
+        await Log.create({
+          user: (userId || "System") as any,
+          role: userRole === "01" ? "ADMIN" : userRole === "02" ? "QL CÔNG VIỆC" : "QL NHÂN SỰ",
+          action: `Xóa tất cả báo cáo phạt (Tổng số: ${deleteResult.deletedCount})`,
+          type: "SUCCESS",
+          timestamp: new Date().toLocaleString("vi-VN")
+        });
+      } catch (logErr) {
+        console.error("Failed to create log for batch delete fines:", logErr);
+      }
+      await logAuditTrail(userId || "system", "DELETE_ALL_FINES_SUCCESS", "fines", { deletedCount: deleteResult.deletedCount }, req);
+      return NextResponse.json({ success: true, deletedCount: deleteResult.deletedCount });
+    }
+
+    if (!id) return NextResponse.json({ success: false, error: "ID is required" }, { status: 400 });
+
+    const existingFine = await Fine.findById(id);
+    if (!existingFine) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+
+    const fine = await Fine.findByIdAndDelete(id).populate('userId', 'name');
+    
+    if (fine) {
+      try {
+        await Log.create({
+          user: "System",
+          role: "ADMIN",
+          action: `Xóa báo cáo phạt của ${(fine.userId as any)?.name}`,
+          type: "SUCCESS",
+          timestamp: new Date().toLocaleString("vi-VN")
+        });
+      } catch (logErr) {}
+    }
+
+    await logAuditTrail(userId || "system", "DELETE_FINE_SUCCESS", "fines", { id }, req);
+
+    return NextResponse.json({ success: true });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
-
-  await logAuditTrail(userId || "system", "DELETE_FINE_SUCCESS", "fines", { id }, req);
-
-  return NextResponse.json({ success: true });
- } catch (error: unknown) {
-     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-  return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
- }
 }

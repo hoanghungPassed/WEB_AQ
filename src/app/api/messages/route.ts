@@ -113,8 +113,8 @@ export async function POST(req: Request) {
         await pusherServer.trigger(`user-${senderId}`, "new-message", newMessage);
         
         // Legacy channels for DMs
-        await pusherServer.trigger(`private-chat-${receiverId}`, "new-message", newMessage);
-        await pusherServer.trigger(`private-chat-${senderId}`, "new-message", newMessage);
+        await pusherServer.trigger(`private-direct-chat-${receiverId}`, "new-message", newMessage);
+        await pusherServer.trigger(`private-direct-chat-${senderId}`, "new-message", newMessage);
       }
     } catch (pushErr) {
       console.error("Pusher trigger error:", pushErr);

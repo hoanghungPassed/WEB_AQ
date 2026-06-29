@@ -245,6 +245,11 @@ export async function GET(req: NextRequest) {
       const result = await paginate(q, page, limit, sortBy, sortOrder);
       return NextResponse.json({
         ...result,
+        pagination: {
+          ...result.pagination,
+          totalCount: result.pagination.total,
+          currentPage: result.pagination.page
+        },
         batches: uniqueBatches,
         batchStats,
         warehouseCount
@@ -278,10 +283,12 @@ export async function GET(req: NextRequest) {
       success: true,
       data: paginatedData,
       pagination: {
-        page,
-        limit,
         total,
-        pages: Math.ceil(total / limit) || 1
+        totalCount: total,
+        pages: Math.ceil(total / limit) || 1,
+        currentPage: page,
+        page,
+        limit
       },
       batches: uniqueBatches,
       batchStats,

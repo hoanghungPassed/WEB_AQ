@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
     console.log("Triggering Pusher access-request event to channel 'system' with payload:", triggerPayload);
 
     try {
-      await pusherServer.trigger('system', 'access-request', triggerPayload);
+      await pusherServer.trigger('private-system', 'access-request', triggerPayload);
     } catch (pushErr) {
       console.error("Pusher trigger access-request error:", pushErr);
     }

@@ -26,6 +26,40 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
   const [modalSearchTerm, setModalSearchTerm] = useState("");
   const [modalFilterTab, setModalFilterTab] = useState<"all" | "unread" | "access" | "system">("all");
 
+  const playNotificationSound = useCallback(() => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(660, ctx.currentTime);
+      osc1.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
+      
+      osc2.type = "triangle";
+      osc2.frequency.setValueAtTime(330, ctx.currentTime);
+      osc2.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15);
+      
+      gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+      
+      osc1.connect(gainNode);
+      osc2.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      osc1.start();
+      osc2.start();
+      osc1.stop(ctx.currentTime + 0.6);
+      osc2.stop(ctx.currentTime + 0.6);
+    } catch (e) {
+      console.error("Audio play error:", e);
+    }
+  }, []);
+
   const pushToSync = async (data: Record<string, string>) => {
     try {
       await fetch("/api/sync", {
@@ -328,6 +362,7 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
 
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || "", {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "ap1",
+      authEndpoint: "/api/pusher/auth"
     });
 
     const roleUpper = String(user?.role || "").toUpperCase();
@@ -357,8 +392,7 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
         return [newNotif, ...prev];
       });
 
-      const audio = new Audio('/notification.mp3');
-      audio.play().catch(() => {});
+      playNotificationSound();
 
       mutate('/api/admin/notifications?type=SYSTEM');
     };
@@ -473,8 +507,7 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
         style: { padding: 0, background: "transparent", boxShadow: "none", border: "none" }
       });
 
-      const audio = new Audio('/notification.mp3');
-      audio.play().catch(() => {});
+      playNotificationSound();
     };
 
     // Handle new-fine events from RealtimeProvider
@@ -491,8 +524,7 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
         data: data
       };
       setNotifications(prev => [newNotif, ...prev]);
-      const audio = new Audio('/notification.mp3');
-      audio.play().catch(() => {});
+      playNotificationSound();
     };
 
     // Handle register-request events from RealtimeProvider
@@ -579,8 +611,7 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
         style: { padding: 0, background: "transparent", boxShadow: "none", border: "none" }
       });
 
-      const audio = new Audio('/notification.mp3');
-      audio.play().catch(() => {});
+      playNotificationSound();
     };
 
     const handleNewNotification = (e: Event) => {
@@ -608,8 +639,7 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
         return [newNotif, ...prev];
       });
       
-      const audio = new Audio('/notification.mp3');
-      audio.play().catch(() => {});
+      playNotificationSound();
       
       mutate('/api/admin/notifications?type=SYSTEM');
     };

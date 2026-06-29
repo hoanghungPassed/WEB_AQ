@@ -12,11 +12,12 @@ import {
  Download,
  Calendar,
  User,
- Loader2
-} from"lucide-react";
-import { motion, AnimatePresence } from"framer-motion";
-import { useRouter } from"next/navigation";
-import { FineReport } from"@/types/admin";
+ Loader2,
+ Trash2
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { FineReport } from "@/types/admin";
 
 export default function FinesReportPage() {
  const router = useRouter();
@@ -144,6 +145,22 @@ export default function FinesReportPage() {
  triggerToast("Lỗi khi xóa báo cáo");
  }
  };
+
+  const handleDeleteAllFines = async () => {
+    if (!confirm("Bạn có chắc chắn muốn xóa TẤT CẢ các báo cáo phạt? Hành động này không thể hoàn tác!")) return;
+    try {
+      const res = await fetch("/api/admin/fines?all=true", { method: "DELETE" });
+      if (res.ok) {
+        setFineReports([]);
+        triggerToast("Đã xóa tất cả báo cáo!");
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        triggerToast(errData.error || "Lỗi xóa tất cả!");
+      }
+    } catch (_) {
+      triggerToast("Lỗi khi xóa tất cả báo cáo");
+    }
+  };
 
  const handleExportCSV = () => {
  const headers = ["Nhân viên","Lí do","Số tiền","Ngày lập","Trạng thái","Ghi chú"];
@@ -370,6 +387,15 @@ export default function FinesReportPage() {
  >
  <Download size={16} /> Xuất CSV
  </button>
+
+ {currentUser && ["01", "02", "03", "ADMIN"].includes(currentUser.role) && (
+   <button
+     onClick={handleDeleteAllFines}
+     className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg cursor-pointer"
+   >
+     <Trash2 size={16} /> Xóa Tất Cả
+   </button>
+ )}
  </div>
 
  {/* Fine Reports Table */}

@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
       });
 
       // Trigger Pusher for real-time removal
-      await pusherServer.trigger("system", "user-status-changed", {
+      await pusherServer.trigger("private-system", "user-status-changed", {
         userId: authUser.userId,
         isOnline: false
       });

@@ -56,7 +56,7 @@ export async function PUT(req: NextRequest) {
     // Trigger Pusher update for satellite batches
     try {
       const { pusherServer } = await import("@/lib/pusher");
-      await pusherServer.trigger("system", "satellite-batches-updated", {});
+      await pusherServer.trigger("private-system", "satellite-batches-updated", {});
     } catch (_) {}
 
     return NextResponse.json({ success: true, modifiedCount: totalModified });

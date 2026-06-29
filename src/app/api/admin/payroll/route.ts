@@ -115,29 +115,25 @@ async function calculateMonthlyPayroll(body: any, requesterId: string | null, re
     const baseSalary = user.baseSalary || 5000000;
     const allowance = user.allowance || 500000;
 
-    // Count attendance days and aggregate fines in parallel
-    const [attendanceCount, finesAgg] = await Promise.all([
+    // Count attendance days and fetch unpaid fines in parallel
+    const [attendanceCount, unpaidFines] = await Promise.all([
       Attendance.countDocuments({
         userId: uid,
         date: { $gte: monthStart, $lte: monthEnd },
         status: { $in: ["Đúng giờ", "Đi muộn"] } // Both count as present
       }),
-      Fine.aggregate([
-        {
-          $match: {
-            userId: user._id,
-            status: "UNPAID",
-            createdAt: {
-              $gte: monthStartUTC,
-              $lt: monthEndUTC
-            }
-          }
-        },
-        { $group: { _id: null, total: { $sum: "$amount" } } }
-      ])
+      Fine.find({
+        userId: user._id,
+        status: "UNPAID",
+        createdAt: {
+          $gte: monthStartUTC,
+          $lt: monthEndUTC
+        }
+      }).lean()
     ]);
 
-    const totalFines = finesAgg.length > 0 ? finesAgg[0].total : 0;
+    const totalFines = unpaidFines.reduce((sum, f: any) => sum + (f.amount || 0), 0);
+    const fineIds = unpaidFines.map((f: any) => f._id);
     const attendanceDays = attendanceCount || 0;
 
     // Calculate payroll
@@ -167,6 +163,7 @@ async function calculateMonthlyPayroll(body: any, requesterId: string | null, re
       attendanceDays,
       workingDays: workingDaysDefault,
       fines: totalFines,
+      fineIds,
       tax,
       insurance,
       grossPay,

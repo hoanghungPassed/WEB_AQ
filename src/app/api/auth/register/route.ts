@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
       // Trigger register-request on 'system' channel for chimes & modals
       try {
-        await pusherServer.trigger("system", "register-request", {
+        await pusherServer.trigger("private-system", "register-request", {
           id: newNotif._id.toString(),
           userId: newUser._id.toString(),
           name: newUser.name,

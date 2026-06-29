@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const { pusherServer } = await import("@/lib/pusher");
-    await pusherServer.trigger("system", "new-fine", {
+    await pusherServer.trigger("private-system", "new-fine", {
       userId: staff._id,
       amount: 50000,
       reason: `Không hoàn thành task đúng hạn (sau ${offWorkStr})`

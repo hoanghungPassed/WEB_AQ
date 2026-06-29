@@ -191,7 +191,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (body.status === 'COMPLETED' && oldTask.status !== 'COMPLETED') {
     try {
       try {
-        await pusherServer.trigger("system", "task-updated", {
+        await pusherServer.trigger("private-system", "task-updated", {
           taskId: task._id,
           status: "COMPLETED",
           assigneeId: task.assigneeId
@@ -332,7 +332,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
  });
 
   try {
-    await pusherServer.trigger("system", "new-fine", {
+     await pusherServer.trigger("private-system", "new-fine", {
       userId: task.assigneeId,
       amount: 50000,
       reason: `Hoàn thành trễ hạn Task: ${task.title || id}`

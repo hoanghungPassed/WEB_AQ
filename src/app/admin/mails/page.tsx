@@ -23,18 +23,47 @@ function MailTableContent() {
  const [searchTerm, setSearchTerm] = useState("");
  const [selectedStatus, setSelectedStatus] = useState("all");
  const [copiedText, setCopiedText] = useState("");
- const itemsPerPage = 100;
+ const itemsPerPage = 50;
 
  const [mails, setMails] = useState<MailData[]>([]);
+ const [totalPages, setTotalPages] = useState(1);
+ const [totalCount, setTotalCount] = useState(0);
  const [loading, setLoading] = useState(true);
+
+ // Reset page when filters change
+ useEffect(() => {
+   setCurrentPage(1);
+ }, [searchTerm, selectedStatus, type]);
 
  useEffect(() => {
    const loadMails = async () => {
+     setLoading(true);
      try {
-       const res = await fetch("/api/admin/mails");
+       let backendType = "ALL";
+       let backendStatus = selectedStatus !== "all" ? selectedStatus : "";
+
+       if (type === "live") {
+         backendStatus = backendStatus || "LIVE";
+       } else if (type === "die") {
+         backendStatus = backendStatus || "DIE";
+       } else if (type === "monetized") {
+         backendType = "MONETIZED";
+       }
+
+       const queryParams = new URLSearchParams({
+         page: String(currentPage),
+         limit: String(itemsPerPage),
+         type: backendType,
+         search: searchTerm,
+         status: backendStatus || "ALL"
+       });
+
+       const res = await fetch(`/api/admin/mails?${queryParams.toString()}`);
        const data = await res.json();
-       if (data.success) {
+       if (res.ok && data.success) {
          setMails(data.data || []);
+         setTotalPages(data.pagination?.pages || 1);
+         setTotalCount(data.pagination?.total || 0);
        }
      } catch (err) {
        console.error("Lỗi fetch mails:", err);
@@ -43,44 +72,29 @@ function MailTableContent() {
      }
    };
    loadMails();
- }, []);
+ }, [currentPage, itemsPerPage, type, searchTerm, selectedStatus]);
 
  const copyToClipboard = (text: string) => {
- navigator.clipboard.writeText(text);
- setCopiedText(text);
- setTimeout(() => setCopiedText(""), 2000);
+   navigator.clipboard.writeText(text);
+   setCopiedText(text);
+   setTimeout(() => setCopiedText(""), 2000);
  };
 
- const CHANNEL_STATUS_OPTIONS = ["Chờ B2","Chờ B3","Lỗi B2","Đã bật","quay video","Đã Kháng","Die Spam","Chưa SUB","Mất kênh"
- ];
+ const CHANNEL_STATUS_OPTIONS = ["Chờ B2","Chờ B3","Lỗi B2","Đã bật","quay video","Đã Kháng","Die Spam","Chưa SUB","Mất kênh"];
 
- // Lọc dữ liệu dựa trên type (LIVE, DIE, MONETIZED, ALL) và search và channelStatus
- const filteredMails = (mails || []).filter((mail: MailData) => {
- let matchesType = true;
- if (type ==="live") matchesType = mail.status ==="LIVE";
- else if (type ==="die") matchesType = mail.status ==="DIE";
- else if (type ==="monetized") matchesType = (mail.type ==="MONETIZED" || !!(mail as any).isMonetized);
- 
- const matchesChannelStatus = selectedStatus ==="all" || (mail.channelStatus && mail.channelStatus.includes(selectedStatus));
- const matchesSearch = mail.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
- (mail.phone && mail.phone.includes(searchTerm));
- return matchesType && matchesChannelStatus && matchesSearch;
- });
-
- const totalPages = Math.ceil((filteredMails || []).length / itemsPerPage);
  const startIndex = (currentPage - 1) * itemsPerPage;
- const currentItems = filteredMails.slice(startIndex, startIndex + itemsPerPage);
+ const currentItems = mails;
 
  const getStatusColor = (status: string) => {
- return status ==="LIVE" ?"text-green-500 bg-green-500/10" :"text-red-500 bg-red-500/10";
+   return status === "LIVE" ? "text-green-500 bg-green-500/10" : "text-red-500 bg-red-500/10";
  };
 
  const getChannelStatusColor = (status: string) => {
- if (!status) return"";
- if (status.includes("Chờ") || status.includes("quay video")) return"text-yellow-500 bg-yellow-500/10 border-yellow-500/20";
- if (status.includes("Lỗi") || status.includes("Die") || status.includes("Chưa") || status.includes("Mất")) return"text-red-500 bg-red-500/10 border-red-500/20";
- if (status.includes("Đã bật") || status.includes("Đã Kháng")) return"text-blue-400 bg-blue-500/10 border-blue-500/20";
- return" text-gray-400 bg-white/5";
+   if (!status) return "";
+   if (status.includes("Chờ") || status.includes("quay video")) return "text-yellow-500 bg-yellow-500/10 border-yellow-500/20";
+   if (status.includes("Lỗi") || status.includes("Die") || status.includes("Chưa") || status.includes("Mất")) return "text-red-500 bg-red-500/10 border-red-500/20";
+   if (status.includes("Đã bật") || status.includes("Đã Kháng")) return "text-blue-400 bg-blue-500/10 border-blue-500/20";
+   return "text-gray-400 bg-white/5";
  };
 
  return (
@@ -113,7 +127,7 @@ function MailTableContent() {
  <Mail className="text-gold" size={24} />
  {type ==="live" ?"Mail Live" : type ==="die" ?"Mail Die" : type ==="monetized" ?"Mail Kiếm Tiền" :"Tổng Mail"}
  </h1>
- <p className="text-sm text-gray-500 font-medium uppercase tracking-widest">Tổng cộng: {(filteredMails || []).length}</p>
+ <p className="text-sm text-gray-500 font-medium uppercase tracking-widest">Tổng cộng: {totalCount}</p>
  </div>
  </div>
 

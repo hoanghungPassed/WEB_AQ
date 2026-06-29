@@ -320,7 +320,7 @@ export default function MailDetailModal({
                           }`}
                         >
                           <CheckCircle2 size={16} />
-                          {eligibleChannels[idx] ? "Đủ giờ" : "Đánh dấu"}
+                          Đủ giờ
                         </button>
                       )}
                     </>

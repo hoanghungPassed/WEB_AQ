@@ -62,6 +62,7 @@ SatelliteMailSchema.index({ batchId: 1, batchName: 1 });
 SatelliteMailSchema.index({ assigneeId: 1 });
 SatelliteMailSchema.index({ status: 1 });
 SatelliteMailSchema.index({ workStatus: 1 });
+SatelliteMailSchema.index({ eligibleChannels: 1, batchId: 1, assigneeId: 1, status: 1 });
 
 if (mongoose.models.SatelliteMail) {
  delete mongoose.models.SatelliteMail;

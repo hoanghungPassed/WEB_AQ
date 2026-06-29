@@ -120,7 +120,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ mont
     // Copy allowlisted fields from body if they are defined
     const allowedFields = [
       "status", "notes", "baseSalary", "allowance", "overtimePay", "bonus",
-      "attendanceDays", "workingDays", "fines", "tax", "insurance",
+      "attendanceDays", "workingDays", "fines", "fineIds", "tax", "insurance",
       "grossPay", "totalDeductions", "netPay", "totalReceived"
     ];
     for (const key of allowedFields) {
@@ -139,7 +139,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ mont
     const isPaidState = currentStatus === "PAID" || targetStatus === "PAID";
     if (isPaidState) {
       const financialFields = [
-        "baseSalary", "allowance", "overtimePay", "bonus", "fines",
+        "baseSalary", "allowance", "overtimePay", "bonus", "fines", "fineIds",
         "tax", "insurance", "grossPay", "totalDeductions", "netPay", "totalReceived"
       ];
       for (const field of financialFields) {
@@ -163,24 +163,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ mont
     // Auto-settle unpaid fines if the payroll status has transitioned to PAID
     if (record.status === "PAID" && currentStatus !== "PAID") {
       try {
-        const [yearStr, monthStr] = month.split("-");
-        const year = parseInt(yearStr);
-        const monthNum = parseInt(monthStr);
-        const monthStartUTC = new Date(Date.UTC(year, monthNum - 1, 1, -7, 0, 0, 0));
-        const monthEndUTC = new Date(Date.UTC(year, monthNum, 1, -7, 0, 0, 0));
-
-        const targetUserId = (record.userId && typeof record.userId === "object" && "_id" in record.userId)
-          ? (record.userId as any)._id
-          : record.userId;
-
+        const targetFineIds = (record as any).fineIds || [];
         const settleResult = await Fine.updateMany(
           {
-            userId: targetUserId,
-            status: "UNPAID",
-            createdAt: {
-              $gte: monthStartUTC,
-              $lt: monthEndUTC
-            }
+            _id: { $in: targetFineIds },
+            status: "UNPAID"
           },
           { $set: { status: "PAID" } }
         );

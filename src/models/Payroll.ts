@@ -34,6 +34,7 @@ export interface IPayroll extends Document {
   approvedBy?: mongoose.Types.ObjectId | string;
   approvedAt?: Date;
   notes?: string;
+  fineIds?: (mongoose.Types.ObjectId | string)[];
 
   timestamp: Date;
   createdAt: Date;
@@ -75,6 +76,7 @@ const PayrollSchema: Schema = new Schema(
     approvedBy: { type: Schema.Types.ObjectId, ref: "User" },
     approvedAt: { type: Date },
     notes: { type: String },
+    fineIds: [{ type: Schema.Types.ObjectId, ref: "Fine", default: [] }],
 
     timestamp: { type: Date, default: Date.now }
   },

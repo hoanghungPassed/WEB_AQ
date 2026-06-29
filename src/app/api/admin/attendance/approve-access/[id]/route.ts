@@ -42,7 +42,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const updatedUser = await User.findByIdAndUpdate(userId, userUpdate, { new: true });
       if (updatedUser) {
         try {
-          await pusherServer.trigger('system', 'user-status-changed', { 
+          await pusherServer.trigger('private-system', 'user-status-changed', { 
             userId: updatedUser._id.toString(), 
             isOnline: true 
           });
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const updatedUser = await User.findByIdAndUpdate(userId, userUpdate, { new: true });
       if (updatedUser) {
         try {
-          await pusherServer.trigger('system', 'user-status-changed', { 
+          await pusherServer.trigger('private-system', 'user-status-changed', { 
             userId: updatedUser._id.toString(), 
             isOnline: false 
           });

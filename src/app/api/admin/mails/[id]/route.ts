@@ -173,13 +173,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
         if (isTransitioningToCompleted) {
           const { pusherServer } = await import("@/lib/pusher");
-          await pusherServer.trigger('system', 'task-updated', {
+          await pusherServer.trigger('private-system', 'task-updated', {
             taskId: task._id,
             status: "COMPLETED",
             assigneeId: task.assigneeId
           });
-          await pusherServer.trigger('system', 'satellite-batches-updated', {});
-          await pusherServer.trigger('system', 'task-list-updated', {});
+          await pusherServer.trigger('private-system', 'satellite-batches-updated', {});
+          await pusherServer.trigger('private-system', 'task-list-updated', {});
         }
       }
     }

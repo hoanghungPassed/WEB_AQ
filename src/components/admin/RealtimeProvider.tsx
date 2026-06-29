@@ -61,6 +61,7 @@ export default function RealtimeProvider({
     console.log("[Pusher] Initializing client key:", process.env.NEXT_PUBLIC_PUSHER_KEY, "cluster:", process.env.NEXT_PUBLIC_PUSHER_CLUSTER);
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || "", {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "ap1",
+      authEndpoint: "/api/pusher/auth"
     });
 
     pusher.connection.bind("state_change", (states: any) => {
@@ -86,7 +87,7 @@ export default function RealtimeProvider({
     });
 
     // 2. Subscribe to Private Chat
-    const privateChannel = pusher.subscribe(`private-chat-${user.id || user._id || user.userId}`);
+    const privateChannel = pusher.subscribe(`private-direct-chat-${user.id || user._id || user.userId}`);
     privateChannel.bind("new-message", (msg: any) => {
       setPrivateMessages(prev => {
         if (prev.some(m => m.id === msg.id || m._id === msg._id)) return prev;
@@ -157,7 +158,7 @@ export default function RealtimeProvider({
     // 5. Subscribe to System channel for status changes (ONLY FOR MANAGERS/ADMIN)
     let systemChannel: any = null;
     if (isManager) {
-      systemChannel = pusher.subscribe("system");
+      systemChannel = pusher.subscribe("private-system");
 
       // Phase 1: online status synchronization
       systemChannel.bind("user-status-changed", (data: any) => {
@@ -331,6 +332,7 @@ export default function RealtimeProvider({
     const personalChannel = pusher.subscribe(`user-${user.id || user._id || user.userId}`);
     
     personalChannel.bind("new-task", (data: any) => {
+      playChatChime();
       setRoleUpdateNotif({ title: data.title || "Nhiệm vụ mới", message: data.message });
       setTimeout(() => setRoleUpdateNotif(null), 5000);
       router.refresh();
@@ -397,11 +399,11 @@ export default function RealtimeProvider({
 
     return () => {
       pusher.unsubscribe("company-chat");
-      pusher.unsubscribe(`private-chat-${user.id || user._id || user.userId}`);
+      pusher.unsubscribe(`private-direct-chat-${user.id || user._id || user.userId}`);
       pusher.unsubscribe("newsfeed");
       pusher.unsubscribe("system-users");
       if (isManager) {
-        pusher.unsubscribe("system");
+        pusher.unsubscribe("private-system");
       }
       pusher.unsubscribe(`user-${user.id || user._id || user.userId}`);
       pusher.unsubscribe("chat");

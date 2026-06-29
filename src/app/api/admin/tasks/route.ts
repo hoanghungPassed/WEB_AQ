@@ -59,6 +59,7 @@ export async function GET(req: NextRequest) {
       const tasks = await Task.find(filter)
         .populate("assigneeId", "name username role email")
         .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
+        .limit(100)
         .lean();
       return NextResponse.json({ success: true, data: tasks });
     }
@@ -190,7 +191,7 @@ export async function POST(req: NextRequest) {
       });
       
       // Luồng 2: Trigger for admin task list UI to update
-      await pusherServer.trigger('system', 'task-list-updated', {});
+      await pusherServer.trigger('private-system', 'task-list-updated', {});
     } catch (notifErr) {
       console.error("Task Notification error:", notifErr);
     }

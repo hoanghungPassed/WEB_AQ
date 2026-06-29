@@ -10,6 +10,11 @@ import { Attendance } from '@/models/Attendance';
 import { Task } from '@/models/Task';
 import { checkPermission, logAuditTrail } from "@/lib/permissions";
 
+// In-memory cache for admin stats (avoids redundant heavy DB aggregation)
+let cachedStats: any = null;
+let lastFetchTime = 0;
+const CACHE_TTL = 60000; // 60 seconds
+
 export async function GET(req: NextRequest) {
   try {
     const userId = req.headers.get("x-user-id");
@@ -93,6 +98,13 @@ export async function GET(req: NextRequest) {
         { status: 403 }
       );
     }
+
+    // ========== IN-MEMORY CACHE CHECK ==========
+    const now = Date.now();
+    if (cachedStats && (now - lastFetchTime < CACHE_TTL)) {
+      return NextResponse.json(cachedStats);
+    }
+
     const rootCount = await RootMail.countDocuments();
     const satCount = await SatelliteMail.countDocuments();
     const monCount = await MonetizedMail.countDocuments();
@@ -123,9 +135,34 @@ export async function GET(req: NextRequest) {
     ]);
     const totalFines = (priceAggregation[0]?.total as number) || 0;
 
+    // Calculate total qualified channels and detailed breakdown list
+    const eligibleMails = await SatelliteMail.find({
+      eligibleChannels: true
+    }).select("email batchName assignedTo channelNames eligibleChannels").lean();
+
+    let eligibleChannelsCount = 0;
+    const eligibleChannelsList: any[] = [];
+
+    for (const mail of eligibleMails) {
+      const eChannels = mail.eligibleChannels || [];
+      const cNames = mail.channelNames || [];
+      for (let i = 0; i < eChannels.length; i++) {
+        if (eChannels[i] === true) {
+          eligibleChannelsCount++;
+          eligibleChannelsList.push({
+            id: `${mail._id}_${i}`,
+            email: mail.email,
+            batchName: mail.batchName || "Không rõ lô",
+            assignedTo: mail.assignedTo || "Chưa giao",
+            channelName: cNames[i] || `Kênh ${i + 1}`
+          });
+        }
+      }
+    }
+
     await logAuditTrail(userId || "system", "REPORT_GENERATED", "stats", { totalMails, activeStaff, totalFines }, req);
 
-    return NextResponse.json({ 
+    const responsePayload = { 
       success: true,
       data: {
         totalMails,
@@ -136,13 +173,21 @@ export async function GET(req: NextRequest) {
         activeStaff,
         onlineUsers,
         totalFines,
+        eligibleChannelsCount,
+        eligibleChannelsList,
         tasks: {
           pending: taskPending,
           completed: taskCompleted,
           total: taskPending + taskCompleted
         }
       }
-    });
+    };
+
+    // Update in-memory cache
+    cachedStats = responsePayload;
+    lastFetchTime = Date.now();
+
+    return NextResponse.json(responsePayload);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("Error fetching admin stats:", error);
