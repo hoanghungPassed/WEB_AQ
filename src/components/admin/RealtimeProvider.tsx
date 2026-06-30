@@ -166,15 +166,15 @@ export default function RealtimeProvider({
         setChatUsers(prev => {
           const exists = prev.some(u => u.id === data.userId || u._id === data.userId);
           if (exists) {
-            return prev.map(u => (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline } : u);
+            return prev.map(u => (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline, lastActive: data.lastActive } : u);
           } else if (data.isOnline) {
-            let newUser = { id: data.userId, _id: data.userId, isOnline: true, name: data.username || "Nhân viên", username: data.username || "user", role: "05", avatar: "" };
+            let newUser = { id: data.userId, _id: data.userId, isOnline: true, name: data.username || "Nhân viên", username: data.username || "user", role: "05", avatar: "", lastActive: data.lastActive };
             try {
               const stored = localStorage.getItem("global_users");
               if (stored) {
                 const parsed = JSON.parse(stored);
                 const found = parsed.find((u: any) => u.id === data.userId || u._id === data.userId);
-                if (found) newUser = { ...found, isOnline: true };
+                if (found) newUser = { ...found, isOnline: true, lastActive: data.lastActive };
               }
             } catch (e) {}
             return [newUser, ...prev];
@@ -188,7 +188,7 @@ export default function RealtimeProvider({
           if (storedUsers) {
             const parsed = JSON.parse(storedUsers);
             const updated = parsed.map((u: any) =>
-              (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline } : u
+              (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline, lastActive: data.lastActive } : u
             );
             localStorage.setItem("global_users", JSON.stringify(updated));
             window.dispatchEvent(new Event("storage"));
@@ -205,7 +205,7 @@ export default function RealtimeProvider({
               if (!users) return currentData;
 
               const updatedUsers = users.map((u: any) =>
-                (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline } : u
+                (u.id === data.userId || u._id === data.userId) ? { ...u, isOnline: data.isOnline, lastActive: data.lastActive } : u
               );
 
               if (Array.isArray(currentData)) return updatedUsers;

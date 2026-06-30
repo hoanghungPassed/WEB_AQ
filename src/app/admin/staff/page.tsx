@@ -83,6 +83,7 @@ function StaffManagementContent() {
     {
       dedupingInterval: 15000,
       revalidateOnFocus: false,
+      refreshInterval: 30000,
     }
   );
 
@@ -92,6 +93,7 @@ function StaffManagementContent() {
     {
       revalidateOnFocus: false,
       dedupingInterval: 5000,
+      refreshInterval: 30000,
     }
   );
 
