@@ -1488,28 +1488,54 @@ interface RangeSelectionModalProps {
 }
 
 function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelectionModalProps) {
-  const fetcher = (url: string) => fetch(url).then((res) => res.json());
-  const { data, error, mutate } = useSWR("/api/admin/mails/available-ranges", fetcher, { revalidateOnFocus: false, dedupingInterval: 5000 });
   const [isAssigning, setIsAssigning] = useState(false);
+  const [quantity, setQuantity] = useState(17);
+  const [unassignedList, setUnassignedList] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const ranges = Array.isArray(data) ? data : (data?.data || data?.chunks || []);
-  const isLoading = !data && !error;
+  // Fetch unassigned satellite mails
+  useEffect(() => {
+    const loadUnassigned = async () => {
+      try {
+        const res = await fetch("/api/admin/mails?type=SATELLITE&unassigned=true&limit=2000");
+        if (res.ok) {
+          const resData = await res.json();
+          if (resData.success && resData.data) {
+            // Sort by STT ascending
+            const sorted = (resData.data || []).sort((a: any, b: any) => (a.stt || 0) - (b.stt || 0));
+            setUnassignedList(sorted);
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi fetch unassigned mails:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadUnassigned();
+  }, []);
 
-  const handleSelectRange = async (range: any) => {
-    if (isAssigning) return;
+  const handleSelectRange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isAssigning || unassignedList.length === 0) return;
+    
+    // Pick the top N mails
+    const limit = Math.min(quantity, unassignedList.length);
+    if (limit <= 0) {
+      alert("Vui lòng nhập số lượng lớn hơn 0");
+      return;
+    }
+
     setIsAssigning(true);
     try {
       const res = await fetch(`/api/admin/mail/satellite-batches/${batchId}/assign-range`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          mailIds: range.mailIds,
-          startIndex: range.startIndex,
-          endIndex: range.endIndex
+          amount: limit
         })
       });
       if (res.ok) {
-        mutate();
         onSelectSuccess();
         onClose();
       } else {
@@ -1526,7 +1552,7 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
 
   return (
     <div className="fixed inset-0 z-[250] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-[#121212] border border-white/10 rounded-[32px] p-8 w-full max-w-2xl max-h-[85vh] shadow-2xl flex flex-col justify-between overflow-hidden relative">
+      <div className="bg-[#121212] border border-white/10 rounded-[32px] p-8 w-full max-w-md shadow-2xl flex flex-col justify-between overflow-hidden relative">
         <div className="absolute top-0 right-0 h-40 w-40 bg-gold/5 blur-[50px] -mr-20 -mt-20 pointer-events-none" />
         
         <div>
@@ -1536,9 +1562,9 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
                 <Layers size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-black text-white uppercase tracking-tight">Chọn Dải Mail Từ Kho</h3>
+                <h3 className="text-lg font-black text-white uppercase tracking-tight">Gán Mail Từ Kho</h3>
                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">
-                  Phân chia tự động tối đa 17 mail mỗi dải
+                  Nhặt mail có STT nhỏ nhất từ kho rảnh
                 </p>
               </div>
             </div>
@@ -1550,49 +1576,74 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
             </button>
           </div>
 
-          <div className="space-y-3 overflow-y-auto max-h-[50vh] pr-2 custom-scrollbar min-h-[200px]">
-            {isLoading && (
-              <div className="h-40 flex flex-col items-center justify-center text-center text-gray-400 gap-2">
-                <Loader2 className="animate-spin text-gold" size={28} />
-                <span className="text-xs font-bold uppercase tracking-widest">Đang tải dải mail...</span>
-              </div>
-            )}
-
-            {!isLoading && ranges.length === 0 && (
-              <div className="h-40 flex flex-col items-center justify-center text-center text-gray-500">
-                <Mail size={32} className="mb-2 opacity-50" />
-                <p className="text-sm font-black uppercase tracking-widest">Kho mail trống hoặc đã được gán hết!</p>
-              </div>
-            )}
-
-            {!isLoading && ranges.map((range: any) => (
-              <div
-                key={range.rangeIndex}
-                onClick={() => handleSelectRange(range)}
-                className={`p-5 rounded-2xl border bg-white/0 border-white/5 hover:border-gold/30 hover:bg-gold/5 flex items-center justify-between transition-all cursor-pointer group ${
-                  isAssigning ? "opacity-50 pointer-events-none" : ""
-                }`}
-              >
-                <div>
-                  <h4 className="text-sm font-black text-white group-hover:text-gold transition-colors">
-                    Dải {range.rangeIndex} ( {range.count} mail {range.startIndex} - {range.endIndex} )
-                  </h4>
+          {isLoading ? (
+            <div className="h-40 flex flex-col items-center justify-center text-center text-gray-400 gap-2">
+              <Loader2 className="animate-spin text-gold" size={28} />
+              <span className="text-xs font-bold uppercase tracking-widest">Đang tải dữ liệu kho...</span>
+            </div>
+          ) : unassignedList.length === 0 ? (
+            <div className="h-40 flex flex-col items-center justify-center text-center text-gray-500">
+              <Mail size={32} className="mb-2 opacity-50 text-gold" />
+              <p className="text-sm font-black uppercase tracking-widest text-white">Kho mail rảnh trống!</p>
+              <p className="text-xs text-gray-500 mt-1">Tất cả mail vệ tinh đã được gán hết vào các lô.</p>
+            </div>
+          ) : (
+            <form onSubmit={handleSelectRange} className="space-y-6">
+              <div className="p-4 rounded-2xl bg-gold/5 border border-gold/10 space-y-2">
+                <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
+                  <span className="text-gray-500">Tổng mail rảnh:</span>
+                  <span className="text-gold">{unassignedList.length} mail</span>
                 </div>
-                <div className="h-8 px-4 rounded-xl bg-gold/10 text-gold border border-gold/10 group-hover:bg-gold group-hover:text-sidebar text-xs font-black uppercase tracking-wider flex items-center justify-center transition-all">
-                  Chọn dải này
+                <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
+                  <span className="text-gray-500">STT nhỏ nhất hiện tại:</span>
+                  <span className="text-white">#{unassignedList[0]?.stt || 1}</span>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
 
-        <div className="flex gap-4 mt-8 pt-4 border-t border-white/5">
-          <button
-            onClick={onClose}
-            className="flex-1 h-12 bg-white/5 border border-white/0 text-white font-bold uppercase text-sm tracking-widest rounded-xl hover:bg-white/10 transition-all"
-          >
-            Hủy
-          </button>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">
+                  Số lượng mail muốn gán
+                </label>
+                <input
+                  type="number"
+                  required
+                  min={1}
+                  max={unassignedList.length}
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl h-14 px-5 text-sm font-black text-white outline-none focus:border-gold transition-all"
+                  placeholder="Nhập số lượng mail..."
+                />
+                <p className="text-[9px] text-gray-500 italic block ml-1">
+                  * Hệ thống sẽ tự động chọn {Math.min(quantity, unassignedList.length)} mail từ STT #{unassignedList[0]?.stt || 1} đến #{unassignedList[Math.min(quantity, unassignedList.length) - 1]?.stt || 1}
+                </p>
+              </div>
+
+              <div className="flex gap-4 pt-4 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 h-14 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold uppercase text-xs tracking-widest rounded-2xl transition-all"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAssigning || quantity <= 0}
+                  className="flex-1 h-14 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-xs tracking-widest rounded-2xl transition-all shadow-xl shadow-gold/20 flex items-center justify-center gap-2"
+                >
+                  {isAssigning ? (
+                    <>
+                      <Loader2 className="animate-spin" size={16} />
+                      <span>Đang gán...</span>
+                    </>
+                  ) : (
+                    <span>Xác nhận gán</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
     </div>

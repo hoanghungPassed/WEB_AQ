@@ -340,10 +340,11 @@ export default function PhoneBatchesPage() {
  const empPhones = useMemo(() => {
  if (!selectedEmpUsername) return [];
  return (phones || []).filter((p) => 
- p.assigneeId && (
- p.assigneeId.toLowerCase() === selectedEmpUsername.toLowerCase() ||
- (selectedEmp?.id && String(p.assigneeId) === String(selectedEmp.id))
- )
+  p.assigneeId && (
+  p.assigneeId.toLowerCase() === selectedEmpUsername.toLowerCase() ||
+  (selectedEmp?.id && String(p.assigneeId) === String(selectedEmp.id)) ||
+  (selectedEmp?._id && String(p.assigneeId) === String(selectedEmp._id))
+  )
  );
  }, [phones, selectedEmpUsername, selectedEmp]);
 
@@ -464,7 +465,7 @@ export default function PhoneBatchesPage() {
  const ep = (phones || []).filter((p) => 
  p.assigneeId && emp.username && (
  p.assigneeId.toLowerCase() === emp.username.toLowerCase() ||
- (emp.id && String(p.assigneeId) === String(emp.id))
+ (emp.id && String(p.assigneeId) === String(emp.id)) || (emp._id && String(p.assigneeId) === String(emp._id))
  )
  );
  return {

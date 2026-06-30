@@ -25,6 +25,14 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
   const [isAllNotifsModalOpen, setIsAllNotifsModalOpen] = useState(false);
   const [modalSearchTerm, setModalSearchTerm] = useState("");
   const [modalFilterTab, setModalFilterTab] = useState<"all" | "unread" | "access" | "system">("all");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(modalSearchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [modalSearchTerm]);
 
   const playNotificationSound = useCallback(() => {
     try {
@@ -792,39 +800,42 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-zinc-950/95 border border-gold/20 rounded-lg p-6 w-full max-w-4xl max-h-[85vh] shadow-premium flex flex-col relative"
+              className="bg-zinc-950 border border-gold/25 rounded-xl p-6 w-full max-w-4xl max-h-[85vh] shadow-[0_0_50px_rgba(251,191,36,0.1)] flex flex-col relative overflow-hidden"
             >
+              {/* Decorative Cyber Grid Accent */}
+              <div className="absolute top-0 right-0 h-32 w-32 bg-gold/5 blur-[40px] pointer-events-none" />
+
               {/* Title Header */}
-              <div className="flex items-center justify-between mb-6 flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800/80 flex-shrink-0 relative z-10">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-gold shrink-0">
                     <Bell size={24} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-white uppercase tracking-tighter">Bảng điều khiển thông báo</h3>
-                    <p className="text-[10px] text-gold font-semibold uppercase tracking-widest mt-0.5">
-                      Quản lý tất cả sự kiện ({notifications.length} thông báo, {unreadCount} chưa đọc)
+                    <h3 className="text-xl font-black text-white uppercase tracking-wider font-mono">Bảng điều khiển thông báo</h3>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
+                      Hệ thống ghi nhận <span className="text-gold">{notifications.length}</span> sự kiện, <span className="text-red-500">{unreadCount}</span> chưa đọc
                     </p>
                   </div>
                 </div>
                 {/* Close Button */}
                 <button
                   onClick={() => setIsAllNotifsModalOpen(false)}
-                  className="p-2 rounded-xl bg-white/5 border border-white/5 text-gray-400 hover:text-gold hover:bg-white/10 transition-all z-10"
+                  className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-gray-400 hover:text-gold hover:bg-zinc-800 transition-all cursor-pointer"
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
 
-              {/* Search and Mark All Read Row */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-white/5 p-4 rounded-2xl border border-white/5 flex-shrink-0">
+              {/* Search and Action Bar */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-zinc-900/60 p-4 rounded-lg border border-zinc-800/80 flex-shrink-0 relative z-10">
                 <div className="relative flex-1 group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-gold transition-colors" size={16} />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" size={16} />
                   <input
                     placeholder="Tìm kiếm nội dung thông báo..."
                     value={modalSearchTerm}
                     onChange={(e) => setModalSearchTerm(e.target.value)}
-                    className="w-full pl-12 pr-4 h-11 bg-[#0d0d0f] border border-border rounded-xl text-foreground text-sm placeholder-foreground-secondary/40 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all"
+                    className="w-full pl-12 pr-4 h-11 bg-zinc-950 border border-zinc-800 rounded-md text-white text-sm placeholder-zinc-650 focus:border-gold outline-none transition-all font-medium"
                   />
                 </div>
                 
@@ -832,22 +843,22 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
                   {unreadCount > 0 && (
                     <button
                       onClick={handleMarkAllRead}
-                      className="h-11 px-6 rounded-xl bg-gold text-background text-xs font-black uppercase tracking-wider hover:bg-gold/90 transition-all shadow-lg shadow-gold/10"
+                      className="h-11 px-5 rounded-sm bg-gold text-zinc-950 text-xs font-black uppercase tracking-wider hover:bg-gold/90 transition-all cursor-pointer shadow-lg shadow-gold/10"
                     >
-                      Đánh dấu tất cả là đã đọc
+                      Đánh dấu tất cả đã đọc
                     </button>
                   )}
                   <button
                     onClick={() => setIsAllNotifsModalOpen(false)}
-                    className="h-11 px-6 rounded-xl bg-white/5 border border-white/5 text-white text-xs font-black uppercase tracking-wider hover:bg-white/10 transition-all"
+                    className="h-11 px-5 rounded-sm bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
                   >
                     Đóng
                   </button>
                 </div>
               </div>
 
-              {/* Tabs filter row */}
-              <div className="flex border-b border-border/50 mb-6 flex-shrink-0">
+              {/* Filter Tabs */}
+              <div className="flex gap-2 border-b border-zinc-900 mb-6 pb-2 overflow-x-auto flex-shrink-0 relative z-10 custom-scrollbar">
                 {[
                   { id: "all", label: "Tất cả" },
                   { id: "unread", label: "Chưa đọc" },
@@ -860,27 +871,30 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
                   else if (tab.id === "access") count = notifications.filter(n => n.type === "ACCESS_REQUEST").length;
                   else if (tab.id === "system") count = notifications.filter(n => n.type !== "ACCESS_REQUEST").length;
 
+                  const isActive = modalFilterTab === tab.id;
+
                   return (
                     <button
                       key={tab.id}
                       onClick={() => setModalFilterTab(tab.id as any)}
-                      className={`pb-3 px-6 text-xs font-bold uppercase tracking-wider transition-all relative ${
-                        modalFilterTab === tab.id
-                          ? "text-gold border-b-2 border-gold font-black"
-                          : "text-gray-400 hover:text-white"
+                      className={`h-9 px-4 rounded-sm text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 border whitespace-nowrap ${
+                        isActive
+                          ? "bg-gold text-zinc-950 border-gold font-black"
+                          : "bg-zinc-900/30 border-zinc-800 text-gray-400 hover:text-white hover:border-zinc-700"
                       }`}
                     >
-                      {tab.label} ({count})
+                      <span>{tab.label}</span>
+                      <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${isActive ? "bg-zinc-950 text-gold" : "bg-zinc-800 text-gray-400"}`}>{count}</span>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Notifications Table / List */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
+              {/* List */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0 relative z-10">
                 {notifications.filter(n => {
-                  const titleMatch = (n.title || "").toLowerCase().includes(modalSearchTerm.toLowerCase());
-                  const messageMatch = (n.message || "").toLowerCase().includes(modalSearchTerm.toLowerCase());
+                  const titleMatch = (n.title || "").toLowerCase().includes(debouncedSearchQuery.toLowerCase());
+                  const messageMatch = (n.message || "").toLowerCase().includes(debouncedSearchQuery.toLowerCase());
                   const matchesSearch = titleMatch || messageMatch;
 
                   let matchesTab = true;
@@ -894,10 +908,10 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
 
                   return matchesSearch && matchesTab;
                 }).length > 0 ? (
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="space-y-3 pb-4">
                     {notifications.filter(n => {
-                      const titleMatch = (n.title || "").toLowerCase().includes(modalSearchTerm.toLowerCase());
-                      const messageMatch = (n.message || "").toLowerCase().includes(modalSearchTerm.toLowerCase());
+                      const titleMatch = (n.title || "").toLowerCase().includes(debouncedSearchQuery.toLowerCase());
+                      const messageMatch = (n.message || "").toLowerCase().includes(debouncedSearchQuery.toLowerCase());
                       const matchesSearch = titleMatch || messageMatch;
 
                       let matchesTab = true;
@@ -910,46 +924,59 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
                       }
 
                       return matchesSearch && matchesTab;
-                    }).map((n, i) => (
-                      <div
-                        key={n.id || i}
-                        onClick={() => handleNotificationClick(n)}
-                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 group ${
-                          !n.read
-                            ? "bg-white/5 border-gold/20 hover:border-gold/40 hover:bg-white/10"
-                            : "bg-transparent border-border/50 hover:border-white/20 hover:bg-white/5"
-                        }`}
-                      >
-                        <div className="flex items-start gap-4 min-w-0 flex-1">
-                          <div className={`h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                            n.type === "ACCESS_REQUEST"
-                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                              : n.type === "REGISTRATION"
-                                ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                                : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                          }`}>
-                            {n.type === "ACCESS_REQUEST" ? (
-                              <UserSearch size={18} />
-                            ) : n.type === "REGISTRATION" ? (
-                              <UserPlus size={18} />
-                            ) : (
-                              <Bell size={18} />
-                            )}
-                          </div>
+                    }).map((n, i) => {
+                      // Color coding & borders based on type
+                      let borderClass = "border-l-4 border-l-blue-500 border-zinc-800 hover:border-l-blue-400";
+                      let bgClass = "bg-zinc-900/30 hover:bg-zinc-900/60";
+                      let iconColor = "text-blue-400 bg-blue-500/10 border-blue-500/20";
+                      
+                      if (n.type === "ACCESS_REQUEST") {
+                        borderClass = "border-l-4 border-l-amber-500 border-zinc-800 hover:border-l-amber-400";
+                        bgClass = "bg-amber-950/5 hover:bg-amber-950/15";
+                        iconColor = "text-amber-400 bg-amber-500/10 border-amber-500/20";
+                      } else if (n.type === "REGISTRATION") {
+                        borderClass = "border-l-4 border-l-green-500 border-zinc-800 hover:border-l-green-400";
+                        bgClass = "bg-green-950/5 hover:bg-green-950/15";
+                        iconColor = "text-green-400 bg-green-500/10 border-green-500/20";
+                      } else if (n.title?.includes("phạt") || n.message?.includes("Đi muộn")) {
+                        borderClass = "border-l-4 border-l-red-500 border-zinc-800 hover:border-l-red-400";
+                        bgClass = "bg-red-950/5 hover:bg-red-950/15";
+                        iconColor = "text-red-400 bg-red-500/10 border-red-500/20";
+                      }
 
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="text-sm font-bold text-white group-hover:text-gold transition-colors">{n.title}</p>
-                              {!n.read && (
-                                <span className="px-2 py-0.5 rounded-full bg-gold/10 border border-gold/30 text-[8px] font-bold uppercase tracking-wider text-gold">Mới</span>
+                      if (!n.read) {
+                        bgClass += " border-gold/10";
+                      }
+
+                      return (
+                        <div
+                          key={n.id || i}
+                          onClick={() => handleNotificationClick(n)}
+                          className={`p-4 rounded-md border transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 ${borderClass} ${bgClass}`}
+                        >
+                          <div className="flex items-start gap-4 min-w-0 flex-1">
+                            <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 border ${iconColor}`}>
+                              {n.type === "ACCESS_REQUEST" ? (
+                                <UserSearch size={18} />
+                              ) : n.type === "REGISTRATION" ? (
+                                <UserPlus size={18} />
+                              ) : (
+                                <Bell size={18} />
                               )}
                             </div>
-                            <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">{n.message}</p>
-                          </div>
-                        </div>
 
-                        <div className="flex items-center gap-4 flex-shrink-0 text-right">
-                          <div className="flex items-center gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center flex-wrap gap-2 mb-1">
+                                <p className="text-sm font-bold text-white font-mono">{n.title}</p>
+                                {!n.read && (
+                                  <span className="px-2 py-0.5 rounded-sm bg-gold/10 border border-gold/30 text-[8px] font-black uppercase tracking-wider text-gold">MỚI</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-400 leading-relaxed font-medium">{n.message}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between md:justify-end gap-4 shrink-0 border-t border-zinc-800/50 pt-3 md:pt-0 md:border-0">
                             {/* Inline quick actions for ACCESS_REQUEST */}
                             {n.type === "ACCESS_REQUEST" && (!n.read || n.data?.status === "PENDING") && (
                               <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
@@ -957,7 +984,7 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
                                   onClick={async () => {
                                     await handleApproveRequestDirect(n.data, true);
                                   }}
-                                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-[9px] font-black uppercase tracking-wider rounded-lg transition-all"
+                                  className="px-3 h-8 bg-green-500 hover:bg-green-600 text-zinc-950 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all cursor-pointer"
                                 >
                                   Duyệt
                                 </button>
@@ -965,7 +992,7 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
                                   onClick={async () => {
                                     await handleApproveRequestDirect(n.data, false);
                                   }}
-                                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[9px] font-black uppercase tracking-wider rounded-lg transition-all"
+                                  className="px-3 h-8 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-widest rounded-sm transition-all cursor-pointer"
                                 >
                                   Từ chối
                                 </button>
@@ -984,7 +1011,7 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
                                       username: n.title?.includes("đăng ký") ? n.message?.split("Tài khoản ")[1]?.split(" đang chờ duyệt")[0] || "" : ""
                                     });
                                   }}
-                                  className="px-3 py-1.5 bg-gold text-background hover:bg-gold-hover text-[9px] font-black uppercase tracking-wider rounded-lg transition-all"
+                                  className="px-3 h-8 bg-gold hover:bg-gold-hover text-zinc-950 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all cursor-pointer"
                                 >
                                   Duyệt
                                 </button>
@@ -1013,17 +1040,17 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
                                       toast.error("Lỗi kết nối");
                                     }
                                   }}
-                                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[9px] font-black uppercase tracking-wider rounded-lg transition-all"
+                                  className="px-3 h-8 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-widest rounded-sm transition-all cursor-pointer"
                                 >
                                   Từ chối
                                 </button>
                               </div>
                             )}
 
-                            <div>
-                              <p className="text-[10px] text-gray-500 font-bold uppercase">{n.time || "Vừa xong"}</p>
+                            <div className="text-right">
+                              <p className="text-[10px] text-gray-500 font-bold font-mono uppercase">{n.time || "Vừa xong"}</p>
                               {n.data?.status && (
-                                <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                <span className={`inline-block mt-1 px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase tracking-wider ${
                                   n.data.status === "PENDING"
                                     ? "bg-amber-500/10 text-amber-400"
                                     : n.data.status === "APPROVED"
@@ -1034,21 +1061,22 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
                                 </span>
                               )}
                             </div>
+
+                            {!n.read && (
+                              <span className="flex h-2 w-2 relative shrink-0">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-gold"></span>
+                              </span>
+                            )}
                           </div>
-                          {!n.read && (
-                            <span className="flex h-2.5 w-2.5 relative flex-shrink-0">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-gold"></span>
-                            </span>
-                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
-                  <div className="py-20 text-center text-gray-500 flex flex-col items-center justify-center">
-                    <Bell size={48} className="text-gray-600 mb-3 opacity-50" />
-                    <p className="text-sm font-bold uppercase tracking-widest opacity-60">Không tìm thấy thông báo nào</p>
+                  <div className="py-24 text-center text-gray-500 flex flex-col items-center justify-center">
+                    <Bell size={48} className="text-zinc-800 mb-4 animate-bounce" />
+                    <p className="text-sm font-black uppercase tracking-widest text-zinc-600">Không tìm thấy thông báo nào</p>
                   </div>
                 )}
               </div>

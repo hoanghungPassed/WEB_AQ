@@ -1668,7 +1668,8 @@ const typingTimer = setInterval(checkTyping, 1000);
  p.assigneeId &&
  user?.username &&
  (p.assigneeId.toLowerCase() === user?.username.toLowerCase() ||
- (user?.id && String(p.assigneeId) === String(user?.id))) &&
+ (user?.id && String(p.assigneeId) === String(user?.id)) ||
+ (user?._id && String(p.assigneeId) === String(user?._id))) &&
  p.status !=="XM lần 2" &&
  p.status !=="Lỗi"
  );
@@ -1817,7 +1818,7 @@ const typingTimer = setInterval(checkTyping, 1000);
         }
       }}
       onLogout={handleLogout}
-      isPendingApproval={isPendingApproval || statusData?.userStatus === "PENDING"}
+      isPendingApproval={isPendingApproval || statusData?.userStatus === "PENDING" || statusData?.lateExcuseStatus === "PENDING_APPROVAL" || statusData?.finePaymentStatus === "PENDING_APPROVAL"}
       isLateLock={true}
       username={user?.username}
       userId={user?.id || user?._id || (user as any)?.userId}
@@ -1913,7 +1914,7 @@ const typingTimer = setInterval(checkTyping, 1000);
         }
       }}
       finePaymentPending={finePaymentPending}
-      isDeniedApproval={(() => {
+      isDeniedApproval={statusData?.lateExcuseStatus === "DENIED" || statusData?.finePaymentStatus === "DENIED" || (() => {
         let isDeniedApproval = false;
         if (user) {
           const savedUsers = localStorage.getItem("global_users");

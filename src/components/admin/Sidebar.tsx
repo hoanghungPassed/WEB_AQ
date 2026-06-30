@@ -168,12 +168,13 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
   };
 
   const getRoleLabel = (role?: string) => {
-    if (role === "01") return "ADMIN";
-    if (role === "02") return "QL CÔNG VIỆC";
-    if (role === "03") return "QL NHÂN SỰ";
-    if (role === "04") return "NHÂN VIÊN";
-    if (role === "05") return "NV THỬ VIỆC";
-    return "GUEST";
+    const r = String(role || "").toUpperCase();
+    if (r === "01" || r === "ADMIN") return "Quản trị viên";
+    if (r === "02" || r === "QL CÔNG VIỆC") return "Quản lý công việc";
+    if (r === "03" || r === "QL NHÂN SỰ") return "Quản lý nhân sự";
+    if (r === "04" || r === "NHÂN VIÊN") return "Nhân viên chính thức";
+    if (r === "05" || r === "NV THỬ VIỆC") return "Nhân viên thử việc";
+    return "Khách";
   };
 
   return (
@@ -269,7 +270,7 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
             {!isCollapsed && (
               <div className="flex flex-col min-w-0">
                 <span className="text-[8px] font-black text-gold uppercase tracking-widest truncate">{getRoleLabel(user?.role)}</span>
-                <span className="text-xs font-bold text-white truncate">{user?.name}</span>
+                <span className="text-xs font-bold text-white truncate">{user?.name || user?.username || "Người dùng"}</span>
               </div>
             )}
           </div>

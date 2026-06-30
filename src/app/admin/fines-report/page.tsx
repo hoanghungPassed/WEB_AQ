@@ -49,7 +49,7 @@ export default function FinesReportPage() {
  staffName: d.userId?.name ||"Unknown",
  reason: d.reason,
  amount: d.amount,
- status: d.status,
+ status: d.status === "UNPAID" ? "PENDING" : d.status,
  date: new Date(d.createdAt).toISOString().split('T')[0]
  }));
  setFineReports(mapped);

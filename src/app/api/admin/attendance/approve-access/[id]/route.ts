@@ -81,7 +81,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         }
       }
     } else if (status === "DENIED" && userId) {
-      const userUpdate: any = { isOnline: false };
+      const userUpdate: any = { isOnline: false, lastActive: new Date(0) };
       if (type === "ACCESS") {
         userUpdate.status = "LOCKED";
       } else if (type === "FINE_PAYMENT") {
@@ -94,6 +94,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         userUpdate.lateExcuseStatus = "DENIED";
       }
       const updatedUser = await User.findByIdAndUpdate(userId, userUpdate, { new: true });
+      
+      // Update attendance for today to "Vắng mặt"
+      try {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, "0");
+        const dd = String(today.getDate()).padStart(2, "0");
+        const todayStr = `${yyyy}-${mm}-${dd}`;
+        const { Attendance } = await import("@/models/Attendance");
+        await Attendance.findOneAndUpdate(
+          { userId, date: todayStr },
+          { status: "Vắng mặt", checkInTime: null }
+        );
+      } catch (attErr) {
+        console.error("Lỗi cập nhật bảng công khi từ chối:", attErr);
+      }
+
       if (updatedUser) {
         try {
           await pusherServer.trigger('private-system', 'user-status-changed', { 

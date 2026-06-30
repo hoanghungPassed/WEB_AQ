@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
 import Batch from "@/models/Batch";
 import { SatelliteMail } from "@/models/SatelliteMail";
@@ -32,10 +33,11 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { mailIds, startIndex, endIndex } = await req.json();
+    const body = await req.json();
+    const amount = Number(body.amount);
 
-    if (!mailIds || !Array.isArray(mailIds)) {
-      return NextResponse.json({ success: false, error: "Thiếu danh sách mailIds" }, { status: 400 });
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return NextResponse.json({ success: false, error: "Số lượng không hợp lệ" }, { status: 400 });
     }
 
     await dbConnect();
@@ -53,29 +55,68 @@ export async function PUT(
       staffName = staff.name;
     }
 
-    // 1. Cập nhật các mail trong dải đã chọn
-    const updateResult = await SatelliteMail.updateMany(
-      { _id: { $in: mailIds } },
-      {
-        $set: {
-          isAssigned: true,
-          assignedTo: staffName,
-          assigneeId: batch.assignedTo,
-          assignee: batch.assignedTo,
-          batchId: batch._id,
-          batchName: batch.name
-        }
-      }
-    );
+    let mailIds: any[] = [];
+    let minStt = 0;
+    let maxStt = 0;
+    let modifiedCount = 0;
 
-    // 2. Cập nhật thông tin lô bằng cách đếm thực tế trong database
-    const actualCount = await SatelliteMail.countDocuments({ batchId: String(batch._id) });
-    batch.totalMails = actualCount;
-    batch.mailCount = actualCount;
-    if (startIndex !== undefined) batch.startIndex = startIndex;
-    if (endIndex !== undefined) batch.endIndex = endIndex;
-    
-    await batch.save();
+    const session = await mongoose.startSession();
+    try {
+      session.startTransaction();
+
+      // 1. Tìm mail trống và khóa lại
+      const availableMails = await SatelliteMail.find({
+        $or: [
+          { isAssigned: false },
+          { batchId: { $in: [null, "", undefined] } }
+        ],
+        type: 'SATELLITE'
+      })
+      .sort({ stt: 1 })
+      .limit(amount)
+      .session(session);
+
+      if (availableMails.length < amount) {
+        throw new Error(`Kho chỉ còn ${availableMails.length} mail trống, không đủ ${amount} mail yêu cầu!`);
+      }
+
+      mailIds = availableMails.map(m => m._id);
+      const stts = availableMails.map(m => m.stt).filter((stt): stt is number => typeof stt === "number");
+      minStt = stts.length > 0 ? Math.min(...stts) : 0;
+      maxStt = stts.length > 0 ? Math.max(...stts) : 0;
+
+      // 2. Cập nhật đồng loạt các mail vừa nhặt được
+      const updateResult = await SatelliteMail.updateMany(
+        { _id: { $in: mailIds } },
+        {
+          $set: {
+            isAssigned: true,
+            assignedTo: staffName,
+            assigneeId: batch.assignedTo,
+            assignee: batch.assignedTo,
+            batchId: String(batch._id),
+            batchName: batch.name
+          }
+        },
+        { session }
+      );
+      modifiedCount = updateResult.modifiedCount;
+
+      // 3. Cập nhật lại số lượng mail và chỉ số của Batch
+      batch.mailCount = await SatelliteMail.countDocuments({ batchId: String(batch._id) }).session(session);
+      batch.totalMails = batch.mailCount;
+      if (minStt > 0) batch.startIndex = minStt;
+      if (maxStt > 0) batch.endIndex = maxStt;
+      
+      await batch.save({ session });
+
+      await session.commitTransaction();
+    } catch (error: any) {
+      await session.abortTransaction();
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    } finally {
+      session.endSession();
+    }
 
     // Trigger Pusher events to update real-time screens
     try {
@@ -92,7 +133,7 @@ export async function PUT(
       await Log.create({
         user: staffName,
         role: userRole === "01" ? "ADMIN" : userRole === "02" ? "QL CÔNG VIỆC" : "QL NHÂN SỰ",
-        action: `Gán dải mail ${startIndex}-${endIndex} của "${batch.name}" cho nhân sự ${staffName}`,
+        action: `Gán ${mailIds.length} mail (${minStt}-${maxStt}) của "${batch.name}" cho nhân sự ${staffName}`,
         type: "SUCCESS",
         timestamp: new Date().toLocaleString("vi-VN")
       });
@@ -102,14 +143,14 @@ export async function PUT(
       userId || "system",
       "ASSIGN_RANGE_SUCCESS",
       "mails",
-      { batchId: batch._id, batchName: batch.name, startIndex, endIndex, mailCount: mailIds.length },
+      { batchId: batch._id, batchName: batch.name, startIndex: minStt, endIndex: maxStt, mailCount: mailIds.length },
       req
     );
 
     return NextResponse.json({ 
       success: true, 
       message: `Đã gán thành công ${mailIds.length} mail vào ${batch.name}`,
-      updatedCount: updateResult.modifiedCount
+      updatedCount: modifiedCount
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";

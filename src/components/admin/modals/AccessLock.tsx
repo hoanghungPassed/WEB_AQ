@@ -99,7 +99,17 @@ export default function AccessLock({
       } else if (data.status === "DENIED") {
         setLocalPending(false);
         setLocalDenied(true);
-        toast.error("Yêu cầu của bạn đã bị từ chối!");
+        toast.error("Yêu cầu mở khóa của bạn đã bị từ chối!");
+        
+        // Clear tokens and push back to login
+        localStorage.clear();
+        sessionStorage.clear();
+        fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+        
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+
         if (onDenied) {
           onDenied();
         }

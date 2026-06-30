@@ -26,12 +26,12 @@ export default function HeaderUserMenu({ user, onOpenProfile }: HeaderUserMenuPr
 
   const getRoleLabel = (role?: string) => {
     const r = String(role || "").toUpperCase();
-    if (r === "01" || r === "ADMIN") return "ADMIN";
-    if (r === "02" || r === "QL CÔNG VIỆC") return "QL CÔNG VIỆC";
-    if (r === "03" || r === "QL NHÂN SỰ") return "QL NHÂN SỰ";
-    if (r === "04" || r === "NHÂN VIÊN") return "NHÂN VIÊN";
-    if (r === "05" || r === "NV THỬ VIỆC") return "NV THỬ VIỆC";
-    return "GUEST";
+    if (r === "01" || r === "ADMIN") return "Quản trị viên";
+    if (r === "02" || r === "QL CÔNG VIỆC") return "Quản lý công việc";
+    if (r === "03" || r === "QL NHÂN SỰ") return "Quản lý nhân sự";
+    if (r === "04" || r === "NHÂN VIÊN") return "Nhân viên chính thức";
+    if (r === "05" || r === "NV THỬ VIỆC") return "Nhân viên thử việc";
+    return "Khách";
   };
 
   return (
@@ -48,11 +48,11 @@ export default function HeaderUserMenu({ user, onOpenProfile }: HeaderUserMenuPr
           )}
         </div>
         <div className="hidden sm:flex flex-col items-start pr-2">
-          <span className="text-[10px] font-black text-gold uppercase tracking-widest leading-none mb-1 inline-block max-w-[100px] truncate">
+          <span className="text-[10px] font-black text-gold uppercase tracking-widest leading-none mb-1 inline-block max-w-[150px] truncate">
             {getRoleLabel(user?.role)}
           </span>
-          <span className="text-xs font-bold text-white group-hover:text-gold transition-colors inline-block max-w-[100px] truncate">
-            {user?.name || "Người dùng"}
+          <span className="text-xs font-bold text-white group-hover:text-gold transition-colors inline-block max-w-[150px] truncate">
+            {user?.name || user?.username || "Người dùng"}
           </span>
         </div>
         <ChevronDown size={14} className={`text-gray-500 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />

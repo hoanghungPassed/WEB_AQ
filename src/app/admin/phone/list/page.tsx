@@ -53,7 +53,8 @@ export default function EmployeePhoneListPage() {
       p.assigneeId &&
       user?.username &&
       (p.assigneeId.toLowerCase() === user?.username.toLowerCase() ||
-      (user.id && String(p.assigneeId) === String(user.id)))
+      (user.id && String(p.assigneeId) === String(user.id)) ||
+      ((user as any)._id && String(p.assigneeId) === String((user as any)._id)))
     );
  }, [user]);
 

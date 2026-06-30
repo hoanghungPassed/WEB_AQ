@@ -117,7 +117,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ 
       status: responseStatus,
       isLateLocked: user.isLateLocked || false,
-      userStatus: user.status || "PENDING"
+      userStatus: user.status || "PENDING",
+      lateExcuseStatus: user.lateExcuseStatus || null,
+      finePaymentStatus: user.finePaymentStatus || null
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
