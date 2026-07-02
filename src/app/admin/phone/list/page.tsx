@@ -49,13 +49,7 @@ export default function EmployeePhoneListPage() {
       id: p._id?.toString() || p.id,
     }));
     
-    return phonesList.filter(p => 
-      p.assigneeId &&
-      user?.username &&
-      (p.assigneeId.toLowerCase() === user?.username.toLowerCase() ||
-      (user.id && String(p.assigneeId) === String(user.id)) ||
-      ((user as any)._id && String(p.assigneeId) === String((user as any)._id)))
-    );
+    return phonesList;
  }, [user]);
 
  const { data: myPhones, mutate, isValidating: isLoading } = useSWR(

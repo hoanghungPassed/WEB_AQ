@@ -109,13 +109,35 @@ export default function AdminLayoutClient({
  const [isAdminSubmitting, setIsAdminSubmitting] = useState(false);
 
  useEffect(() => {
-   if (initialUser) {
-     setUser(initialUser);
-     if (typeof window !== "undefined") {
-       localStorage.setItem("user", JSON.stringify(initialUser));
-     }
-   }
- }, [initialUser]);
+    const fetchFullUser = async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user) {
+            setUser(data.user);
+            if (typeof window !== "undefined") {
+              localStorage.setItem("user", JSON.stringify(data.user));
+              sessionStorage.setItem("user", JSON.stringify(data.user));
+            }
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch full user on layout load:", err);
+      }
+      
+      // Fallback to initialUser
+      if (initialUser) {
+        setUser(initialUser);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("user", JSON.stringify(initialUser));
+        }
+      }
+    };
+
+    fetchFullUser();
+  }, [initialUser]);
  const [bankConfig, setBankConfig] = useState<any>(null);
 
  useEffect(() => {

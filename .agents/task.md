@@ -1,0 +1,24 @@
+# Task list
+
+- [x] KHÓA 1: DASHBOARD & MODAL PORTAL (UI Fixes)
+  - [x] Modify `AdminDashboardClient.tsx`
+  - [x] Modify `HeaderNotifications.tsx`
+- [x] KHÓA 2: PHÂN LÔ & GÁN MAIL NÂNG CAO
+  - [x] Modify `satellite-batches/route.ts` (GET) for numeric sorting
+  - [x] Modify `satellite-batches/[id]/assign-range/route.ts` (PUT) for startStt/endStt
+  - [x] Modify `satellite-batches/page.tsx` for custom RangeSelectionModal and empty states
+- [x] KHÓA 3: SIDEBAR ỨNG DỤNG (1-TAP COPY)
+  - [x] Modify `Sidebar.tsx` to add staff app menu & copy logic
+- [x] KHÓA 4: HỦY TASK & DỌN DẸP CASCADE
+  - [x] Update `Task.ts` model with "CANCELLED"
+  - [x] Update `validation.ts` schema with "CANCELLED"
+  - [x] Update `tasks/[id]/route.ts` PUT for cancellation handling
+  - [x] Update `StaffDashboardClient.tsx` to add Cancel Task button
+  - [x] Create `tasks/by-batch/route.ts` DELETE endpoint
+  - [x] Update `satellite-batches/page.tsx` `handleUnassignBatch` to call by-batch delete endpoint
+- [x] KHÓA 5: FIX HIỂN THỊ DANH SÁCH SĐT
+  - [x] Modify `phone/list/page.tsx` fetchPhones callback
+- [x] KHÓA 6: FIX NÚT PROFILE
+  - [x] Modify `HeaderUserMenu.tsx` role mapping and username display
+- [x] Verification
+  - [x] Run `npx tsc --noEmit` to verify type checking

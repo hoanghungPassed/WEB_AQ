@@ -35,9 +35,14 @@ export async function PUT(
     const { id } = await params;
     const body = await req.json();
     const amount = Number(body.amount);
+    const startStt = Number(body.startStt);
+    const endStt = Number(body.endStt);
 
-    if (!amount || isNaN(amount) || amount <= 0) {
-      return NextResponse.json({ success: false, error: "Số lượng không hợp lệ" }, { status: 400 });
+    const isByRange = !isNaN(startStt) && !isNaN(endStt) && startStt > 0 && endStt >= startStt;
+    const isByAmount = !isNaN(amount) && amount > 0;
+
+    if (!isByRange && !isByAmount) {
+      return NextResponse.json({ success: false, error: "Thông tin gán mail không hợp lệ (yêu cầu Số lượng hoặc Dải STT)" }, { status: 400 });
     }
 
     await dbConnect();
@@ -65,19 +70,37 @@ export async function PUT(
       session.startTransaction();
 
       // 1. Tìm mail trống và khóa lại
-      const availableMails = await SatelliteMail.find({
-        $or: [
-          { isAssigned: false },
-          { batchId: { $in: [null, "", undefined] } }
-        ],
-        type: 'SATELLITE'
-      })
-      .sort({ stt: 1 })
-      .limit(amount)
-      .session(session);
+      let availableMails = [];
+      if (isByRange) {
+        availableMails = await SatelliteMail.find({
+          $or: [
+            { isAssigned: false },
+            { batchId: { $in: [null, "", undefined] } }
+          ],
+          type: 'SATELLITE',
+          stt: { $gte: startStt, $lte: endStt }
+        })
+        .sort({ stt: 1 })
+        .session(session);
 
-      if (availableMails.length < amount) {
-        throw new Error(`Kho chỉ còn ${availableMails.length} mail trống, không đủ ${amount} mail yêu cầu!`);
+        if (availableMails.length === 0) {
+          throw new Error(`Không tìm thấy mail trống nào trong dải STT từ ${startStt} đến ${endStt}!`);
+        }
+      } else {
+        availableMails = await SatelliteMail.find({
+          $or: [
+            { isAssigned: false },
+            { batchId: { $in: [null, "", undefined] } }
+          ],
+          type: 'SATELLITE'
+        })
+        .sort({ stt: 1 })
+        .limit(amount)
+        .session(session);
+
+        if (availableMails.length < amount) {
+          throw new Error(`Kho chỉ còn ${availableMails.length} mail trống, không đủ ${amount} mail yêu cầu!`);
+        }
       }
 
       mailIds = availableMails.map(m => m._id);

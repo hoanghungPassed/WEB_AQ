@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
- Mail, DollarSign, Users, ClipboardList, TrendingUp, Calendar, ChevronRight, ChevronLeft, Target, AlertTriangle, Clock, X, ExternalLink, Search, Filter, ArrowLeft, ClipboardCheck, Activity, Database, Zap, CheckCircle2, XCircle, Play, ShieldAlert, Check, MessageSquare, Send, LogOut, Loader2
+ Mail, DollarSign, Users, ClipboardList, TrendingUp, Calendar, ChevronRight, ChevronLeft, Target, AlertTriangle, Clock, X, ExternalLink, Search, Filter, ArrowLeft, ClipboardCheck, Activity, Database, Zap, CheckCircle2, XCircle, Play, ShieldAlert, Check, MessageSquare, Send, LogOut, Loader2, Unlock
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
@@ -228,7 +228,7 @@ export default function AdminDashboardClient({ user: initialUser }: { user: any 
         <StatCard title="Task Đang Chờ" value={stats.tasks?.pending || 0} icon={<Activity size={24} />} color="indigo" subtitle="Nhiệm vụ chưa hoàn thành" onClick={() => setSelectedViewType("TASKS")} />
         <StatCard title="Kênh Đã BKT" value={stats.monCount || 0} icon={<DollarSign size={24} />} color="gold" subtitle="Bật kiếm tiền thành công" onClick={() => router.push("/admin/mail/monetized")} />
         <StatCard title="Kênh Đủ Giờ" value={stats.eligibleChannelsCount || 0} icon={<Zap size={24} />} color="green" subtitle="Kênh đạt chỉ tiêu đủ giờ" onClick={() => setIsEligibleModalOpen(true)} />
-        <StatCard title="Nhân Sự Active" value={stats.activeStaff || 0} icon={<Users size={24} />} color="purple" subtitle="Đội ngũ nhân sự đang làm việc" />
+        <StatCard title="Nhân Sự Online" value={stats.onlineUsers || 0} icon={<Users size={24} />} color="purple" subtitle="Đội ngũ nhân sự đang làm việc" />
         <StatCard title="Tài Khoản Die" value={stats.totalDie || 0} icon={<XCircle size={24} />} color="red" subtitle="Mail gặp lỗi hệ thống" onClick={() => setSelectedViewType("DIE")} />
       </div>
 
@@ -274,6 +274,13 @@ export default function AdminDashboardClient({ user: initialUser }: { user: any 
               <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-xl bg-gold/10 text-gold flex items-center justify-center group-hover:bg-gold group-hover:text-background transition-all"><Users size={20} /></div>
                 <span className="text-xs font-black uppercase tracking-widest text-foreground-secondary group-hover:text-white">Quản lý nhân sự</span>
+              </div>
+              <ChevronRight size={16} className="text-foreground-secondary group-hover:text-gold group-hover:translate-x-1 transition-all" />
+            </button>
+            <button onClick={() => router.push("/admin/staff?tab=pending&sub=access")} className="w-full h-14 bg-white/5 border border-border hover:border-gold/50 rounded-2xl flex items-center justify-between px-6 transition-all group">
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-xl bg-gold/10 text-gold flex items-center justify-center group-hover:bg-gold group-hover:text-background transition-all"><Unlock size={20} /></div>
+                <span className="text-xs font-black uppercase tracking-widest text-foreground-secondary group-hover:text-white">Duyệt truy cập</span>
               </div>
               <ChevronRight size={16} className="text-foreground-secondary group-hover:text-gold group-hover:translate-x-1 transition-all" />
             </button>

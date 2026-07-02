@@ -33,7 +33,8 @@ export async function triggerLoginNotifications(data: LoginNotificationData): Pr
     });
     await pusherServer.trigger("private-system", "user-status-changed", {
       userId: data.userId,
-      isOnline: data.shouldBeOnline
+      isOnline: data.shouldBeOnline,
+      lastActive: data.shouldBeOnline ? data.now : null
     });
   } catch (pushErr) {
     console.error("Failed to trigger online status Pusher notification:", pushErr);

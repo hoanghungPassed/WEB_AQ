@@ -26,6 +26,7 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { StaffData } from "@/types/admin";
 import { clearAllLocalStorage } from "@/lib/clientUtils";
+import { toast } from "react-hot-toast";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -91,9 +92,9 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
       title: "Ứng dụng",
       icon: <Blocks size={20} />,
       subItems: [
-        { title: "Youtube Studio", href: "https://studio.youtube.com/", isExternal: true, icon: <Play size={14} className="text-red-500 shrink-0" /> },
-        { title: "Google Brand", href: "https://myaccount.google.com/brandaccounts", isExternal: true, icon: <Globe size={14} className="text-blue-400 shrink-0" /> },
-        { title: "Gmail", href: "https://mail.google.com/", isExternal: true, icon: <Mail size={14} className="text-gold shrink-0" /> }
+        { title: "Xác minh SĐT", href: "https://www.youtube.com/verify?f=Q0hBTk5FTF9GRUFUVVJFU19GRUFUVVJFX1VOU1BFQ0lGSUVE&noapp=1", isAppItem: true, icon: <Play size={14} className="text-red-500 shrink-0" /> },
+        { title: "Chấp nhận kênh", href: "https://myaccount.google.com/brandaccounts?si=1", isAppItem: true, icon: <Globe size={14} className="text-blue-400 shrink-0" /> },
+        { title: "Google Sheet", href: "https://docs.google.com/spreadsheets/d/1kA0Cg2fYYzed_RbuUSiZGG9gbAaYRroFmaXirWkXEuM/edit?gid=2100768061#gid=2100768061", isAppItem: true, icon: <FileText size={14} className="text-emerald-500 shrink-0" /> }
       ]
     });
 
@@ -140,6 +141,16 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
     dynamicMenuItems.push({ title: "Bảng điều khiển cá nhân", icon: <Gauge size={20} />, href: "/admin" });
     
     dynamicMenuItems.push({
+      title: "Ứng dụng",
+      icon: <Blocks size={20} />,
+      subItems: [
+        { title: "Xác minh SĐT", href: "https://www.youtube.com/verify?f=Q0hBTk5FTF9GRUFUVVJFU19GRUFUVVJFX1VOU1BFQ0lGSUVE&noapp=1", isAppItem: true, icon: <Play size={14} className="text-red-500 shrink-0" /> },
+        { title: "Chấp nhận kênh", href: "https://myaccount.google.com/brandaccounts?si=1", isAppItem: true, icon: <Globe size={14} className="text-blue-400 shrink-0" /> },
+        { title: "Google Sheet", href: "https://docs.google.com/spreadsheets/d/1kA0Cg2fYYzed_RbuUSiZGG9gbAaYRroFmaXirWkXEuM/edit?gid=2100768061#gid=2100768061", isAppItem: true, icon: <FileText size={14} className="text-emerald-500 shrink-0" /> }
+      ]
+    });
+
+    dynamicMenuItems.push({
       title: "Kho Mail của tôi",
       icon: <Mail size={20} />,
       subItems: [
@@ -169,12 +180,12 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
 
   const getRoleLabel = (role?: string) => {
     const r = String(role || "").toUpperCase();
-    if (r === "01" || r === "ADMIN") return "Quản trị viên";
-    if (r === "02" || r === "QL CÔNG VIỆC") return "Quản lý công việc";
-    if (r === "03" || r === "QL NHÂN SỰ") return "Quản lý nhân sự";
-    if (r === "04" || r === "NHÂN VIÊN") return "Nhân viên chính thức";
-    if (r === "05" || r === "NV THỬ VIỆC") return "Nhân viên thử việc";
-    return "Khách";
+    if (r === "01" || r === "ADMIN") return "QUẢN TRỊ VIÊN";
+    if (r === "02" || r === "QL CÔNG VIỆC" || r === "QUẢN LÝ") return "QUẢN LÝ";
+    if (r === "03" || r === "QL NHÂN SỰ" || r === "QUẢN LÝ NHÂN SỰ") return "QUẢN LÝ NHÂN SỰ";
+    if (r === "04" || r === "NHÂN VIÊN" || r === "NHÂN VIÊN CHÍNH THỨC") return "NHÂN VIÊN CHÍNH THỨC";
+    if (r === "05" || r === "NV THỬ VIỆC" || r === "NHÂN VIÊN THỬ VIỆC") return "NHÂN VIÊN THỬ VIỆC";
+    return "KHÁCH";
   };
 
   return (
@@ -233,21 +244,40 @@ const Sidebar = ({ isCollapsed, user }: SidebarProps) => {
               <AnimatePresence>
                 {hasSubItems && isOpen && !isCollapsed && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="ml-9 pl-4 border-l border-border space-y-1">
-                    {item.subItems.map((sub: any) => (
-                      <Link
-                        key={sub.title} 
-                        href={sub.href}
-                        target={sub.isExternal ? "_blank" : undefined}
-                        className={cn("block py-2 text-[9px] font-black uppercase tracking-widest transition-all",
-                          pathname === sub.href ? "text-gold" : "text-foreground-secondary hover:text-white"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          {sub.icon}
-                          {sub.title}
-                        </div>
-                      </Link>
-                    ))}
+                    {item.subItems.map((sub: any) => {
+                      if (sub.isAppItem) {
+                        return (
+                          <button
+                            key={sub.title}
+                            onClick={() => {
+                              navigator.clipboard.writeText(sub.href);
+                              toast.success("Đã sao chép link!");
+                            }}
+                            className="w-full text-left block py-2 text-[9px] font-black uppercase tracking-widest text-foreground-secondary hover:text-white transition-all"
+                          >
+                            <div className="flex items-center gap-2">
+                              {sub.icon}
+                              {sub.title}
+                            </div>
+                          </button>
+                        );
+                      }
+                      return (
+                        <Link
+                          key={sub.title} 
+                          href={sub.href}
+                          target={sub.isExternal ? "_blank" : undefined}
+                          className={cn("block py-2 text-[9px] font-black uppercase tracking-widest transition-all",
+                            pathname === sub.href ? "text-gold" : "text-foreground-secondary hover:text-white"
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            {sub.icon}
+                            {sub.title}
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </motion.div>
                 )}
               </AnimatePresence>

@@ -360,6 +360,11 @@ export default function SatelliteBatchesPage() {
         });
       }
 
+      // Xóa toàn bộ Task liên quan đến lô đó để reset dashboard nhân viên
+      await fetch(`/api/admin/tasks/by-batch?batchName=${encodeURIComponent(selectedBatch.name)}`, {
+        method: "DELETE"
+      });
+
       setBatchMails([]);
       setSelectedStaffToAssign("");
 
@@ -967,17 +972,28 @@ export default function SatelliteBatchesPage() {
       </div>
       
       <div className="flex flex-col items-center gap-4">
-        <button
-          onClick={() => setShowRangeModal(true)}
-          className="px-10 py-5 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-sm tracking-widest rounded-[24px] transition-all shadow-2xl shadow-gold/20 flex items-center gap-3 hover:scale-105 active:scale-95"
-        >
-          <div className="h-6 w-6 bg-sidebar/20 rounded-lg flex items-center justify-center">
-            <Plus size={16} />
-          </div>
-          📥 Chọn Dải Mail Từ Kho
-        </button>
-        <p className="text-[10px] text-gray-600 font-bold uppercase tracking-[0.2em]">
-          Tự động chẻ dữ liệu từ kho mail rảnh
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <button
+            onClick={() => setShowRangeModal(true)}
+            className="px-8 py-5 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-xs tracking-widest rounded-[24px] transition-all shadow-2xl shadow-gold/20 flex items-center gap-3 hover:scale-105 active:scale-95"
+          >
+            <div className="h-6 w-6 bg-sidebar/20 rounded-lg flex items-center justify-center">
+              <Plus size={16} />
+            </div>
+            📥 Gán Theo Dải / Số Lượng
+          </button>
+          <button
+            onClick={() => setShowAddMailModal(true)}
+            className="px-8 py-5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-black uppercase text-xs tracking-widest rounded-[24px] transition-all flex items-center gap-3 hover:scale-105 active:scale-95"
+          >
+            <div className="h-6 w-6 bg-white/10 rounded-lg flex items-center justify-center">
+              <Plus size={16} />
+            </div>
+            ✍️ Gán Lẻ Thủ Công
+          </button>
+        </div>
+        <p className="text-[10px] text-gray-600 font-bold uppercase tracking-[0.2em] mt-2">
+          Chọn phương pháp gán phù hợp để phân bổ mail vệ tinh
         </p>
       </div>
     </div>
@@ -1490,6 +1506,9 @@ interface RangeSelectionModalProps {
 function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelectionModalProps) {
   const [isAssigning, setIsAssigning] = useState(false);
   const [quantity, setQuantity] = useState(17);
+  const [startStt, setStartStt] = useState<number | "">("");
+  const [endStt, setEndStt] = useState<number | "">("");
+  const [assignType, setAssignType] = useState<"AMOUNT" | "RANGE">("AMOUNT");
   const [unassignedList, setUnassignedList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -1504,6 +1523,10 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
             // Sort by STT ascending
             const sorted = (resData.data || []).sort((a: any, b: any) => (a.stt || 0) - (b.stt || 0));
             setUnassignedList(sorted);
+            if (sorted.length > 0) {
+              setStartStt(sorted[0].stt || 1);
+              setEndStt((sorted[0].stt || 1) + 16);
+            }
           }
         }
       } catch (err) {
@@ -1518,12 +1541,21 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
   const handleSelectRange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isAssigning || unassignedList.length === 0) return;
-    
-    // Pick the top N mails
-    const limit = Math.min(quantity, unassignedList.length);
-    if (limit <= 0) {
-      alert("Vui lòng nhập số lượng lớn hơn 0");
-      return;
+
+    let payload: any = {};
+    if (assignType === "AMOUNT") {
+      const limit = Math.min(quantity, unassignedList.length);
+      if (limit <= 0) {
+        alert("Vui lòng nhập số lượng lớn hơn 0");
+        return;
+      }
+      payload = { amount: limit };
+    } else {
+      if (!startStt || !endStt || Number(endStt) < Number(startStt)) {
+        alert("Dải STT không hợp lệ");
+        return;
+      }
+      payload = { startStt: Number(startStt), endStt: Number(endStt) };
     }
 
     setIsAssigning(true);
@@ -1531,9 +1563,7 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
       const res = await fetch(`/api/admin/mail/satellite-batches/${batchId}/assign-range`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          amount: limit
-        })
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         onSelectSuccess();
@@ -1564,7 +1594,7 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
               <div>
                 <h3 className="text-lg font-black text-white uppercase tracking-tight">Gán Mail Từ Kho</h3>
                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">
-                  Nhặt mail có STT nhỏ nhất từ kho rảnh
+                  Phân bổ tài khoản vệ tinh vào lô
                 </p>
               </div>
             </div>
@@ -1589,6 +1619,32 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
             </div>
           ) : (
             <form onSubmit={handleSelectRange} className="space-y-6">
+              {/* Custom Tabs */}
+              <div className="grid grid-cols-2 gap-2 bg-black/40 p-1.5 rounded-2xl border border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setAssignType("AMOUNT")}
+                  className={`py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+                    assignType === "AMOUNT"
+                      ? "bg-gold text-background font-black shadow-lg"
+                      : "text-foreground-secondary hover:text-white"
+                  }`}
+                >
+                  Theo số lượng
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAssignType("RANGE")}
+                  className={`py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+                    assignType === "RANGE"
+                      ? "bg-gold text-background font-black shadow-lg"
+                      : "text-foreground-secondary hover:text-white"
+                  }`}
+                >
+                  Theo dải STT
+                </button>
+              </div>
+
               <div className="p-4 rounded-2xl bg-gold/5 border border-gold/10 space-y-2">
                 <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
                   <span className="text-gray-500">Tổng mail rảnh:</span>
@@ -1600,24 +1656,57 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">
-                  Số lượng mail muốn gán
-                </label>
-                <input
-                  type="number"
-                  required
-                  min={1}
-                  max={unassignedList.length}
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full bg-black/40 border border-white/10 rounded-2xl h-14 px-5 text-sm font-black text-white outline-none focus:border-gold transition-all"
-                  placeholder="Nhập số lượng mail..."
-                />
-                <p className="text-[9px] text-gray-500 italic block ml-1">
-                  * Hệ thống sẽ tự động chọn {Math.min(quantity, unassignedList.length)} mail từ STT #{unassignedList[0]?.stt || 1} đến #{unassignedList[Math.min(quantity, unassignedList.length) - 1]?.stt || 1}
-                </p>
-              </div>
+              {assignType === "AMOUNT" ? (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">
+                    Số lượng mail muốn gán
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    max={unassignedList.length}
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full bg-black/40 border border-white/10 rounded-2xl h-14 px-5 text-sm font-black text-white outline-none focus:border-gold transition-all"
+                    placeholder="Nhập số lượng mail..."
+                  />
+                  <p className="text-[9px] text-gray-500 italic block ml-1">
+                    * Hệ thống sẽ tự động chọn {Math.min(quantity, unassignedList.length)} mail từ STT #{unassignedList[0]?.stt || 1}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">
+                      Từ STT
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      value={startStt}
+                      onChange={(e) => setStartStt(e.target.value === "" ? "" : Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-full bg-black/40 border border-white/10 rounded-2xl h-14 px-5 text-sm font-black text-white outline-none focus:border-gold transition-all"
+                      placeholder="STT đầu..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">
+                      Đến STT
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min={Number(startStt) || 1}
+                      value={endStt}
+                      onChange={(e) => setEndStt(e.target.value === "" ? "" : Math.max(Number(startStt) || 1, parseInt(e.target.value) || 1))}
+                      className="w-full bg-black/40 border border-white/10 rounded-2xl h-14 px-5 text-sm font-black text-white outline-none focus:border-gold transition-all"
+                      placeholder="STT cuối..."
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-4 pt-4 border-t border-white/5">
                 <button
@@ -1629,7 +1718,7 @@ function RangeSelectionModal({ batchId, onClose, onSelectSuccess }: RangeSelecti
                 </button>
                 <button
                   type="submit"
-                  disabled={isAssigning || quantity <= 0}
+                  disabled={isAssigning || (assignType === "AMOUNT" && quantity <= 0) || (assignType === "RANGE" && (!startStt || !endStt))}
                   className="flex-1 h-14 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-xs tracking-widest rounded-2xl transition-all shadow-xl shadow-gold/20 flex items-center justify-center gap-2"
                 >
                   {isAssigning ? (

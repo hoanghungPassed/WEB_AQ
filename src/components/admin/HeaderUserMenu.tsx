@@ -26,12 +26,12 @@ export default function HeaderUserMenu({ user, onOpenProfile }: HeaderUserMenuPr
 
   const getRoleLabel = (role?: string) => {
     const r = String(role || "").toUpperCase();
-    if (r === "01" || r === "ADMIN") return "Quản trị viên";
-    if (r === "02" || r === "QL CÔNG VIỆC") return "Quản lý công việc";
-    if (r === "03" || r === "QL NHÂN SỰ") return "Quản lý nhân sự";
-    if (r === "04" || r === "NHÂN VIÊN") return "Nhân viên chính thức";
-    if (r === "05" || r === "NV THỬ VIỆC") return "Nhân viên thử việc";
-    return "Khách";
+    if (r === "01" || r === "ADMIN") return "QUẢN TRỊ VIÊN";
+    if (r === "02" || r === "QL CÔNG VIỆC" || r === "QUẢN LÝ") return "QUẢN LÝ";
+    if (r === "03" || r === "QL NHÂN SỰ" || r === "QUẢN LÝ NHÂN SỰ") return "QUẢN LÝ NHÂN SỰ";
+    if (r === "04" || r === "NHÂN VIÊN" || r === "NHÂN VIÊN CHÍNH THỨC") return "NHÂN VIÊN CHÍNH THỨC";
+    if (r === "05" || r === "NV THỬ VIỆC" || r === "NHÂN VIÊN THỬ VIỆC") return "NHÂN VIÊN THỬ VIỆC";
+    return "KHÁCH";
   };
 
   return (
@@ -52,7 +52,7 @@ export default function HeaderUserMenu({ user, onOpenProfile }: HeaderUserMenuPr
             {getRoleLabel(user?.role)}
           </span>
           <span className="text-xs font-bold text-white group-hover:text-gold transition-colors inline-block max-w-[150px] truncate">
-            {user?.name || user?.username || "Người dùng"}
+            {user?.name || user?.username}
           </span>
         </div>
         <ChevronDown size={14} className={`text-gray-500 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
@@ -70,7 +70,7 @@ export default function HeaderUserMenu({ user, onOpenProfile }: HeaderUserMenuPr
             >
               <div className="p-4 border-b border-border bg-black/20">
                 <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Đang đăng nhập</p>
-                <p className="text-sm font-bold text-white truncate">{user?.email || user?.username}</p>
+                <p className="text-sm font-bold text-white truncate">{user?.username}</p>
               </div>
               <div className="p-2">
                 <button

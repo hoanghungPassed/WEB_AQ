@@ -44,7 +44,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         try {
           await pusherServer.trigger('private-system', 'user-status-changed', { 
             userId: updatedUser._id.toString(), 
-            isOnline: true 
+            isOnline: true,
+            lastActive: userUpdate.lastActive
           });
           await pusherServer.trigger('system-users', 'status-changed', {
             userId: updatedUser._id.toString(),
@@ -115,7 +116,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         try {
           await pusherServer.trigger('private-system', 'user-status-changed', { 
             userId: updatedUser._id.toString(), 
-            isOnline: false 
+            isOnline: false,
+            lastActive: null
           });
           await pusherServer.trigger('system-users', 'status-changed', {
             userId: updatedUser._id.toString(),

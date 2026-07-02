@@ -5,7 +5,7 @@ export interface ITask extends Document {
   type: "MAIL_GOC" | "MAIL_VE_TINH" | "MAIL_MONETIZED";
   assigneeId: mongoose.Types.ObjectId | string;
   progress: number;
-  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "OVERDUE";
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "OVERDUE" | "CANCELLED";
   deadline: Date | string;
   mailCount: number;
   note: string;
@@ -33,7 +33,7 @@ const TaskSchema: Schema = new Schema(
     type: { type: String, required: true, enum: ["MAIL_GOC", "MAIL_VE_TINH", "MAIL_MONETIZED"] },
     assigneeId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     progress: { type: Number, default: 0 },
-    status: { type: String, default: 'PENDING', enum: ["PENDING", "IN_PROGRESS", "COMPLETED", "OVERDUE"] },
+    status: { type: String, default: 'PENDING', enum: ["PENDING", "IN_PROGRESS", "COMPLETED", "OVERDUE", "CANCELLED"] },
     deadline: { type: Date, required: true },
     mailCount: { type: Number, default: 0 },
     note: { type: String },

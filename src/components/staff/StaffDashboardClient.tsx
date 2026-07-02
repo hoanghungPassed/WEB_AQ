@@ -238,7 +238,7 @@ export default function StaffDashboardClient({ user }: { user: any }) {
         body: JSON.stringify({ status: newStatus })
       });
       if (res.ok) {
-        toast.success(`Đã cập nhật trạng thái: ${newStatus === "IN_PROGRESS" ? "Đang làm" : newStatus}`);
+        toast.success(`Đã cập nhật trạng thái: ${newStatus === "IN_PROGRESS" ? "Đang làm" : newStatus === "CANCELLED" ? "Đã hủy" : newStatus}`);
         const data = await res.json();
         if (data.success && data.data) {
           setSelectedTask(data.data);
@@ -314,6 +314,8 @@ export default function StaffDashboardClient({ user }: { user: any }) {
         return <Badge variant="info" className="rounded-sm">Chờ xử lý</Badge>;
       case "OVERDUE":
         return <Badge variant="danger" className="rounded-sm">Quá hạn</Badge>;
+      case "CANCELLED":
+        return <Badge variant="danger" className="rounded-sm">Đã hủy</Badge>;
       default:
         return <Badge className="rounded-sm">{status}</Badge>;
     }
@@ -440,7 +442,7 @@ export default function StaffDashboardClient({ user }: { user: any }) {
                 </button>
               )}
 
-              {selectedTask.status !== "COMPLETED" && (
+              {selectedTask.status !== "COMPLETED" && selectedTask.status !== "CANCELLED" && (
                 <button
                   onClick={handleCompleteTask}
                   disabled={completingTask || !isTaskCompleteEligible}
@@ -452,6 +454,25 @@ export default function StaffDashboardClient({ user }: { user: any }) {
                 >
                   {completingTask ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
                   Hoàn thành Nhiệm vụ
+                </button>
+              )}
+
+              {selectedTask.status !== "COMPLETED" && selectedTask.status !== "CANCELLED" && (
+                <button
+                  onClick={async () => {
+                    const confirmCancel = window.confirm("Bạn có chắc chắn muốn hủy nhiệm vụ này? Hành động này sẽ trả lại toàn bộ mail của nhiệm vụ này về kho và không thể hoàn tác!");
+                    if (!confirmCancel) return;
+                    await updateTaskStatus("CANCELLED");
+                    setSelectedTask(null);
+                  }}
+                  disabled={isUpdatingStatus}
+                  className={`w-full h-12 text-white font-bold rounded-md uppercase text-xs tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer ${
+                    isUpdatingStatus 
+                      ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-50" 
+                      : "bg-red-600 hover:bg-red-700 shadow-red-600/10"
+                  }`}
+                >
+                  {isUpdatingStatus ? <Loader2 size={14} className="animate-spin" /> : <AlertTriangle size={14} />} Hủy nhiệm vụ
                 </button>
               )}
               

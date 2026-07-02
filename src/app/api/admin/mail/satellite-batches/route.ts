@@ -70,6 +70,15 @@ export async function GET(req: NextRequest) {
       })
     );
 
+    // Numeric sorting by batch number in name (e.g. Lô 1 before Lô 2, up to Lô 6)
+    batchesWithCounts.sort((a: any, b: any) => {
+      const getBatchNumber = (name: string) => {
+        const match = name.match(/Lô\s*(\d+)/i);
+        return match ? parseInt(match[1]) : 999;
+      };
+      return getBatchNumber(a.name) - getBatchNumber(b.name);
+    });
+
     return NextResponse.json({ success: true, batches: batchesWithCounts });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";

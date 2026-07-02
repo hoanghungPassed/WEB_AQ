@@ -99,7 +99,7 @@ export const CreateTaskSchema = z.object({
 });
 
 export const UpdateTaskSchema = CreateTaskSchema.partial().extend({
-  status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "OVERDUE"]).optional(),
+  status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "OVERDUE", "CANCELLED"]).optional(),
   progress: z.number().min(0).max(100).optional(),
 });
 

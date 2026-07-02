@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import useSWR, { mutate } from "swr";
 import Pusher from "pusher-js";
+import { createPortal } from "react-dom";
 import { StaffData } from "@/types/admin";
 import { toast } from "react-hot-toast";
 
@@ -26,6 +27,11 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
   const [modalSearchTerm, setModalSearchTerm] = useState("");
   const [modalFilterTab, setModalFilterTab] = useState<"all" | "unread" | "access" | "system">("all");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -793,9 +799,10 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
       </AnimatePresence>
 
       {/* All Notifications Modal */}
-      <AnimatePresence>
-        {isAllNotifsModalOpen && (
-          <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      {isMounted && typeof window !== "undefined" && createPortal(
+        <AnimatePresence>
+          {isAllNotifsModalOpen && (
+            <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -1083,7 +1090,9 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
 
       {/* Approval Modal */}
       <AnimatePresence>

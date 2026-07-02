@@ -90,7 +90,8 @@ export async function GET(req: NextRequest) {
       try {
         await pusherServer.trigger("private-system", "user-status-changed", {
           userId: user._id.toString(),
-          isOnline: shouldBeOnline
+          isOnline: shouldBeOnline,
+          lastActive: shouldBeOnline ? user.lastActive : null
         });
         await pusherServer.trigger("system-users", "status-changed", {
           userId: user._id.toString(),

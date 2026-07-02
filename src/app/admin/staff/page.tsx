@@ -361,14 +361,10 @@ function StaffManagementContent() {
       if (!rawUsers) return;
 
       const users: StaffData[] = rawUsers.map((u: any) => {
-        const lastActiveDate = u.lastActive ? new Date(u.lastActive) : null;
-        const isOnline = lastActiveDate
-          ? (Date.now() - lastActiveDate.getTime() < 15 * 60 * 1000)
-          : false;
         return {
           ...u,
           id: u.id || u._id?.toString(),
-          isOnline,
+          isOnline: !!u.isOnline,
         };
       });
       setStaffList(users);
@@ -415,14 +411,14 @@ function StaffManagementContent() {
 
  // Stats calculation
  const stats = useMemo(() => {
- const listToUse = allUsersResponse?.success ? (allUsersResponse?.data || allUsersResponse?.users || []) : staffList;
- return {
- total: (listToUse || []).filter((s: any) => s.status ==="ACTIVE").length,
-  online: (listToUse || []).filter((s: any) => (s.lastActive ? (Date.now() - new Date(s.lastActive).getTime() < 15 * 60 * 1000) : false) && s.status ==="ACTIVE").length,
-  offline: (listToUse || []).filter((s: any) => !(s.lastActive ? (Date.now() - new Date(s.lastActive).getTime() < 15 * 60 * 1000) : false) && s.status ==="ACTIVE").length,
-  pending: (listToUse || []).filter((s: any) => s.status ==="PENDING").length
- };
- }, [staffList, allUsersResponse]);
+    const listToUse = allUsersResponse?.success ? (allUsersResponse?.data || allUsersResponse?.users || []) : staffList;
+    return {
+      total: (listToUse || []).filter((s: any) => s.status === "ACTIVE").length,
+      online: (listToUse || []).filter((s: any) => s.isOnline && s.status === "ACTIVE").length,
+      offline: (listToUse || []).filter((s: any) => !s.isOnline && s.status === "ACTIVE").length,
+      pending: (listToUse || []).filter((s: any) => s.status === "PENDING").length
+    };
+  }, [staffList, allUsersResponse]);
 
  // Filtered staff list
  const filteredStaff = useMemo(() => {

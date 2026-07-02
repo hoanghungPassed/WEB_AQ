@@ -77,6 +77,94 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     // Strictly enforce ownership for Staff roles
     const isStaff = userRole === "03" || userRole === "04" || userRole === "05";
 
+    // --- XỬ LÝ HỦY TASK (CANCELLED) ---
+    if (body.status === "CANCELLED" && oldTask.status !== "CANCELLED") {
+      const mongoose = (await import("mongoose")).default;
+      const session = await mongoose.startSession();
+      try {
+        session.startTransaction();
+
+        // 1. Cập nhật trạng thái Task thành CANCELLED
+        const updatedTask = await Task.findByIdAndUpdate(
+          id,
+          { status: "CANCELLED", progress: 0 },
+          { new: true, session }
+        );
+
+        if (!updatedTask) {
+          throw new Error("Không tìm thấy nhiệm vụ");
+        }
+
+        // 2. Nhả toàn bộ SatelliteMail liên quan về kho
+        const batchIdentifier = oldTask.batch || (oldTask as any).batchName || (oldTask as any).batchId;
+        const mailIds = oldTask.mailIds || [];
+
+        const query: any = {};
+        if (batchIdentifier) {
+          query.$or = [{ batchName: batchIdentifier }, { batchId: batchIdentifier }, { batch: batchIdentifier }];
+        } else if (mailIds.length > 0) {
+          query._id = { $in: mailIds };
+        }
+
+        if (query.$or || query._id) {
+          query.type = "SATELLITE";
+          await SatelliteMail.updateMany(
+            query,
+            {
+              $set: {
+                isAssigned: false,
+                batchId: null,
+                batchName: null,
+                batch: null,
+                assigneeId: null,
+                assignedTo: null,
+                assignedAt: null
+              }
+            },
+            { session }
+          );
+        }
+
+        // 3. Tạo thông báo cảnh báo cho Admin
+        const admins = await User.find({ role: { $in: ["01", "02"] } }).select("_id");
+        const staffName = oldTask.assigneeName || "Nhân viên";
+        const batchLabel = oldTask.batch || oldTask.batchName || "Lô mail";
+
+        const adminNotifications = admins.map(admin => ({
+          title: "Nhiệm vụ bị hủy",
+          message: `Nhân viên ${staffName} đã hủy nhiệm vụ ${batchLabel}.`,
+          type: "WARNING",
+          recipientId: admin._id,
+          isRead: false
+        }));
+
+        if (adminNotifications.length > 0) {
+          await Notification.insertMany(adminNotifications, { session });
+        }
+
+        await session.commitTransaction();
+
+        // Pusher triggers
+        try {
+          await pusherServer.trigger("private-system", "task-updated", {
+            taskId: updatedTask._id,
+            status: "CANCELLED",
+            assigneeId: updatedTask.assigneeId
+          });
+        } catch (pushErr) {
+          console.error("Pusher error in cancellation:", pushErr);
+        }
+
+        await logAuditTrail(userId || "system", "CANCEL_TASK_SUCCESS", "tasks", { taskId: updatedTask._id, title: updatedTask.title }, req);
+        return NextResponse.json({ success: true, data: updatedTask });
+      } catch (err: any) {
+        await session.abortTransaction();
+        return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+      } finally {
+        session.endSession();
+      }
+    }
+
     // --- BẮT ĐẦU KIỂM TRA ĐIỀU KIỆN HOÀN THÀNH (SERVER-SIDE VALIDATION) ---
     if (body.status === 'COMPLETED' && oldTask.status !== 'COMPLETED') {
       // Race Condition Protection: Only allow completing if it's currently PENDING or IN_PROGRESS

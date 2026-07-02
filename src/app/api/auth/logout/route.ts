@@ -26,7 +26,8 @@ export async function POST(req: NextRequest) {
         try {
           await pusherServer.trigger("private-system", "user-status-changed", {
             userId: authUser.userId,
-            isOnline: false
+            isOnline: false,
+            lastActive: now
           });
 
           // Đồng bộ channel cũ nếu cần
