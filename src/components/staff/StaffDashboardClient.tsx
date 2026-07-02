@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Mail, DollarSign, ClipboardList, Calendar, Search, 
   ArrowLeft, CheckCircle2, Clock, Play, Loader2, RefreshCw, AlertTriangle, Inbox,
-  Copy, ExternalLink, Lock
+  Copy, ExternalLink, Lock, X, Trash2, CalendarDays, CheckCircle, XCircle, Minus
 } from "lucide-react";
 import useSWR, { mutate } from "swr";
 import { Badge } from "@/components/ui/Badge";
@@ -73,6 +73,10 @@ export default function StaffDashboardClient({ user }: { user: any }) {
   const [completingTask, setCompletingTask] = useState<boolean>(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<boolean>(false);
   const [selectedMailForConfig, setSelectedMailForConfig] = useState<any | null>(null);
+
+  const [activeDetailDay, setActiveDetailDay] = useState<any | null>(null);
+  const [appealReason, setAppealReason] = useState("");
+  const [submittingAppeal, setSubmittingAppeal] = useState(false);
 
   const handleCopy = (text: string) => {
     if (navigator.clipboard && window.isSecureContext) {
@@ -276,7 +280,7 @@ export default function StaffDashboardClient({ user }: { user: any }) {
     { revalidateOnFocus: false, dedupingInterval: 5000 }
   );
 
-  const { data: attendanceData, error: attendanceError, isValidating: attendanceValidating } = useSWR(
+  const { data: rawAttendanceData, error: attendanceError, isValidating: attendanceValidating } = useSWR(
     user ? "/api/admin/attendance?history=true" : null,
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 5000 }
@@ -290,7 +294,139 @@ export default function StaffDashboardClient({ user }: { user: any }) {
 
   const stats = statsData?.data || {};
   const tasksList = tasksData?.success ? tasksData.data : (Array.isArray(tasksData) ? tasksData : []);
-  const attendanceHistory = attendanceData?.data || [];
+  const attendanceHistory = rawAttendanceData?.data || [];
+
+  const handleSubmitAppeal = async (dateKey: string) => {
+    if (!appealReason.trim()) {
+      toast.error("Vui lòng nhập lý do khiếu nại");
+      return;
+    }
+    setSubmittingAppeal(true);
+    try {
+      const res = await fetch("/api/staff/attendance/appeal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: dateKey, reason: appealReason.trim() })
+      });
+      if (res.ok) {
+        toast.success("Gửi khiếu nại thành công!");
+        setAppealReason("");
+        setActiveDetailDay(null);
+        mutate("/api/admin/attendance?history=true");
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Gửi khiếu nại thất bại");
+      }
+    } catch (e) {
+      toast.error("Lỗi kết nối");
+    } finally {
+      setSubmittingAppeal(false);
+    }
+  };
+
+  const attendanceData = useMemo(() => {
+    const list: any[] = [];
+    let present = 0;
+    let absent = 0;
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonthIdx = today.getMonth();
+    const totalDays = new Date(currentYear, currentMonthIdx + 1, 0).getDate();
+    const monthStr = String(currentMonthIdx + 1).padStart(2, '0');
+
+    for (let dayNum = 1; dayNum <= totalDays; dayNum++) {
+      const dayStr = String(dayNum).padStart(2, '0');
+      const dateKey = `${currentYear}-${monthStr}-${dayStr}`;
+      const currentDate = new Date(currentYear, currentMonthIdx, dayNum);
+      const isSunday = currentDate.getDay() === 0;
+      const isToday = dayNum === today.getDate() && currentMonthIdx === today.getMonth() && currentYear === today.getFullYear();
+      const isFuture = currentDate > today && !isToday;
+
+      let isNotStarted = false;
+      if (user?.createdAt) {
+        const createdDate = new Date(user.createdAt);
+        const currentZeroTime = new Date(currentYear, currentMonthIdx, dayNum);
+        const createdZeroTime = new Date(createdDate.getFullYear(), createdDate.getMonth(), createdDate.getDate());
+        if (currentZeroTime < createdZeroTime) {
+          isNotStarted = true;
+        }
+      }
+
+      const dbRecord = (attendanceHistory || []).find((r: any) => r.date === dateKey);
+      let hasCheckedIn = false;
+      let actualTime = "";
+      let checkoutTime = "";
+
+      if (dbRecord) {
+        if (dbRecord.checkInTime || (dbRecord.status && dbRecord.status !== "Vắng mặt")) {
+          hasCheckedIn = true;
+          if (dbRecord.checkInTime) {
+            const dIn = new Date(dbRecord.checkInTime);
+            actualTime = dIn.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+          } else {
+            actualTime = "Đã vào hệ thống";
+          }
+          if (dbRecord.checkOutTime) {
+            const dOut = new Date(dbRecord.checkOutTime);
+            checkoutTime = dOut.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+          }
+        }
+      }
+
+      let status = "ABSENT";
+      if (isSunday) {
+        status = "SUNDAY";
+      } else if (isFuture) {
+        status = "FUTURE";
+      } else if (isNotStarted) {
+        status = "NOT_STARTED";
+      } else if (hasCheckedIn) {
+        status = "PRESENT";
+        present++;
+      } else {
+        status = "ABSENT";
+        absent++;
+      }
+
+      let workLog: any[] = [];
+      if (hasCheckedIn) {
+        workLog = [
+          { time: actualTime, title: "Điểm danh sáng (Check-in)", desc: dbRecord?.status === "Đi muộn" ? "Bắt đầu ca làm việc (Muộn giờ)." : "Bắt đầu ca làm việc." },
+          { time: checkoutTime || "---", title: "Điểm danh chiều (Check-out)", desc: checkoutTime ? "Hoàn tất ca làm việc." : "Đang làm việc..." }
+        ];
+      } else if (status === "SUNDAY") {
+        workLog = [
+          { time: "N/A", title: "Chủ nhật nghỉ", desc: "Ngày nghỉ cuối tuần theo quy định, không tính công làm việc." }
+        ];
+      } else if (status === "NOT_STARTED") {
+        workLog = [
+          { time: "N/A", title: "Chưa đi làm", desc: "Nhân sự chưa bắt đầu làm việc tại công ty trước ngày đăng ký tài khoản." }
+        ];
+      } else if (status === "FUTURE") {
+        workLog = [
+          { time: "N/A", title: "Chưa đến ngày", desc: "Ngày trong tương lai của tháng hiện tại, chưa có dữ liệu chấm công." }
+        ];
+      } else {
+        workLog = [
+          { time: "N/A", title: "Vắng mặt", desc: "Không có dữ liệu hoạt động trong ngày này. Nhân sự nghỉ phép hoặc chưa chấm công." }
+        ];
+      }
+
+      list.push({
+        dayNum,
+        dateKey,
+        isToday,
+        hasCheckedIn,
+        checkinTime: actualTime || "---",
+        checkoutTime: checkoutTime || "---",
+        status,
+        workLog,
+        dbRecord
+      });
+    }
+
+    return { list, present, absent };
+  }, [user, attendanceHistory]);
 
   const filteredTasks = useMemo(() => {
     if (!Array.isArray(tasksList)) return [];
@@ -820,12 +956,44 @@ export default function StaffDashboardClient({ user }: { user: any }) {
                       </td>
                       <td className="py-3.5 px-4 text-center">{getStatusBadge(task.status)}</td>
                       <td className="py-3.5 px-4 text-right">
-                        <button 
-                          onClick={() => setSelectedTask(task)}
-                          className="h-7 w-7 rounded-sm bg-gold/10 text-gold flex items-center justify-center hover:bg-gold hover:text-background transition-all"
-                        >
-                          <Play size={12} />
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button 
+                            onClick={() => setSelectedTask(task)}
+                            className="h-7 w-7 rounded-sm bg-gold/10 text-gold flex items-center justify-center hover:bg-gold hover:text-sidebar transition-all cursor-pointer"
+                            title="Làm nhiệm vụ"
+                          >
+                            <Play size={12} />
+                          </button>
+                          {task.status !== "COMPLETED" && task.status !== "CANCELLED" && (
+                            <button 
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const confirmCancel = window.confirm("Bạn có chắc chắn muốn hủy nhiệm vụ này? Hành động này sẽ trả lại toàn bộ mail của nhiệm vụ này về kho và không thể hoàn tác!");
+                                if (!confirmCancel) return;
+                                try {
+                                  const res = await fetch(`/api/admin/tasks/${task._id || task.id}`, {
+                                    method: "PUT",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ status: "CANCELLED" })
+                                  });
+                                  if (res.ok) {
+                                    toast.success("Đã hủy nhiệm vụ thành công!");
+                                    mutate("/api/admin/tasks");
+                                  } else {
+                                    const err = await res.json();
+                                    toast.error(err.error || "Hủy thất bại");
+                                  }
+                                } catch (errVal) {
+                                  toast.error("Lỗi kết nối");
+                                }
+                              }}
+                              className="h-7 w-7 rounded-sm bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all cursor-pointer"
+                              title="Hủy / Xóa nhiệm vụ"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -859,54 +1027,184 @@ export default function StaffDashboardClient({ user }: { user: any }) {
 
         {/* Attendance history section */}
         <div className="card-style space-y-6">
-          <div className="border-b border-border pb-4">
-            <h3 className="text-base font-black text-white uppercase tracking-widest">Lịch sử điểm danh</h3>
-            <p className="text-[10px] text-foreground-secondary uppercase tracking-widest mt-1">Gần đây (Tối đa 30 ngày)</p>
+          <div className="border-b border-border pb-4 flex justify-between items-center">
+            <div>
+              <h3 className="text-base font-black text-white uppercase tracking-widest">Bảng chấm công</h3>
+              <p className="text-[10px] text-foreground-secondary uppercase tracking-widest mt-1">Tháng hiện tại</p>
+            </div>
+            <div className="text-right">
+              <span className="text-xs font-bold text-green-400 block">Có mặt: {attendanceData.present} ngày</span>
+              <span className="text-xs font-bold text-red-400 block">Vắng: {attendanceData.absent} ngày</span>
+            </div>
           </div>
 
-          <div className="overflow-y-auto max-h-[350px] custom-scrollbar space-y-3 pr-1">
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 bg-black/20 border border-white/0 rounded-2xl p-3 max-h-[350px] overflow-y-auto custom-scrollbar">
             {attendanceValidating ? (
-              <div className="py-16 flex flex-col items-center justify-center gap-3">
+              <div className="py-16 col-span-4 sm:col-span-7 flex flex-col items-center justify-center gap-3">
                 <Loader2 size={32} className="animate-spin text-gold" />
-                <p className="text-foreground-secondary font-black uppercase text-[9px] tracking-widest animate-pulse">Đang tải lịch sử điểm danh...</p>
+                <p className="text-foreground-secondary font-black uppercase text-[9px] tracking-widest animate-pulse">Đang tải bảng công...</p>
               </div>
-            ) : attendanceHistory.length > 0 ? (
-              attendanceHistory.slice(0, 30).map((record: any, idx: number) => (
-                <div key={record._id || idx} className="p-3 bg-white/5 border border-border/50 rounded-md flex items-center justify-between">
-                  <div className="space-y-1">
-                    <span className="text-xs font-mono font-bold text-white">{record.date}</span>
-                    <div className="flex gap-2.5 text-[9px] text-foreground-secondary">
-                      <span className="flex items-center gap-1 font-mono">
-                        <Clock size={10} />
-                        {record.checkInTime ? new Date(record.checkInTime).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' }) : "--:--"}
-                      </span>
-                      {record.checkOutTime && (
-                        <span className="flex items-center gap-1 font-mono">
-                          <Clock size={10} className="text-gray-500" />
-                          {new Date(record.checkOutTime).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      )}
-                    </div>
+            ) : (attendanceData.list || []).map((day) => {
+              const isToday = day.isToday;
+              let borderStyle = "bg-white/0 border-white/0";
+              let statusText = "Vắng";
+              let statusColor = "text-red-500/80";
+              let statusIcon = <XCircle size={14} className="text-red-500" />;
+
+              if (isToday) {
+                borderStyle = "bg-gold/10 border-gold shadow-md";
+              }
+
+              if (day.status === "PRESENT") {
+                statusText = "Có mặt";
+                statusColor = "text-green-500/80";
+                statusIcon = <CheckCircle size={14} className="text-green-500" />;
+              } else if (day.status === "NOT_STARTED") {
+                statusText = "Chưa làm";
+                statusColor = "text-zinc-500";
+                statusIcon = <Minus size={14} className="text-zinc-500" />;
+                if (!isToday) borderStyle = "bg-white/5 border-white/0 opacity-55";
+              } else if (day.status === "SUNDAY") {
+                statusText = "Chủ nhật";
+                statusColor = "text-amber-500/80";
+                statusIcon = <CalendarDays size={14} className="text-amber-500" />;
+                if (!isToday) borderStyle = "bg-amber-500/5 border-amber-500/10";
+              } else if (day.status === "FUTURE") {
+                statusText = "Chưa đến";
+                statusColor = "text-zinc-600";
+                statusIcon = <Clock size={14} className="text-zinc-600" />;
+                if (!isToday) borderStyle = "bg-white/0 border-white/0 opacity-40";
+              }
+
+              const hasPendingAppeal = day.dbRecord?.complainStatus === "PENDING";
+              if (hasPendingAppeal) {
+                borderStyle += " animate-pulse bg-amber-500/10 border-amber-500";
+              } else if (day.dbRecord?.complainStatus === "RESOLVED") {
+                borderStyle += " bg-green-500/5 border-green-500/30";
+              } else if (day.dbRecord?.complainStatus === "REJECTED") {
+                borderStyle += " bg-red-500/5 border-red-500/30";
+              }
+
+              return (
+                <button 
+                  key={`staff-cal-day-${day.dayNum}`}
+                  onClick={() => setActiveDetailDay(day)}
+                  className={`group/day flex flex-col items-center justify-between p-2 rounded-xl border text-center transition-all hover:scale-105 hover:bg-white/[0.06] active:scale-95 ${borderStyle}`}
+                >
+                  <span className={`text-[10px] font-bold ${isToday ?"text-gold" :"text-gray-500"}`}>{day.dayNum}</span>
+                  <div className="my-1 flex items-center justify-center">
+                    {statusIcon}
                   </div>
-                  <div className="text-right space-y-1">
-                    <div>{getAttendanceStatusBadge(record.status)}</div>
-                    {record.totalHours > 0 && (
-                      <span className="block text-[9px] font-black font-mono text-gold-dark">{record.totalHours}h làm việc</span>
-                    )}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="border border-dashed border-gold/30 bg-black/50 p-6 text-center rounded-lg">
-                <Calendar size={40} className="mx-auto text-gold/50 mb-3 animate-pulse" />
-                <h4 className="text-gold font-bold uppercase text-xs tracking-wider mb-1.5">CHƯA CÓ LỊCH SỬ ĐIỂM DANH</h4>
-                <p className="text-gray-400 text-[11px] leading-relaxed">
-                  Hệ thống chưa ghi nhận lịch sử chấm công của bạn. Hãy bắt đầu Check-in khi vào ca để tự động cập nhật.
-                </p>
-              </div>
-            )}
+                  <span className={`text-[8px] font-black uppercase tracking-wider truncate max-w-full ${statusColor}`}>
+                    {statusText}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
+
+      {activeDetailDay && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => { setActiveDetailDay(null); setAppealReason(""); }}
+            className="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm"
+          />
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            className="relative w-full max-w-lg bg-sidebar border border-white/15 rounded-[32px] shadow-2xl p-8 overflow-hidden"
+          >
+            <button 
+              onClick={() => { setActiveDetailDay(null); setAppealReason(""); }}
+              className="absolute top-6 right-6 h-10 w-10 bg-white/5 border border-white/0 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex items-center gap-4 mb-6">
+              <div className="h-12 w-12 rounded-xl bg-gold/10 text-gold flex items-center justify-center border border-gold/20 shrink-0">
+                <CalendarDays size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white uppercase tracking-tight">Chi Tiết Ngày {activeDetailDay.dayNum}</h3>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-0.5">Ngày: {activeDetailDay.dateKey}</p>
+              </div>
+            </div>
+
+            <div className={`p-4 rounded-2xl border mb-6 flex items-center gap-3 ${
+              activeDetailDay.hasCheckedIn 
+                ? "bg-green-500/10 border-green-500/20 text-green-400" 
+                : "bg-red-500/10 border-red-500/20 text-red-400"
+            }`}>
+              {activeDetailDay.hasCheckedIn ? <CheckCircle size={24} /> : <XCircle size={24} />}
+              <div>
+                <p className="text-xs font-black uppercase tracking-wider">
+                  {activeDetailDay.hasCheckedIn ? "Có mặt làm việc" : "Vắng mặt"}
+                </p>
+                {activeDetailDay.hasCheckedIn && (
+                  <p className="text-[10px] font-bold text-gray-400 mt-0.5">
+                    {activeDetailDay.checkinTime} - {activeDetailDay.checkoutTime}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Appeal Section */}
+            {activeDetailDay.status !== "FUTURE" && activeDetailDay.status !== "SUNDAY" && activeDetailDay.status !== "NOT_STARTED" && (
+              <div className="space-y-4 border-t border-white/5 pt-4">
+                <h4 className="text-xs font-black text-white uppercase tracking-widest">Khiếu nại chuyên cần</h4>
+                
+                {activeDetailDay.dbRecord?.complainStatus ? (
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-2">
+                    <div className="flex justify-between text-xs font-bold uppercase">
+                      <span className="text-gray-400">Trạng thái:</span>
+                      <span className={
+                        activeDetailDay.dbRecord.complainStatus === "PENDING" ? "text-yellow-500 animate-pulse" :
+                        activeDetailDay.dbRecord.complainStatus === "RESOLVED" ? "text-green-500" : "text-red-500"
+                      }>
+                        {activeDetailDay.dbRecord.complainStatus === "PENDING" ? "ĐANG CHỜ" :
+                         activeDetailDay.dbRecord.complainStatus === "RESOLVED" ? "ĐÃ DUYỆT" : "TỪ CHỐI"}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-400 leading-relaxed">
+                      <span className="font-bold text-gray-500 block uppercase mb-1">Nội dung khiếu nại:</span>
+                      {activeDetailDay.dbRecord.complainText}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <textarea
+                      value={appealReason}
+                      onChange={(e) => setAppealReason(e.target.value)}
+                      placeholder="Nhập nội dung khiếu nại công (ví dụ: tôi có check-in nhưng hệ thống bị lỗi, hoặc xin đi làm muộn đã báo trước...)"
+                      className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-xs font-bold text-white outline-none focus:border-gold transition-all h-24 resize-none"
+                    />
+                    <button
+                      onClick={() => handleSubmitAppeal(activeDetailDay.dateKey)}
+                      disabled={submittingAppeal || !appealReason.trim()}
+                      className="w-full h-11 bg-gold hover:bg-gold-hover text-sidebar font-black uppercase text-xs tracking-widest rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {submittingAppeal ? <Loader2 size={14} className="animate-spin" /> : "Gửi khiếu nại công"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => { setActiveDetailDay(null); setAppealReason(""); }}
+                className="h-11 px-6 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold uppercase text-xs tracking-wider rounded-xl transition-all cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       </div>
     </div>

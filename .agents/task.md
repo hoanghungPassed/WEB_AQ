@@ -1,24 +1,14 @@
 # Task list
 
-- [x] KHÓA 1: DASHBOARD & MODAL PORTAL (UI Fixes)
-  - [x] Modify `AdminDashboardClient.tsx`
-  - [x] Modify `HeaderNotifications.tsx`
-- [x] KHÓA 2: PHÂN LÔ & GÁN MAIL NÂNG CAO
-  - [x] Modify `satellite-batches/route.ts` (GET) for numeric sorting
-  - [x] Modify `satellite-batches/[id]/assign-range/route.ts` (PUT) for startStt/endStt
-  - [x] Modify `satellite-batches/page.tsx` for custom RangeSelectionModal and empty states
-- [x] KHÓA 3: SIDEBAR ỨNG DỤNG (1-TAP COPY)
-  - [x] Modify `Sidebar.tsx` to add staff app menu & copy logic
-- [x] KHÓA 4: HỦY TASK & DỌN DẸP CASCADE
-  - [x] Update `Task.ts` model with "CANCELLED"
-  - [x] Update `validation.ts` schema with "CANCELLED"
-  - [x] Update `tasks/[id]/route.ts` PUT for cancellation handling
-  - [x] Update `StaffDashboardClient.tsx` to add Cancel Task button
-  - [x] Create `tasks/by-batch/route.ts` DELETE endpoint
-  - [x] Update `satellite-batches/page.tsx` `handleUnassignBatch` to call by-batch delete endpoint
-- [x] KHÓA 5: FIX HIỂN THỊ DANH SÁCH SĐT
-  - [x] Modify `phone/list/page.tsx` fetchPhones callback
-- [x] KHÓA 6: FIX NÚT PROFILE
-  - [x] Modify `HeaderUserMenu.tsx` role mapping and username display
-- [x] Verification
-  - [x] Run `npx tsc --noEmit` to verify type checking
+- [x] KHÓA 1: CẬP NHẬT MODEL ATTENDANCE
+  - [x] Modify `src/models/Attendance.ts` to add complainText and complainStatus
+- [x] KHÓA 2: TẠO API KHIẾU NẠI CHO NHÂN VIÊN
+  - [x] Create `src/app/api/staff/attendance/appeal/route.ts`
+- [x] KHÓA 3: API XỬ LÝ KHIẾU NẠI (DÀNH CHO ADMIN)
+  - [x] Create `src/app/api/admin/attendance/resolve-appeal/route.ts`
+- [x] KHÓA 4: GIAO DIỆN NHÂN VIÊN (CHẤM CÔNG & XÓA TASK)
+  - [x] Modify `src/components/staff/StaffDashboardClient.tsx`
+- [x] KHÓA 5: GIAO DIỆN ADMIN (NHẤP NHÁY VÀNG)
+  - [x] Modify `src/app/admin/staff/page.tsx`
+- [/] Verification
+  - [/] Run `npx tsc --noEmit`

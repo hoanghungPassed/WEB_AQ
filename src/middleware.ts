@@ -239,7 +239,8 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith("/api/admin/settings") ||
         pathname.startsWith("/api/auth/logout") ||
         pathname.startsWith("/api/auth/me") ||
-        pathname.startsWith("/api/admin/attendance/request-access");
+        pathname.startsWith("/api/admin/attendance/request-access") ||
+        pathname.startsWith("/api/staff/attendance/appeal");
 
       if (!isBypassLockEndpoint) {
         const userStatus = payload.userStatus;

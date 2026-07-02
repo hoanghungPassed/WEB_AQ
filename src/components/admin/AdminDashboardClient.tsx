@@ -115,17 +115,23 @@ export default function AdminDashboardClient({ user: initialUser }: { user: any 
   const refreshStats = useCallback(async () => {
     if (!user) return;
     try {
-      const [sRes, kRes, tRes, mRes] = await Promise.all([
-        fetch('/api/admin/stats'),
-        fetch('/api/admin/kpis'),
-        fetch('/api/admin/tasks'),
-        fetch('/api/admin/mails?limit=100')
-      ]);
-      const [s, k, t, m] = await Promise.all([sRes.json(), kRes.json(), tRes.json(), mRes.json()]);
-      if (s.success) setStats(s.data);
-      if (k.success) setKpi(k.kpi || {});
-      if (t.success) setTasksList(t.data || []);
-      if (m.success) setMails(m.data || []);
+      const fetchStats = fetch('/api/admin/stats')
+        .then(res => res.json())
+        .then(s => { if (s.success) setStats(s.data); });
+
+      const fetchKpis = fetch('/api/admin/kpis')
+        .then(res => res.json())
+        .then(k => { if (k.success) setKpi(k.kpi || {}); });
+
+      const fetchTasks = fetch('/api/admin/tasks')
+        .then(res => res.json())
+        .then(t => { if (t.success) setTasksList(t.data || []); });
+
+      const fetchMails = fetch('/api/admin/mails?limit=100')
+        .then(res => res.json())
+        .then(m => { if (m.success) setMails(m.data || []); });
+
+      await Promise.all([fetchStats, fetchKpis, fetchTasks, fetchMails]);
     } catch (e) { console.error(e); }
   }, [user]);
 

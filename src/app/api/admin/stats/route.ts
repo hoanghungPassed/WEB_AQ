@@ -105,40 +105,41 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(cachedStats);
     }
 
-    const rootCount = await RootMail.countDocuments();
-    const satCount = await SatelliteMail.countDocuments();
-    const monCount = await MonetizedMail.countDocuments();
-    const totalMails = rootCount + satCount + monCount;
-
-    const rootDie = await RootMail.countDocuments({ status: "DIE" });
-    const satDie = await SatelliteMail.countDocuments({ status: "DIE" });
-    const monDie = await MonetizedMail.countDocuments({ status: "DIE" });
-    const totalDie = rootDie + satDie + monDie;
-    
-    const activeStaff = await User.countDocuments({
-      role: { $in: ["03","04","05"] },
-      status: "ACTIVE"
-    });
-
-    // Count online users dynamically based on active within 15 minutes without writing to the database
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
-    const onlineUsers = await User.countDocuments({
-      isOnline: true,
-      lastActive: { $gte: fifteenMinutesAgo }
-    });
 
-    const taskPending = await Task.countDocuments({ status: "PENDING" });
-    const taskCompleted = await Task.countDocuments({ status: "COMPLETED" });
-
-    const priceAggregation = await Fine.aggregate([
-      { $group: { _id: null, total: { $sum: { $ifNull: ["$amount", 0] } } } }
+    const [
+      rootCount,
+      satCount,
+      monCount,
+      rootDie,
+      satDie,
+      monDie,
+      activeStaff,
+      onlineUsers,
+      taskPending,
+      taskCompleted,
+      priceAggregation,
+      eligibleMails
+    ] = await Promise.all([
+      RootMail.countDocuments(),
+      SatelliteMail.countDocuments(),
+      MonetizedMail.countDocuments(),
+      RootMail.countDocuments({ status: "DIE" }),
+      SatelliteMail.countDocuments({ status: "DIE" }),
+      MonetizedMail.countDocuments({ status: "DIE" }),
+      User.countDocuments({ role: { $in: ["03","04","05"] }, status: "ACTIVE" }),
+      User.countDocuments({ isOnline: true, lastActive: { $gte: fifteenMinutesAgo } }),
+      Task.countDocuments({ status: "PENDING" }),
+      Task.countDocuments({ status: "COMPLETED" }),
+      Fine.aggregate([
+        { $group: { _id: null, total: { $sum: { $ifNull: ["$amount", 0] } } } }
+      ]),
+      SatelliteMail.find({ eligibleChannels: true }).select("email batchName assignedTo channelNames eligibleChannels").lean()
     ]);
-    const totalFines = (priceAggregation[0]?.total as number) || 0;
 
-    // Calculate total qualified channels and detailed breakdown list
-    const eligibleMails = await SatelliteMail.find({
-      eligibleChannels: true
-    }).select("email batchName assignedTo channelNames eligibleChannels").lean();
+    const totalMails = rootCount + satCount + monCount;
+    const totalDie = rootDie + satDie + monDie;
+    const totalFines = (priceAggregation[0]?.total as number) || 0;
 
     let eligibleChannelsCount = 0;
     const eligibleChannelsList: any[] = [];

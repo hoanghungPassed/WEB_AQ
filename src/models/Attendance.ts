@@ -9,6 +9,8 @@ export interface IAttendance extends Document {
   checkOutTime?: Date;
   status: "Đúng giờ" | "Đi muộn" | "Vắng mặt";
   totalHours?: number;
+  complainText?: string;
+  complainStatus?: "PENDING" | "RESOLVED" | "REJECTED" | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,7 +24,9 @@ const AttendanceSchema: Schema = new Schema(
     checkInTime: { type: Date },
     checkOutTime: { type: Date },
     status: { type: String, enum: ["Đúng giờ", "Đi muộn", "Vắng mặt"], default: "Đúng giờ" },
-    totalHours: { type: Number, default: 0 }
+    totalHours: { type: Number, default: 0 },
+    complainText: { type: String, default: "" },
+    complainStatus: { type: String, enum: ["PENDING", "RESOLVED", "REJECTED", null], default: null }
   },
   { timestamps: true }
 );
