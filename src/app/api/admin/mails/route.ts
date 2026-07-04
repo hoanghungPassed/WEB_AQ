@@ -238,11 +238,42 @@ export async function GET(req: NextRequest) {
 
     const skip = (page - 1) * limit;
 
+    // Fetch employee's assigned phones if isStaffRole is true
+    let userPhones: any[] = [];
+    if (isStaffRole && userId) {
+      const { Phone } = await import("@/models/Phone");
+      const mongoose = (await import("mongoose")).default;
+      userPhones = await Phone.find({
+        $or: [
+          { assigneeId: userId },
+          { assigneeId: userId ? new mongoose.Types.ObjectId(userId) : null }
+        ],
+        status: { $ne: "Lỗi" }
+      }).sort({ number: 1 }).lean();
+    }
+
     // Paged Query for specific type
     if (type && type !== "ALL") {
       const Model = getModel(type) as any;
       const q = Model.find(query).select("-htmlBody -textBody");
       const result = await paginate(q, page, limit, sortBy, sortOrder);
+
+      // Dynamic phone assignment for staff
+      if (isStaffRole && userPhones.length > 0 && result.data) {
+        const pageSkip = (page - 1) * limit;
+        result.data = result.data.map((mailDoc: any, idx: number) => {
+          const mail = mailDoc.toObject ? mailDoc.toObject() : mailDoc;
+          if (!mail.phone || mail.phone === "---") {
+            const overallIndex = pageSkip + idx;
+            const phoneIndex = Math.floor(overallIndex / 2) % userPhones.length;
+            mail.phone = userPhones[phoneIndex].number;
+            mail.phoneLink = userPhones[phoneIndex].otpLink || "";
+            mail.otpLink = userPhones[phoneIndex].otpLink || "";
+          }
+          return mail;
+        });
+      }
+
       return NextResponse.json({
         ...result,
         pagination: {
@@ -279,9 +310,27 @@ export async function GET(req: NextRequest) {
     const total = totalRoot + totalSat + totalMon;
     const paginatedData = mails.slice(0, limit);
 
+    // Dynamic phone assignment for staff in combined list
+    let finalMails = paginatedData;
+    if (isStaffRole && userPhones.length > 0) {
+      finalMails = paginatedData.map((mail: any, idx: number) => {
+        if (!mail.phone || mail.phone === "---") {
+          const overallIndex = skip + idx;
+          const phoneIndex = Math.floor(overallIndex / 2) % userPhones.length;
+          return {
+            ...mail,
+            phone: userPhones[phoneIndex].number,
+            phoneLink: userPhones[phoneIndex].otpLink || "",
+            otpLink: userPhones[phoneIndex].otpLink || ""
+          };
+        }
+        return mail;
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      data: paginatedData,
+      data: finalMails,
       pagination: {
         total,
         totalCount: total,

@@ -71,7 +71,10 @@ export async function GET(req: NextRequest) {
   const isStaff = userRole === "03" || userRole === "04" || userRole === "05";
   if (isStaff) {
     const mongoose = (await import("mongoose")).default;
-    query.assigneeId = userId ? new mongoose.Types.ObjectId(userId) : null;
+    query.$or = [
+      { assigneeId: userId },
+      { assigneeId: userId ? new mongoose.Types.ObjectId(userId) : null }
+    ];
     query.status = { $ne: "Lỗi" };
   }
 

@@ -40,16 +40,32 @@ async function handleMarkRead(req: NextRequest) {
       notification.isRead = true;
       await notification.save();
     } else {
-      const roleUpper = String(userRole || "").toUpperCase();
-      const isStaff = !["01", "02", "03"].includes(userRole || "") && roleUpper !== "ADMIN" && !roleUpper.includes("QUẢN LÝ") && roleUpper !== "QL CÔNG VIỆC";
+      let mappedRole = userRole || "";
+      const upper = String(userRole || "").toUpperCase();
+      if (upper === "ADMIN" || upper === "01") mappedRole = "01";
+      else if (upper.includes("CÔNG VIỆC") || upper === "QLCV" || upper === "02") mappedRole = "02";
+      else if (upper.includes("NHÂN SỰ") || upper === "QLNS" || upper === "03") mappedRole = "03";
+      else if (upper === "NHÂN VIÊN" || upper === "NHÂN VIÊN CHÍNH THỨC" || upper === "04") mappedRole = "04";
+      else if (upper === "NV THỬ VIỆC" || upper === "NHÂN VIÊN THỬ VIỆC" || upper === "05") mappedRole = "05";
 
-      const filter: any = { isRead: false };
-      if (isStaff) {
-        filter.recipientId = userId;
-        filter.type = { $ne: "INFO" };
-      } else {
-        filter.type = { $ne: "INFO" };
+      const isManager = ["01", "02", "03"].includes(mappedRole);
+      const filter: any = { isRead: false, type: { $ne: "INFO" } };
+      
+      const orConditions: any[] = [
+        { recipientId: userId },
+        { targetRole: mappedRole }
+      ];
+      
+      if (isManager) {
+        orConditions.push({
+          $and: [
+            { $or: [{ recipientId: { $exists: false } }, { recipientId: null }] },
+            { $or: [{ targetRole: { $exists: false } }, { targetRole: null }, { targetRole: "" }] }
+          ]
+        });
       }
+      
+      filter.$or = orConditions;
       await Notification.updateMany(filter, { isRead: true });
     }
 

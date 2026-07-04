@@ -347,7 +347,11 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
       const accessReqs = JSON.parse(localStorage.getItem("pending_access_requests") || "[]");
       accessNotifs = (accessReqs || []).map((req: any) => ({
         id: `access-${req.id}`,
-        title: "Yêu cầu truy cập ngoài giờ",
+        title: req.type === "FINE_PAYMENT" 
+          ? "Báo cáo nộp phạt" 
+          : req.type === "LATE_EXCUSE" 
+            ? "Giải trình đi muộn" 
+            : "Yêu cầu truy cập ngoài giờ",
         message: `Nhân viên ${req.staffName} đang xin phép vào hệ thống.`,
         time: req.time,
         type: "ACCESS_REQUEST",
@@ -360,7 +364,23 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
     const normalizedDb = dbRaw.map((n: any) => ({ ...n, id: n.id || n._id, read: n.read || n.isRead || false }));
     const normalizedAdmin = adminNotifs.map((n: any) => ({ ...n, id: n.id || n._id, read: n.read || n.isRead || false }));
 
-    setNotifications([...normalizedDb, ...normalizedAdmin, ...accessNotifs]);
+    const dbIds = new Set(normalizedDb.map((n: any) => String(n.id)));
+    const filteredAccessNotifs = accessNotifs.filter((an: any) => {
+      const cleanId = String(an.id).replace("access-", "");
+      return !dbIds.has(cleanId);
+    });
+    const filteredAdminNotifs = normalizedAdmin.filter((an: any) => !dbIds.has(String(an.id)));
+
+    const merged = [...normalizedDb, ...filteredAdminNotifs, ...filteredAccessNotifs];
+    const seenMessages = new Set<string>();
+    const finalNotifs = merged.filter((n: any) => {
+      const msgKey = `${n.title || ""}:${n.message || ""}`;
+      if (seenMessages.has(msgKey)) return false;
+      seenMessages.add(msgKey);
+      return true;
+    });
+
+    setNotifications(finalNotifs);
   }, [user?.role, dbNotifs]);
 
   useEffect(() => {
@@ -387,6 +407,13 @@ export default function HeaderNotifications({ user, onOpenAccessModal }: HeaderN
       
       // Filter by recipient if set
       if (notif.recipientId && String(notif.recipientId) !== String(user.id || user._id)) {
+        return;
+      }
+
+      // Ignore ACCESS_REQUEST and REGISTRATION in raw system notifications to prevent double chimes,
+      // as they are already handled by custom system events in RealtimeProvider
+      if (notif.type === "ACCESS_REQUEST" || notif.type === "REGISTRATION") {
+        console.log("[HeaderNotifications] Ignoring duplicate ACCESS_REQUEST/REGISTRATION notification in handleNewNotif");
         return;
       }
 
