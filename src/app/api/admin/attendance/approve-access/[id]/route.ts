@@ -25,7 +25,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const body = await req.json();
-    const { status, userId, type, username, staffName } = body; // APPROVED or DENIED
+    const { status, userId, type, username, staffName, reason } = body; // APPROVED or DENIED
 
     if (status === "APPROVED" && userId) {
       const userUpdate: any = { isLateLocked: false, status: "ACTIVE", isOnline: true, lastActive: new Date() };
@@ -58,27 +58,47 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         }
       }
       
-      // BẮT BUỘC tìm khoản phạt (Fine) tương ứng của nhân viên đó trong ngày hôm đó
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Update fine and send email based on type
+      if (updatedUser) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-      // Sử dụng findOneAndUpdate nguyên tử (atomic) để tránh tình trạng race condition 
-      // khi nhiều Admin bấm duyệt đồng thời (chỉ cộng quỹ 1 lần duy nhất).
-      const fine = await Fine.findOneAndUpdate(
-        { userId, createdAt: { $gte: today }, status: { $ne: "PAID" } },
-        { status: "PAID" },
-        { new: true }
-      );
-      if (fine) {
-        try {
-          const { SystemSetting } = await import("@/models/SystemSetting");
-          await SystemSetting.findOneAndUpdate(
-            {},
-            { $inc: { fund: fine.amount } },
-            { upsert: true }
+        if (type === "FINE_PAYMENT" || !type) {
+          // 1. Chuyển status khoản phạt (Fine) của ngày đó thành PAID
+          const fine = await Fine.findOneAndUpdate(
+            { userId, createdAt: { $gte: today }, status: { $ne: "PAID" } },
+            { status: "PAID" },
+            { new: true }
           );
-        } catch (sysErr) {
-          console.error("SystemSetting fund update error:", sysErr);
+          if (fine) {
+            // 2. CỘNG TIỀN khoản phạt đó vào SystemSetting.fund (Quỹ hệ thống)
+            try {
+              const { SystemSetting } = await import("@/models/SystemSetting");
+              await SystemSetting.findOneAndUpdate(
+                {},
+                { $inc: { fund: fine.amount } },
+                { upsert: true }
+              );
+            } catch (sysErr) {
+              console.error("SystemSetting fund update error:", sysErr);
+            }
+            // 3. Gọi hàm sendFinePaymentApprovedEmail
+            const amountVal = fine.amount || 50000;
+            const reasonVal = fine.reason || "Nộp phạt đi muộn";
+            const { sendFinePaymentApprovedEmail } = await import("@/lib/email");
+            await sendFinePaymentApprovedEmail(updatedUser.email, updatedUser.name || updatedUser.username, amountVal, reasonVal).catch(console.error);
+          }
+        } else if (type === "LATE_EXCUSE") {
+          // 1. Chuyển status khoản phạt (Fine) thành CANCELLED
+          const fine = await Fine.findOneAndUpdate(
+            { userId, createdAt: { $gte: today }, status: { $ne: "PAID" } },
+            { status: "CANCELLED" },
+            { new: true }
+          );
+          // 2. TUYỆT ĐỐI KHÔNG cộng tiền vào Quỹ
+          // 3. Gọi hàm sendLateExcuseApprovedEmail
+          const { sendLateExcuseApprovedEmail } = await import("@/lib/email");
+          await sendLateExcuseApprovedEmail(updatedUser.email, updatedUser.name || updatedUser.username, reason || "Giải trình đi muộn").catch(console.error);
         }
       }
     } else if (status === "DENIED" && userId) {

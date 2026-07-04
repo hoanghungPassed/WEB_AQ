@@ -15,7 +15,8 @@ export async function GET(req: NextRequest) {
         openTime: "08:00",
         closeTime: "18:00",
         checkInTime: "17:30",
-        rulesUrl: ""
+        rulesUrl: "",
+        adminPhone: "0987654321"
       });
     }
 
@@ -90,6 +91,7 @@ export async function PUT(req: NextRequest) {
     if (bEnd !== undefined) updateData.breakEndTime = bEnd;
     if (data.checkInTime !== undefined) updateData.checkInTime = data.checkInTime;
     if (data.rulesUrl !== undefined) updateData.rulesUrl = data.rulesUrl;
+    if (data.adminPhone !== undefined) updateData.adminPhone = data.adminPhone;
 
     // Automatically calculate closeTime (workEndTime)
     if (start !== undefined) {

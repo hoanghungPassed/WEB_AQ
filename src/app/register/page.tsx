@@ -3,13 +3,27 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, User, Loader2, ArrowLeft, Phone, Calendar, MapPin, AlertCircle, CheckCircle2, Clock, Mail } from "lucide-react";
+import { Lock, User, Loader2, ArrowLeft, Phone, Calendar, MapPin, AlertCircle, CheckCircle2, Clock, Mail, PhoneCall, Copy } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import Pusher from "pusher-js";
 import toast from "react-hot-toast";
 
 export default function RegisterPage() {
+  const [adminPhone, setAdminPhone] = useState("0987654321");
+  const [showContactModal, setShowContactModal] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/settings/public")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data?.adminPhone) {
+          setAdminPhone(data.data.adminPhone);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
  const router = useRouter();
  const { login } = useAuth();
  const [isClient, setIsClient] = useState(false);
@@ -526,7 +540,14 @@ export default function RegisterPage() {
  <Link href="/login" className="text-[10px] font-black text-gray-500 hover:text-gold transition-colors flex items-center justify-center gap-2 uppercase tracking-widest">
  <ArrowLeft size={16} /> Quay lại đăng nhập
  </Link>
- </div>
+ 
+    <button
+      type="button"
+      onClick={() => setShowContactModal(true)}
+      className="text-[9px] font-black text-gray-500 hover:text-gold uppercase tracking-widest transition-colors flex items-center justify-center gap-1 mx-auto mt-4"
+    >
+      <PhoneCall size={10} /> Liên hệ Admin hỗ trợ
+    </button></div>
  </form>
  )}
  </div>
@@ -689,6 +710,57 @@ export default function RegisterPage() {
       </motion.div>
     )}
   </AnimatePresence>
+      {/* Contact Admin Modal */}
+      <AnimatePresence>
+        {showContactModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            onClick={() => setShowContactModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 10 }}
+              className="relative w-full max-w-sm rounded-[24px] border border-gold/20 bg-[#161616]/95 p-6 text-center shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex flex-col items-center">
+                <div className="h-12 w-12 rounded-full bg-gold/10 flex items-center justify-center text-gold mb-4 border border-gold/20">
+                  <PhoneCall size={20} />
+                </div>
+                <h3 className="text-base font-bold text-white uppercase tracking-wider mb-2">Liên hệ Ban quản trị</h3>
+                <p className="text-xs text-gray-400 mb-6 font-sans">Nếu bạn gặp sự cố đăng ký hoặc cần kích hoạt tài khoản, vui lòng gọi điện hoặc nhắn tin trực tiếp:</p>
+                
+                <div className="w-full bg-white/5 rounded-2xl p-4 border border-white/5 flex items-center justify-between mb-6">
+                  <span className="text-xl font-mono font-black text-gold tracking-wider">{adminPhone}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(adminPhone);
+                      toast.success("Đã copy số điện thoại Admin!");
+                    }}
+                    className="bg-gold/10 hover:bg-gold hover:text-black transition-all p-2 rounded-lg text-gold border border-gold/20"
+                    title="Sao chép số điện thoại"
+                  >
+                    <Copy size={16} />
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowContactModal(false)}
+                  className="w-full h-11 bg-white/5 hover:bg-white/10 text-gray-300 font-bold rounded-xl text-xs uppercase tracking-widest transition-all"
+                >
+                  Đóng
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
  </div>
  );
 }

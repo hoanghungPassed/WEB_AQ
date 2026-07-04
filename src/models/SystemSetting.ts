@@ -8,6 +8,7 @@ export interface ISystemSetting extends Document {
   breakStartTime: string;
   breakEndTime: string;
   rulesUrl?: string;
+  adminPhone?: string;
   fund: number;
   createdAt: Date;
   updatedAt: Date;
@@ -22,6 +23,7 @@ const SystemSettingSchema: Schema = new Schema(
     breakStartTime: { type: String, default: "12:00" },
     breakEndTime: { type: String, default: "13:30" },
     rulesUrl: { type: String, default: "" },
+    adminPhone: { type: String, default: "0987654321" },
     fund: { type: Number, default: 0 }
   },
   { timestamps: true }

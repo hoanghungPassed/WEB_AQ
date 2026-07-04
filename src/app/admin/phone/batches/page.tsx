@@ -208,30 +208,24 @@ export default function PhoneBatchesPage() {
  return groups;
  }, [warehousePhones]);
 
- const handleDeleteBatch = (batch: string) => {
- setBatchToDelete(batch);
- };
-
- const executeDeleteBatch = async () => {
- if (!batchToDelete) return;
- try {
- const res = await fetch(`/api/admin/phones?batch=${encodeURIComponent(batchToDelete)}&username=${encodeURIComponent(user?.username ||"Admin")}`, {
- method:"DELETE"
- });
- const data = await res.json();
- if (res.ok) {
- triggerToast(`Đã xóa ${data.deletedCount} SĐT khỏi lô"${batchToDelete}"!`);
- mutatePhones();
- } else {
- triggerToast(`Lỗi: ${data.error}`);
- }
- } catch (err) {
- console.error(err);
- triggerToast("Lỗi khi xóa lô SĐT");
- } finally {
- setBatchToDelete(null);
- }
- };
+  const handleDeleteBatch = async (batch: string) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa toàn bộ SĐT thuộc lô "${batch}"?`)) return;
+    try {
+      const res = await fetch(`/api/admin/phones?batch=${encodeURIComponent(batch)}&username=${encodeURIComponent(user?.username || "Admin")}`, {
+        method: "DELETE"
+      });
+      const data = await res.json();
+      if (res.ok) {
+        triggerToast(`Đã xóa ${data.deletedCount || 0} SĐT khỏi lô "${batch}"!`);
+        mutatePhones();
+      } else {
+        triggerToast(`Lỗi: ${data.error}`);
+      }
+    } catch (err) {
+      console.error(err);
+      triggerToast("Lỗi khi xóa lô SĐT");
+    }
+  };
 
  const executeDeleteHistoryRow = async () => {
  if (!historyRowToDelete) return;

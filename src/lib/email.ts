@@ -267,3 +267,46 @@ export async function sendPasswordResetEmail(to: string, userName: string, reset
   `;
   return sendMail(to, "Cảnh báo bảo mật: Thay đổi mật khẩu thành công - AQ Media", buildHtmlTemplate("Bảo mật mật khẩu", body));
 }
+
+/**
+ * Triggers alerts when fine payment is approved
+ */
+export async function sendFinePaymentApprovedEmail(to: string, userName: string, amount: number, reason: string) {
+  const body = `
+    <div class="title">Đã Xác Nhận Thanh Toán Khoản Phạt</div>
+    <p>Xin chào <strong>${userName}</strong>,</p>
+    <p>Ban quản trị đã xác nhận bạn đã chuyển khoản thanh toán cho khoản phạt đi muộn sau:</p>
+    <table style="width: 100%; border-collapse: collapse; margin: 20px 0; background: rgba(255,255,255,0.02); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+      <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <td style="padding: 12px 15px; color: #888888; font-size: 13px; font-weight: bold; text-transform: uppercase;">Số tiền</td>
+        <td style="padding: 12px 15px; color: #ff5555; font-size: 16px; font-weight: 900;">${amount.toLocaleString("vi-VN")} VND</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 15px; color: #888888; font-size: 13px; font-weight: bold; text-transform: uppercase;">Chi tiết vi phạm</td>
+        <td style="padding: 12px 15px; color: #ffffff; font-size: 14px; font-weight: bold;">${reason}</td>
+      </tr>
+    </table>
+    <p>Khoản nộp phạt đã được cộng vào quỹ chung của công ty. Tài khoản của bạn đã được mở khóa và bạn đã có thể truy cập hệ thống để làm việc bình thường.</p>
+  `;
+  return sendMail(to, "Xác nhận thanh toán khoản phạt đi muộn thành công - AQ Media", buildHtmlTemplate("Xác nhận thanh toán phạt", body));
+}
+
+/**
+ * Triggers alerts when late excuse is approved
+ */
+export async function sendLateExcuseApprovedEmail(to: string, userName: string, reason: string) {
+  const body = `
+    <div class="title">Đã Duyệt Đơn Giải Trình Đi Muộn</div>
+    <p>Xin chào <strong>${userName}</strong>,</p>
+    <p>Đơn giải trình đi muộn của bạn đã được Ban quản trị phê duyệt:</p>
+    <table style="width: 100%; border-collapse: collapse; margin: 20px 0; background: rgba(255,255,255,0.02); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+      <tr>
+        <td style="padding: 12px 15px; color: #888888; font-size: 13px; font-weight: bold; text-transform: uppercase;">Nội dung giải trình</td>
+        <td style="padding: 12px 15px; color: #ffffff; font-size: 14px; font-weight: bold;">${reason}</td>
+      </tr>
+    </table>
+    <p>Khoản phạt tương ứng đã được hủy bỏ thành công (bạn không bị trừ tiền phạt này). Hệ thống đã mở khóa tài khoản để bạn có thể tiếp tục làm việc bình thường.</p>
+  `;
+  return sendMail(to, "Đơn giải trình đi muộn đã được phê duyệt - AQ Media", buildHtmlTemplate("Duyệt giải trình đi muộn", body));
+}
+

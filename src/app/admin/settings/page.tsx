@@ -143,6 +143,7 @@ export default function SettingsPage() {
   // Agency name config state
   const [agencyConfigName, setAgencyConfigName] = useState("AQ MEDIA");
   const [rulesUrl, setRulesUrl] = useState("");
+  const [adminPhone, setAdminPhone] = useState("0987654321");
 
   // 2FA States
   const [twoFAEnabledState, setTwoFAEnabledState] = useState<boolean>(false);
@@ -392,6 +393,7 @@ export default function SettingsPage() {
           setBreakEndTime(dbSettings.breakEndTime || "13:30");
           setSystemCloseTime(dbSettings.checkInTime || "17:30");
           setRulesUrl(dbSettings.rulesUrl || "");
+          setAdminPhone(dbSettings.adminPhone || "0987654321");
 
           // Sync work config
           const workConfig = {
@@ -448,8 +450,9 @@ export default function SettingsPage() {
     const savedAgencyConfig = localStorage.getItem("global_agency_config");
     if (savedAgencyConfig) {
       const agencyConfig = JSON.parse(savedAgencyConfig);
-      setAgencyConfigName(agencyConfig.name ||"AQ MEDIA");
+      setAgencyConfigName(agencyConfig.name || "AQ MEDIA");
       setRulesUrl(agencyConfig.rulesUrl || "");
+      setAdminPhone(agencyConfig.adminPhone || "0987654321");
     }
   };
 
@@ -752,6 +755,7 @@ export default function SettingsPage() {
     const agencyConfig = {
       name: agencyConfigName,
       rulesUrl: rulesUrl,
+      adminPhone: adminPhone,
       updatedAt: new Date().toLocaleString("vi-VN"),
     };
     localStorage.setItem("global_agency_config", JSON.stringify(agencyConfig));
@@ -767,7 +771,7 @@ export default function SettingsPage() {
       await fetch("/api/admin/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brandName: agencyConfigName, rulesUrl: rulesUrl })
+        body: JSON.stringify({ brandName: agencyConfigName, rulesUrl: rulesUrl, adminPhone: adminPhone })
       });
     } catch (err) {
       console.error("PUT brand settings sync error:", err);
@@ -1418,18 +1422,29 @@ export default function SettingsPage() {
  className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full font-bold"
  />
  </div>
- <div className="space-y-2">
- <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Đường dẫn Nội quy công ty (URL)</label>
- <input 
- type="url" 
- value={rulesUrl}
- onChange={(e) => setRulesUrl(e.target.value)}
- onMouseDown={(e) => e.stopPropagation()}
- placeholder="VD: https://docs.google.com/document/d/... (hoặc link PDF)"
- className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full font-bold"
- />
- </div>
- </div>
+   <div className="space-y-2">
+  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Đường dẫn Nội quy công ty (URL)</label>
+  <input 
+  type="url" 
+  value={rulesUrl}
+  onChange={(e) => setRulesUrl(e.target.value)}
+  onMouseDown={(e) => e.stopPropagation()}
+  placeholder="VD: https://docs.google.com/document/d/... (hoặc link PDF)"
+  className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+  />
+  </div>
+  <div className="space-y-2">
+  <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block mb-2">Số điện thoại Admin (Hỗ trợ liên hệ)</label>
+  <input 
+  type="text" 
+  value={adminPhone}
+  onChange={(e) => setAdminPhone(e.target.value)}
+  onMouseDown={(e) => e.stopPropagation()}
+  placeholder="VD: 0987654321"
+  className="bg-zinc-900 text-zinc-100 border border-white/0 rounded-2xl px-5 h-14 text-lg outline-none focus:border-amber-500/50 transition-all w-full font-bold"
+  />
+  </div>
+  </div>
  <button 
  onClick={handleSaveAgencyConfig}
  className="h-14 mt-4 px-8 rounded-2xl bg-gold text-[#0a0a0a] font-black uppercase text-base tracking-widest hover:bg-amber-700 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] w-full md:w-auto"

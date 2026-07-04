@@ -1686,15 +1686,17 @@ const typingTimer = setInterval(checkTyping, 1000);
  if (!user) return <div className="min-h-screen bg-[#0a0a0a]" />;
 
  const myAssignedPhones = (phoneList || []).filter(
- (p: any) =>
- p.assigneeId &&
- user?.username &&
- (p.assigneeId.toLowerCase() === user?.username.toLowerCase() ||
- (user?.id && String(p.assigneeId) === String(user?.id)) ||
- (user?._id && String(p.assigneeId) === String(user?._id))) &&
- p.status !=="XM lần 2" &&
- p.status !=="Lỗi"
- );
+    (p: any) =>
+      p.assigneeId &&
+      (
+        (user?.id && String(p.assigneeId) === String(user.id)) ||
+        (user?._id && String(p.assigneeId) === String(user._id)) ||
+        ((user as any)?.userId && String(p.assigneeId) === String((user as any).userId)) ||
+        (user?.username && String(p.assigneeId).toLowerCase() === user.username.toLowerCase())
+      ) &&
+      p.status !== "XM lần 2" &&
+      p.status !== "Lỗi"
+  );
 
  if (!user) {
  return (
