@@ -60,7 +60,7 @@ export interface FineReport {
   paymentDate?: string;
 }
 
-export type PhoneStatus = "Chưa làm" | "XM lần 1" | "XM lần 2" | "Lỗi";
+export type PhoneStatus = "Chưa làm" | "XM lần 1" | "XM lần 2" | "Lỗi" | "ASSIGNED" | "Chưa verify";
 
 export interface PhoneItem {
   id: string;

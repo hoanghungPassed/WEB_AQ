@@ -53,7 +53,7 @@ export default function EmployeePhoneListPage() {
  }, [user]);
 
  const { data: myPhones, mutate, isValidating: isLoading } = useSWR(
-    user ? `my-phones-${user.id}` : null,
+    user ? `my-phones-${user.id || (user as any).userId || user._id}` : null,
     fetchPhones,
     { revalidateOnFocus: false, dedupingInterval: 5000 }
  );
@@ -99,7 +99,7 @@ export default function EmployeePhoneListPage() {
 
  const stats = useMemo(() => {
  const total = (myPhones || []).length;
- const pending = (myPhones || []).filter(p => p.status ==="Chưa làm" || p.status === ("Chưa verify" as any)).length;
+ const pending = (myPhones || []).filter(p => p.status ==="Chưa làm" || p.status === "ASSIGNED" || p.status === ("Chưa verify" as any)).length;
  const xm1 = (myPhones || []).filter(p => p.status ==="XM lần 1").length;
  const xm2 = (myPhones || []).filter(p => p.status ==="XM lần 2").length;
  const errorCount = (myPhones || []).filter(p => p.status ==="Lỗi").length;
@@ -109,7 +109,7 @@ export default function EmployeePhoneListPage() {
 
  const filteredPhones = (myPhones || []).filter(p => {
  const matchesSearch = p.number.includes(searchTerm) || p.importBatch?.toLowerCase().includes(searchTerm.toLowerCase());
- const matchesStatus = statusFilter ==="ALL" || p.status === statusFilter;
+ const matchesStatus = statusFilter ==="ALL" || p.status === statusFilter || (statusFilter === "Chưa làm" && p.status === "ASSIGNED");
  return matchesSearch && matchesStatus;
  });
 
@@ -268,7 +268,7 @@ export default function EmployeePhoneListPage() {
  p.status ==="XM lần 2" ?"bg-green-500/10 text-green-500 border-green-500/20" : 
  p.status ==="Lỗi" ?"bg-red-500/10 text-red-500 border-red-500/20" :"bg-gray-500/10 text-gray-400 border-white/0"
  }`}>
- {p.status}
+ {p.status === "ASSIGNED" ? "Chưa làm" : p.status}
  </span>
  </td>
  <td className="py-4 px-6 text-center">

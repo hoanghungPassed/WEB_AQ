@@ -71,10 +71,17 @@ export async function GET(req: NextRequest) {
   const isStaff = userRole === "03" || userRole === "04" || userRole === "05";
   if (isStaff) {
     const mongoose = (await import("mongoose")).default;
+    const dbUser = await User.findById(userId);
+    const username = dbUser?.username;
+
     query.$or = [
       { assigneeId: userId },
       { assigneeId: userId ? new mongoose.Types.ObjectId(userId) : null }
     ];
+    if (username) {
+      query.$or.push({ assigneeId: username });
+      query.$or.push({ assigneeId: username.toLowerCase() });
+    }
     query.status = { $ne: "Lỗi" };
   }
 
