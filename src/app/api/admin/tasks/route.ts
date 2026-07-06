@@ -202,26 +202,42 @@ export async function POST(req: NextRequest) {
         isRead: false
       });
 
-      await pusherServer.trigger("system-notifications", "new-notification", {
-        ...newNotif.toObject(),
-        time: new Date().toLocaleTimeString("vi-VN") + " - " + new Date().toLocaleDateString("vi-VN")
-      });
+      try {
+        await pusherServer.trigger("system-notifications", "new-notification", {
+          ...newNotif.toObject(),
+          time: new Date().toLocaleTimeString("vi-VN") + " - " + new Date().toLocaleDateString("vi-VN")
+        });
+      } catch (err) {
+        console.error("Pusher trigger system-notifications error:", err);
+      }
 
       // Trigger new_notification on private channel of the assignee (Lock 3)
-      await pusherServer.trigger(`private-${data.assigneeId}`, "new_notification", {
-        ...newNotif.toObject(),
-        time: new Date().toLocaleTimeString("vi-VN") + " - " + new Date().toLocaleDateString("vi-VN")
-      });
+      try {
+        await pusherServer.trigger(`private-${data.assigneeId}`, "new_notification", {
+          ...newNotif.toObject(),
+          time: new Date().toLocaleTimeString("vi-VN") + " - " + new Date().toLocaleDateString("vi-VN")
+        });
+      } catch (err) {
+        console.error("Pusher trigger private-assignee error:", err);
+      }
 
       // Trigger new-task on private channel of the assignee
-      await pusherServer.trigger(`user-${data.assigneeId}`, "new-task", {
-        taskId: task._id,
-        title: "Nhiệm vụ mới",
-        message: `Bạn được giao một công việc mới: ${task.title}`
-      });
+      try {
+        await pusherServer.trigger(`user-${data.assigneeId}`, "new-task", {
+          taskId: task._id,
+          title: "Nhiệm vụ mới",
+          message: `Bạn được giao một công việc mới: ${task.title}`
+        });
+      } catch (err) {
+        console.error("Pusher trigger user-assignee new-task error:", err);
+      }
       
       // Luồng 2: Trigger for admin task list UI to update
-      await pusherServer.trigger('private-system', 'task-list-updated', {});
+      try {
+        await pusherServer.trigger('private-system', 'task-list-updated', {});
+      } catch (err) {
+        console.error("Pusher trigger private-system task-list-updated error:", err);
+      }
     } catch (notifErr) {
       console.error("Task Notification error:", notifErr);
     }

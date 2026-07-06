@@ -338,8 +338,12 @@ export default function RealtimeProvider({
       setRoleUpdateNotif({ title: data.title || "Nhiệm vụ mới", message: data.message });
       setTimeout(() => setRoleUpdateNotif(null), 5000);
       router.refresh();
-      mutate("/api/admin/tasks");
+      mutate((key: any) => typeof key === "string" && key.includes("/api/admin/tasks"));
       mutate("/api/admin/stats");
+      mutate((key: any) => typeof key === "string" && key.startsWith("my-phones"));
+      try {
+        window.dispatchEvent(new CustomEvent("trigger-fetch-phones"));
+      } catch (e) {}
     });
 
     personalChannel.bind("new_notification", (notif: any) => {

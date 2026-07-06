@@ -76,20 +76,29 @@ export async function GET(req: NextRequest) {
   else if (upper === "NHÂN VIÊN" || upper === "NHÂN VIÊN CHÍNH THỨC") mappedRole = "04";
   else if (upper === "NV THỬ VIỆC" || upper === "NHÂN VIÊN THỬ VIỆC") mappedRole = "05";
 
-  const isStaff = mappedRole === "03" || mappedRole === "04" || mappedRole === "05";
+  const isStaff = ["03", "04", "05", "NHÂN VIÊN", "NV THỬ VIỆC", "NHÂN VIÊN CHÍNH THỨC", "NHÂN VIÊN THỬ VIỆC"].some(r => upper.includes(r));
   if (isStaff) {
     const mongoose = (await import("mongoose")).default;
     const dbUser = await User.findById(userId);
     const username = dbUser?.username;
 
-    query.$or = [
+    const orConditions: any[] = [
       { assigneeId: userId },
       { assigneeId: userId ? new mongoose.Types.ObjectId(userId) : null }
     ];
     if (username) {
-      query.$or.push({ assigneeId: username });
-      query.$or.push({ assigneeId: username.toLowerCase() });
+      orConditions.push({ assigneeId: username });
+      orConditions.push({ assigneeId: username.toLowerCase() });
+      orConditions.push({ assignee: username });
+      orConditions.push({ assignee: username.toLowerCase() });
+      orConditions.push({ assignedTo: username });
+      orConditions.push({ assignedTo: username.toLowerCase() });
     }
+    if (dbUser?.name) {
+      orConditions.push({ assignee: dbUser.name });
+      orConditions.push({ assignedTo: dbUser.name });
+    }
+    query.$or = orConditions;
     query.status = { $ne: "Lỗi" };
   }
 

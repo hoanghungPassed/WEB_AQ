@@ -113,7 +113,12 @@ export default function StaffDashboardClient({ user }: { user: any }) {
           if (ids) {
             url += `&ids=${encodeURIComponent(ids)}`;
           } else {
-            url += `&assigneeId=${encodeURIComponent(selectedTask.assigneeId || user?.id || "")}`;
+            const targetAssigneeId = selectedTask.assigneeId
+              ? (typeof selectedTask.assigneeId === 'object'
+                  ? (selectedTask.assigneeId._id || selectedTask.assigneeId.id || "")
+                  : selectedTask.assigneeId)
+              : (user?.id || user?.userId || user?._id || "");
+            url += `&assigneeId=${encodeURIComponent(targetAssigneeId as string)}`;
           }
         }
 

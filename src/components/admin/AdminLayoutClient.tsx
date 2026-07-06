@@ -506,7 +506,16 @@ export default function AdminLayoutClient({
 
     fetchPhones();
     const interval = setInterval(fetchPhones, 10000);
-    return () => clearInterval(interval);
+
+    const handleTriggerFetch = () => {
+      fetchPhones();
+    };
+    window.addEventListener("trigger-fetch-phones", handleTriggerFetch);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("trigger-fetch-phones", handleTriggerFetch);
+    };
   }, [user]);
 
  const handleUpdatePhoneStatus = (phoneId: string, newStatus: string) => {
