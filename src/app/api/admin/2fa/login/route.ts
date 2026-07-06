@@ -46,11 +46,6 @@ export async function POST(request: Request) {
       console.error("2FA Cookie Parsing Error:", e);
     }
 
-    // Fallback to userId from body if cookie is missing (Fix for Local environment cookie blocking)
-    if (!userId && userIdFromBody) {
-      userId = userIdFromBody;
-    }
-
     if (!userId) {
       await logAuditTrail('unknown', 'LOGIN_2FA', 'User', { success: false, reason: 'no_session' }, request);
       return NextResponse.json({ error: 'Phiên làm việc tạm thời đã hết hạn hoặc bị trình duyệt chặn (Local). Vui lòng thử đăng nhập lại.' }, { status: 401 });

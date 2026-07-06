@@ -478,63 +478,64 @@ try {
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
- try {
-  const { id } = await params;
-  const userId = req.headers.get("x-user-id");
-  const userRole = req.headers.get("x-user-role");
+  try {
+    const { id } = await params;
+    const userId = req.headers.get("x-user-id");
+    const userRole = req.headers.get("x-user-role");
 
-  const hasPermission = await checkPermission(userRole || "", 3, ["all", "tasks"]);
-  if (!hasPermission) {
-    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_DELETE_TASK", "tasks", { taskId: id }, req);
-    return NextResponse.json({ error: "Không có quyền xóa nhiệm vụ" }, { status: 403 });
-  }
+    const hasPermission = await checkPermission(userRole || "", 3, ["all", "tasks"]);
+    if (!hasPermission) {
+      return NextResponse.json({ error: "Không có quyền xóa nhiệm vụ" }, { status: 403 });
+    }
 
-  await dbConnect();
-  const task = await Task.findByIdAndDelete(id);
-  if (!task) {
-    return NextResponse.json({ success: false, error:"Task not found" }, { status: 404 });
-  }
+    await dbConnect();
+    const mongoose = (await import("mongoose")).default;
+    const session = await mongoose.startSession();
+    let task;
 
-  // Revert mail assignment status back to false
-  if (task.mailIds && task.mailIds.length > 0) {
+    // 🔒 TRANSACTION: Xóa Task và Nhả Mail đồng thời
     try {
-      let MailModel: any;
-      if (task.type === 'MAIL_GOC') {
-        MailModel = RootMail;
-      } else if (task.type === 'MAIL_MONETIZED') {
-        MailModel = MonetizedMail;
-      } else {
-        MailModel = SatelliteMail;
+      session.startTransaction();
+
+      task = await Task.findByIdAndDelete(id).session(session);
+      if (!task) throw new Error("Task not found");
+
+      // Trả lại mail về kho
+      if (task.mailIds && task.mailIds.length > 0) {
+        let MailModel: any;
+        if (task.type === 'MAIL_GOC') MailModel = RootMail;
+        else if (task.type === 'MAIL_MONETIZED') MailModel = MonetizedMail;
+        else MailModel = SatelliteMail;
+
+        await MailModel.updateMany(
+          { _id: { $in: task.mailIds } },
+          {
+            $set: {
+              isAssigned: false,
+              assignedTo: null,
+              assigneeId: null,
+              assignee: null,
+              batchId: null,
+              batchName: null
+            }
+          },
+          { session }
+        );
       }
 
-      await MailModel.updateMany(
-        { _id: { $in: task.mailIds } },
-        {
-          $set: {
-            isAssigned: false,
-            assignedTo: null,
-            assigneeId: null,
-            assignee: null,
-            batchId: null,
-            batchName: null
-          }
-        }
-      );
-    } catch (mailRevertErr) {
-      console.error("Failed to unassign mails on task deletion:", mailRevertErr);
+      await session.commitTransaction();
+    } catch (err: any) {
+      await session.abortTransaction();
+      return NextResponse.json({ success: false, error: err.message }, { status: 400 });
+    } finally {
+      session.endSession();
     }
-  }
-  try {
-  await logAction("system", `Xóa nhiệm vụ: ${task.title || id}`, `Đã xóa nhiệm vụ.`);
-  } catch (logErr) {
-  console.error("Log error:", logErr);
-  }
 
-  await logAuditTrail(userId || "system", "DELETE_TASK_SUCCESS", "tasks", { taskId: id, title: task.title }, req);
+    try { await logAction("system", `Xóa nhiệm vụ: ${task.title || id}`, `Đã xóa nhiệm vụ.`); } catch (_) {}
+    await logAuditTrail(userId || "system", "DELETE_TASK_SUCCESS", "tasks", { taskId: id }, req);
 
-  return NextResponse.json({ success: true, data: {} });
- } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
- return NextResponse.json({ success: false, error: errorMessage }, { status: 400 });
- }
+    return NextResponse.json({ success: true, data: {} });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
 }

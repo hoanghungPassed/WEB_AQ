@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
@@ -75,127 +76,85 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ mont
     const body = await req.json();
     const { id, status, notes } = body;
 
-    if (!id) {
-      return NextResponse.json({ error: "Payroll record ID is required" }, { status: 400 });
-    }
+    if (!id) return NextResponse.json({ error: "Payroll record ID is required" }, { status: 400 });
 
-    const validStatuses = ["DRAFT", "PENDING", "APPROVED", "PAID"];
-    if (status && !validStatuses.includes(status)) {
-      return NextResponse.json({ error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` }, { status: 400 });
-    }
-
-    // Retrieve the existing payroll record to validate state transition and freeze state
     const existingRecord = await Payroll.findById(id).lean();
-    if (!existingRecord) {
-      return NextResponse.json({ error: "Không tìm thấy bản ghi lương" }, { status: 404 });
-    }
+    if (!existingRecord) return NextResponse.json({ error: "Không tìm thấy bản ghi lương" }, { status: 404 });
 
     const currentStatus = existingRecord.status || "DRAFT";
     const targetStatus = status || currentStatus;
 
     if (status && status !== currentStatus) {
       const VALID_TRANSITIONS: Record<string, string[]> = {
-        DRAFT: ["PENDING"],
-        PENDING: ["APPROVED", "DRAFT"],
-        APPROVED: ["PAID", "PENDING", "DRAFT"],
-        PAID: [] // PAID is a terminal state
+        DRAFT: ["PENDING"], PENDING: ["APPROVED", "DRAFT"], APPROVED: ["PAID", "PENDING", "DRAFT"], PAID: []
       };
-
-      const allowedTransitions = VALID_TRANSITIONS[currentStatus] || [];
-      if (!allowedTransitions.includes(status)) {
-        return NextResponse.json({
-          error: `Không thể chuyển trạng thái từ ${currentStatus} sang ${status}. Luồng hợp lệ: DRAFT → PENDING → APPROVED → PAID.`
-        }, { status: 400 });
+      if (!(VALID_TRANSITIONS[currentStatus] || []).includes(status)) {
+        return NextResponse.json({ error: `Không thể chuyển trạng thái từ ${currentStatus} sang ${status}.` }, { status: 400 });
       }
-
-      // Safety Lock 3: Role-based transitions for approving/paying
       if ((status === "APPROVED" || status === "PAID") && !["01", "02", "03"].includes(userRole || "")) {
         return NextResponse.json({ error: "Chỉ sếp hoặc quản lý mới được duyệt hoặc chi trả bảng lương" }, { status: 403 });
       }
     }
 
-    // Build the update payload
     const updateData: any = {};
-    
-    // Copy allowlisted fields from body if they are defined
-    const allowedFields = [
-      "status", "notes", "baseSalary", "allowance", "overtimePay", "bonus",
-      "attendanceDays", "workingDays", "fines", "fineIds", "tax", "insurance",
-      "grossPay", "totalDeductions", "netPay", "totalReceived"
-    ];
-    for (const key of allowedFields) {
-      if (body[key] !== undefined) {
-        updateData[key] = body[key];
-      }
-    }
+    const allowedFields = ["status", "notes", "baseSalary", "allowance", "overtimePay", "bonus", "attendanceDays", "workingDays", "fines", "fineIds", "tax", "insurance", "grossPay", "totalDeductions", "netPay", "totalReceived"];
+    for (const key of allowedFields) { if (body[key] !== undefined) updateData[key] = body[key]; }
 
-    // Special logic for status approved metadata
     if (updateData.status === "APPROVED") {
       updateData.approvedBy = userId;
       updateData.approvedAt = new Date();
     }
 
-    // Safety Lock 2: Freeze financial fields if state is PAID or target is PAID
-    const isPaidState = currentStatus === "PAID" || targetStatus === "PAID";
-    if (isPaidState) {
-      const financialFields = [
-        "baseSalary", "allowance", "overtimePay", "bonus", "fines", "fineIds",
-        "tax", "insurance", "grossPay", "totalDeductions", "netPay", "totalReceived"
-      ];
-      for (const field of financialFields) {
-        delete updateData[field];
-      }
+    if (currentStatus === "PAID" || targetStatus === "PAID") {
+      ["baseSalary", "allowance", "overtimePay", "bonus", "fines", "fineIds", "tax", "insurance", "grossPay", "totalDeductions", "netPay", "totalReceived"].forEach(f => delete updateData[f]);
     }
 
-    // Safety Lock 1: Atomic update to prevent race conditions
-    const record = await Payroll.findOneAndUpdate(
-      { _id: id, status: currentStatus },
-      { $set: updateData },
-      { new: true }
-    ).populate("userId", "name username role");
+    let record;
+    // 🔒 BẮT ĐẦU TRANSACTION ĐỂ ĐẢM BẢO TÍNH ACID TÀI CHÍNH
+    const session = await mongoose.startSession();
+    try {
+      session.startTransaction();
 
-    if (!record) {
-      return NextResponse.json({ 
-        error: "Cập nhật thất bại. Bảng lương đã bị thay đổi trạng thái bởi người khác hoặc không tồn tại." 
-      }, { status: 400 });
-    }
+      record = await Payroll.findOneAndUpdate(
+        { _id: id, status: currentStatus },
+        { $set: updateData },
+        { new: true, session }
+      ).populate("userId", "name username role");
 
-    // Auto-settle unpaid fines if the payroll status has transitioned to PAID
-    if (record.status === "PAID" && currentStatus !== "PAID") {
-      try {
+      if (!record) throw new Error("Cập nhật thất bại. Bảng lương đã bị thay đổi trạng thái bởi người khác.");
+
+      // Nếu trạng thái chuyển thành PAID -> Chuyển trạng thái Phạt thành PAID đồng thời
+      if (record.status === "PAID" && currentStatus !== "PAID") {
         const targetFineIds = (record as any).fineIds || [];
-        const settleResult = await Fine.updateMany(
-          {
-            _id: { $in: targetFineIds },
-            status: "UNPAID"
-          },
-          { $set: { status: "PAID" } }
-        );
-        console.log(`Auto-settled ${settleResult.modifiedCount} unpaid fines to PAID for user ${record.name} (${month})`);
-      } catch (fineErr) {
-        console.error("Auto-settle fines error:", fineErr);
+        if (targetFineIds.length > 0) {
+          await Fine.updateMany(
+            { _id: { $in: targetFineIds }, status: "UNPAID" },
+            { $set: { status: "PAID" } },
+            { session }
+          );
+        }
       }
-    }
 
-    // Create system log
+      await session.commitTransaction();
+    } catch (err: any) {
+      await session.abortTransaction();
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    } finally {
+      session.endSession();
+    }
+    // 🔒 KẾT THÚC TRANSACTION
+
     try {
       await Log.create({
-        user: userId || "System",
-        role: userRole === "01" ? "ADMIN" : "QL CÔNG VIỆC",
+        user: userId || "System", role: userRole === "01" ? "ADMIN" : "QL CÔNG VIỆC",
         action: `${status === "APPROVED" ? "Duyệt" : "Cập nhật"} bảng lương tháng ${month} của ${record.name}`,
-        type: "SUCCESS",
-        timestamp: new Date().toLocaleString("vi-VN")
+        type: "SUCCESS", timestamp: new Date().toLocaleString("vi-VN")
       });
-    } catch (logErr) {
-      console.error("Log error:", logErr);
-    }
+    } catch (_) {}
 
     await logAuditTrail(userId || "system", "APPROVE_PAYROLL_SUCCESS", "payroll", { payrollId: id, status, month }, req);
-
     return NextResponse.json({ success: true, data: record });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-    console.error("PUT payroll approval error:", error);
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

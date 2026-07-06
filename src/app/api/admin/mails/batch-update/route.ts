@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
 import { RootMail } from "@/models/RootMail";
 import { SatelliteMail } from "@/models/SatelliteMail";
@@ -33,15 +34,28 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Missing ids array" }, { status: 400 });
     }
 
-    const resRoot = await RootMail.updateMany({ _id: { $in: ids } }, { $set: updateData });
-    const resSat = await SatelliteMail.updateMany({ _id: { $in: ids } }, { $set: updateData });
-    const resMon = await MonetizedMail.updateMany({ _id: { $in: ids } }, { $set: updateData });
+    let totalModified = 0;
+    const session = await mongoose.startSession();
 
-    const totalModified = resRoot.modifiedCount + resSat.modifiedCount + resMon.modifiedCount;
+    try {
+      session.startTransaction();
+
+      const resRoot = await RootMail.updateMany({ _id: { $in: ids } }, { $set: updateData }, { session });
+      const resSat = await SatelliteMail.updateMany({ _id: { $in: ids } }, { $set: updateData }, { session });
+      const resMon = await MonetizedMail.updateMany({ _id: { $in: ids } }, { $set: updateData }, { session });
+
+      totalModified = resRoot.modifiedCount + resSat.modifiedCount + resMon.modifiedCount;
+      
+      await session.commitTransaction();
+    } catch (err: any) {
+      await session.abortTransaction();
+      return NextResponse.json({ success: false, error: "Cập nhật lô thất bại: " + err.message }, { status: 400 });
+    } finally {
+      session.endSession();
+    }
 
     await logAuditTrail(userId || "system", "BATCH_UPDATE_MAILS_SUCCESS", "mails", { idsCount: ids.length, modifiedCount: totalModified }, req);
 
-    // If batch update includes assignee assignment, send consolidated notification
     if (updateData?.assigneeId) {
       try {
         const User = (await import("@/models/User")).default;
@@ -53,7 +67,6 @@ export async function PUT(req: NextRequest) {
       } catch (_) {}
     }
 
-    // Trigger Pusher update for satellite batches
     try {
       const { pusherServer } = await import("@/lib/pusher");
       await pusherServer.trigger("private-system", "satellite-batches-updated", {});

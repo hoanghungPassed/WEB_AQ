@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Toaster from "@/components/ui/ToasterClient";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const geistSans = Geist({ subsets: ["latin"] });
 const geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -18,9 +19,11 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="vi" className="h-full antialiased dark">
+		<html lang="vi" className="h-full antialiased dark" suppressHydrationWarning>
 			<body className={`${geistSans.className} min-h-full flex flex-col bg-background text-foreground`}>
-				<AuthProvider>{children}</AuthProvider>
+				<ThemeProvider>
+					<AuthProvider>{children}</AuthProvider>
+				</ThemeProvider>
 				<Toaster />
 			</body>
 		</html>

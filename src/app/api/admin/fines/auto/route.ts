@@ -55,36 +55,39 @@ export async function POST(req: NextRequest) {
   ));
   startOfDay.setTime(startOfDay.getTime() - (7 * 60 * 60 * 1000));
   
-  const existingFine = await Fine.findOne({
-  userId: staff._id,
-  reason: { $regex: /Không hoàn thành task/ },
-  createdAt: { $gte: startOfDay }
-  });
+          const fineReason = `Không hoàn thành task đúng hạn (sau ${offWorkStr})`;
+          
+          const result = await Fine.findOneAndUpdate(
+            {
+              userId: staff._id,
+              reason: fineReason,
+              createdAt: { $gte: startOfDay }
+            },
+            {
+              $setOnInsert: {
+                userId: staff._id,
+                reason: fineReason,
+                amount: 50000,
+                status: "UNPAID"
+              }
+            },
+            { upsert: true, new: false } // new: false trả về null nếu đây là lần insert mới
+          );
 
-  if (!existingFine) {
-  await Fine.create({
-  userId: staff._id,
-  reason: `Không hoàn thành task đúng hạn (sau ${offWorkStr})`,
-  amount: 50000,
-  status:"UNPAID"
-  });
+          // Nếu result là null, nghĩa là khoản phạt VỪA MỚI được tạo ra (Insert thành công)
+          if (!result) {
+            try {
+              const { pusherServer } = await import("@/lib/pusher");
+              await pusherServer.trigger("private-system", "new-fine", {
+                userId: staff._id, amount: 50000, reason: fineReason
+              });
+            } catch (pushErr) {}
 
-  try {
-    const { pusherServer } = await import("@/lib/pusher");
-    await pusherServer.trigger("private-system", "new-fine", {
-      userId: staff._id,
-      amount: 50000,
-      reason: `Không hoàn thành task đúng hạn (sau ${offWorkStr})`
-    });
-  } catch (pushErr) {}
-
-  // Send auto fine email notification (fire-and-forget)
-  if (staff.email) {
-    sendFineEmail(staff.email, staff.name || "Nhân viên", 50000, `Không hoàn thành task đúng hạn (sau ${offWorkStr})`).catch(console.error);
-  }
-
-  count++;
-  }
+            if (staff.email) {
+              sendFineEmail(staff.email, staff.name || "Nhân viên", 50000, fineReason).catch(console.error);
+            }
+            count++;
+          }
   }
   }
   }

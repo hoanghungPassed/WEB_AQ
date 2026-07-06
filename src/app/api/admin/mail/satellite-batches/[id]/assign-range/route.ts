@@ -52,22 +52,27 @@ export async function PUT(
       return NextResponse.json({ success: false, error: "Lô không tồn tại" }, { status: 404 });
     }
 
-    // Tra cứu thông tin nhân sự để lấy tên gán vào mail
-    let staffName = "Nhân viên";
-    const UserModel = (await import("@/models/User")).default;
-    const staff = await UserModel.findById(batch.assignedTo);
-    if (staff) {
-      staffName = staff.name;
-    }
-
     let mailIds: any[] = [];
     let minStt = 0;
     let maxStt = 0;
     let modifiedCount = 0;
+    let staffName = "Nhân viên";
 
     const session = await mongoose.startSession();
     try {
       session.startTransaction();
+
+      // STRICT CHECK: Ensure assignee exists and is valid
+      if (!batch.assignedTo) {
+        throw new Error("Lô chưa được gán cho nhân viên nào. Vui lòng gán nhân sự cho lô trước khi chia dải mail!");
+      }
+
+      const UserModel = (await import("@/models/User")).default;
+      const staff = await UserModel.findById(batch.assignedTo).session(session);
+      if (!staff) {
+        throw new Error("Nhân viên được gán cho lô này không tồn tại hoặc đã bị xóa!");
+      }
+      staffName = staff.name;
 
       // 1. Tìm mail trống và khóa lại
       let availableMails = [];
@@ -83,8 +88,10 @@ export async function PUT(
         .sort({ stt: 1 })
         .session(session);
 
-        if (availableMails.length === 0) {
-          throw new Error(`Không tìm thấy mail trống nào trong dải STT từ ${startStt} đến ${endStt}!`);
+        // STRICT CHECK: Range length enforcement
+        const expectedCount = endStt - startStt + 1;
+        if (availableMails.length !== expectedCount) {
+          throw new Error(`Dải STT từ ${startStt} đến ${endStt} yêu cầu ${expectedCount} mail, nhưng chỉ tìm thấy ${availableMails.length} mail trống. Có thể một số mail trong dải đã bị gán cho người khác!`);
         }
       } else {
         availableMails = await SatelliteMail.find({
@@ -99,7 +106,7 @@ export async function PUT(
         .session(session);
 
         if (availableMails.length < amount) {
-          throw new Error(`Kho chỉ còn ${availableMails.length} mail trống, không đủ ${amount} mail yêu cầu!`);
+          throw new Error(`Kho chỉ còn ${availableMails.length} mail vệ tinh trống, không đủ ${amount} mail yêu cầu!`);
         }
       }
 
@@ -132,16 +139,16 @@ export async function PUT(
       if (maxStt > 0) batch.endIndex = maxStt;
       
       await batch.save({ session });
-
       await session.commitTransaction();
+
     } catch (error: any) {
       await session.abortTransaction();
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     } finally {
       session.endSession();
     }
 
-    // Trigger Pusher events to update real-time screens
+    // Các side effects chạy ngầm (Không ảnh hưởng đến Transaction chính)
     try {
       const { pusherServer } = await import("@/lib/pusher");
       await pusherServer.trigger("private-system", "task-updated", {});
@@ -152,11 +159,8 @@ export async function PUT(
           message: `Lô "${batch.name}" đã được phân công thêm dải mail vệ tinh.`
         });
       }
-    } catch (pe) {
-      console.error("Failed to trigger pusher event:", pe);
-    }
+    } catch (pe) {}
 
-    // 3. Ghi log activity
     try {
       const { Log } = await import("@/models/Log");
       await Log.create({
@@ -169,9 +173,7 @@ export async function PUT(
     } catch (_) {}
 
     await logAuditTrail(
-      userId || "system",
-      "ASSIGN_RANGE_SUCCESS",
-      "mails",
+      userId || "system", "ASSIGN_RANGE_SUCCESS", "mails",
       { batchId: batch._id, batchName: batch.name, startIndex: minStt, endIndex: maxStt, mailCount: mailIds.length },
       req
     );
@@ -183,7 +185,6 @@ export async function PUT(
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-    console.error("Assign range error:", error);
     return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
