@@ -370,24 +370,6 @@ export default function PhoneBatchesPage() {
  });
  await reloadPhones();
 
- // notification via sync
- const notifs = JSON.parse(localStorage.getItem("admin_notifications") ||"[]");
- notifs.unshift({
- id: `notif-${Date.now()}`,
- title:"Giao Lô Số Điện Thoại",
- message: `Bạn được phân công ${STANDARD_QUOTA} SĐT mới để xác minh.`,
- time: `${new Date().toLocaleTimeString("vi-VN")} - ${new Date().toLocaleDateString("vi-VN")}`,
- type:"ASSIGNMENT",
- read: false,
- targetUsername: selectedEmp.username,
- });
- localStorage.setItem("admin_notifications", JSON.stringify(notifs));
- fetch("/api/sync", {
- method:"POST",
- headers: {"Content-Type":"application/json" },
- body: JSON.stringify({ admin_notifications: JSON.stringify(notifs) })
- }).catch(() => {});
-
  pushLog(`Bàn giao ${STANDARD_QUOTA} SĐT cho ${selectedEmp.name} (@${selectedEmp.username})`);
  triggerToast(`Đã bàn giao ${STANDARD_QUOTA} SĐT cho ${selectedEmp.name}!`);
  };
