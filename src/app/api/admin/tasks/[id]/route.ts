@@ -74,8 +74,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (data.range) data.range = sanitizeXSS(data.range);
     if (data.assigneeName) data.assigneeName = sanitizeXSS(data.assigneeName);
 
-    // Strictly enforce ownership for Staff roles
-    const isStaff = userRole === "03" || userRole === "04" || userRole === "05";
+    let mappedRole = userRole || "";
+    const upper = String(userRole || "").toUpperCase();
+    if (upper === "ADMIN") mappedRole = "01";
+    else if (upper.includes("CÔNG VIỆC") || upper === "QLCV") mappedRole = "02";
+    else if (upper.includes("NHÂN SỰ") || upper === "QLNS") mappedRole = "03";
+    else if (upper === "NHÂN VIÊN" || upper === "NHÂN VIÊN CHÍNH THỨC") mappedRole = "04";
+    else if (upper === "NV THỬ VIỆC" || upper === "NHÂN VIÊN THỬ VIỆC") mappedRole = "05";
+
+    const isStaff = mappedRole === "03" || mappedRole === "04" || mappedRole === "05";
 
     // --- XỬ LÝ HỦY TASK (CANCELLED) ---
     if (body.status === "CANCELLED" && oldTask.status !== "CANCELLED") {
@@ -216,9 +223,23 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     
     let task;
     if (isStaff) {
+      const mongoose = (await import("mongoose")).default;
+      const { User } = await import("@/models/User");
+      const dbUser = await User.findById(userId);
+      const username = dbUser?.username;
+
+      const orConditions: any[] = [
+        { assigneeId: userId },
+        { assigneeId: userId ? new mongoose.Types.ObjectId(userId) : null }
+      ];
+      if (username) {
+        orConditions.push({ assigneeId: username });
+        orConditions.push({ assigneeId: username.toLowerCase() });
+      }
+
       // Find one that matches BOTH id and assigneeId
       task = await Task.findOneAndUpdate(
-        { _id: id, assigneeId: userId },
+        { _id: id, $or: orConditions },
         data,
         { new: true, runValidators: true }
       );

@@ -146,6 +146,12 @@ export async function PUT(
       const { pusherServer } = await import("@/lib/pusher");
       await pusherServer.trigger("private-system", "task-updated", {});
       await pusherServer.trigger("private-system", "satellite-batches-updated", {});
+      if (batch.assignedTo) {
+        await pusherServer.trigger(`user-${batch.assignedTo.toString()}`, "new-task", {
+          title: "Nhiệm vụ mới",
+          message: `Lô "${batch.name}" đã được phân công thêm dải mail vệ tinh.`
+        });
+      }
     } catch (pe) {
       console.error("Failed to trigger pusher event:", pe);
     }

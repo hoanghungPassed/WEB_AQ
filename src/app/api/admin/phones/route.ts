@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
   const userId = req.headers.get("x-user-id");
   const userRole = req.headers.get("x-user-role");
 
-  const hasPermission = await checkPermission(userRole || "", 1, ["all", "reports", "attendance", "staff"]);
+  const hasPermission = await checkPermission(userRole || "", 1, ["all", "reports", "attendance", "staff", "tasks"]);
   if (!hasPermission) {
     await logAuditTrail(userId || "unknown", "UNAUTHORIZED_GET_PHONES", "phones", {}, req);
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -68,7 +68,15 @@ export async function GET(req: NextRequest) {
   const query: any = {};
   if (status) query.status = status;
 
-  const isStaff = userRole === "03" || userRole === "04" || userRole === "05";
+  let mappedRole = userRole || "";
+  const upper = String(userRole || "").toUpperCase();
+  if (upper === "ADMIN") mappedRole = "01";
+  else if (upper.includes("CÔNG VIỆC") || upper === "QLCV") mappedRole = "02";
+  else if (upper.includes("NHÂN SỰ") || upper === "QLNS") mappedRole = "03";
+  else if (upper === "NHÂN VIÊN" || upper === "NHÂN VIÊN CHÍNH THỨC") mappedRole = "04";
+  else if (upper === "NV THỬ VIỆC" || upper === "NHÂN VIÊN THỬ VIỆC") mappedRole = "05";
+
+  const isStaff = mappedRole === "03" || mappedRole === "04" || mappedRole === "05";
   if (isStaff) {
     const mongoose = (await import("mongoose")).default;
     const dbUser = await User.findById(userId);
@@ -172,7 +180,7 @@ export async function PUT(req: NextRequest) {
   const userId = req.headers.get("x-user-id");
   const userRole = req.headers.get("x-user-role");
 
-  const hasPermission = await checkPermission(userRole || "", 1, ["all", "reports", "attendance", "staff"]);
+  const hasPermission = await checkPermission(userRole || "", 1, ["all", "reports", "attendance", "staff", "tasks"]);
   if (!hasPermission) {
     await logAuditTrail(userId || "unknown", "UNAUTHORIZED_UPDATE_PHONES", "phones", {}, req);
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

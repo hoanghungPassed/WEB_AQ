@@ -88,7 +88,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             const { sendFinePaymentApprovedEmail } = await import("@/lib/email");
             await sendFinePaymentApprovedEmail(updatedUser.email, updatedUser.name || updatedUser.username, amountVal, reasonVal).catch(console.error);
           }
-        } else if (type === "LATE_EXCUSE") {
+        } else if (type === "LATE_EXCUSE" || type === "ACCESS") {
           // 1. Chuyển status khoản phạt (Fine) thành CANCELLED
           const fine = await Fine.findOneAndUpdate(
             { userId, createdAt: { $gte: today }, status: { $ne: "PAID" } },

@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import Pusher from "pusher-js";
 import { mutate } from "swr";
+import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
 interface RealtimeProviderProps {
@@ -333,6 +334,7 @@ export default function RealtimeProvider({
     
     personalChannel.bind("new-task", (data: any) => {
       playChatChime();
+      toast.success(data.message || "Bạn vừa nhận được nhiệm vụ mới từ Admin!");
       setRoleUpdateNotif({ title: data.title || "Nhiệm vụ mới", message: data.message });
       setTimeout(() => setRoleUpdateNotif(null), 5000);
       router.refresh();

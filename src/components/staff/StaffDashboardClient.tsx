@@ -271,19 +271,19 @@ export default function StaffDashboardClient({ user }: { user: any }) {
   const { data: statsData, error: statsError, isValidating: statsValidating } = useSWR(
     user ? "/api/admin/stats" : null,
     fetcher,
-    { revalidateOnFocus: false, refreshInterval: 120000, dedupingInterval: 10000 }
+    { revalidateOnFocus: false, revalidateIfStale: false, dedupingInterval: 10000 }
   );
 
   const { data: tasksData, error: tasksError, isValidating: tasksValidating } = useSWR(
     user ? "/api/admin/tasks" : null,
     fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 5000 }
+    { revalidateOnFocus: false, revalidateIfStale: false, dedupingInterval: 10000 }
   );
 
   const { data: rawAttendanceData, error: attendanceError, isValidating: attendanceValidating } = useSWR(
     user ? "/api/admin/attendance?history=true" : null,
     fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 5000 }
+    { revalidateOnFocus: false, revalidateIfStale: false, dedupingInterval: 10000 }
   );
 
   const handleRefresh = () => {

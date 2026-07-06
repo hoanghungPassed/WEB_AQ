@@ -23,14 +23,44 @@ export async function GET(req: NextRequest) {
     const sortOrder = (searchParams.get("sortOrder") || "desc") as "asc" | "desc";
 
     const userRole = req.headers.get("x-user-role");
-    // Strictly scope tasks for Staff (role other than 01, 02, 03)
-    const isStaff = !["01", "02", "03"].includes(userRole || "");
+    let mappedRole = userRole || "";
+    const upper = String(userRole || "").toUpperCase();
+    if (upper === "ADMIN") mappedRole = "01";
+    else if (upper.includes("CÔNG VIỆC") || upper === "QLCV") mappedRole = "02";
+    else if (upper.includes("NHÂN SỰ") || upper === "QLNS") mappedRole = "03";
+    else if (upper === "NHÂN VIÊN" || upper === "NHÂN VIÊN CHÍNH THỨC") mappedRole = "04";
+    else if (upper === "NV THỬ VIỆC" || upper === "NHÂN VIÊN THỬ VIỆC") mappedRole = "05";
+
+    const isStaff = !["01", "02", "03"].includes(mappedRole);
 
     const filter: any = {};
     if (isStaff) {
-      filter.assigneeId = userId;
+      const mongoose = (await import("mongoose")).default;
+      const { User } = await import("@/models/User");
+      const dbUser = await User.findById(userId);
+      const username = dbUser?.username;
+
+      const orConditions: any[] = [
+        { assigneeId: userId },
+        { assigneeId: userId ? new mongoose.Types.ObjectId(userId) : null }
+      ];
+      if (username) {
+        orConditions.push({ assigneeId: username });
+        orConditions.push({ assigneeId: username.toLowerCase() });
+        orConditions.push({ assignee: username });
+        orConditions.push({ assignee: username.toLowerCase() });
+      }
+      if (dbUser?.name) {
+        orConditions.push({ assigneeId: dbUser.name });
+        orConditions.push({ assignee: dbUser.name });
+      }
+      filter.$or = orConditions;
     } else if (assigneeId && assigneeId !== "ALL") {
-      filter.assigneeId = assigneeId;
+      const mongoose = (await import("mongoose")).default;
+      filter.$or = [
+        { assigneeId: assigneeId },
+        { assigneeId: mongoose.Types.ObjectId.isValid(assigneeId) ? new mongoose.Types.ObjectId(assigneeId) : null }
+      ];
     }
     
     if (status && status !== "ALL") filter.status = status;

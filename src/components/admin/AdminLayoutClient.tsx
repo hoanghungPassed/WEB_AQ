@@ -481,7 +481,8 @@ export default function AdminLayoutClient({
   useEffect(() => {
     const fetchPhones = async () => {
       if (!user) return;
-      const isStaff = ["03", "04", "05"].includes(user.role || "");
+      const roleUpper = String(user.role || "").toUpperCase();
+      const isStaff = ["03", "04", "05", "NHÂN VIÊN", "NV THỬ VIỆC"].some(r => roleUpper.includes(r));
       if (isStaff) {
         try {
           const res = await fetch("/api/admin/phones");
@@ -1668,6 +1669,17 @@ const typingTimer = setInterval(checkTyping, 1000);
     }
   };
 
+  if (!user) return <div className="min-h-screen bg-[#0a0a0a]" />;
+
+  const myAssignedPhones = (phoneList || []).filter((p: any) => {
+    const isAssigned = 
+      (user?.id && String(p.assigneeId || p.assignee) === String(user.id)) ||
+      (user?._id && String(p.assigneeId || p.assignee) === String(user._id)) ||
+      ((user as any)?.userId && String(p.assigneeId || p.assignee) === String((user as any).userId)) ||
+      (user?.username && String(p.assigneeId || p.assignee || p.assignedTo).toLowerCase() === user.username.toLowerCase());
+    return isAssigned && p.status !== "XM lần 2" && p.status !== "Lỗi";
+  });
+
  // Thông tin mặc định nếu chưa load xong hoặc để modal hiển thị
  const displayUser: StaffData = user || {
  id: "loading",
@@ -1683,20 +1695,7 @@ const typingTimer = setInterval(checkTyping, 1000);
  role:"USER"
  };
 
- if (!user) return <div className="min-h-screen bg-[#0a0a0a]" />;
 
- const myAssignedPhones = (phoneList || []).filter(
-    (p: any) =>
-      p.assigneeId &&
-      (
-        (user?.id && String(p.assigneeId) === String(user.id)) ||
-        (user?._id && String(p.assigneeId) === String(user._id)) ||
-        ((user as any)?.userId && String(p.assigneeId) === String((user as any).userId)) ||
-        (user?.username && String(p.assigneeId).toLowerCase() === user.username.toLowerCase())
-      ) &&
-      p.status !== "XM lần 2" &&
-      p.status !== "Lỗi"
-  );
 
  if (!user) {
  return (
