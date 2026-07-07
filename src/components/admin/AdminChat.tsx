@@ -303,6 +303,8 @@ export default function AdminChat({ user, isOpen, onClose, unreadCount, setUnrea
     });
 
     return () => {
+      chatChannel.unbind_all();
+      personalChannel.unbind_all();
       pusher.unsubscribe("chat");
       pusher.unsubscribe(`private-direct-chat-${user.id || user._id}`);
       pusher.disconnect();

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
 import { Attendance } from "@/models/Attendance";
 import { User } from "@/models/User";
+import { Fine } from "@/models/Fine";
 import { checkPermission, logAuditTrail } from "@/lib/permissions";
 import { pusherServer } from "@/lib/pusher";
 
@@ -27,48 +29,71 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Thiếu ID chấm công hoặc hành động xử lý" }, { status: 400 });
     }
 
-    const attendance = await Attendance.findById(attendanceId);
-    if (!attendance) {
-      return NextResponse.json({ success: false, error: "Không tìm thấy bản ghi chấm công" }, { status: 404 });
-    }
+    let attendance;
+    const session = await mongoose.startSession();
+    try {
+      session.startTransaction();
 
-    if (action === "APPROVE") {
-      attendance.complainStatus = "RESOLVED";
-      if (newStatus) {
-        attendance.status = newStatus;
-        
-        // If approved and status is not "Vắng mặt", set checkInTime if missing to avoid downstream errors
-        if (newStatus !== "Vắng mặt" && !attendance.checkInTime) {
-          attendance.checkInTime = new Date(attendance.date + "T08:00:00.000Z");
-        }
+      attendance = await Attendance.findById(attendanceId).session(session);
+      if (!attendance) {
+        throw new Error("Không tìm thấy bản ghi chấm công");
       }
-      
-      // Auto-unlock user
-      try {
+
+      if (action === "APPROVE") {
+        attendance.complainStatus = "RESOLVED";
+        if (newStatus) {
+          attendance.status = newStatus;
+          
+          // If approved and status is not "Vắng mặt", set checkInTime if missing to avoid downstream errors
+          if (newStatus !== "Vắng mặt" && !attendance.checkInTime) {
+            attendance.checkInTime = new Date(attendance.date + "T08:00:00.000Z");
+          }
+        }
+        
+        // Auto-unlock user
         await User.findByIdAndUpdate(attendance.userId, {
           isLateLocked: false,
           status: "ACTIVE"
-        });
-      } catch (userErr) {
-        console.error("Failed to unlock user on appeal approval:", userErr);
+        }).session(session);
+
+        // Delete unpaid late/early fines for this day
+        const dateStr = attendance.date;
+        const startOfDay = new Date(`${dateStr}T00:00:00+07:00`);
+        const endOfDay = new Date(`${dateStr}T23:59:59.999+07:00`);
+
+        await Fine.deleteMany({
+          userId: attendance.userId,
+          status: "UNPAID",
+          reason: { $regex: /đi muộn|về sớm/i },
+          createdAt: { $gte: startOfDay, $lte: endOfDay }
+        }).session(session);
+
+      } else if (action === "REJECT") {
+        attendance.complainStatus = "REJECTED";
+      } else {
+        throw new Error("Hành động xử lý không hợp lệ (yêu cầu APPROVE hoặc REJECT)");
       }
-    } else if (action === "REJECT") {
-      attendance.complainStatus = "REJECTED";
-      // Keeps the status as "Vắng mặt" or whatever it originally was
-    } else {
-      return NextResponse.json({ success: false, error: "Hành động xử lý không hợp lệ (yêu cầu APPROVE hoặc REJECT)" }, { status: 400 });
+
+      await attendance.save({ session });
+      await session.commitTransaction();
+    } catch (err: any) {
+      await session.abortTransaction();
+      return NextResponse.json({ success: false, error: err.message }, { status: 400 });
+    } finally {
+      session.endSession();
     }
 
-    await attendance.save();
-
-    // Trigger Pusher notification back to the staff/system
+    // Trigger Pusher notification back to the staff/system (After commit)
     try {
-      await pusherServer.trigger("private-system", "attendance-appeal-resolved", {
+      await pusherServer.trigger("private-system", "attendance-updated", {
         attendanceId: attendance._id.toString(),
         userId: attendance.userId.toString(),
-        username: attendance.username,
         date: attendance.date,
-        status: attendance.status,
+        status: attendance.status
+      });
+      await pusherServer.trigger(`user-${attendance.userId.toString()}`, "appeal-resolved", {
+        attendanceId: attendance._id.toString(),
+        date: attendance.date,
         complainStatus: attendance.complainStatus
       });
     } catch (pushErr) {

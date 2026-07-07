@@ -186,133 +186,151 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-  const userId = req.headers.get("x-user-id");
-  const userRole = req.headers.get("x-user-role");
+    const userId = req.headers.get("x-user-id");
+    const userRole = req.headers.get("x-user-role");
 
-  const hasPermission = await checkPermission(userRole || "", 1, ["all", "reports", "attendance", "staff", "tasks"]);
-  if (!hasPermission) {
-    await logAuditTrail(userId || "unknown", "UNAUTHORIZED_UPDATE_PHONES", "phones", {}, req);
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  }
+    const hasPermission = await checkPermission(userRole || "", 1, ["all", "reports", "attendance", "staff", "tasks"]);
+    if (!hasPermission) {
+      await logAuditTrail(userId || "unknown", "UNAUTHORIZED_UPDATE_PHONES", "phones", {}, req);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
 
- await dbConnect();
- const body = (await req.json()) as PhoneBulkUpdateBody;
- const { ids, update } = body;
+    await dbConnect();
+    const body = (await req.json()) as PhoneBulkUpdateBody;
+    const { ids, update } = body;
 
-  if (body.amount && body.assigneeId) {
-    const amount = Number(body.amount);
-    const mongoose = (await import("mongoose")).default;
-    const session = await mongoose.startSession();
-    try {
-      session.startTransaction();
-
-      const availablePhones = await Phone.find({
-        $or: [{ assigneeId: null }, { assigneeId: { $exists: false } }],
-        status: { $ne: "Lỗi" }
-      })
-      .limit(amount)
-      .session(session);
-
-      if (availablePhones.length < amount) {
-        throw new Error(`Kho không còn đủ ${amount} số trống!`);
-      }
-
-      const idsToAssign = availablePhones.map(p => p._id);
-      const now = new Date().toISOString().split("T")[0];
-
-      await Phone.updateMany(
-        { _id: { $in: idsToAssign } },
-        {
-          $set: {
-            assigneeId: new mongoose.Types.ObjectId(body.assigneeId as string),
-            assignedTo: (body.assignedTo as string) || "Nhân viên",
-            assignedAt: now,
-            status: "ASSIGNED"
-          }
-        },
-        { session }
-      );
-
-      const { Notification } = await import("@/models/Notification");
-      await Notification.create([{
-        title: "Giao Lô Số Điện Thoại",
-        message: `Bạn được phân công ${amount} SĐT mới để xác minh.`,
-        type: "ASSIGNMENT",
-        recipientId: new mongoose.Types.ObjectId(body.assigneeId as string),
-        isRead: false
-      }], { session });
-
-      await session.commitTransaction();
-
+    // --- CASE 1: Assign a specific amount of unassigned phones ---
+    if (body.amount && body.assigneeId) {
+      const amount = Number(body.amount);
+      const mongoose = (await import("mongoose")).default;
+      const session = await mongoose.startSession();
+      const targetAssigneeIdStr = body.assigneeId as string;
+      const batchNameVal = (body.batchName || body.importBatch || body.batch || "Lô gán") as string;
       try {
-        const { pusherServer } = await import("@/lib/pusher");
-        await pusherServer.trigger(`user-${body.assigneeId}`, "new-task", {
+        session.startTransaction();
+
+        const availablePhones = await Phone.find({
+          $or: [{ assigneeId: null }, { assigneeId: { $exists: false } }],
+          status: { $ne: "Lỗi" }
+        })
+        .limit(amount)
+        .session(session);
+
+        if (availablePhones.length < amount) {
+          throw new Error(`Kho không còn đủ ${amount} số trống!`);
+        }
+
+        const idsToAssign = availablePhones.map(p => p._id);
+        const now = new Date().toISOString().split("T")[0];
+
+        await Phone.updateMany(
+          { _id: { $in: idsToAssign } },
+          {
+            $set: {
+              assigneeId: new mongoose.Types.ObjectId(targetAssigneeIdStr),
+              assignee: targetAssigneeIdStr, // Both assigneeId and assignee
+              assignedTo: (body.assignedTo as string) || "Nhân viên",
+              assignedAt: now,
+              status: "Đang sử dụng", // "Đang sử dụng"
+              importBatch: batchNameVal // Save batch name
+            }
+          },
+          { session }
+        );
+
+        const { Notification } = await import("@/models/Notification");
+        await Notification.create([{
           title: "Giao Lô Số Điện Thoại",
           message: `Bạn được phân công ${amount} SĐT mới để xác minh.`,
-          type: "ASSIGNMENT"
+          type: "ASSIGNMENT",
+          recipientId: new mongoose.Types.ObjectId(targetAssigneeIdStr),
+          isRead: false
+        }], { session });
+
+        await session.commitTransaction();
+      } catch (err: any) {
+        await session.abortTransaction();
+        return NextResponse.json({ success: false, error: err.message }, { status: 400 });
+      } finally {
+        session.endSession();
+      }
+
+      // Pusher triggers (After commit)
+      try {
+        const { pusherServer } = await import("@/lib/pusher");
+        await pusherServer.trigger("private-system", "phones-updated", {});
+        await pusherServer.trigger(`user-${targetAssigneeIdStr}`, "new-phones-assigned", {
+          amount,
+          message: `Bạn được phân công ${amount} SĐT mới.`
         });
       } catch (err) {}
 
       return NextResponse.json({ success: true, count: amount });
-    } catch (err: any) {
-      await session.abortTransaction();
-      return NextResponse.json({ success: false, error: err.message }, { status: 400 });
-    } finally {
-      session.endSession();
     }
-  }
 
-  if (ids && Array.isArray(ids) && update) {
-    const mongoose = (await import("mongoose")).default;
-    const session = await mongoose.startSession();
-    try {
-      session.startTransaction();
-
+    // --- CASE 2: Assign a specific list of phone IDs ---
+    if (ids && Array.isArray(ids) && update) {
+      const mongoose = (await import("mongoose")).default;
+      const session = await mongoose.startSession();
       const updateSet: any = { ...update };
+      let targetAssigneeIdStr = "";
+
       if (updateSet.assigneeId) {
-        updateSet.assigneeId = new mongoose.Types.ObjectId(updateSet.assigneeId as string);
-        if (!updateSet.status) {
-          updateSet.status = 'ASSIGNED';
-        }
-
-        // Query available phones in the requested set to see if they are still unassigned
-        const availableCount = await Phone.countDocuments({
-          _id: { $in: ids.map(id => new mongoose.Types.ObjectId(id)) },
-          $or: [{ assigneeId: null }, { assigneeId: { $exists: false } }]
-        }).session(session);
-
-        if (availableCount < ids.length) {
-          throw new Error(`Kho không còn đủ ${ids.length} số trống!`);
-        }
+        targetAssigneeIdStr = updateSet.assigneeId as string;
+        updateSet.assigneeId = new mongoose.Types.ObjectId(targetAssigneeIdStr);
+        updateSet.assignee = targetAssigneeIdStr; // Set both fields
+        updateSet.status = "Đang sử dụng"; // "Đang sử dụng"
+        updateSet.importBatch = ((update as any).importBatch || update.batch || (update as any).batchName || "Lô gán") as string;
       }
 
-      const result = await Phone.updateMany(
-        { _id: { $in: ids.map(id => new mongoose.Types.ObjectId(id)) } },
-        { $set: updateSet },
-        { session }
-      );
+      try {
+        session.startTransaction();
 
-      // Notify employee of bulk assignment
-      if (updateSet.assigneeId) {
-        const { Notification } = await import("@/models/Notification");
-        await Notification.create([{
-          title: "Giao Lô Số Điện Thoại",
-          message: `Bạn được phân công ${ids.length} SĐT mới để xác minh.`,
-          type: "ASSIGNMENT",
-          recipientId: updateSet.assigneeId,
-          isRead: false
-        }], { session });
+        if (updateSet.assigneeId) {
+          // Check if any of the target phones are already assigned
+          const availableCount = await Phone.countDocuments({
+            _id: { $in: ids.map(id => new mongoose.Types.ObjectId(id)) },
+            $or: [{ assigneeId: null }, { assigneeId: { $exists: false } }]
+          }).session(session);
+
+          if (availableCount < ids.length) {
+            throw new Error(`Kho không còn đủ ${ids.length} số trống!`);
+          }
+        }
+
+        const result = await Phone.updateMany(
+          { _id: { $in: ids.map(id => new mongoose.Types.ObjectId(id)) } },
+          { $set: updateSet },
+          { session }
+        );
+
+        if (updateSet.assigneeId) {
+          const { Notification } = await import("@/models/Notification");
+          await Notification.create([{
+            title: "Giao Lô Số Điện Thoại",
+            message: `Bạn được phân công ${ids.length} SĐT mới để xác minh.`,
+            type: "ASSIGNMENT",
+            recipientId: updateSet.assigneeId,
+            isRead: false
+          }], { session });
+        }
+
+        await session.commitTransaction();
+      } catch (err: any) {
+        await session.abortTransaction();
+        return NextResponse.json({ success: false, error: err.message }, { status: 400 });
+      } finally {
+        session.endSession();
       }
 
-      await session.commitTransaction();
-
+      // Pusher triggers (After commit)
       if (updateSet.assigneeId) {
         try {
           const { pusherServer } = await import("@/lib/pusher");
-          await pusherServer.trigger(`user-${updateSet.assigneeId.toString()}`, "new-task", {
-            title: "Giao Lô Số Điện Thoại",
-            message: `Bạn được phân công ${ids.length} SĐT mới để xác minh.`,
-            type: "ASSIGNMENT"
+          await pusherServer.trigger("private-system", "phones-updated", {});
+          await pusherServer.trigger(`user-${targetAssigneeIdStr}`, "new-phones-assigned", {
+            amount: ids.length,
+            message: `Bạn được phân công ${ids.length} SĐT mới.`
           });
         } catch (err) {
           console.error("Failed to notify user about phone assignment:", err);
@@ -320,56 +338,76 @@ export async function PUT(req: NextRequest) {
       }
 
       await logAuditTrail(userId || "system", "BULK_UPDATE_PHONES_SUCCESS", "phones", { idsCount: ids.length }, req);
-      return NextResponse.json({ success: true, modifiedCount: result.modifiedCount });
+      return NextResponse.json({ success: true, modifiedCount: ids.length });
+    }
+
+    // --- CASE 3: Single phone update ---
+    const { id, ...updateData } = body;
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Thiếu ID phone" }, { status: 400 });
+    }
+
+    const mongoose = (await import("mongoose")).default;
+    const session = await mongoose.startSession();
+    let phone;
+    const updateSetSingle: any = { ...updateData };
+
+    if (updateSetSingle.assigneeId) {
+      const targetAssigneeIdStr = updateSetSingle.assigneeId as string;
+      updateSetSingle.assigneeId = new mongoose.Types.ObjectId(targetAssigneeIdStr);
+      updateSetSingle.assignee = targetAssigneeIdStr;
+      updateSetSingle.status = "Đang sử dụng";
+      updateSetSingle.importBatch = (updateData.importBatch || updateData.batch || updateData.batchName || "Lô gán") as string;
+    }
+
+    try {
+      session.startTransaction();
+
+      phone = await Phone.findByIdAndUpdate(id, { $set: updateSetSingle }, { new: true, session });
+      if (!phone) {
+        throw new Error("Không tìm thấy SĐT");
+      }
+
+      if (updateSetSingle.assigneeId) {
+        const { Notification } = await import("@/models/Notification");
+        await Notification.create([{
+          title: "Giao Số Điện Thoại",
+          message: `Bạn được phân công SĐT ${phone.number} mới để xác minh.`,
+          type: "ASSIGNMENT",
+          recipientId: updateSetSingle.assigneeId,
+          isRead: false
+        }], { session });
+      }
+
+      await session.commitTransaction();
     } catch (err: any) {
       await session.abortTransaction();
       return NextResponse.json({ success: false, error: err.message }, { status: 400 });
     } finally {
       session.endSession();
     }
-  }
 
-  const { id, ...updateData } = body;
-  if (!id) {
-    return NextResponse.json({ success: false, error: "Thiếu ID phone" }, { status: 400 });
-  }
-
-  const phone = await Phone.findByIdAndUpdate(id, updateData, { new: true });
-  if (!phone) {
-    return NextResponse.json({ success: false, error: "Không tìm thấy SĐT" }, { status: 404 });
-  }
-
-  // Notify employee of single assignment
-  if (updateData.assigneeId) {
-    try {
-      const assigneeIdVal = updateData.assigneeId as string;
-      const { Notification } = await import("@/models/Notification");
-      await Notification.create({
-        title: "Giao Số Điện Thoại",
-        message: `Bạn được phân công SĐT ${phone.number} mới để xác minh.`,
-        type: "ASSIGNMENT",
-        recipientId: assigneeIdVal,
-        isRead: false
-      });
-
-      const { pusherServer } = await import("@/lib/pusher");
-      await pusherServer.trigger(`user-${assigneeIdVal}`, "new-task", {
-        title: "Giao SĐT",
-        message: `Bạn được phân công SĐT ${phone.number} mới để xác minh.`,
-        type: "ASSIGNMENT"
-      });
-    } catch (err) {
-      console.error("Failed to notify user about single phone assignment:", err);
+    // Pusher triggers (After commit)
+    if (updateSetSingle.assigneeId && phone) {
+      try {
+        const { pusherServer } = await import("@/lib/pusher");
+        await pusherServer.trigger("private-system", "phones-updated", {});
+        await pusherServer.trigger(`user-${updateSetSingle.assignee.toString()}`, "new-phones-assigned", {
+          amount: 1,
+          message: `Bạn được phân công SĐT ${phone.number} mới.`
+        });
+      } catch (err) {
+        console.error("Failed to notify user about single phone assignment:", err);
+      }
     }
+
+    await logAuditTrail(userId || "system", "UPDATE_PHONE_SUCCESS", "phones", { id, number: phone.number }, req);
+    return NextResponse.json({ success: true, data: phone });
+
+  } catch (unknownError) {
+    const error = unknownError instanceof Error ? unknownError : new Error(String(unknownError));
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
-
- await logAuditTrail(userId || "system", "UPDATE_PHONE_SUCCESS", "phones", { id, number: phone.number }, req);
-
- return NextResponse.json({ success: true, data: phone });
- } catch (unknownError) {
- const error = unknownError instanceof Error ? unknownError : new Error(String(unknownError));
- return NextResponse.json({ success: false, error: error.message }, { status: 500 });
- }
 }
 
 export async function DELETE(req: NextRequest) {

@@ -100,19 +100,19 @@ export async function POST(req: Request) {
       isRead: false
     });
 
-    // Trigger Real-time update via Pusher
+    // Trigger Real-time update via Pusher ONLY after successful DB save
     try {
       if (isCompanyChat) {
-        // 1. Trigger general 'chat' channel for company chat
+        // Trigger general 'chat-system' channel
+        await pusherServer.trigger("chat-system", "new-message", newMessage);
         await pusherServer.trigger("chat", "new-message", newMessage);
-        // 2. Legacy channel for company chat
         await pusherServer.trigger("company-chat", "new-message", newMessage);
       } else {
-        // Direct message - trigger ONLY to recipient and sender private user channels (Lock 1)
+        // Direct message - trigger to recipient/sender and chat-system channels
+        await pusherServer.trigger("chat-system", "new-message", newMessage);
         await pusherServer.trigger(`user-${receiverId}`, "new-message", newMessage);
         await pusherServer.trigger(`user-${senderId}`, "new-message", newMessage);
         
-        // Legacy channels for DMs
         await pusherServer.trigger(`private-direct-chat-${receiverId}`, "new-message", newMessage);
         await pusherServer.trigger(`private-direct-chat-${senderId}`, "new-message", newMessage);
       }
