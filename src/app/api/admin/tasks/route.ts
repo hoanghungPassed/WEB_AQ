@@ -158,7 +158,10 @@ export async function POST(req: NextRequest) {
         // BẢO VỆ: Đảm bảo mailIds chưa từng bị gán cho người khác
         const existingAssigned = await MailModel.countDocuments({
           _id: { $in: data.mailIds },
-          isAssigned: true
+          $or: [
+            { isAssigned: true, assigneeId: { $ne: data.assigneeId } },
+            { assigneeId: { $exists: true, $nin: [null, "", data.assigneeId] } }
+          ]
         }).session(session);
 
         if (existingAssigned > 0) {

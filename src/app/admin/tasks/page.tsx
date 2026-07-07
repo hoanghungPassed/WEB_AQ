@@ -311,7 +311,11 @@ export default function TaskManagementPage() {
 
   const selectedUserId = targetStaffId;
   const filteredBatches = useMemo(() => {
-    return (dbBatches || []).filter((batch: any) => batch && String(batch.assignedTo) === String(selectedUserId));
+    return (dbBatches || []).filter((batch: any) => 
+      batch && 
+      String(batch.assignedTo) === String(selectedUserId) && 
+      (batch.mailCount || 0) > 0
+    );
   }, [dbBatches, selectedUserId]);
 
   const filteredBatchesKey = useMemo(() => {
@@ -1136,7 +1140,7 @@ export default function TaskManagementPage() {
                             })}
                           </select>
                           {targetStaffId && (filteredBatches || []).length === 0 && (
-                            <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">Không có lô vệ tinh chưa gán nào khả dụng cho nhân viên này!</p>
+                            <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">Không có lô vệ tinh đã gán mail nào khả dụng cho nhân viên này!</p>
                           )}
                           {!targetStaffId && (
                             <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider mt-1">⚠️ Hãy chọn nhân viên phía trên trước khi chọn Lô vệ tinh.</p>
