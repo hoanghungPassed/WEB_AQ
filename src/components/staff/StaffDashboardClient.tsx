@@ -633,18 +633,16 @@ export default function StaffDashboardClient({ user }: { user: any }) {
             <span className="text-xs font-mono font-bold text-gold">{taskMailsList.length} Mail</span>
           </div>
           
-          {selectedTask.status === "PENDING" ? (
-            <div className="flex flex-col items-center justify-center p-12 text-center bg-black/30 border border-dashed border-gold/10 rounded-b-xl min-h-[300px]">
-              <div className="h-16 w-16 bg-gold/10 text-gold rounded-full flex items-center justify-center border border-gold/20 mb-4 animate-pulse">
-                <Lock size={32} />
-              </div>
-              <h4 className="text-lg font-black text-white uppercase tracking-tight">Danh sách mail đang bị khóa</h4>
-              <p className="text-xs text-gray-500 max-w-sm mt-2 leading-relaxed font-semibold uppercase tracking-wider">
-                Bạn cần phải nhấn nút <span className="text-gold font-bold">"Bắt đầu thực hiện"</span> ở trên để xem danh sách tài khoản và nhận phân công nhiệm vụ.
+          {selectedTask.status === "PENDING" && (
+            <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-4 flex items-center gap-3 text-amber-500">
+              <AlertTriangle size={18} className="shrink-0 animate-pulse" />
+              <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">
+                Nhiệm vụ này ở trạng thái Chờ xử lý. Hãy bấm "Bắt đầu thực hiện" ở bảng thông tin phía trên để mở khóa chỉnh sửa.
               </p>
             </div>
-          ) : (
-            <div className="overflow-x-auto custom-scrollbar">
+          )}
+          
+          <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-left min-w-[900px] border-collapse">
               <thead>
                 <tr className="border-b border-border text-[9px] font-black uppercase text-foreground-secondary tracking-widest bg-black/20">
@@ -774,12 +772,12 @@ export default function StaffDashboardClient({ user }: { user: any }) {
                           </span>
                         </td>
                         <td className="px-6 py-3.5 text-right whitespace-nowrap">
-                          {selectedTask.status === "COMPLETED" ? (
+                          {selectedTask.status === "COMPLETED" || selectedTask.status === "PENDING" ? (
                             <button 
                               onClick={() => setSelectedMailForConfig(mail)} 
                               className="h-8 px-3 bg-white/10 text-white hover:bg-gold hover:text-sidebar rounded-md text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer"
                             >
-                              Chi tiết
+                              {selectedTask.status === "PENDING" ? "Xem" : "Chi tiết"}
                             </button>
                           ) : (
                             <button 
@@ -806,7 +804,6 @@ export default function StaffDashboardClient({ user }: { user: any }) {
               </tbody>
             </table>
           </div>
-          )}
         </div>
 
         {selectedMailForConfig && (
@@ -820,7 +817,7 @@ export default function StaffDashboardClient({ user }: { user: any }) {
                 : "SATELLITE"
             }
             user={user}
-            viewOnly={selectedTask.status === "COMPLETED"}
+            viewOnly={selectedTask.status === "COMPLETED" || selectedTask.status === "PENDING"}
             onClose={() => setSelectedMailForConfig(null)}
             onSave={(updatedFields) => {
               const mailId = selectedMailForConfig._id || selectedMailForConfig.id;
@@ -964,10 +961,10 @@ export default function StaffDashboardClient({ user }: { user: any }) {
                         <div className="flex items-center justify-end gap-2">
                           <button 
                             onClick={() => setSelectedTask(task)}
-                            className="h-7 w-7 rounded-sm bg-gold/10 text-gold flex items-center justify-center hover:bg-gold hover:text-sidebar transition-all cursor-pointer"
+                            className="h-7 px-3 rounded-sm bg-gold/10 text-gold flex items-center gap-1.5 hover:bg-gold hover:text-sidebar font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer"
                             title="Làm nhiệm vụ"
                           >
-                            <Play size={12} />
+                            <Play size={10} /> Làm
                           </button>
                           {task.status !== "COMPLETED" && task.status !== "CANCELLED" && (
                             <button 
@@ -1005,7 +1002,7 @@ export default function StaffDashboardClient({ user }: { user: any }) {
                 ) : (
                   <tr>
                     <td colSpan={6} className="p-4">
-                      {tasksValidating ? (
+                      {tasksValidating && !tasksData ? (
                         <div className="py-16 flex flex-col items-center justify-center gap-3">
                           <Loader2 size={32} className="animate-spin text-gold" />
                           <p className="text-foreground-secondary font-black uppercase text-[10px] tracking-widest animate-pulse">Đang tải dữ liệu nhiệm vụ...</p>
@@ -1044,7 +1041,7 @@ export default function StaffDashboardClient({ user }: { user: any }) {
           </div>
 
           <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 bg-black/20 border border-white/0 rounded-2xl p-3 max-h-[350px] overflow-y-auto custom-scrollbar">
-            {attendanceValidating ? (
+            {attendanceValidating && !rawAttendanceData ? (
               <div className="py-16 col-span-4 sm:col-span-7 flex flex-col items-center justify-center gap-3">
                 <Loader2 size={32} className="animate-spin text-gold" />
                 <p className="text-foreground-secondary font-black uppercase text-[9px] tracking-widest animate-pulse">Đang tải bảng công...</p>

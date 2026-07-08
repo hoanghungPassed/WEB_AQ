@@ -7,6 +7,7 @@ import { getAuthUser } from "@/lib/auth";
 import { checkPermission, logAuditTrail } from "@/lib/permissions";
 import { paginate } from "@/lib/pagination";
 import { escapeRegExp } from "@/lib/validation";
+import Batch from "@/models/Batch";
 
 export const dynamic = "force-dynamic";
 
@@ -173,6 +174,13 @@ export async function GET(req: NextRequest) {
           { assignee: userId ? new mongoose.Types.ObjectId(userId) : null }
         ]
       };
+      
+      // Fetch explicit batches assigned to the user from the Batch collection
+      const userBatches = await Batch.find({
+        assignedTo: userId as any,
+        ...(type && type !== "ALL" ? { type: type as any } : {})
+      }).lean();
+
       // If staff, we aggregate batches specifically for this user's assigned mails
       const [rootBatches, satBatches, monBatches] = await Promise.all([
         RootMail.aggregate([
@@ -192,11 +200,16 @@ export async function GET(req: NextRequest) {
       const combined = [...rootBatches, ...satBatches, ...monBatches];
       const map = new Map<string, { count: number, type: string, createdAt: Date }>();
       
+      // Initialize map with user's assigned batches
+      for (const ub of userBatches) {
+        map.set(ub.name, { count: ub.mailCount || 0, type: ub.type, createdAt: ub.createdAt });
+      }
+
       for (const b of combined) {
         if (!b._id) continue;
         const existing = map.get(b._id);
         if (existing) {
-          existing.count += b.count;
+          existing.count = b.count; // Use actual aggregated count
         } else {
           map.set(b._id, { count: b.count, type: b.type || "ROOT", createdAt: b.createdAt || new Date() });
         }

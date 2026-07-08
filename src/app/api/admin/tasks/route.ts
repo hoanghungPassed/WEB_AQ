@@ -213,7 +213,6 @@ export async function POST(req: NextRequest) {
 
     // Side Effects sau khi Commit thành công (Pusher, Mail)
     try {
-      await pusherServer.trigger("system-notifications", "new-notification", { title: task.title });
       await pusherServer.trigger(`private-${data.assigneeId}`, "new_notification", { title: task.title });
       await pusherServer.trigger(`user-${data.assigneeId}`, "new-task", { taskId: task._id, title: "Nhiệm vụ mới" });
       await pusherServer.trigger('private-system', 'task-list-updated', {});
